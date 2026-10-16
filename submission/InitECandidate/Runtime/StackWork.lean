@@ -59,6 +59,15 @@ decreasing_by
   all_goals simp_all [Prod.lex_def, StackSemStateOps.decClock, StackSemStateOps.setVar]
   all_goals omega
 
+theorem two_le_stackWork {width : Nat} [NeZero width] {C F : Type}
+    (prog : HolProg width) (s : StackSemStateFiniteExact width C F) : 2 ≤ stackWork prog s := by
+  cases prog
+  case call ret dest handler =>
+    rcases ret with _ | ⟨rp, link, l1, l2⟩ <;> rw [stackWork]
+    all_goals repeat first | omega | simp | split
+  all_goals rw [stackWork]
+  all_goals repeat first | omega | simp | split
+
 /-- Sequence composition at a concrete source-derived budget. -/
 theorem stackWork_seq_bound {width : Nat} [NeZero width] {C F : Type}
     (a b : HolProg width) (s : StackSemStateFiniteExact width C F)
