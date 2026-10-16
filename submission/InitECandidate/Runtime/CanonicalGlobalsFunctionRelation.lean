@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.BaselineGlobalFunctionTable
 import InitECandidate.Runtime.PanGlobalsCodeRelation
+import InitECandidate.Runtime.SourceEntryCode
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 0
 namespace InitECandidate.Runtime
@@ -19,10 +20,10 @@ theorem canonical_globals_ready_code (input : Guest.InputBlob) :
 
 noncomputable def canonicalRenamedSourceEntry (input : Guest.InputBlob) :
     PanSemStateFiniteExact 64 Guest.HostMemory :=
-  {zeroGlobalPost (canonicalGlobalsSourceState input) baselineGlobalNames with
-    locals := (canonicalInitializedGlobals input).locals
-    code := HolFiniteMapExact.empty.updateList
-      (functionsHOL FrontendStages.Declarations.renamedFunctionDeclarations).reverse}
+  sourceEntryCode (zeroGlobalPost (canonicalGlobalsSourceState input) baselineGlobalNames)
+    (canonicalInitializedGlobals input).locals
+    (HolFiniteMapExact.empty.updateList
+      (functionsHOL FrontendStages.Declarations.renamedFunctionDeclarations).reverse)
 
 private theorem lookup_member {A B : Type} [BEq A] [LawfulBEq A]
     (entries : List (A × B)) (name : A) (value : B)
