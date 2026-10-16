@@ -47,10 +47,10 @@ noncomputable def stackWork {width : Nat} [NeZero width] {C F : Type}
             let entry := decClock (setVar link (.loc l1 l2) s)
             let middle := (fixClock entry (StackSemEvaluate.evaluate (body, entry))).2
             have lower : middle.clock ≤ entry.clock := StackSemMeasure.fixClock_clock_le entry _
-            2 + stackWork body entry + stackWork rp middle +
+            2 * (stackWork body entry + stackWork rp middle +
               match handler with
               | none => 0
-              | some (hp, _, _) => stackWork hp middle
+              | some (hp, _, _) => stackWork hp middle) + 2
   | _ => 2
 termination_by (s.clock, sizeOf prog)
 decreasing_by
