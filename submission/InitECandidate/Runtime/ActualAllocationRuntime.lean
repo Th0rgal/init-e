@@ -7,6 +7,12 @@ open Flapjack.StackSemStateOps Flapjack.StackSemEvaluate
 open Flapjack.Compiler.Backend.StackAlloc.CompCorrect
 open InitECandidate.Proofs.BackendStages
 
+/-- The actual input to allocation lowering satisfies the runtime syntax check. -/
+theorem actual_compiled_allocationFree :
+    allocationFreeCode (Flapjack.Compiler.Backend.StackRawCall.compile Native.stack) = true := by
+  rw [Raw.compile_eq]
+  exact actual_allocationFree
+
 /-- Instantiate the code half of the runtime invariant from the kernel-checked
 certificate for every actual generated Raw procedure. The oracle condition is
 kept explicit until the compiler initialization bridge discharges it. -/
