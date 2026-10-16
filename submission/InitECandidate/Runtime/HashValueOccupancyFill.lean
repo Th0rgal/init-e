@@ -3,8 +3,9 @@ import InitECandidate.Runtime.SourceByteReadback
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.PanSemStateFiniteExact
 
-/-- In insertion's actual order, occupancy is marked before the value write.
-The combined writes establish the new slot's word shape and retain old slots. -/
+/-- Marking occupancy and then writing a value preserves old slots and
+establishes the marked slot's word shape. This is a memory lemma; the original
+insertion evaluator writes its value before marking occupancy. -/
 theorem HashValueEntriesWord.fill_and_write {F : Type}
     (state : PanSemStateFiniteExact 64 F) (used values capacity inserted cell value : BitVec 64)
     (entries : HashValueEntriesWord used values capacity state)

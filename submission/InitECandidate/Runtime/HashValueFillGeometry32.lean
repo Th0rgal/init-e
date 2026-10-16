@@ -3,7 +3,7 @@ import InitECandidate.Runtime.HashValueWriteGeometry32
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.PanSemStateFiniteExact
 
-/-- The actual occupancy-then-value write sequence preserves readable values
+/-- The occupancy-then-value memory sequence preserves readable values
 using table geometry, including shared occupancy words and distinct slots. -/
 theorem HashValueEntriesWord.fill_and_write_layout32 {F : Type}
     (state : PanSemStateFiniteExact 64 F)
