@@ -262,6 +262,82 @@ theorem fetched_locValue_bounded {F : Type}
       t1.mem _ htrel hregs c29 (fun x hx => (c31 x hx).2.2) (fun _ _ => rfl) rfl)
   exact ⟨bytes', l, ms2, _, hpos, bound, (hl 0).2.2.2, fun clock => (hl clock).1, hrel'⟩
 
+theorem fetched_branch_fallthrough_bounded {F : Type}
+    (s1 : LabSem.State 64 Config F) (cmp : HolCmp) (rr : Nat) (ri : HolRegImm 64)
+    (jt : Lab) (w : BitVec 64)
+    (mc : MachineConfig 64 riscv_state RiscVProjection) (code2 : LabProgHOL 64)
+    (labs : Spt (Spt Nat)) (p : BitVec 64) (t1 : AsmState 64) (ms1 : riscv_state)
+    (bytes : List (BitVec 8)) (n : Nat)
+    (target : mc.target = riscvTarget)
+    (hfetch : asmFetch s1 = some (.labAsm (.jumpCmp cmp rr ri jt) w bytes n))
+    (hec : encoderCorrect mc.target)
+    (hrel : stateRel (mc, code2, labs, p) s1 t1 ms1)
+    (hc : wordSemWordCmp cmp (s1.regs rr) (LabSem.regImm ri s1) = some false) :
+    ∃ (encoded : List (BitVec 8)), ∃ count ms2,
+      posVal (s1.pc + 1) 0 code2 = posVal s1.pc 0 code2 + encoded.length ∧
+      count ≤ 16 * (encoded.length + 1) ∧ count ≠ 0 ∧
+      (∀ clock, evaluateTargetHOL mc s1.ffi (clock + count) ms1 =
+        evaluateTargetHOL (shiftInterfer count mc) s1.ffi clock ms2) ∧
+      stateRel (shiftInterfer count mc, code2, labs, p) (incPc (decClock s1))
+        (Flapjack.Compiler.Encoders.AsmSem.updPc
+          (p + BitVec.ofNat 64 (posVal (s1.pc + 1) 0 code2)) t1) ms2 := by
+  obtain ⟨w', bytes', len', hok, hmem, hpos, hdis⟩ := fetchedLabAsmLine hrel hfetch
+  have hv := lineOk_labelTarget _ _ _ _ _ _ _ _ (Or.inr (Or.inl ⟨cmp, rr, ri, jt, rfl⟩)) hok
+  simp only [getLabel, labInst] at hv
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, c29, c30, c31, -, -, -, -, -, -, -, ht1f, -, htpc, -⟩ := id hrel
+  have htc := wordCmp_lemma mc code2 labs p s1 t1 ms1 cmp rr ri false ⟨hrel, hc⟩
+  obtain ⟨l, ms2, bound, hl⟩ := line_bounded s1.ffi target hrel hec _ bytes' hmem hv.1 hv.2.2 hdis
+    (by simp [asmUpd, ← htc, Flapjack.Compiler.Encoders.AsmSem.updPc, ht1f]) (fun _ _ => by simp [asmUpd, ← htc, Flapjack.Compiler.Encoders.AsmSem.updPc])
+    (by intro x h; cases h)
+  have htrel := (hl 0).2.2.1
+  have hnewpc : t1.pc + BitVec.ofNat 64 bytes'.length =
+      p + BitVec.ofNat 64 (posVal (s1.pc + 1) 0 code2) := by
+    rw [htpc, hpos, BitVec.ofNat_add, BitVec.add_assoc]
+  simp only [asmUpd, ← htc, Bool.false_eq_true, ↓reduceIte, Flapjack.Compiler.Encoders.AsmSem.updPc, hnewpc] at htrel
+  have hrel' := stateRel_shiftInterfer _ _ _ _ _ _ _ l
+    (stateRel_frame hrel s1.regs s1.fpRegs s1.memory (s1.pc + 1) (s1.clock - 1) t1.regs
+      t1.fpRegs t1.mem _ htrel c30 c29 (fun x hx => (c31 x hx).2.2) (fun _ _ => rfl) rfl)
+  exact ⟨bytes', l, ms2, hpos, bound, (hl 0).2.2.2, fun clock => (hl clock).1, hrel'⟩
+
+theorem fetched_branch_taken_bounded {F : Type}
+    (s1 : LabSem.State 64 Config F) (cmp : HolCmp) (rr : Nat) (ri : HolRegImm 64)
+    (jt : Lab) (w : BitVec 64)
+    (mc : MachineConfig 64 riscv_state RiscVProjection) (code2 : LabProgHOL 64)
+    (labs : Spt (Spt Nat)) (p : BitVec 64) (t1 : AsmState 64) (ms1 : riscv_state)
+    (bytes : List (BitVec 8)) (n : Nat)
+    (target : mc.target = riscvTarget)
+    (hfetch : asmFetch s1 = some (.labAsm (.jumpCmp cmp rr ri jt) w bytes n))
+    (hec : encoderCorrect mc.target)
+    (hrel : stateRel (mc, code2, labs, p) s1 t1 ms1)
+    (hc : wordSemWordCmp cmp (s1.regs rr) (LabSem.regImm ri s1) = some true)
+    (pc : Nat) (hpc : getPcValue jt s1 = some pc) :
+    ∃ count ms2, count ≤ 16 ∧ count ≠ 0 ∧
+      (∀ clock, evaluateTargetHOL mc s1.ffi (clock + count) ms1 =
+        evaluateTargetHOL (shiftInterfer count mc) s1.ffi clock ms2) ∧
+      stateRel (shiftInterfer count mc, code2, labs, p) (LabSem.updPc pc (decClock s1))
+        (Flapjack.Compiler.Encoders.AsmSem.updPc (p + BitVec.ofNat 64 (posVal pc 0 code2)) t1) ms2 := by
+  obtain ⟨w', bytes', len', hok, hmem, hpos, hdis⟩ := fetchedLabAsmLine hrel hfetch
+  have hv := lineOk_labelTarget _ _ _ _ _ _ _ _ (Or.inr (Or.inl ⟨cmp, rr, ri, jt, rfl⟩)) hok
+  simp only [getLabel, labInst] at hv
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, c29, c30, c31, -, -, -, -, -, -, -, ht1f, -, htpc, -⟩ := id hrel
+  have htc := wordCmp_lemma mc code2 labs p s1 t1 ms1 cmp rr ri true ⟨hrel, hc⟩
+  obtain ⟨hfind, -⟩ := findPos_of_getPcValue hrel jt pc hpc
+  simp only [hfind] at hv
+  obtain ⟨l, ms2, bound, hl⟩ := leading_line_bounded s1.ffi target hrel hec _ bytes' hmem hv.1 hv.2.2 hdis
+    (by simp [asmUpd, ← htc, jumpToOffset, Flapjack.Compiler.Encoders.AsmSem.updPc, ht1f])
+  have htrel := (hl 0).2.2.1
+  have hnewpc : t1.pc + (BitVec.ofNat 64 (posVal pc 0 code2) -
+      BitVec.ofNat 64 (posVal s1.pc 0 code2)) =
+      p + BitVec.ofNat 64 (posVal pc 0 code2) := by
+    rw [htpc]; ring
+  simp only [asmUpd, ← htc, ↓reduceIte, jumpToOffset, Flapjack.Compiler.Encoders.AsmSem.updPc, hnewpc] at htrel
+  have hrel' := stateRel_shiftInterfer _ _ _ _ _ _ _ l
+    (stateRel_frame hrel s1.regs s1.fpRegs s1.memory pc (s1.clock - 1) t1.regs t1.fpRegs
+      t1.mem _ htrel c30 c29 (fun x hx => (c31 x hx).2.2) (fun _ _ => rfl) rfl)
+  exact ⟨l, ms2, bound, (hl 0).2.2.2, fun clock => (hl clock).1, hrel'⟩
+
 end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.line_bounded
 #print axioms InitECandidate.Runtime.LabToTarget.line_memory_bounded
@@ -275,3 +351,6 @@ end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.fetched_jump_bounded
 
 #print axioms InitECandidate.Runtime.LabToTarget.fetched_locValue_bounded
+
+#print axioms InitECandidate.Runtime.LabToTarget.fetched_branch_taken_bounded
+#print axioms InitECandidate.Runtime.LabToTarget.fetched_branch_fallthrough_bounded
