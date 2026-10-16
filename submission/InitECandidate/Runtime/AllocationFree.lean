@@ -3,7 +3,9 @@ import Flapjack.Compiler.Backend.StackAlloc.Compile
 namespace InitECandidate.Runtime.StackAlloc
 open Flapjack Flapjack.Compiler.Backend.StackLang
 
-/-- Syntax for which allocation lowering introduces no stub calls or labels. -/
+/-- Closed-program syntax for which allocation lowering introduces no stub calls
+or labels. Dynamic installation is excluded so an execution invariant can retain
+the certified set of procedure bodies. -/
 def allocationFree {width : Nat} [NeZero width] (prog : HolProg width) : Bool :=
   match prog with
   | .seq a b | .ite _ _ _ a b => allocationFree a && allocationFree b
@@ -12,7 +14,7 @@ def allocationFree {width : Nat} [NeZero width] (prog : HolProg width) : Bool :=
   | .call none _ (some _) => false
   | .call (some (rp, _, _, _)) _ none => allocationFree rp
   | .call (some (rp, _, _, _)) _ (some (hp, _, _)) => allocationFree rp && allocationFree hp
-  | .alloc _ | .storeConsts _ _ (some _) => false
+  | .alloc _ | .storeConsts _ _ (some _) | .install _ _ _ _ _ => false
   | _ => true
 termination_by sizeOf prog
 
@@ -27,6 +29,18 @@ theorem allocationFree_comp {width : Nat} [NeZero width] (n m : Nat) (prog : Hol
 
 def allocationFreeCode {width : Nat} [NeZero width] (code : List (Nat × HolProg width)) : Bool :=
   code.all (fun entry => allocationFree entry.2)
+
+/-- Every procedure fetched from a certified code list retains the syntax invariant. -/
+theorem allocationFreeCode_member {width : Nat} [NeZero width]
+    (code : List (Nat × HolProg width))
+    (free : allocationFreeCode code = true) (entry : Nat × HolProg width)
+    (member : entry ∈ code) : allocationFree entry.2 = true := by
+  exact (List.all_eq_true.mp free) entry member
+
+/-- Dynamic installation cannot occur as a certified body. -/
+theorem allocationFree_not_install {width : Nat} [NeZero width]
+    (a b c d e : Nat) : allocationFree (.install a b c d e : HolProg width) = false := by
+  simp [allocationFree]
 
 theorem allocationFreeCode_append {width : Nat} [NeZero width] (a b : List (Nat × HolProg width)) :
     allocationFreeCode (a ++ b) = (allocationFreeCode a && allocationFreeCode b) := by
