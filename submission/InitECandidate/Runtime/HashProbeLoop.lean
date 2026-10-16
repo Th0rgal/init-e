@@ -26,7 +26,12 @@ theorem evaluate_hashProbeLoop_bounded {F : Type}
     ∃ post, evaluateHOLFiniteState state hashProbeLoop = (none,post) ∧
       state.clock ≤ post.clock + rank ∧ post.clock ≤ state.clock ∧
       post.memory = state.memory ∧ post.globals = state.globals ∧
-      post.code = state.code ∧ post.memaddrs = state.memaddrs := by
+      post.code = state.code ∧ post.memaddrs = state.memaddrs ∧
+      ∃ finalIndex : BitVec 64, post.locals.lookup (ofString "i") = some (.val (.word finalIndex)) ∧
+        finalIndex.toNat < capacity.toNat ∧
+        @panMemLoadByteHOL 64 _ state.memory state.memaddrs
+          (fun address => Classical.propDecidable (state.memaddrs address)) state.be (used + finalIndex) = some 0 ∧
+        ∀ name, name ≠ ofString "i" → post.locals.lookup name = state.locals.lookup name := by
   classical
   intro rank
   induction rank using Nat.strongRecOn with
@@ -41,7 +46,15 @@ theorem evaluate_hashProbeLoop_bounded {F : Type}
         rw [evaluateHOLFiniteState_while_total,evalHOLFinite_eq_toExact,condition]
         have zeroLiteral : BitVec.ofNat 64 byte.toNat = (0#64) := zero
         simp [Compiler.Encoders.Asm.wordCmpHOL,zeroLiteral]
-      exact ⟨state,run,by omega,by omega,rfl,rfl,rfl,rfl⟩
+      have byteZero : byte = 0 := by
+        apply UInt8.toNat.inj
+        have limit := byte.toNat_lt_size
+        change byte.toNat < 256 at limit
+        have equality := congrArg BitVec.toNat zero
+        simpa [word,BitVec.toNat_ofNat,Nat.mod_eq_of_lt (show byte.toNat < 2^64 by omega)] using equality
+      refine ⟨state,run,by omega,by omega,rfl,rfl,rfl,rfl,index,indexLocal,inside,?_,?_⟩
+      · simpa only [byteZero] using loaded
+      · intro name different; rfl
     · have notEmpty : index ≠ empty := by
         intro same
         rw [same,emptyLoad] at loaded
@@ -67,7 +80,7 @@ theorem evaluate_hashProbeLoop_bounded {F : Type}
         simp [nextState,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,namesCap,capacityLocal,decClockHOLFinite]
       have nextUsed : nextState.locals.lookup (ofString "used") = some (.val (.word used)) := by
         simp [nextState,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,namesUsed,usedLocal,decClockHOLFinite]
-      obtain ⟨post,tail,cost,remaining,memory,globals,code,domain⟩ := ih _ decreases nextState next
+      obtain ⟨post,tail,cost,remaining,memory,globals,code,domain,finalIndex,finalLocal,finalInside,finalEmpty,otherLocals⟩ := ih _ decreases nextState next
         nextIndex nextCap nextUsed nextInside rfl
         (by change _ ≤ state.clock - 1; omega) readable emptyLoad
       have step := evaluate_hashProbeStep (decClockHOLFinite state) (ofString "i") index capacity indexLocal capacityLocal
@@ -80,8 +93,15 @@ theorem evaluate_hashProbeLoop_bounded {F : Type}
         rw [if_pos flag]
         simp [show state.clock ≠ 0 by omega,step,fixClockHOLFinite]
         simp only [setVarHOLFinite,decClockHOLFinite,Nat.lt_irrefl,if_false,nextState,next]
-      refine ⟨post,run.trans tail,?_,?_,memory,globals,code,domain⟩
-      all_goals dsimp only [nextState,setVarHOLFinite,decClockHOLFinite] at cost remaining; omega
+      refine ⟨post,run.trans tail,?_,?_,memory,globals,code,domain,finalIndex,finalLocal,finalInside,finalEmpty,?_⟩
+      · dsimp only [nextState,setVarHOLFinite,decClockHOLFinite] at cost remaining
+        omega
+      · dsimp only [nextState,setVarHOLFinite,decClockHOLFinite] at remaining
+        omega
+      · intro name different
+        rw [otherLocals name different]
+        have backwards := Ne.symm different
+        simp [nextState,setVarHOLFinite,decClockHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,backwards]
 
 #print axioms evaluate_hashProbeLoop_bounded
 end InitECandidate.Runtime
