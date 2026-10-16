@@ -103,7 +103,87 @@ theorem mixedTrace_source {F : Type} {start final : LabSem.State 64 Config F} {l
     · have tailClock : final.clock + length = state.clock - 1 := ih.2
       omega
 
+/-- A mixed control/FFI trace ending at a real halt has a native terminal
+bound linear in the initial label-evaluator clock. -/
+theorem mixedTrace_halt_bounded {F : Type} {start final : LabSem.State 64 Config F} {length : Nat}
+    (trace : MixedTrace start final length)
+    (mc : MachineConfig 64 riscv_state RiscVProjection) (code : LabProgHOL 64)
+    (labs : Spt (Spt Nat)) (p : BitVec 64) (asm : AsmState 64) (machine : riscv_state)
+    (target : mc.target = riscvTarget) (encoder : encoderCorrect mc.target)
+    (related : stateRel (mc, code, labs, p) start asm machine) (tie : oracleTie mc machine start)
+    (w value : BitVec 64) (bytes : List (BitVec 8)) (n : Nat)
+    (clock : final.clock ≠ 0)
+    (fetch : asmFetch final = some (.labAsm .halt w bytes n))
+    (result : final.regs final.ptrReg = .word value) :
+    evaluate start = (.halt (if value = 0 then .success else .resourceLimitHit), final) ∧
+    ∃ count post, count ≤ (labStepCeiling code + 1) * start.clock ∧
+      evaluateTargetHOL mc start.ffi count machine =
+        (.halt (if value = 0 then .success else .resourceLimitHit), post, final.ffi) := by
+  constructor
+  · rw [(mixedTrace_source trace).1, evaluate]
+    by_cases zero : value = (0#64) <;> simp [clock, fetch, result, zero]
+  · obtain ⟨firstCount, middle, middleAsm, finalConfig, firstBound, finalTarget,
+        finalEncoder, firstRun, middleRel, middleTie⟩ :=
+      mixedTrace_bounded trace mc code labs p asm machine target encoder related tie
+    obtain ⟨lastCount, post, lastBound, lastRun⟩ := fetched_halt_bounded final w value
+      finalConfig code labs p middleAsm middle bytes n finalTarget fetch result finalEncoder middleRel
+    refine ⟨lastCount + firstCount, post, ?_, ?_⟩
+    · have sourceClock := (mixedTrace_source trace).2
+      have lengthBound : length + 1 ≤ start.clock := by omega
+      have ceiling : 17 ≤ labStepCeiling code + 1 := by unfold labStepCeiling; omega
+      have multiplied := Nat.mul_le_mul_left (labStepCeiling code + 1) lengthBound
+      rw [Nat.mul_add, Nat.mul_one] at multiplied
+      omega
+    · rw [firstRun, lastRun]
+
+theorem mixedTrace_ffi_final_bounded {F : Type}
+    {initial terminal : LabSem.State 64 Config F} {length : Nat}
+    (trace : MixedTrace initial terminal length)
+    (mc : MachineConfig 64 riscv_state RiscVProjection) (code : LabProgHOL 64)
+    (labs : Spt (Spt Nat)) (p : BitVec 64) (asm : AsmState 64) (machine : riscv_state)
+    (target : mc.target = riscvTarget) (encoder : encoderCorrect mc.target)
+    (related : stateRel (mc, code, labs, p) initial asm machine) (tie : oracleTie mc machine initial)
+    (name : MlString) (w : BitVec 64) (bytes : List (BitVec 8)) (n : Nat)
+    (len start len2 start2 : BitVec 64) (conf bytes2 : List (BitVec 8))
+    (n1 n2 pc : Nat) (event : HolFinalEvent)
+    (clock : terminal.clock ≠ 0)
+    (fetch : asmFetch terminal = some (.labAsm (.callFFI name) w bytes n))
+    (hlen : terminal.regs terminal.lenReg = .word len) (hptr : terminal.regs terminal.ptrReg = .word start)
+    (hlen2 : terminal.regs terminal.len2Reg = .word len2) (hptr2 : terminal.regs terminal.ptr2Reg = .word start2)
+    (read1 : readBytearrayWordHOL start len.toNat
+      (memLoadByteAuxExact terminal.memory terminal.memDomain terminal.be) = some conf)
+    (read2 : readBytearrayWordHOL start2 len2.toNat
+      (memLoadByteAuxExact terminal.memory terminal.memDomain terminal.be) = some bytes2)
+    (link : terminal.regs terminal.linkReg = .loc n1 n2)
+    (destination : locToPc n1 n2 terminal.code = some pc)
+    (call : callFFIHOL terminal.ffi (.extCall name) conf bytes2 = .final event) :
+    evaluate initial = (.halt (.ffiOutcome event), terminal) ∧
+    ∃ count post, count ≤ (labStepCeiling code + 1) * initial.clock ∧
+      evaluateTargetHOL mc initial.ffi count machine = (.halt (.ffiOutcome event), post, terminal.ffi) := by
+  constructor
+  · rw [(mixedTrace_source trace).1, evaluate]
+    simp only [clock, ↓reduceIte, fetch, hlen, hptr, hlen2, hptr2, link,
+      read1, read2, destination, call]
+  · obtain ⟨firstCount, middle, middleAsm, finalConfig, firstBound, finalTarget,
+        finalEncoder, firstRun, middleRel, middleTie⟩ :=
+      mixedTrace_bounded trace mc code labs p asm machine target encoder related tie
+    obtain ⟨lastCount, post, lastBound, lastRun⟩ := fetched_ffi_final_bounded terminal name w
+      finalConfig code labs p middleAsm middle bytes n len start len2 start2 conf bytes2 finalTarget fetch
+      hlen hptr hlen2 hptr2 read1 read2 finalEncoder middleRel event call
+    refine ⟨lastCount + firstCount, post, ?_, ?_⟩
+    · have sourceClock := (mixedTrace_source trace).2
+      have lengthBound : length + 1 ≤ initial.clock := by omega
+      have ceiling : 17 ≤ labStepCeiling code + 1 := by unfold labStepCeiling; omega
+      have multiplied := Nat.mul_le_mul_left (labStepCeiling code + 1) lengthBound
+      rw [Nat.mul_add, Nat.mul_one] at multiplied
+      omega
+    · rw [firstRun, lastRun]
+
 end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.mixedTrace_bounded
 
 #print axioms InitECandidate.Runtime.LabToTarget.mixedTrace_source
+
+#print axioms InitECandidate.Runtime.LabToTarget.mixedTrace_halt_bounded
+
+#print axioms InitECandidate.Runtime.LabToTarget.mixedTrace_ffi_final_bounded
