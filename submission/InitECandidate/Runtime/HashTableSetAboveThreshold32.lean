@@ -1,0 +1,57 @@
+import InitECandidate.Runtime.HashTableSetLookupGrowth32
+import InitECandidate.Runtime.HashTableSetLookupExistingOrder32
+import InitECandidate.Runtime.DeclarationResultUnique
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+theorem HashTableArraysInvariant32.set_above_threshold {F : Type}
+    (state : PanSemStateFiniteExact 64 F)
+    (table pointer keys stride capacity used values order orderPos items key value : BitVec 64) (bits : Nat)
+    (invariant : HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits state)
+    (entries : HashOrderEntriesBound order capacity items state)
+    (allocated : orderPos.toNat + capacity.toNat * 8 ≤ pointer.toNat)
+    (strideBound : stride.toNat ≤ 56) (pointerAligned : pointer.toNat % 8 = 0)
+    (heapBudget : pointer.toNat + 162 * capacity.toNat + 35 ≤ 33806089496)
+    (ticks : 2 * capacity.toNat + 2 * (capacity * 2).toNat + 44 + items.toNat * ((capacity * 2).toNat + 36) ≤ state.clock)
+    (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (domain : ∀ address : BitVec 64, table.toNat ≤ address.toNat →
+      address.toNat < (htabGrowOrderPos pointer capacity stride).toNat + (capacity * 2).toNat * 8 → state.memaddrs address)
+    (tableLocal : state.locals.lookup (ofString "t") = some (.val (.word table)))
+    (keyLocal : state.locals.lookup (ofString "key") = some (.val (.word key)))
+    (valueLocal : state.locals.lookup (ofString "value") = some (.val (.word value)))
+    (loadFactor : capacity.toNat < (items.toNat + 1) * 2)
+    (capacityLarge : 1 < capacity.toNat)
+    (keyAligned : key.toNat % 8 = 0)
+    (sourceWordDomain : ∀ offset : Nat, offset < 32 → state.memaddrs (key + BitVec.ofNat 64 offset))
+    (sourceByteDomain : ∀ offset : Nat, offset < 32 → state.memaddrs (panByteAlignHOL (key + BitVec.ofNat 64 offset))) :
+    ∃ post, evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_htab_set) =
+        (some (.returned (.val (.word (0 : BitVec 64)))),post) ∧
+      ((HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits post ∧
+        HashOrderEntriesBound order capacity items post) ∨
+       (HashTableArraysInvariant32 table pointer stride (capacity * 2) (htabGrowUsed pointer capacity stride)
+        (htabGrowValues pointer capacity stride) (htabGrowOrder pointer capacity stride)
+        (htabGrowOrderPos pointer capacity stride) (items + 1) (bits + 1) post ∧
+        HashOrderEntriesBound (htabGrowOrder pointer capacity stride) (capacity * 2) (items + 1) post)) ∧
+      state.clock ≤ post.clock + 2 * capacity.toNat + 2 * (capacity * 2).toNat + 44 + items.toNat * ((capacity * 2).toNat + 36) ∧
+      post.clock ≤ state.clock ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
+  obtain ⟨found,ready,inside,decl,growth⟩ := invariant.set_lookup_growth state table pointer keys stride capacity used values order orderPos items key value bits
+    entries allocated strideBound pointerAligned heapBudget ticks heap domain tableLocal keyLocal valueLocal loadFactor capacityLarge keyAligned sourceWordDomain sourceByteDomain
+  have keyDomain : ∀ offset ∈ ([0,8,16,24] : List Nat), state.memaddrs (key + BitVec.ofNat 64 offset) := by
+    intro offset member
+    apply sourceWordDomain
+    simp at member
+    omega
+  obtain ⟨existing,other,_,_,otherDecl,present⟩ := invariant.set_lookup_order state table keys stride capacity used values order orderPos items key value bits
+    tableLocal keyLocal valueLocal keyAligned keyDomain (by omega) entries
+  have equal := declaration_word_result_unique state ready other (ofString "i") (ofString "htab_find_slot")
+    [.var .local (ofString "t"),.var .local (ofString "key")] found existing decl otherDecl
+  by_cases missing : found = capacity
+  · obtain ⟨post,run,valid,orderValid,cost,remaining,code,addresses,endian⟩ := growth missing
+    exact ⟨post,run,Or.inr ⟨valid,orderValid⟩,cost,remaining,code,addresses,endian⟩
+  · have different : existing ≠ capacity := by rw [← equal]; exact missing
+    obtain ⟨post,run,valid,orderValid,cost,remaining,_,code,addresses,endian⟩ := present different
+    exact ⟨post,run,Or.inl ⟨valid,orderValid⟩,by omega,remaining,code,addresses,endian⟩
+
+#print axioms HashTableArraysInvariant32.set_above_threshold
+end InitECandidate.Runtime
