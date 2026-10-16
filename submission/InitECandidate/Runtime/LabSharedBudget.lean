@@ -244,5 +244,56 @@ theorem shared_native_core {width : Nat} [NeZero width] {S Q F : Type}
         ⟨_, _, _, _, hcall⟩, t1.regs, s1.regs, ?_, c30, rfl⟩
       rw [hpos]; exact htrel
 
+/-- Shared-memory return advances exactly one FFI interference and restores
+both the full compiler relation and the oracle tie. -/
+theorem shared_return_native {width : Nat} [NeZero width] {S Q F : Type}
+    (state : LabSem.State width Config F) (m : HolMemop) (r base : Nat) (off : BitVec width)
+    (bytes : List (BitVec 8)) (n : Nat)
+    (mc : MachineConfig width S Q) (code : LabProgHOL width) (labs : Spt (Spt Nat))
+    (p : BitVec width) (asm : AsmState width) (machine : S)
+    (fetch : asmFetch state = some (.asm (.shareMem m r (.addr base off)) bytes n))
+    (related : stateRel (mc, code, labs, p) state asm machine) (tie : oracleTie mc machine state)
+    (ffi : HolFfiState F) (returned : List (BitVec 8)) (next : LabSem.State width Config F)
+    (operation : shareMemOp m r (.addr base off) state = some (.ret ffi returned, next)) :
+    ∃ index asm2,
+      (∀ clock, evaluateTargetHOL mc state.ffi (clock + 1) machine =
+        evaluateTargetHOL { mc with ffiInterfer := holShiftSeq 1 mc.ffiInterfer } ffi clock
+          (mc.ffiInterfer 0 (index, returned, machine))) ∧
+      stateRel ({ mc with ffiInterfer := holShiftSeq 1 mc.ffiInterfer }, code, labs, p)
+        { next with ioRegs := holShiftSeq 1 next.ioRegs, ioFpRegs := holShiftSeq 1 next.ioFpRegs }
+        asm2 (mc.ffiInterfer 0 (index, returned, machine)) ∧
+      oracleTie { mc with ffiInterfer := holShiftSeq 1 mc.ffiInterfer }
+        (mc.ffiInterfer 0 (index, returned, machine))
+        { next with ioRegs := holShiftSeq 1 next.ioRegs, ioFpRegs := holShiftSeq 1 next.ioFpRegs } ∧
+      next.clock = state.clock - 1 ∧ next.code = state.code := by
+  obtain ⟨index, run, finalCase, retCase⟩ := shared_native_core state m r base off bytes n
+    mc code labs p asm machine fetch related (.ret ffi returned) next operation
+  obtain ⟨interference, ffiRel, tregs, regs, targetRel, registers, nextEq⟩ := retCase ffi returned rfl
+  subst next
+  have rel := stateRel_shareMem related ffi ffiRel regs (holShiftSeq 1 state.ioRegs)
+    (holShiftSeq 1 state.ioFpRegs) tregs _ targetRel registers rfl
+  let returnedState : LabSem.State width Config F :=
+    { state with ffi := ffi, regs := regs, pc := state.pc + 1, clock := state.clock - 1, ioRegs := holShiftSeq 1 state.ioRegs, ioFpRegs := holShiftSeq 1 state.ioFpRegs }
+  have tied := oracleTie_ffiNext mc machine state returnedState index returned machine _ _ ffi
+    ⟨tie, interference, rfl, rfl, rfl, rfl, rfl⟩
+  exact ⟨index, _, run, rel, tied, rfl, rfl⟩
+
+theorem shared_final_native {width : Nat} [NeZero width] {S Q F : Type}
+    (state : LabSem.State width Config F) (m : HolMemop) (r base : Nat) (off : BitVec width)
+    (bytes : List (BitVec 8)) (n : Nat)
+    (mc : MachineConfig width S Q) (code : LabProgHOL width) (labs : Spt (Spt Nat))
+    (p : BitVec width) (asm : AsmState width) (machine : S)
+    (fetch : asmFetch state = some (.asm (.shareMem m r (.addr base off)) bytes n))
+    (related : stateRel (mc, code, labs, p) state asm machine)
+    (event : HolFinalEvent) (next : LabSem.State width Config F)
+    (operation : shareMemOp m r (.addr base off) state = some (.final event, next)) :
+    next = state ∧ evaluateTargetHOL mc state.ffi 1 machine = (.halt (.ffiOutcome event), machine, state.ffi) := by
+  obtain ⟨index, run, finalCase, retCase⟩ := shared_native_core state m r base off bytes n
+    mc code labs p asm machine fetch related (.final event) next operation
+  exact ⟨finalCase event rfl, run 0⟩
+
 end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.shared_native_core
+
+#print axioms InitECandidate.Runtime.LabToTarget.shared_return_native
+#print axioms InitECandidate.Runtime.LabToTarget.shared_final_native
