@@ -245,6 +245,135 @@ theorem evaluate_stateSpillBranch {σ : Type} (state : PanSemStateFiniteExact 64
   rw [body]
   rfl
 
+def stateSpillGuard : ExpHOL 64 :=
+  .cmp .notLower (.var .local (ofString "tot")) (.var .local (ofString "amount"))
+def stateSpillContinuation : ProgHOL 64 :=
+  .seq (.ite stateSpillGuard stateSpillBranch .skip)
+    (.seq (.raise (ofString "EvmErr") (.const 4)) (.return (.const 0)))
+theorem source_stateSpill_tail : stateGasSpillTail =
+    .decCall (ofString "tot") .one (ofString "add_sat")
+      [.var .local (ofString "sgl"), .var .local (ofString "gl")] stateSpillContinuation := by cbv
+
+/-- The successful spill tail includes the authoritative add_sat call and
+its comparison; the only clock cost is the helper call. -/
+theorem evaluate_stateSpillTail {σ : Type} (state : PanSemStateFiniteExact 64 σ)
+    (frame stateLeft amount : BitVec 64) (funding : GasFunding)
+    (hFrame : state.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (hLeft : state.locals.lookup (ofString "gl") = some (.val (.word funding.left)))
+    (hState : state.locals.lookup (ofString "sgl") = some (.val (.word stateLeft)))
+    (hAmount : state.locals.lookup (ofString "amount") = some (.val (.word amount)))
+    (installed : state.code.lookup (ofString "add_sat") = some addSatCodeEntry)
+    (clock : state.clock ≠ 0)
+    (stateDomain : state.memaddrs (frame + 72))
+    (leftDomain : state.memaddrs (frame + 64))
+    (spillDomain : state.memaddrs (frame + 192))
+    (memory : HasGasFunding state frame funding)
+    (budget : funding.potential ≤ 200000000)
+    (short : stateLeft.toNat < amount.toNat)
+    (covered : amount ≤ wordAddSat stateLeft funding.left) :
+    ∃ post, evaluateHOLFiniteState state stateGasSpillTail =
+        (some (.returned (.val (.word 0))), post) ∧
+      HasGasFunding post frame (funding.spill (amount - stateLeft)) ∧
+      (funding.spill (amount - stateLeft)).potential = funding.potential ∧
+      post.clock = state.clock - 1 := by
+  classical
+  let next := setVarHOLFinite (ofString "tot")
+    (.val (.word (wordAddSat stateLeft funding.left))) { state with clock := state.clock - 1 }
+  have names : ofString "tot" ≠ ofString "gl" ∧ ofString "tot" ≠ ofString "sgl" ∧
+      ofString "tot" ≠ ofString "amount" := by decide_cbv
+  have nLeft : next.locals.lookup (ofString "gl") = some (.val (.word funding.left)) := by
+    simpa [next, setVarHOLFinite, FUPDATE, names.1] using hLeft
+  have nState : next.locals.lookup (ofString "sgl") = some (.val (.word stateLeft)) := by
+    simpa [next, setVarHOLFinite, FUPDATE, names.2.1] using hState
+  have nAmount : next.locals.lookup (ofString "amount") = some (.val (.word amount)) := by
+    simpa [next, setVarHOLFinite, FUPDATE, names.2.2] using hAmount
+  have nTotal : next.locals.lookup (ofString "tot") =
+      some (.val (.word (wordAddSat stateLeft funding.left))) := by
+    simp [next, setVarHOLFinite, FUPDATE]
+  obtain ⟨written, branch, funded, conserved, timing⟩ :=
+    evaluate_stateSpillBranch next frame stateLeft amount funding hFrame nLeft nState nAmount
+      stateDomain leftDomain spillDomain memory budget short covered
+  have guard : evaluateHOLFiniteState next (.ite stateSpillGuard stateSpillBranch .skip) =
+      (some (.returned (.val (.word 0))), written) := by
+    rw [evaluateHOLFiniteState_ite]
+    have natCovered := BitVec.le_def.mp covered
+    simpa [stateSpillGuard, evalHOLExact, toExact, nTotal, nAmount,
+      Flapjack.Compiler.Encoders.Asm.wordCmpHOL, BitVec.lt_def, Nat.not_lt.mpr natCovered]
+      using branch
+  have continuation : evaluateHOLFiniteState next stateSpillContinuation =
+      (some (.returned (.val (.word 0))), written) := evaluate_seq_some guard
+  have args : evalListHOLFinite state
+      (h := fun address => Classical.propDecidable (state.memaddrs address))
+      [.var .local (ofString "sgl"), .var .local (ofString "gl")] =
+      some [.val (.word stateLeft), .val (.word funding.left)] := by
+    simp [evalListHOLFinite, evalListHOLExact, evalHOLExact, toExact, hState, hLeft]
+  let post := { written with locals := (HolFiniteMapExact.resVarEq written.locals
+    (ofString "tot", state.locals.lookup (ofString "tot"))) }
+  refine ⟨post, ?_, funded, conserved, timing⟩
+  rw [source_stateSpill_tail, evaluate_addSat_decCall state _ _ _ stateLeft funding.left installed args clock]
+  change (let output := evaluateHOLFiniteState next stateSpillContinuation;
+    (output.1, { output.2 with locals := (HolFiniteMapExact.resVarEq output.2.locals
+      (ofString "tot", state.locals.lookup (ofString "tot"))) })) = _
+  rw [continuation]
+
+theorem evaluate_chargeStateGas_spill {σ : Type} (state : PanSemStateFiniteExact 64 σ)
+    (frame stateLeft amount : BitVec 64) (funding : GasFunding)
+    (hFrame : state.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (hAmount : state.locals.lookup (ofString "amount") = some (.val (.word amount)))
+    (installed : state.code.lookup (ofString "add_sat") = some addSatCodeEntry)
+    (clock : state.clock ≠ 0)
+    (stateDomain : state.memaddrs (frame + 72))
+    (leftDomain : state.memaddrs (frame + 64))
+    (spillDomain : state.memaddrs (frame + 192))
+    (stateMemory : state.memory (frame + 72) = .word stateLeft)
+    (memory : HasGasFunding state frame funding)
+    (budget : funding.potential ≤ 200000000)
+    (short : stateLeft.toNat < amount.toNat)
+    (covered : amount ≤ wordAddSat stateLeft funding.left) :
+    ∃ post, evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_charge_state_gas) =
+        (some (.returned (.val (.word 0))), post) ∧
+      HasGasFunding post frame (funding.spill (amount - stateLeft)) ∧
+      (funding.spill (amount - stateLeft)).potential = funding.potential ∧
+      post.clock = state.clock - 1 := by
+  classical
+  let outer := setVarHOLFinite (ofString "sgl") (.val (.word stateLeft)) state
+  let entry := setVarHOLFinite (ofString "gl") (.val (.word funding.left)) outer
+  have names : ofString "gl" ≠ ofString "sgl" ∧ ofString "sgl" ≠ ofString "amount" ∧
+      ofString "gl" ≠ ofString "amount" := by decide_cbv
+  have eState : entry.locals.lookup (ofString "sgl") = some (.val (.word stateLeft)) := by
+    simp [entry, outer, setVarHOLFinite, FUPDATE, names.1]
+  have eLeft : entry.locals.lookup (ofString "gl") = some (.val (.word funding.left)) := by
+    simp [entry, setVarHOLFinite, FUPDATE]
+  have eAmount : entry.locals.lookup (ofString "amount") = some (.val (.word amount)) := by
+    simpa [entry, outer, setVarHOLFinite, FUPDATE, names.2.1, names.2.2] using hAmount
+  obtain ⟨written, tail, funded, conserved, timing⟩ := evaluate_stateSpillTail entry frame
+    stateLeft amount funding hFrame eLeft eState eAmount installed clock stateDomain leftDomain
+    spillDomain memory budget short covered
+  have guard : evaluateHOLFiniteState entry
+      (.ite stateGasEnough (.seq (.store (fundingAddress 72) stateGasDebit)
+        (.return (.const 0))) .skip) = (none, entry) := by
+    rw [evaluateHOLFiniteState_ite]
+    simp [stateGasEnough, evalHOLExact, toExact, eState, eAmount,
+      Flapjack.Compiler.Encoders.Asm.wordCmpHOL, BitVec.lt_def, short]
+  have body := evaluate_seq_none guard tail
+  let inner := { written with locals := (HolFiniteMapExact.resVarEq written.locals
+    (ofString "gl", outer.locals.lookup (ofString "gl"))) }
+  let post := { inner with locals := (HolFiniteMapExact.resVarEq inner.locals
+    (ofString "sgl", state.locals.lookup (ofString "sgl"))) }
+  refine ⟨post, ?_, funded, conserved, timing⟩
+  rw [source_chargeStateGas_body, evaluateHOLFiniteState_dec_total]
+  dsimp only
+  rw [eval_fundingLoad state frame 72 stateLeft hFrame stateDomain stateMemory]
+  simp only [shapeOfHOLExact, shapeEqHOL]
+  rw [show setVarHOLFinite (ofString "sgl") (.val (.word stateLeft)) state = outer from rfl]
+  rw [evaluateHOLFiniteState_dec_total]
+  dsimp only
+  rw [eval_fundingLoad outer frame 64 funding.left hFrame leftDomain memory.1]
+  simp only [shapeOfHOLExact, shapeEqHOL]
+  rw [show setVarHOLFinite (ofString "gl") (.val (.word funding.left)) outer = entry from rfl]
+  rw [body]
+  rfl
+
 end InitECandidate.Runtime
 #print axioms InitECandidate.Runtime.evaluate_chargeStateGas_covered
 
@@ -253,3 +382,7 @@ end InitECandidate.Runtime
 #print axioms InitECandidate.Runtime.evaluate_stateSpillStores
 
 #print axioms InitECandidate.Runtime.evaluate_stateSpillBranch
+
+#print axioms InitECandidate.Runtime.evaluate_stateSpillTail
+
+#print axioms InitECandidate.Runtime.evaluate_chargeStateGas_spill
