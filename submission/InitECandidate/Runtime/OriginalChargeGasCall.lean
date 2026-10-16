@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.ChargeGasCallProgress
+import InitECandidate.Runtime.OriginalRuntimeCode
 import InitECandidate.Runtime.CanonicalOriginalSourceFields
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 1000000
@@ -8,50 +9,12 @@ namespace InitECandidate.Runtime
 open InitE Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
-private theorem lookup_skip_prefix {A B : Type} [BEq A]
-    (before suffix : List (A × B)) (key : A)
-    (absent : before.all (fun entry => !(key == entry.1)) = true) :
-    List.lookup key (before ++ suffix) = List.lookup key suffix := by
-  induction before with
-  | nil => rfl
-  | cons entry before ih =>
-    obtain ⟨name,value⟩ := entry
-    simp only [List.all_cons,Bool.and_eq_true] at absent
-    cases matchName : (key == name) with
-    | false =>
-      simp only [List.cons_append,List.lookup_cons,matchName]
-      exact ih absent.2
-    | true => simp [matchName] at absent
-
 /-- The original challenge code installs the authoritative charge_gas body. -/
 theorem canonical_original_chargeGas_lookup (input : Guest.InputBlob) :
     (canonicalOriginalSourceEntry input).code.lookup (ofString "charge_gas") =
       some ([(ofString "amount",.one)],sourceFunctionBody Guest.guestFn_charge_gas,.one) := by
   rw [canonical_original_source_code]
-  calc
-    _ = List.lookup (ofString "charge_gas") (functionsHOL sourceDeclarations).reverse := by
-      rw [HolFiniteMapExact.lookup_updateList]
-      change FUPDATE_LIST FEMPTY (functionsHOL sourceDeclarations) (ofString "charge_gas") = _
-      simpa only [List.reverse_reverse,FLOOKUP] using
-        FLOOKUP_FUPDATE_LIST_reverse_eq_lookup (functionsHOL sourceDeclarations).reverse (ofString "charge_gas")
-    _ = _ := by
-      let declarations := InitECandidate.Proofs.FrontendStages.Declarations.originals
-      have split : declarations = declarations.take 451 ++
-          InitECandidate.Proofs.FrontendStages.Declarations.original451 :: declarations.drop 452 := by kernel_rfl
-      have absent : ((functionsHOL (declarations.drop 452)).reverse).all
-          (fun entry => !((ofString "charge_gas") == entry.1)) = true := by decide_cbv
-      have head : functionsHOL
-          (InitECandidate.Proofs.FrontendStages.Declarations.original451 :: declarations.drop 452) =
-          (ofString "charge_gas",[(ofString "amount",ShapeHOL.one)],sourceFunctionBody Guest.guestFn_charge_gas,ShapeHOL.one) ::
-            functionsHOL (declarations.drop 452) := by
-        rw [InitECandidate.Proofs.FrontendStages.Declarations.original451_eq]
-        simp only [Guest.guestFn_charge_gas,declToHOL,functionsHOL,funDeclToHOL,
-          List.map_cons,List.map_nil,paramToHOL,shapeToHOL,sourceFunctionBody]
-      rw [InitECandidate.Proofs.FrontendStages.Declarations.sourceDeclarations_eq]
-      change List.lookup (ofString "charge_gas") (functionsHOL declarations).reverse = _
-      rw [split,functionsHOL_append,head,List.reverse_append,List.reverse_cons,List.append_assoc]
-      rw [lookup_skip_prefix _ _ _ absent]
-      simp only [List.singleton_append,List.lookup_cons,beq_self_eq_true]
+  exact originalRuntimeCode_chargeGas_lookup
 
 /-- Positive charge call progress specialized to the actual immutable original
 code table, rather than a supplied body/parameter lookup certificate. -/
