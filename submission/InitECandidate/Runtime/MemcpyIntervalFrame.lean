@@ -58,6 +58,21 @@ theorem hashInsert_copy_watched_separate (table destination size used capacity i
   · exact Or.inl (header 24 (by decide))
   · exact Or.inr (by omega)
 
+/-- A copied key interval before the occupancy allocation cannot modify any
+occupancy cell through either kind of copy store. -/
+theorem memcpy_occupancy_separate (destination size used capacity : BitVec 64)
+    (destinationAligned : destination.toNat % 8 = 0) (usedAligned : used.toNat % 8 = 0)
+    (copyBefore : destination.toNat + size.toNat ≤ used.toNat)
+    (bounded : used.toNat + capacity.toNat ≤ 33806089496) :
+    ∀ offset : Nat, offset < size.toNat → ∀ slot : BitVec 64, slot.toNat < capacity.toNat →
+      panByteAlignHOL (used + slot) ≠ destination + BitVec.ofNat 64 offset ∧
+      panByteAlignHOL (used + slot) ≠ panByteAlignHOL (destination + BitVec.ofNat 64 offset) := by
+  intro offset offsetInside slot slotInside
+  have interval := hashOccupancy_aligned_interval used capacity slot usedAligned (by omega) slotInside
+  exact memcpy_interval_separate destination size (panByteAlignHOL (used + slot)) destinationAligned (by omega)
+    (Or.inr (by omega)) offset offsetInside
+
+#print axioms memcpy_occupancy_separate
 #print axioms memcpy_interval_separate
 #print axioms hashInsert_copy_watched_separate
 end InitECandidate.Runtime
