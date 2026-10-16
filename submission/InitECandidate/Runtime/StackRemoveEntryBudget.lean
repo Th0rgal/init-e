@@ -1,0 +1,102 @@
+import InitECandidate.Runtime.StackRemoveWorkCorrect
+import Flapjack.Compiler.Backend.StackRemove.Proofs.InitSemantics
+
+namespace InitECandidate.Runtime.StackRemove
+open Flapjack Compiler.Backend.StackLang StackSemEvaluate
+open Flapjack.Compiler.Backend.StackRemove
+theorem entrySimulation_bounded {width : Nat} [NeZero width] {C F : Type}
+    (jump : Bool) (bounds : BitVec width × BitVec width) (pointer start clock : Nat)
+    (source target postSource : StackSemStateFiniteExact width C F)
+    (result : Option (StackSemResult width))
+    (relation : stateRelHOL jump bounds pointer source target)
+    (run : evaluate (.call none (.inl start) none, {source with clock := clock}) =
+      (result, postSource))
+    (nonError : result ≠ some .error) :
+    ∃ extra, extra ≤ removeWork (.call none (.inl start) none) {source with clock := clock} ∧ ∃ postTarget,
+      evaluate (.call none (.inl start) none, {target with clock := extra + clock}) =
+        (result, postTarget) ∧ postTarget.ffi = postSource.ffi := by
+  obtain ⟨extra, bound, postTarget, targetRun, postRelation⟩ :=
+    removeWork_correct (.call none (.inl start) none)
+      {source with clock := clock} result postSource {target with clock := clock}
+      pointer bounds jump ⟨run, nonError,
+        RelationLaws.stateRelWithClock jump bounds pointer clock source target relation,
+        by simp [Flapjack.Compiler.Backend.StackProps.regBound]⟩
+  refine ⟨extra, bound, postTarget, ?_, ?_⟩
+  · simpa only [comp] using targetRun
+  · cases result with
+    | none => exact (RelationLaws.stateRelConst jump bounds pointer postSource postTarget postRelation).2.2.2.2.1
+    | some value =>
+      cases value
+      all_goals first
+        | exact postRelation
+        | exact (RelationLaws.stateRelConst jump bounds pointer postSource postTarget postRelation).2.2.2.2.1
+
+
+/-- The real initializer is clock-neutral; the label-zero wrapper consumes
+exactly one entry-call clock before executing the requested start call. -/
+theorem initializer_prefix_run {width : Nat} [NeZero width] {C F : Type}
+    (gc : Bool) (maxHeap pointer start fuel : Nat)
+    (initial ready post : StackSemStateFiniteExact width C F)
+    (result : Option (StackSemResult width))
+    (entry : sptLookup 0 initial.code = some (.seq (initCode gc maxHeap pointer) (.call none (.inl start) none)))
+    (initialized : evaluate (initCode gc maxHeap pointer, initial) = (none, ready))
+    (run : evaluate (.call none (.inl start) none, {ready with clock := fuel}) = (result, post)) :
+    evaluate (.call none (.inl 0) none, {initial with clock := fuel + 1}) = (result, post) := by
+  have clockRun := Proofs.InitClock.evaluateInitCodeClock gc maxHeap pointer initial ready none fuel initialized
+  have body : evaluate (.seq (initCode gc maxHeap pointer) (.call none (.inl start) none),
+      {initial with clock := fuel}) = (result, post) := by
+    rw [evaluate_seq, clockRun]
+    simpa only [StackSemControl.fixClock, Nat.min_self] using run
+  have notBad := Proofs.InitSemantics.callNotBad start {ready with clock := fuel}
+  rw [run] at notBad
+  rw [evaluate_call]
+  simp only [StackSemControl.findCode, entry, Nat.add_one_ne_zero, if_false,
+    StackSemStateOps.decClock, Nat.add_sub_cancel]
+  rw [StackSemEvaluateClock.fixClockEvaluate, body]
+  simp only [notBad, Bool.false_eq_true, if_false]
+
+theorem makeInitOpt_entry_bounded {width : Nat} [NeZero width] {C F : Type}
+    (generateGc : Bool) (maxHeap : Nat) (bitmaps : List (BitVec width)) (dataSpace : Nat)
+    (pointer start : Nat) (s : StackSemStateFiniteExact width C F)
+    (jump : Bool) (bounds : BitVec width × BitVec width)
+    (oracle : Nat → C × List (Nat × HolProg width) × List (BitVec width))
+    (code : Spt (HolProg width))
+    (hyp : Proofs.InitMake.initPre generateGc maxHeap bitmaps dataSpace pointer start s ∧
+      s.compileOracle = (fun index =>
+        let entry := oracle index
+        (entry.1, entry.2.1.map (progComp jump bounds pointer), entry.2.2)) ∧
+      (∀ (n i : Nat) (p : HolProg width), (i, p) ∈ (oracle n).2.1 →
+        Flapjack.Compiler.Backend.StackProps.regBound p pointer ∧ stackNumStubs ≤ i + 1) ∧
+      sptLookup stackErrLab s.code = some (haltInst (BitVec.ofNat width 2)) ∧
+      codeRelHOL jump bounds pointer code s.code)
+    (source postSource : StackSemStateFiniteExact width C F) (fuel : Nat)
+    (result : Option (StackSemResult width))
+    (selected : Proofs.InitMake.makeInitOpt generateGc maxHeap bitmaps dataSpace oracle jump bounds pointer code s = some source)
+    (run : evaluate (.call none (.inl start) none, {source with clock := fuel}) = (result, postSource))
+    (nonError : result ≠ some .error) :
+    ∃ clocks postTarget,
+      clocks ≤ fuel + removeWork (.call none (.inl start) none) {source with clock := fuel} + 1 ∧
+      evaluate (.call none (.inl 0) none, {s with clock := clocks}) = (result, postTarget) ∧
+      postTarget.ffi = postSource.ffi := by
+  have init := Proofs.InitSemantics.evaluateInitCode generateGc maxHeap bitmaps dataSpace pointer start s
+    jump bounds oracle code hyp
+  rcases initRun : evaluate (initCode generateGc maxHeap pointer, s) with ⟨initResult, ready⟩
+  rw [initRun] at init
+  cases initResult with
+  | some r => exact False.elim init
+  | none =>
+    obtain ⟨built, opt, relation, _⟩ := init
+    rw [selected] at opt
+    cases Option.some.inj opt
+    obtain ⟨extra, bound, postTarget, targetRun, ffi⟩ :=
+      entrySimulation_bounded jump bounds pointer start fuel source ready postSource result relation run nonError
+    refine ⟨extra + fuel + 1, postTarget, by omega, ?_, ffi⟩
+    exact initializer_prefix_run generateGc maxHeap pointer start (extra + fuel) s ready postTarget result
+      hyp.1.1 initRun targetRun
+
+#print axioms makeInitOpt_entry_bounded
+
+#print axioms initializer_prefix_run
+
+#print axioms entrySimulation_bounded
+end InitECandidate.Runtime.StackRemove
