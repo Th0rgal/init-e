@@ -26,12 +26,16 @@ theorem evaluate_htabNew_final_allocation {F : Type} (state : PanSemStateFiniteE
     (domain : state.memaddrs (table + 64)) :
     ∃ post, evaluateHOLFiniteState state htabNewFinalAllocation = (some (.returned (.val (.word table))),post) ∧
       post.clock = state.clock - 1 ∧ post.memory (table + 64) = .word pointer ∧
-      post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
+      post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
+      post.memory = (sourceWriteWord state (table + 64) pointer).memory ∧
+      ∀ used slots : BitVec 64,
+        (∀ index : BitVec 64, index.toNat < slots.toNat → panByteAlignHOL (used + index) ≠ table + 64) →
+        hashOccupiedCount slots (hashOccupancyRead post used) = hashOccupiedCount slots (hashOccupancyRead state used) := by
   have arguments : evalListHOLFinite state
       (h := fun address => Classical.propDecidable (state.memaddrs address))
       [.panop .mul [.var .local (ofString "cap"),.const 8]] = some [.val (.word (capacity * 8))] := by
     simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,capLocal,panOpHOL,valueIsWord,valueWord]
-  obtain ⟨ready,run,ticks,locals,_,stored,_,postCode,addresses,endian⟩ :=
+  obtain ⟨ready,run,ticks,locals,memory,stored,_,postCode,addresses,endian⟩ :=
     evaluate_allocation_pointer_store state (ofString "order_pos") (ofString "t") _ pointer (capacity * 8)
       table 64 (.return (.var .local (ofString "t"))) (by decide) arguments code clock heapGlobal
       request finishBound tableLocal domain
@@ -44,7 +48,16 @@ theorem evaluate_htabNew_final_allocation {F : Type} (state : PanSemStateFiniteE
     simp [evaluateHOLFiniteState_return,evalHOLExact,t,shapeOfHOLExact]
   rw [source_htabNew_final_allocation,run]
   rw [returned]
-  exact ⟨_,rfl,ticks,stored,postCode,addresses,endian⟩
+  refine ⟨_,rfl,ticks,stored,postCode,addresses,endian,memory,?_⟩
+  intro used slots separate
+  have count := sourceWriteWord_occupancy_preserved state slots used (table + 64) pointer separate
+  apply Eq.trans _ count
+  apply hashOccupiedCount_congr
+  intro index _
+  change hashOccupancyRead ready used index = hashOccupancyRead (sourceWriteWord state (table + 64) pointer) used index
+  unfold hashOccupancyRead
+  rw [memory,addresses,endian]
+  rfl
 
 #print axioms source_htabNew_final_allocation
 #print axioms evaluate_htabNew_final_allocation
