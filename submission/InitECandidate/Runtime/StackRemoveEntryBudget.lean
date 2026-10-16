@@ -94,6 +94,43 @@ theorem makeInitOpt_entry_bounded {width : Nat} [NeZero width] {C F : Type}
     exact initializer_prefix_run generateGc maxHeap pointer start (extra + fuel) s ready postTarget result
       hyp.1.1 initRun targetRun
 
+open Flapjack.Compiler.Backend.StackRemove.Proofs
+theorem discharge_entry_bounded {width : Nat} [NeZero width] {C F : Type}
+    (jump : Bool) (bounds : BitVec width × BitVec width) (generateGc : Bool)
+    (maxHeap pointer start : Nat)
+    (oracle : Nat → C × List (Nat × HolProg width) × List (BitVec width))
+    (code : List (Nat × HolProg width)) (s2 : StackSemStateFiniteExact width C F)
+    (bitmaps : List (BitVec width)) (dataSpace : Nat)
+    (hyp : InitMake.dischargeThese jump bounds generateGc maxHeap pointer start oracle code s2 ∧
+      InitMake.propagateThese s2 bitmaps dataSpace)
+    (source postSource : StackSemStateFiniteExact width C F) (fuel : Nat)
+    (result : Option (StackSemResult width))
+    (selected : InitMake.makeInitOpt generateGc maxHeap bitmaps dataSpace oracle jump bounds pointer
+      (sptFromAList code) s2 = some source)
+    (run : StackSemEvaluate.evaluate (.call none (.inl start) none, {source with clock := fuel}) = (result, postSource))
+    (nonError : result ≠ some .error) :
+    ∃ clocks postTarget,
+      clocks ≤ fuel + removeWork (.call none (.inl start) none) {source with clock := fuel} + 1 ∧
+      StackSemEvaluate.evaluate (.call none (.inl 0) none, {s2 with clock := clocks}) = (result, postTarget) ∧
+      postTarget.ffi = postSource.ffi := by
+  obtain ⟨⟨every, oracleBound, oracleEq, codeEq, k8, entry1, save, noStack, noStore, noAlloc,
+    maxOk⟩, good, ptr2, ptr3, ptr4, bp, r2, r3, r4, m0, m1, m2, m3, m4, cbEmpty, le, al2, al4,
+    albp, big, heap⟩ := hyp
+  apply makeInitOpt_entry_bounded generateGc maxHeap bitmaps dataSpace pointer start s2 jump bounds
+    oracle (sptFromAList code) ?_ source postSource fuel result selected run nonError
+  refine ⟨⟨?_, ?_, maxOk⟩, oracleEq, oracleBound, ?_, InitCodeRelation.impCodeRel jump bounds
+    generateGc maxHeap pointer start code s2.code ⟨every, codeEq⟩⟩
+  · rw [codeEq, sptLookup_sptFromAList]
+    simp [compileHOL, initStubs, sptAListLookup]
+  · have sub : -1 * ptr2 + ptr4 = ptr4 - ptr2 := by
+      rw [BitVec.neg_mul]; simp [BitVec.sub_eq_add_neg, BitVec.add_comm]
+    rw [sub] at heap
+    exact ⟨ptr2, ptr3, ptr4, bp, good, k8, entry1, save, noStack, noStore, noAlloc, r2, r3, r4,
+      m0, m1, m2, m3, m4, le, big, al2, al4, albp, cbEmpty, heap⟩
+  · rw [codeEq, sptLookup_sptFromAList]
+    simp [compileHOL, initStubs, sptAListLookup, stackErrLab]
+
+#print axioms discharge_entry_bounded
 #print axioms makeInitOpt_entry_bounded
 
 #print axioms initializer_prefix_run

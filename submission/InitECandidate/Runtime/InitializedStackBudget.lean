@@ -101,6 +101,54 @@ theorem before_names_ffi_bounded {width : Nat} [NeZero width] {C F : Type}
       oracle namedPost event initialized namedRun
   exact ⟨clocks, final, bound, evaluated, ffi.trans namedFfi⟩
 
+theorem initialized_return_bounded {width : Nat} [NeZero width] {C F : Type}
+    (stackConf : StackToLab.Config) (dataConf : DataToWord.Config) (maxHeap sp : Nat)
+    (offset : BitVec width × BitVec width) (bitmaps : List (BitVec width))
+    (code : List (Nat × HolProg width)) (target : LabSem.State width C F)
+    (saveRegs : Nat → Bool) (dataSp : Nat)
+    (oracle : Nat → C × List (Nat × HolProg width) × List (BitVec width))
+    (post : StackSemStateFiniteExact width C F)
+    (initialized : Assumptions stackConf dataConf maxHeap sp offset bitmaps code target saveRegs dataSp oracle)
+    (run : StackSemEvaluate.evaluate ((.call none (.inl 0) none : HolProg width),
+      s3 stackConf dataConf maxHeap sp offset code target saveRegs oracle) =
+        (some (.result (.loc 1 0)), post)) :
+    ∃ clocks final, clocks ≤ entryWork 0 (s3 stackConf dataConf maxHeap sp offset code target saveRegs oracle) ∧
+      evaluate { target with clock := target.clock - 1 + clocks } =
+        (.halt .success, final) ∧ final.ffi = post.ffi := by
+  obtain ⟨clocks, bound, result, final, evaluated, _, _, returned, ffi, _, _⟩ :=
+    flattenEntry_bounded ⟨run, stateRel_s3 initialized, locToPc_start initialized,
+      by simp, fun _ => Or.inr (Or.inr ⟨1, rfl, by
+        exact StackToLab.Proofs.MakeInit.haltAssumLemma⟩)⟩
+  refine ⟨clocks, final, bound, ?_, ffi⟩
+  rw [returned 1 rfl] at evaluated
+  exact evaluated
+
+theorem before_names_return_bounded {width : Nat} [NeZero width] {C F : Type}
+    (stackConf : StackToLab.Config) (dataConf : DataToWord.Config) (maxHeap sp : Nat)
+    (offset : BitVec width × BitVec width) (bitmaps : List (BitVec width))
+    (code : List (Nat × HolProg width)) (target : LabSem.State width C F)
+    (saveRegs : Nat → Bool) (dataSp : Nat)
+    (oracle : Nat → C × List (Nat × HolProg width) × List (BitVec width))
+    (post : StackSemStateFiniteExact width C F)
+    (initialized : Assumptions stackConf dataConf maxHeap sp offset bitmaps code target saveRegs dataSp oracle)
+    (run : StackSemEvaluate.evaluate ((.call none (.inl 0) none : HolProg width),
+      s2 stackConf dataConf maxHeap sp offset code target saveRegs oracle) =
+        (some (.result (.loc 1 0)), post)) :
+    ∃ clocks final, clocks ≤ entryWork 0 (s3 stackConf dataConf maxHeap sp offset code target saveRegs oracle) ∧
+      evaluate { target with clock := target.clock - 1 + clocks } =
+        (.halt .success, final) ∧ final.ffi = post.ffi := by
+  obtain ⟨namedPost, namedRun, _, namedFfi⟩ :=
+    InitECandidate.Runtime.StackNames.fullInit_names_same_clock stackConf dataConf maxHeap sp offset
+      bitmaps code target saveRegs dataSp oracle (.call none (.inl 0) none) target.clock
+      (some (.result (.loc 1 0))) post initialized run
+  obtain ⟨clocks, final, bound, evaluated, ffi⟩ :=
+    initialized_return_bounded stackConf dataConf maxHeap sp offset bitmaps code target saveRegs dataSp
+      oracle namedPost initialized namedRun
+  exact ⟨clocks, final, bound, evaluated, ffi.trans namedFfi⟩
+
+
+#print axioms before_names_return_bounded
+#print axioms initialized_return_bounded
 #print axioms before_names_halt_bounded
 #print axioms before_names_ffi_bounded
 #print axioms initialized_halt_bounded
