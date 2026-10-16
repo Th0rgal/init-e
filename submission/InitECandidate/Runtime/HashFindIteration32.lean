@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.MemeqCall32
-import InitECandidate.Runtime.LocalScopeRestore
+import InitECandidate.Runtime.LocalScopeOtherUpdate
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -30,7 +30,9 @@ theorem evaluate_hashFind_iteration32 {F : Type} (state : PanSemStateFiniteExact
       (result = none ∨ result = some (.returned (.val (.word index)))) ∧
       post.clock = state.clock - 1 ∧ post.memory = state.memory ∧ post.globals = state.globals ∧
       post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
-      (result = none → post.locals.lookup (ofString "i") = some (.val (.word (hashProbeNext index capacity)))) := by
+      (result = none → post.locals.lookup (ofString "i") = some (.val (.word (hashProbeNext index capacity)))) ∧
+      (result = none → post.locals = (setVarHOLFinite (ofString "i")
+        (.val (.word (hashProbeNext index capacity))) state).locals) := by
   obtain ⟨value,ready,boolean,ticks,memory,locals,globals,postCode,addresses,endian,decl⟩ :=
     evaluate_memeq32_declaration state _ _ _ a b arguments code clock aAligned bAligned domain
   let entered := setVarHOLFinite (ofString "eq") (.val (.word value)) ready
@@ -49,16 +51,23 @@ theorem evaluate_hashFind_iteration32 {F : Type} (state : PanSemStateFiniteExact
     change ∃ result post, (let output := evaluateHOLFiniteState entered hashFindDecision; _) = _ ∧ _
     rw [run]
     refine ⟨none,_,rfl,Or.inl rfl,ticks,memory,globals,postCode,addresses,endian,?_⟩
-    intro _
-    rw [restore_other_local _ (ofString "eq") (ofString "i") _ (by decide)]
-    simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    constructor
+    · intro _
+      rw [restore_other_local _ (ofString "eq") (ofString "i") _ (by decide)]
+      simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    · intro _
+      change HolFiniteMapExact.resVarEq
+        ((ready.locals.update (ofString "eq",.val (.word value))).update
+          (ofString "i",.val (.word (hashProbeNext index capacity))))
+        (ofString "eq",state.locals.lookup (ofString "eq")) = _
+      rw [locals]
+      exact restore_updated_other_local state.locals (ofString "eq") (ofString "i") _ _ ni
   · have nonzero : value ≠ 0 := by rw [one]; decide
     have run := evaluate_hashFind_match entered index value nonzero i e
     change ∃ result post, (let output := evaluateHOLFiniteState entered hashFindDecision; _) = _ ∧ _
     rw [run]
     refine ⟨_,_,rfl,Or.inr rfl,ticks,memory,globals,postCode,addresses,endian,?_⟩
-    intro impossible
-    cases impossible
+    constructor <;> intro impossible <;> cases impossible
 
 #print axioms source_htabFind_iteration
 #print axioms evaluate_hashFind_iteration32
