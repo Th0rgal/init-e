@@ -338,6 +338,46 @@ theorem fetched_branch_taken_bounded {F : Type}
       t1.mem _ htrel c30 c29 (fun x hx => (c31 x hx).2.2) (fun _ _ => rfl) rfl)
   exact ⟨l, ms2, bound, (hl 0).2.2.2, fun clock => (hl clock).1, hrel'⟩
 
+/-- The final halt line and target dispatcher need at most seventeen native
+clock units, with exactly the source halt result and unchanged FFI. -/
+theorem fetched_halt_bounded {F : Type}
+    (s1 : LabSem.State 64 Config F) (w value : BitVec 64)
+    (mc : MachineConfig 64 riscv_state RiscVProjection) (code2 : LabProgHOL 64)
+    (labs : Spt (Spt Nat)) (p : BitVec 64) (t1 : AsmState 64) (ms1 : riscv_state)
+    (bytes : List (BitVec 8)) (n : Nat)
+    (target : mc.target = riscvTarget)
+    (hfetch : asmFetch s1 = some (.labAsm .halt w bytes n))
+    (hv : s1.regs s1.ptrReg = .word value)
+    (hec : encoderCorrect mc.target)
+    (hrel : stateRel (mc, code2, labs, p) s1 t1 ms1) :
+    ∃ count ms2, count ≤ 17 ∧ evaluateTargetHOL mc s1.ffi count ms1 =
+      (.halt (if value = 0 then .success else .resourceLimitHit), ms2, s1.ffi) := by
+  obtain ⟨-, -, -, c4, -, c6, c7, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, c25, -,
+    -, -, -, c30, -, -, -, -, -, -, -, -, ht1f, -, htpc, -⟩ := id hrel
+  obtain ⟨w', bytes', len', hok, hmem, hpos, hdis⟩ := fetchedLabAsmLine hrel hfetch
+  simp only [lineOk] at hok
+  obtain ⟨l, ms2, bound, hl⟩ := leading_line_bounded s1.ffi target hrel hec _ bytes' hmem hok.1 hok.2.2 hdis
+    (by simp [asmUpd, jumpToOffset, Flapjack.Compiler.Encoders.AsmSem.updPc, ht1f])
+  obtain ⟨-, hgpc, -, hgreg, -⟩ := (hl 0).2.2.1
+  have hhalt : mc.target.getPc ms2 = mc.haltPc := by
+    rw [hgpc, ← c25]
+    simp only [asmUpd, jumpToOffset, Flapjack.Compiler.Encoders.AsmSem.updPc, htpc, BitVec.ofNat_add]
+    ring
+  have hptr : mc.target.getReg ms2 mc.ptrReg = value := by
+    have hok6 := c6
+    simp only [asmRegOkExact, Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_true'] at hok6
+    rw [hgreg _ (by rw [c7]; exact hok6), c7]
+    simp only [asmUpd, jumpToOffset, Flapjack.Compiler.Encoders.AsmSem.updPc]
+    exact wordLocVal_word_target (c30 _) hv
+  refine ⟨1 + l, ms2, by omega, ?_⟩
+  rw [(hl 1).1, evaluateTargetHOL]
+  have outside : ¬ ((shiftInterfer l mc).progAddresses ((shiftInterfer l mc).target.getPc ms2) ∧
+      (shiftInterfer l mc).target.getPc ms2 ∉ (shiftInterfer l mc).ffiEntryPcs) := by
+    intro h
+    exact c4 (by simpa [shiftInterfer, hhalt] using h.1)
+  simp only [outside, ↓reduceIte]
+  simp [shiftInterfer, hhalt, hptr]
+
 end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.line_bounded
 #print axioms InitECandidate.Runtime.LabToTarget.line_memory_bounded
@@ -354,3 +394,5 @@ end InitECandidate.Runtime.LabToTarget
 
 #print axioms InitECandidate.Runtime.LabToTarget.fetched_branch_taken_bounded
 #print axioms InitECandidate.Runtime.LabToTarget.fetched_branch_fallthrough_bounded
+
+#print axioms InitECandidate.Runtime.LabToTarget.fetched_halt_bounded
