@@ -118,7 +118,138 @@ theorem stateGas_spill_preserves_potential (funding : GasFunding)
     (funding.spill (amount - stateLeft)).potential = funding.potential := by
   exact funding.spill_potential _ budget (stateGas_spill_enough stateLeft funding.left amount short covered).1
 
+def stateSpillDebit : ExpHOL 64 :=
+  .op .sub [.var .local (ofString "gl"), .var .local (ofString "rem")]
+def stateSpillAdd : ExpHOL 64 :=
+  .op .add [fundingLoad 192, .var .local (ofString "rem")]
+def stateSpillStores : ProgHOL 64 :=
+  .seq (.store (fundingAddress 72) (.const 0))
+    (.seq (.store (fundingAddress 64) stateSpillDebit)
+      (.seq (.store (fundingAddress 192) stateSpillAdd) (.return (.const 0))))
+
+theorem source_stateSpill_stores :
+    (match stateGasSpillTail with
+     | .decCall _ _ _ _ (.seq (.ite _ (.dec _ _ _ stores) _) _) => stores
+     | _ => .skip) = stateSpillStores := by cbv
+
+noncomputable def stateSpillPost {σ : Type} (state : PanSemStateFiniteExact 64 σ)
+    (frame left spilled rem : BitVec 64) : PanSemStateFiniteExact 64 σ :=
+  emptyLocalsHOLFinite (sourceWriteWord (sourceWriteWord
+    (sourceWriteWord state (frame + 72) 0) (frame + 64) (left - rem))
+    (frame + 192) (spilled + rem))
+
+theorem evaluate_stateSpillStores {σ : Type} (state : PanSemStateFiniteExact 64 σ)
+    (frame left spilled rem : BitVec 64)
+    (hFrame : state.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (hLeft : state.locals.lookup (ofString "gl") = some (.val (.word left)))
+    (hRem : state.locals.lookup (ofString "rem") = some (.val (.word rem)))
+    (stateDomain : state.memaddrs (frame + 72))
+    (leftDomain : state.memaddrs (frame + 64))
+    (spillDomain : state.memaddrs (frame + 192))
+    (spillMemory : state.memory (frame + 192) = .word spilled) :
+    evaluateHOLFiniteState state stateSpillStores =
+      (some (.returned (.val (.word 0))), stateSpillPost state frame left spilled rem) := by
+  classical
+  let one := sourceWriteWord state (frame + 72) 0
+  let two := sourceWriteWord one (frame + 64) (left - rem)
+  let three := sourceWriteWord two (frame + 192) (spilled + rem)
+  have first : evaluateHOLFiniteState state (.store (fundingAddress 72) (.const 0)) =
+      (none, one) := evaluate_store_word state _ _ _ _
+        (eval_fundingAddress state frame 72 hFrame) rfl stateDomain
+  have second : evaluateHOLFiniteState one (.store (fundingAddress 64) stateSpillDebit) =
+      (none, two) := by
+    apply evaluate_store_word
+    · exact eval_fundingAddress one frame 64 hFrame
+    · simp [stateSpillDebit, evalHOLExact, evalListHOLExact, toExact, one, sourceWriteWord,
+        hLeft, hRem, valueIsWord, valueWord, wordOpHOL, wordOp]
+    · exact leftDomain
+  have unchanged : two.memory (frame + 192) = .word spilled := by
+    simpa [two, one, sourceWriteWord] using spillMemory
+  have third : evaluateHOLFiniteState two (.store (fundingAddress 192) stateSpillAdd) =
+      (none, three) := by
+    apply evaluate_store_word
+    · exact eval_fundingAddress two frame 192 hFrame
+    · unfold stateSpillAdd
+      simp only [evalHOLExact, evalListHOLExact]
+      rw [eval_fundingLoad two frame 192 spilled hFrame spillDomain unchanged]
+      simp [toExact, two, one, sourceWriteWord, hRem, valueIsWord, valueWord, wordOpHOL, wordOp]
+    · exact spillDomain
+  have finish : evaluateHOLFiniteState three (.return (.const 0)) =
+      (some (.returned (.val (.word 0))), emptyLocalsHOLFinite three) := by
+    simp [evaluateHOLFiniteState_return, evalHOLExact, shapeOfHOLExact]
+  exact evaluate_seq_none first (evaluate_seq_none second (evaluate_seq_none third finish))
+
+theorem stateSpillPost_funding {σ : Type} (state : PanSemStateFiniteExact 64 σ)
+    (frame rem : BitVec 64) (funding : GasFunding)
+    (memory : HasGasFunding state frame funding) :
+    HasGasFunding (stateSpillPost state frame funding.left funding.spilled rem)
+      frame (funding.spill rem) := by
+  unfold HasGasFunding
+  simp [stateSpillPost, sourceWriteWord, emptyLocalsHOLFinite, GasFunding.spill]
+  exact memory.2.1
+
+def stateSpillBranch : ProgHOL 64 :=
+  .dec (ofString "rem") .one
+    (.op .sub [.var .local (ofString "amount"), .var .local (ofString "sgl")]) stateSpillStores
+
+theorem source_stateSpill_branch :
+    (match stateGasSpillTail with
+     | .decCall _ _ _ _ (.seq (.ite _ branch _) _) => branch
+     | _ => .skip) = stateSpillBranch := by cbv
+
+/-- The actual spill branch computes the remainder and restores its scope.
+The saturation guard is sufficient for its funding conservation premise. -/
+theorem evaluate_stateSpillBranch {σ : Type} (state : PanSemStateFiniteExact 64 σ)
+    (frame stateLeft amount : BitVec 64) (funding : GasFunding)
+    (hFrame : state.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (hLeft : state.locals.lookup (ofString "gl") = some (.val (.word funding.left)))
+    (hState : state.locals.lookup (ofString "sgl") = some (.val (.word stateLeft)))
+    (hAmount : state.locals.lookup (ofString "amount") = some (.val (.word amount)))
+    (stateDomain : state.memaddrs (frame + 72))
+    (leftDomain : state.memaddrs (frame + 64))
+    (spillDomain : state.memaddrs (frame + 192))
+    (memory : HasGasFunding state frame funding)
+    (budget : funding.potential ≤ 200000000)
+    (short : stateLeft.toNat < amount.toNat)
+    (covered : amount ≤ wordAddSat stateLeft funding.left) :
+    ∃ post, evaluateHOLFiniteState state stateSpillBranch =
+        (some (.returned (.val (.word 0))), post) ∧
+      HasGasFunding post frame (funding.spill (amount - stateLeft)) ∧
+      (funding.spill (amount - stateLeft)).potential = funding.potential ∧
+      post.clock = state.clock := by
+  classical
+  let entry := setVarHOLFinite (ofString "rem") (.val (.word (amount - stateLeft))) state
+  let written := stateSpillPost entry frame funding.left funding.spilled (amount - stateLeft)
+  let post := { written with locals := (HolFiniteMapExact.resVarEq written.locals
+    (ofString "rem", state.locals.lookup (ofString "rem"))) }
+  have names : ofString "rem" ≠ ofString "gl" := by decide_cbv
+  have eLeft : entry.locals.lookup (ofString "gl") = some (.val (.word funding.left)) := by
+    simpa [entry, setVarHOLFinite, FUPDATE, names] using hLeft
+  have eRem : entry.locals.lookup (ofString "rem") = some (.val (.word (amount - stateLeft))) := by
+    simp [entry, setVarHOLFinite, FUPDATE]
+  have body := evaluate_stateSpillStores entry frame funding.left funding.spilled (amount - stateLeft)
+    hFrame eLeft eRem stateDomain leftDomain spillDomain memory.2.2
+  refine ⟨post, ?_, stateSpillPost_funding entry frame (amount - stateLeft) funding memory,
+    stateGas_spill_preserves_potential funding stateLeft amount budget short covered, rfl⟩
+  rw [stateSpillBranch, evaluateHOLFiniteState_dec_total]
+  have expression : @evalHOLExact 64 σ _ state.toExact
+      (fun address => Classical.propDecidable (state.memaddrs address))
+      (.op .sub [.var .local (ofString "amount"), .var .local (ofString "sgl")]) =
+      some (.val (.word (amount - stateLeft))) := by
+    simp [evalHOLExact, evalListHOLExact, toExact, hAmount, hState,
+      valueIsWord, valueWord, wordOpHOL, wordOp]
+  dsimp only
+  rw [expression]
+  simp only [shapeOfHOLExact, shapeEqHOL]
+  rw [show setVarHOLFinite (ofString "rem") (.val (.word (amount - stateLeft))) state = entry from rfl]
+  rw [body]
+  rfl
+
 end InitECandidate.Runtime
 #print axioms InitECandidate.Runtime.evaluate_chargeStateGas_covered
 
 #print axioms InitECandidate.Runtime.stateGas_spill_preserves_potential
+
+#print axioms InitECandidate.Runtime.evaluate_stateSpillStores
+
+#print axioms InitECandidate.Runtime.evaluate_stateSpillBranch
