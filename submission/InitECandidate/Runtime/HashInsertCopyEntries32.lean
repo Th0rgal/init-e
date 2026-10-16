@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.HashInsertCopyBounds
 import InitECandidate.Runtime.HashInsertCopyEntries
 import InitECandidate.Runtime.HashInsertValueEntries32
 import InitECandidate.Runtime.HashInsertCopyOrderedMemory
@@ -12,15 +13,21 @@ obtained from the table allocation layout. -/
 theorem HashTableArraysInvariant32.insert_copy_entries {F : Type} (state : PanSemStateFiniteExact 64 F)
     (capacity used table values value order orderPos count index cell keys stride key : BitVec 64) (bits : Nat)
     (invariant : HashTableArraysInvariant32 table keys stride capacity used values order orderPos count bits state)
-    (ready : HashInsertTailReady capacity used table values value order orderPos count index cell state)
+    (tableLocal : state.locals.lookup (ofString "t") = some (.val (.word table)))
+    (orderLocal : state.locals.lookup (ofString "order") = some (.val (.word order)))
+    (orderPosLocal : state.locals.lookup (ofString "order_pos") = some (.val (.word orderPos)))
+    (usedLocal : state.locals.lookup (ofString "used") = some (.val (.word used)))
+    (indexLocal : state.locals.lookup (ofString "i") = some (.val (.word index)))
+    (valueLocal : state.locals.lookup (ofString "value") = some (.val (.word value)))
+    (inside : index.toNat < capacity.toNat)
+    (byteMemory : state.memory (panByteAlignHOL (used + index)) = .word cell)
+    (empty : hashOccupancyRead state used index = some 0)
     (keysLocal : state.locals.lookup (ofString "keys") = some (.val (.word keys)))
     (strideLocal : state.locals.lookup (ofString "stride") = some (.val (.word stride)))
     (keyLocal : state.locals.lookup (ofString "key") = some (.val (.word key)))
     (lengthLocal : state.locals.lookup (ofString "klen") = some (.val (.word (32 : BitVec 64))))
     (sourceAligned : key.toNat % 8 = 0)
     (budget : 33 ≤ state.clock)
-    (wordDomain : ∀ offset : Nat, offset < (32 : BitVec 64).toNat → state.memaddrs (keys + index * stride + BitVec.ofNat 64 offset))
-    (byteDomain : ∀ offset : Nat, offset < (32 : BitVec 64).toNat → state.memaddrs (panByteAlignHOL (keys + index * stride + BitVec.ofNat 64 offset)))
     (sourceWordDomain : ∀ offset : Nat, offset < (32 : BitVec 64).toNat → state.memaddrs (key + BitVec.ofNat 64 offset))
     (sourceByteDomain : ∀ offset : Nat, offset < (32 : BitVec 64).toNat → state.memaddrs (panByteAlignHOL (key + BitVec.ofNat 64 offset)))
     (keysBeforeValues : keys.toNat + capacity.toNat * stride.toNat ≤ values.toNat)
@@ -31,28 +38,52 @@ theorem HashTableArraysInvariant32.insert_copy_entries {F : Type} (state : PanSe
       (count + 1).toNat = hashOccupiedCount capacity (hashOccupancyRead post used) ∧
       state.clock ≤ post.clock + (32 : BitVec 64).toNat + 1 ∧ post.clock ≤ state.clock ∧
       HashValueEntriesWord used values capacity post ∧ HashReverseEntriesBound used orderPos capacity (count + 1) post := by
-  have inside := ready.inside
+  have facts := invariant.insertion_memory state table keys stride capacity used values order orderPos count bits
+  have ready : HashInsertTailReady capacity used table values value order orderPos count index cell state := {
+    tableLocal := tableLocal
+    orderLocal := orderLocal
+    orderPosLocal := orderPosLocal
+    usedLocal := usedLocal
+    indexLocal := indexLocal
+    valueLocal := valueLocal
+    inside := inside
+    valuesDomain := facts.valuesDomain
+    valuesMemory := facts.valuesMemory
+    valueDomain := facts.valueDomain index inside
+    byteDomain := facts.byteDomain index inside
+    byteMemory := byteMemory
+    empty := empty
+    orderDomain := facts.orderDomain
+    orderPosDomain := facts.orderPosDomain index inside
+    countDomain := facts.countDomain
+    countMemory := facts.countMemory
+    agreement := facts.agreement
+    noWrap := facts.noWrap
+    valueCountSeparate := facts.valueCountSeparate index inside
+    valueSeparate := facts.valueSeparate index inside
+    separate := facts.separate index inside
+  }
   have hk := invariant.headerKeys
   have ku := invariant.keysBefore
   have uo := invariant.usedBefore
   have oo := invariant.orderBefore
   have bounded := invariant.endBound
-  have address := hashFind_slot_address keys index stride capacity ready.inside (by omega)
-    invariant.keysAligned invariant.strideAligned
-  have next := Nat.mul_le_mul_right stride.toNat (show index.toNat + 1 ≤ capacity.toNat by omega)
-  rw [Nat.add_mul,Nat.one_mul] at next
-  have fits := invariant.fits
-  have copyBefore : (keys + index * stride).toNat + 32 ≤ used.toNat := by rw [address.1]; omega
-  have small : (keys + index * stride).toNat + 32 ≤ 33806089496 := by omega
+  have arrayDomain : ∀ address : BitVec 64, keys.toNat ≤ address.toNat →
+      address.toNat < keys.toNat + capacity.toNat * stride.toNat → state.memaddrs address := by
+    intro address lower upper
+    apply invariant.domain <;> omega
+  have bounds := hashInsert_copy_bounds_from_array state table keys stride key 32 used capacity
+    invariant.keysAligned invariant.strideAligned sourceAligned invariant.usedAligned hk ku (by omega)
+    invariant.fits arrayDomain sourceWordDomain sourceByteDomain index inside
   have occupancy := memcpy_occupancy_separate (keys + index * stride) 32 used capacity
-    address.2 invariant.usedAligned copyBefore (by omega)
+    bounds.aligned invariant.usedAligned bounds.copyBefore (by omega)
   have watched := hashInsert_copy_watched_separate table (keys + index * stride) 32 used capacity index
-    ready.inside address.2 invariant.usedAligned (by rw [address.1]; omega) copyBefore (by omega)
+    ready.inside bounds.aligned invariant.usedAligned bounds.headerBefore bounds.copyBefore (by omega)
   obtain ⟨distinct,byteValues,bookkeeping⟩ := invariant.insert_value_separation state table keys stride capacity used values order orderPos count index bits ready.inside
   obtain ⟨newSeparate,reverseSeparate⟩ := invariant.insert_reverse_separation state table keys stride capacity used values order orderPos count index bits ready.inside
   exact evaluate_hashInsert_copy_entries state capacity used table values value order orderPos count index cell keys stride key 32
-    ready keysLocal strideLocal keyLocal lengthLocal invariant.code small address.2 sourceAligned budget
-    wordDomain byteDomain sourceWordDomain sourceByteDomain
+    ready keysLocal strideLocal keyLocal lengthLocal invariant.code bounds.small bounds.aligned sourceAligned budget
+    bounds.wordDomain bounds.byteDomain sourceWordDomain sourceByteDomain
     (fun offset inside slot slotInside => (occupancy offset inside slot slotInside).1)
     (fun offset inside slot slotInside => (occupancy offset inside slot slotInside).2)
     (fun word member offset inside => (watched word member offset inside).1)
