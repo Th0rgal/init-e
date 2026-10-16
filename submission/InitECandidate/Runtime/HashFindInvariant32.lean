@@ -65,18 +65,18 @@ theorem evaluate_hashFindLoop32 {F : Type} (keys stride key capacity used empty 
       state.clock ≤ post.clock + 2 * hashProbeDistance capacity.toNat index.toNat empty.toNat ∧
       post.clock ≤ state.clock ∧ (result = none ∨ ∃ found : BitVec 64,
         found.toNat < capacity.toNat ∧ result = some (.returned (.val (.word found)))) ∧
-      (result = none → ∃ finalIndex, HashFindInvariant32 keys stride key capacity used empty post finalIndex) := by
+      (result = none → ∃ finalIndex, HashFindInvariant32 keys stride key capacity used empty post finalIndex) ∧ post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
   apply evaluate_hashFindLoop_rank capacity empty used bits power emptyInside
     (HashFindInvariant32 keys stride key capacity used empty)
     (fun _ _ h => ⟨h.indexLocal,h.usedLocal⟩)
     (fun _ _ h => h.readable _ h.inside) (fun _ _ h => h.emptyLoad) ?_
     _ state index valid valid.inside rfl budget
   intro current probe byte h inside enough loaded occupied
-  obtain ⟨result,post,run,outcome,ticks,memory,_,code,addresses,endian,_,locals⟩ :=
+  obtain ⟨result,post,run,outcome,ticks,memory,globals,code,addresses,endian,_,locals⟩ :=
     evaluate_hashFind_occupied32 current keys stride key probe capacity used byte h.code enough
       keysAligned strideAligned keyAligned strideFits inside bounded h.arrayDomain h.keyDomain
       h.keysLocal h.strideLocal h.keyLocal h.lengthLocal h.indexLocal h.capLocal h.usedLocal loaded occupied
-  refine ⟨result,post,?_,outcome,ticks,?_⟩
+  refine ⟨result,post,?_,outcome,ticks,?_,memory,globals,code,addresses,endian⟩
   · cases result <;> exact run
   · intro continuing
     have nextInside : (hashProbeNext probe capacity).toNat < capacity.toNat := by
@@ -97,11 +97,11 @@ theorem evaluate_hashFindLoop32_capacity {F : Type} (keys stride key capacity us
       state.clock ≤ post.clock + 2 * capacity.toNat ∧
       post.clock ≤ state.clock ∧ (result = none ∨ ∃ found : BitVec 64,
         found.toNat < capacity.toNat ∧ result = some (.returned (.val (.word found)))) ∧
-      (result = none → ∃ finalIndex, HashFindInvariant32 keys stride key capacity used empty post finalIndex) := by
+      (result = none → ∃ finalIndex, HashFindInvariant32 keys stride key capacity used empty post finalIndex) ∧ post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
   have rankBound := hashProbeDistance_lt_capacity capacity.toNat index.toNat empty.toNat valid.inside emptyInside
-  obtain ⟨result,post,run,cost,remaining,outcome,finalInvariant⟩ := evaluate_hashFindLoop32 keys stride key capacity used empty bits
+  obtain ⟨result,post,run,cost,remaining,outcome,finalInvariant,memory,globals,code,addresses,endian⟩ := evaluate_hashFindLoop32 keys stride key capacity used empty bits
     power emptyInside keysAligned strideAligned keyAligned strideFits bounded state index valid (by omega)
-  exact ⟨result,post,run,by omega,remaining,outcome,finalInvariant⟩
+  exact ⟨result,post,run,by omega,remaining,outcome,finalInvariant,memory,globals,code,addresses,endian⟩
 
 #print axioms evaluate_hashFindLoop32_capacity
 #print axioms HashFindInvariant32.preserve

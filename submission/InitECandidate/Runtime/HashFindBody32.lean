@@ -29,7 +29,7 @@ theorem evaluate_source_hashFind32 {F : Type} (state : PanSemStateFiniteExact 64
     (budget : 2 * capacity.toNat + 1 ≤ state.clock) :
     ∃ found : BitVec 64, ∃ post, evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_htab_find_slot) =
         (some (.returned (.val (.word found))),post) ∧ found.toNat ≤ capacity.toNat ∧
-      state.clock ≤ post.clock + 2 * capacity.toNat + 1 ∧ post.clock ≤ state.clock := by
+      state.clock ≤ post.clock + 2 * capacity.toNat + 1 ∧ post.clock ≤ state.clock ∧ post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
   have n01 : ofString "cap" ≠ ofString "klen" := by decide
   have n02 : ofString "cap" ≠ ofString "stride" := by decide
   have n03 : ofString "cap" ≠ ofString "keys" := by decide
@@ -113,7 +113,7 @@ theorem evaluate_source_hashFind32 {F : Type} (state : PanSemStateFiniteExact 64
     · simp [s1,s2,s3,s4,s5,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm n01,Ne.symm n02,Ne.symm n03,Ne.symm n04,Ne.symm n05,Ne.symm n06,Ne.symm n12,Ne.symm n13,Ne.symm n14,Ne.symm n15,Ne.symm n16,Ne.symm n23,Ne.symm n24,Ne.symm n25,Ne.symm n26,Ne.symm n34,Ne.symm n35,Ne.symm n36,Ne.symm n45,Ne.symm n46,n01,n02,n03,n04,n05,n06,n12,n13,n14,n15,n16,n23,n24,n25,n26,n34,n35,n36,n45,n46]
     · simp [s1,s2,s3,s4,s5,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm n01,Ne.symm n02,Ne.symm n03,Ne.symm n04,Ne.symm n05,Ne.symm n06,Ne.symm n12,Ne.symm n13,Ne.symm n14,Ne.symm n15,Ne.symm n16,Ne.symm n23,Ne.symm n24,Ne.symm n25,Ne.symm n26,Ne.symm n34,Ne.symm n35,Ne.symm n36,Ne.symm n45,Ne.symm n46,n01,n02,n03,n04,n05,n06,n12,n13,n14,n15,n16,n23,n24,n25,n26,n34,n35,n36,n45,n46]
     · simp [s1,s2,s3,s4,s5,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm n01,Ne.symm n02,Ne.symm n03,Ne.symm n04,Ne.symm n05,Ne.symm n06,Ne.symm n12,Ne.symm n13,Ne.symm n14,Ne.symm n15,Ne.symm n16,Ne.symm n23,Ne.symm n24,Ne.symm n25,Ne.symm n26,Ne.symm n34,Ne.symm n35,Ne.symm n36,Ne.symm n45,Ne.symm n46,n01,n02,n03,n04,n05,n06,n12,n13,n14,n15,n16,n23,n24,n25,n26,n34,n35,n36,n45,n46]
-  obtain ⟨found,post,tail,inside,cost,remaining⟩ := evaluate_hashFindHashScope32 keys stride key capacity used bits power
+  obtain ⟨found,post,tail,inside,cost,remaining,memory,globals,postCode,addresses,endian⟩ := evaluate_hashFindHashScope32 keys stride key capacity used bits power
     keysAligned strideAligned keyAligned strideFits bounded s5 environment budget
   rw [source_htabFind_header_prefix,run1]
   dsimp only
@@ -126,7 +126,7 @@ theorem evaluate_source_hashFind32 {F : Type} (state : PanSemStateFiniteExact 64
   rw [run5]
   dsimp only
   rw [tail]
-  exact ⟨found,_,rfl,inside,cost,remaining⟩
+  exact ⟨found,_,rfl,inside,cost,remaining,memory,globals,postCode,addresses,endian⟩
 
 #print axioms evaluate_source_hashFind32
 end InitECandidate.Runtime

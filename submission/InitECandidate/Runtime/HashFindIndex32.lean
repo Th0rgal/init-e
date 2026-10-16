@@ -57,9 +57,9 @@ theorem evaluate_hashFindIndexScope32 {F : Type} (keys stride key capacity used 
     (budget : 2 * capacity.toNat ≤ state.clock) :
     ∃ found : BitVec 64, ∃ post, evaluateHOLFiniteState state hashFindIndexScope =
         (some (.returned (.val (.word found))),post) ∧ found.toNat ≤ capacity.toNat ∧
-      state.clock ≤ post.clock + 2 * capacity.toNat ∧ post.clock ≤ state.clock := by
+      state.clock ≤ post.clock + 2 * capacity.toNat ∧ post.clock ≤ state.clock ∧ post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
   let entered := setVarHOLFinite (ofString "i") (.val (.word (hashFindInitialIndex hash capacity))) state
-  obtain ⟨found,post,run,inside,cost,remaining⟩ := evaluate_hashFindTail32 keys stride key capacity used empty bits
+  obtain ⟨found,post,run,inside,cost,remaining,memory,globals,code,addresses,endian⟩ := evaluate_hashFindTail32 keys stride key capacity used empty bits
     power emptyInside keysAligned strideAligned keyAligned strideFits bounded entered _ valid budget
   unfold hashFindIndexScope
   rw [evaluateHOLFiniteState_dec_total]
@@ -69,7 +69,7 @@ theorem evaluate_hashFindIndexScope32 {F : Type} (keys stride key capacity used 
   have shapeOk : shapeEqHOL .one (shapeOfHOLExact (.val (.word (hashFindInitialIndex hash capacity)))) = true := by
     simp [shapeEqHOL,shapeOfHOLExact]
   rw [if_pos shapeOk,run]
-  exact ⟨found,_,rfl,inside,cost,remaining⟩
+  exact ⟨found,_,rfl,inside,cost,remaining,memory,globals,code,addresses,endian⟩
 
 #print axioms hashFind_initial_index_bound
 #print axioms eval_hashFind_initial_index

@@ -33,8 +33,8 @@ theorem evaluate_hashFindTail32 {F : Type} (keys stride key capacity used empty 
     (budget : 2 * capacity.toNat ≤ state.clock) :
     ∃ found : BitVec 64, ∃ post, evaluateHOLFiniteState state hashFindTail =
         (some (.returned (.val (.word found))),post) ∧ found.toNat ≤ capacity.toNat ∧
-      state.clock ≤ post.clock + 2 * capacity.toNat ∧ post.clock ≤ state.clock := by
-  obtain ⟨result,post,run,cost,remaining,outcome,finalInvariant⟩ := evaluate_hashFindLoop32_capacity
+      state.clock ≤ post.clock + 2 * capacity.toNat ∧ post.clock ≤ state.clock ∧ post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
+  obtain ⟨result,post,run,cost,remaining,outcome,finalInvariant,memory,globals,code,addresses,endian⟩ := evaluate_hashFindLoop32_capacity
     keys stride key capacity used empty bits power emptyInside keysAligned strideAligned keyAligned strideFits bounded
     state index valid budget
   unfold hashFindTail
@@ -45,10 +45,10 @@ theorem evaluate_hashFindTail32 {F : Type} (keys stride key capacity used empty 
     have returned : evaluateHOLFiniteState post (.return (.var .local (ofString "cap"))) =
         (some (.returned (.val (.word capacity))),emptyLocalsHOLFinite post) := by
       simp [evaluateHOLFiniteState_return,evalHOLExact,finalValid.capLocal,shapeOfHOLExact]
-    exact ⟨capacity,emptyLocalsHOLFinite post,returned,Nat.le_refl _,cost,remaining⟩
+    exact ⟨capacity,emptyLocalsHOLFinite post,returned,Nat.le_refl _,cost,remaining,memory,globals,code,addresses,endian⟩
   · obtain ⟨found,inside,matched⟩ := matched
     rw [matched]
-    exact ⟨found,post,rfl,Nat.le_of_lt inside,cost,remaining⟩
+    exact ⟨found,post,rfl,Nat.le_of_lt inside,cost,remaining,memory,globals,code,addresses,endian⟩
 
 #print axioms source_htabFind_tail
 #print axioms evaluate_hashFindTail32

@@ -33,7 +33,7 @@ theorem evaluate_hashFindIndexScope32_from_count {F : Type} (keys stride key cap
     (budget : 2 * capacity.toNat ≤ state.clock) :
     ∃ found : BitVec 64, ∃ post, evaluateHOLFiniteState state hashFindIndexScope =
         (some (.returned (.val (.word found))),post) ∧ found.toNat ≤ capacity.toNat ∧
-      state.clock ≤ post.clock + 2 * capacity.toNat ∧ post.clock ≤ state.clock := by
+      state.clock ≤ post.clock + 2 * capacity.toNat ∧ post.clock ≤ state.clock ∧ post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
   obtain ⟨empty,emptyInside,emptyLoad⟩ := hashOccupiedCount_exists_empty capacity (hashOccupancyRead state used) ready.room
   let index := hashFindInitialIndex hash capacity
   let entered := setVarHOLFinite (ofString "i") (.val (.word index)) state

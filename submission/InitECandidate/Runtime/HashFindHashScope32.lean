@@ -29,7 +29,7 @@ theorem evaluate_hashFindHashScope32 {F : Type} (keys stride key capacity used :
     (budget : 2 * capacity.toNat + 1 ≤ state.clock) :
     ∃ found : BitVec 64, ∃ post, evaluateHOLFiniteState state hashFindHashScope =
         (some (.returned (.val (.word found))),post) ∧ found.toNat ≤ capacity.toNat ∧
-      state.clock ≤ post.clock + 2 * capacity.toNat + 1 ∧ post.clock ≤ state.clock := by
+      state.clock ≤ post.clock + 2 * capacity.toNat + 1 ∧ post.clock ≤ state.clock ∧ post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
   have arguments : evalListHOLFinite state
       (h := fun address => Classical.propDecidable (state.memaddrs address))
       [.var .local (ofString "key"),.var .local (ofString "klen")] =
@@ -44,14 +44,14 @@ theorem evaluate_hashFindHashScope32 {F : Type} (keys stride key capacity used :
   have h : entered.locals.lookup (ofString "h") = some (.val (.word hash)) := by
     simp [entered,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
   have ticks : entered.clock = state.clock - 1 := clock
-  obtain ⟨found,post,tail,inside,cost,remaining⟩ := evaluate_hashFindIndexScope32_from_count keys stride key capacity used hash
+  obtain ⟨found,post,tail,inside,cost,remaining,tailMemory,tailGlobals,tailCode,tailAddresses,tailEndian⟩ := evaluate_hashFindIndexScope32_from_count keys stride key capacity used hash
     bits power keysAligned strideAligned keyAligned strideFits bounded entered environment h (by omega)
   unfold hashFindHashScope
   rw [decl]
   change ∃ found post, (let output := evaluateHOLFiniteState entered hashFindIndexScope; _) = _ ∧ _
   rw [tail]
   exact ⟨found,_,rfl,inside,by change state.clock ≤ post.clock + 2 * capacity.toNat + 1; omega,
-    by change post.clock ≤ state.clock; omega⟩
+    by change post.clock ≤ state.clock; omega,tailMemory.trans memory,tailGlobals.trans globals,tailCode.trans code,tailAddresses.trans addresses,tailEndian.trans endian⟩
 
 #print axioms source_htabFind_header_prefix
 #print axioms evaluate_hashFindHashScope32
