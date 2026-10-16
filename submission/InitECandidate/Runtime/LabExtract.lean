@@ -163,9 +163,42 @@ theorem extract_branch_step {F : Type} (state post : LabSem.State 64 Config F)
         exact extraction_of_instruction
           (InstructionTrace.branchTaken state _ cmp r operand label pc w bytes n 0 clock fetch chosen destination (.nil _)) rfl evaluated
 
+theorem extract_shared_step {F : Type} (state post : LabSem.State 64 Config F)
+    (outcome : HolOutcome) (m : HolMemop) (r base : Nat) (off : BitVec 64)
+    (bytes : List (BitVec 8)) (n : Nat)
+    (fetch : asmFetch state = some (.asm (.shareMem m r (.addr base off)) bytes n))
+    (evaluated : evaluate state = (.halt outcome, post)) : ExtractionStep state post outcome := by
+  have clock := clock_of_halt_evaluation evaluated
+  rw [evaluate] at evaluated
+  simp only [clock, ↓reduceIte, fetch] at evaluated
+  cases operation : shareMemOp m r (.addr base off) state with
+  | none => rw [operation] at evaluated; cases (Prod.mk.inj evaluated).1
+  | some pair =>
+    obtain ⟨result, next⟩ := pair
+    cases result with
+    | final event =>
+      rw [operation] at evaluated
+      have same := shared_final_state m r (.addr base off) state next event operation
+      subst next
+      have pieces := Prod.mk.inj evaluated
+      have result := MachineResult.halt.inj pieces.1
+      cases result
+      exact Or.inl ⟨Terminal.shared state m r base off bytes n event clock fetch operation, pieces.2.symm⟩
+    | ret ffi returned =>
+      rw [operation] at evaluated
+      let successor := { next with ioRegs := holShiftSeq 1 next.ioRegs, ioFpRegs := holShiftSeq 1 next.ioFpRegs }
+      refine Or.inr ⟨successor, ?_, ?_, ?_, evaluated⟩
+      · exact MixedTrace.shared state successor m r base off bytes n ffi returned next 0 clock fetch operation (.nil successor)
+      · have nextClock := shareMemOp_ret_clock m r (.addr base off) state next ffi returned operation
+        change next.clock < state.clock
+        omega
+      · exact shared_return_code m r (.addr base off) state next ffi returned operation
+
 /-- Syntax supported by the bounded simulation. Dynamic installation,
-shared memory and code-buffer writes require separate compiler invariants. -/
+code-buffer writes require separate compiler invariants. -/
 inductive SupportedLine : LabLineHOL 64 → Prop
+  | shared (m : HolMemop) (r base : Nat) (off : BitVec 64) (bytes : List (BitVec 8)) (n : Nat) :
+      SupportedLine (.asm (.shareMem m r (.addr base off)) bytes n)
   | inst (i : HolInst 64) (bytes : List (BitVec 8)) (n : Nat) :
       SupportedLine (.asm (.asmi (.inst i)) bytes n)
   | jumpReg (r : Nat) (bytes : List (BitVec 8)) (n : Nat) :
@@ -196,6 +229,7 @@ theorem extract_supported_step {F : Type} (state post : LabSem.State 64 Config F
   | some line =>
     have allowed := supported state.pc line (by simpa only [asmFetch] using fetch)
     cases allowed with
+    | shared m r base off bytes n => exact extract_shared_step state post outcome m r base off bytes n fetch evaluated
     | inst i bytes n => exact extract_inst_step state post outcome i bytes n fetch evaluated
     | jumpReg r bytes n => exact extract_jumpReg_step state post outcome r bytes n fetch evaluated
     | halt w bytes n => exact Or.inl (terminal_of_halt_fetch state post outcome w bytes n fetch evaluated)
@@ -215,6 +249,11 @@ theorem mixedTrace_trans {F : Type} {a b c : LabSem.State 64 Config F} {m n : Na
       length clock fetch hlen hptr hlen2 hptr2 read1 read2 link destination call rest ih =>
     have composed := MixedTrace.ffi state c name w bytes k len start len2 start2 conf bytes2 n1 n2 pc
       newFfi newBytes (length + n) clock fetch hlen hptr hlen2 hptr2 read1 read2 link destination call (ih second)
+    simpa only [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using composed
+
+  | shared state final m r base off bytes k ffi returned next length clock fetch operation rest ih =>
+    have composed := MixedTrace.shared state c m r base off bytes k ffi returned next (length + n)
+      clock fetch operation (ih second)
     simpa only [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using composed
 
 /-- Successful evaluation of supported code supplies its own complete trace

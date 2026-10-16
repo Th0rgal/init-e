@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.LabSharedBudget
 import InitECandidate.Runtime.LabInstructionTrace
 import InitECandidate.Runtime.LabFfiBudget
 
@@ -32,6 +33,14 @@ inductive MixedTrace {F : Type} : LabSem.State 64 Config F → LabSem.State 64 C
       (call : callFFIHOL state.ffi (.extCall name) conf bytes2 = .ret newFfi newBytes)
       (rest : MixedTrace (ffiReturnedSource state name start2 newBytes newPc newFfi) final length) :
       MixedTrace state final (length + 1)
+
+  | shared (state final : LabSem.State 64 Config F) (m : HolMemop) (r base : Nat) (off : BitVec 64)
+      (bytes : List (BitVec 8)) (n : Nat) (ffi : HolFfiState F) (returned : List (BitVec 8))
+      (next : LabSem.State 64 Config F) (length : Nat)
+      (clock : state.clock ≠ 0)
+      (fetch : asmFetch state = some (.asm (.shareMem m r (.addr base off)) bytes n))
+      (operation : shareMemOp m r (.addr base off) state = some (.ret ffi returned, next))
+      (rest : MixedTrace { next with ioRegs := holShiftSeq 1 next.ioRegs, ioFpRegs := holShiftSeq 1 next.ioFpRegs } final length) : MixedTrace state final (length + 1)
 
 /-- Bounded simulation of arbitrarily many returning FFI calls interleaved
 with actual control-flow traces. The final configuration retains consumed
@@ -85,6 +94,20 @@ theorem mixedTrace_bounded {F : Type} {start final : LabSem.State 64 Config F} {
         firstRun]
       exact restRun clock
 
+  | shared state final m r base off bytes n ffi returned next length clock fetch operation rest ih =>
+    obtain ⟨index, middleAsm, firstRun, middleRel, middleTie, nextClock, nextCode, nextFfi⟩ :=
+      shared_return_native state m r base off bytes n mc code labs p asm machine fetch related tie ffi returned next operation
+    obtain ⟨restCount, post, finalAsm, finalConfig, restBound, finalTarget, finalEncoder,
+        restRun, finalRel, finalTie⟩ :=
+      ih { mc with ffiInterfer := holShiftSeq 1 mc.ffiInterfer } middleAsm _ target encoder middleRel middleTie
+    refine ⟨1 + restCount, post, finalAsm, finalConfig, ?_, finalTarget, finalEncoder, ?_, finalRel, finalTie⟩
+    · have ceiling : 1 ≤ labStepCeiling code + 1 := by omega
+      rw [Nat.mul_add, Nat.mul_one]
+      omega
+    · intro clock
+      rw [show clock + (1 + restCount) = (clock + restCount) + 1 by omega, firstRun]
+      simpa only [nextFfi] using restRun clock
+
 theorem mixedTrace_source {F : Type} {start final : LabSem.State 64 Config F} {length : Nat}
     (trace : MixedTrace start final length) :
     evaluate start = evaluate final ∧ final.clock + length = start.clock := by
@@ -101,6 +124,16 @@ theorem mixedTrace_source {F : Type} {start final : LabSem.State 64 Config F} {l
         read1, read2, destination, call]
       exact ih.1
     · have tailClock : final.clock + length = state.clock - 1 := ih.2
+      omega
+
+  | shared state final m r base off bytes n ffi returned next length clock fetch operation rest ih =>
+    constructor
+    · rw [evaluate]
+      simp only [clock, ↓reduceIte, fetch]
+      rw [operation]
+      exact ih.1
+    · have nextClock := shareMemOp_ret_clock m r (.addr base off) state next ffi returned operation
+      have tailClock : final.clock + length = next.clock := ih.2
       omega
 
 /-- A mixed control/FFI trace ending at a real halt has a native terminal

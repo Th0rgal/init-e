@@ -33,6 +33,13 @@ inductive Terminal {F : Type} : LabSem.State 64 Config F → HolOutcome → Prop
       (call : callFFIHOL state.ffi (.extCall name) conf bytes2 = .final event)
       : Terminal state (.ffiOutcome event)
 
+  | shared (state : LabSem.State 64 Config F) (m : HolMemop) (r base : Nat) (off : BitVec 64)
+      (bytes : List (BitVec 8)) (n : Nat) (event : HolFinalEvent)
+      (clock : state.clock ≠ 0)
+      (fetch : asmFetch state = some (.asm (.shareMem m r (.addr base off)) bytes n))
+      (operation : shareMemOp m r (.addr base off) state = some (.final event, state)) :
+      Terminal state (.ffiOutcome event)
+
 theorem terminal_clock {F : Type} {state : LabSem.State 64 Config F} {outcome : HolOutcome}
     (terminal : Terminal state outcome) : state.clock ≠ 0 := by
   cases terminal <;> assumption
@@ -49,6 +56,11 @@ theorem terminal_source {F : Type} {state : LabSem.State 64 Config F} {outcome :
     simp only [clock, ↓reduceIte, fetch, hlen, hptr, hlen2, hptr2, link,
       read1, read2, destination, call]
 
+  | shared m r base off bytes n event clock fetch operation =>
+    rw [evaluate]
+    simp only [clock, ↓reduceIte, fetch]
+    rw [operation]
+
 theorem terminal_native {F : Type} {state : LabSem.State 64 Config F} {outcome : HolOutcome}
     (terminal : Terminal state outcome)
     (mc : MachineConfig 64 riscv_state RiscVProjection) (code : LabProgHOL 64)
@@ -64,6 +76,10 @@ theorem terminal_native {F : Type} {state : LabSem.State 64 Config F} {outcome :
       hlen hptr hlen2 hptr2 read1 read2 link destination call =>
     exact fetched_ffi_final_bounded state name w mc code labs p asm machine bytes n len start len2 start2
       conf bytes2 target fetch hlen hptr hlen2 hptr2 read1 read2 encoder related event call
+
+  | shared m r base off bytes n event clock fetch operation =>
+    refine ⟨1, machine, by omega, ?_⟩
+    exact (shared_final_native state m r base off bytes n mc code labs p asm machine fetch related event state operation).2
 
 /-- Extract the halt terminal witness from the evaluator result itself. -/
 theorem terminal_of_halt_fetch {F : Type} (state post : LabSem.State 64 Config F)

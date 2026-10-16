@@ -265,7 +265,7 @@ theorem shared_return_native {width : Nat} [NeZero width] {S Q F : Type}
       oracleTie { mc with ffiInterfer := holShiftSeq 1 mc.ffiInterfer }
         (mc.ffiInterfer 0 (index, returned, machine))
         { next with ioRegs := holShiftSeq 1 next.ioRegs, ioFpRegs := holShiftSeq 1 next.ioFpRegs } ∧
-      next.clock = state.clock - 1 ∧ next.code = state.code := by
+      next.clock = state.clock - 1 ∧ next.code = state.code ∧ next.ffi = ffi := by
   obtain ⟨index, run, finalCase, retCase⟩ := shared_native_core state m r base off bytes n
     mc code labs p asm machine fetch related (.ret ffi returned) next operation
   obtain ⟨interference, ffiRel, tregs, regs, targetRel, registers, nextEq⟩ := retCase ffi returned rfl
@@ -276,7 +276,7 @@ theorem shared_return_native {width : Nat} [NeZero width] {S Q F : Type}
     { state with ffi := ffi, regs := regs, pc := state.pc + 1, clock := state.clock - 1, ioRegs := holShiftSeq 1 state.ioRegs, ioFpRegs := holShiftSeq 1 state.ioFpRegs }
   have tied := oracleTie_ffiNext mc machine state returnedState index returned machine _ _ ffi
     ⟨tie, interference, rfl, rfl, rfl, rfl, rfl⟩
-  exact ⟨index, _, run, rel, tied, rfl, rfl⟩
+  exact ⟨index, _, run, rel, tied, rfl, rfl, rfl⟩
 
 theorem shared_final_native {width : Nat} [NeZero width] {S Q F : Type}
     (state : LabSem.State width Config F) (m : HolMemop) (r base : Nat) (off : BitVec width)
@@ -291,6 +291,36 @@ theorem shared_final_native {width : Nat} [NeZero width] {S Q F : Type}
   obtain ⟨index, run, finalCase, retCase⟩ := shared_native_core state m r base off bytes n
     mc code labs p asm machine fetch related (.final event) next operation
   exact ⟨finalCase event rfl, run 0⟩
+
+theorem shared_load_final_state {width : Nat} [NeZero width] {C F : Type}
+    (r : Nat) (address : HolAddr width) (state next : LabSem.State width C F) (size : Nat)
+    (event : HolFinalEvent) (operation : shareMemLoad r address state size = some (.final event, next)) : next = state := by
+  unfold shareMemLoad at operation
+  repeat' first | split at operation | simp_all
+  all_goals exact operation.2.symm
+
+theorem shared_store_final_state {width : Nat} [NeZero width] {C F : Type}
+    (r : Nat) (address : HolAddr width) (state next : LabSem.State width C F) (size : Nat)
+    (event : HolFinalEvent) (operation : shareMemStore r address state size = some (.final event, next)) : next = state := by
+  unfold shareMemStore at operation
+  repeat' first | split at operation | simp_all
+  all_goals exact operation.2.symm
+
+theorem shared_final_state {width : Nat} [NeZero width] {C F : Type}
+    (m : HolMemop) (r : Nat) (address : HolAddr width) (state next : LabSem.State width C F)
+    (event : HolFinalEvent) (operation : shareMemOp m r address state = some (.final event, next)) : next = state := by
+  cases m <;> simp only [shareMemOp] at operation
+  all_goals first | exact shared_load_final_state _ _ _ _ _ _ operation
+                  | exact shared_store_final_state _ _ _ _ _ _ operation
+
+theorem shared_return_code {width : Nat} [NeZero width] {C F : Type}
+    (m : HolMemop) (r : Nat) (address : HolAddr width) (state next : LabSem.State width C F)
+    (ffi : HolFfiState F) (bytes : List (BitVec 8))
+    (operation : shareMemOp m r address state = some (.ret ffi bytes, next)) : next.code = state.code := by
+  cases m <;> simp only [shareMemOp] at operation
+  all_goals first | unfold shareMemLoad at operation | unfold shareMemStore at operation
+  all_goals repeat' first | split at operation | simp_all [incPc, decClock]
+  all_goals exact (congrArg (fun s : LabSem.State width C F => s.code) operation.2).symm
 
 end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.shared_native_core
