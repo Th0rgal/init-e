@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.HaltStubBudget
+import InitECandidate.Runtime.StackNamesBudget
 import Flapjack.Compiler.Backend.StackToLab.Proofs.FullMakeInitSemantics
 
 namespace InitECandidate.Runtime.StackToLab
@@ -54,6 +55,54 @@ theorem initialized_ffi_bounded {width : Nat} [NeZero width] {C F : Type}
   rw [terminal event rfl] at evaluated
   exact evaluated
 
+theorem before_names_halt_bounded {width : Nat} [NeZero width] {C F : Type}
+    (stackConf : StackToLab.Config) (dataConf : DataToWord.Config) (maxHeap sp : Nat)
+    (offset : BitVec width × BitVec width) (bitmaps : List (BitVec width))
+    (code : List (Nat × HolProg width)) (target : LabSem.State width C F)
+    (saveRegs : Nat → Bool) (dataSp : Nat)
+    (oracle : Nat → C × List (Nat × HolProg width) × List (BitVec width))
+    (post : StackSemStateFiniteExact width C F) (value : BitVec width)
+    (initialized : Assumptions stackConf dataConf maxHeap sp offset bitmaps code target saveRegs dataSp oracle)
+    (run : StackSemEvaluate.evaluate ((.call none (.inl 0) none : HolProg width),
+      s2 stackConf dataConf maxHeap sp offset code target saveRegs oracle) =
+        (some (.halt (.word value)), post)) :
+    ∃ clocks final, clocks ≤ entryWork 0 (s3 stackConf dataConf maxHeap sp offset code target saveRegs oracle) ∧
+      evaluate { target with clock := target.clock - 1 + clocks } =
+        (if value = 0 then .halt .success else .halt .resourceLimitHit, final) ∧ final.ffi = post.ffi := by
+  obtain ⟨namedPost, namedRun, _, namedFfi⟩ :=
+    InitECandidate.Runtime.StackNames.fullInit_names_same_clock stackConf dataConf maxHeap sp offset
+      bitmaps code target saveRegs dataSp oracle (.call none (.inl 0) none) target.clock
+      (some (.halt (.word value))) post initialized run
+  obtain ⟨clocks, final, bound, evaluated, ffi⟩ :=
+    initialized_halt_bounded stackConf dataConf maxHeap sp offset bitmaps code target saveRegs dataSp
+      oracle namedPost value initialized namedRun
+  exact ⟨clocks, final, bound, evaluated, ffi.trans namedFfi⟩
+
+theorem before_names_ffi_bounded {width : Nat} [NeZero width] {C F : Type}
+    (stackConf : StackToLab.Config) (dataConf : DataToWord.Config) (maxHeap sp : Nat)
+    (offset : BitVec width × BitVec width) (bitmaps : List (BitVec width))
+    (code : List (Nat × HolProg width)) (target : LabSem.State width C F)
+    (saveRegs : Nat → Bool) (dataSp : Nat)
+    (oracle : Nat → C × List (Nat × HolProg width) × List (BitVec width))
+    (post : StackSemStateFiniteExact width C F) (event : HolFinalEvent)
+    (initialized : Assumptions stackConf dataConf maxHeap sp offset bitmaps code target saveRegs dataSp oracle)
+    (run : StackSemEvaluate.evaluate ((.call none (.inl 0) none : HolProg width),
+      s2 stackConf dataConf maxHeap sp offset code target saveRegs oracle) =
+        (some (.finalFFI event), post)) :
+    ∃ clocks final, clocks ≤ entryWork 0 (s3 stackConf dataConf maxHeap sp offset code target saveRegs oracle) ∧
+      evaluate { target with clock := target.clock - 1 + clocks } =
+        (.halt (.ffiOutcome event), final) ∧ final.ffi = post.ffi := by
+  obtain ⟨namedPost, namedRun, _, namedFfi⟩ :=
+    InitECandidate.Runtime.StackNames.fullInit_names_same_clock stackConf dataConf maxHeap sp offset
+      bitmaps code target saveRegs dataSp oracle (.call none (.inl 0) none) target.clock
+      (some (.finalFFI event)) post initialized run
+  obtain ⟨clocks, final, bound, evaluated, ffi⟩ :=
+    initialized_ffi_bounded stackConf dataConf maxHeap sp offset bitmaps code target saveRegs dataSp
+      oracle namedPost event initialized namedRun
+  exact ⟨clocks, final, bound, evaluated, ffi.trans namedFfi⟩
+
+#print axioms before_names_halt_bounded
+#print axioms before_names_ffi_bounded
 #print axioms initialized_halt_bounded
 #print axioms initialized_ffi_bounded
 end InitECandidate.Runtime.StackToLab
