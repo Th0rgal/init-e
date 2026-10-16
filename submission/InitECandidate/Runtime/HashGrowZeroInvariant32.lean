@@ -31,7 +31,9 @@ theorem evaluate_htabGrow_zero_invariant32 {F : Type} (state : PanSemStateFinite
         (htabGrowOrderPos pointer capacity stride) 0 (bits + 1) ready ∧
       state.clock ≤ ready.clock + (capacity * 2).toNat + 1 ∧ ready.clock ≤ state.clock ∧
       ready.locals = state.locals ∧ ready.globals = state.globals ∧ ready.code = state.code ∧
-      ready.memaddrs = state.memaddrs ∧ ready.be = state.be := by
+      ready.memaddrs = state.memaddrs ∧ ready.be = state.be ∧
+      (∀ watched : BitVec 64, table.toNat + 72 ≤ watched.toNat → watched.toNat < pointer.toNat →
+        ready.memory watched = state.memory watched) := by
   obtain ⟨ka,va,ua,oa,ra,hk,hv,ku,vu,uo,orr,limit⟩ :=
     htabGrow_array_layout table pointer capacity stride strideBound pointerAligned headerBefore heapBudget
   have headerDomain : ∀ offset : Nat, offset ≤ 64 → state.memaddrs (table + BitVec.ofNat 64 offset) := by
@@ -61,7 +63,7 @@ theorem evaluate_htabGrow_zero_invariant32 {F : Type} (state : PanSemStateFinite
     have interval := hashOccupancy_aligned_interval (htabGrowUsed pointer capacity stride) (capacity * 2)
       (BitVec.ofNat 64 offset) ua (by omega) (by rw [natural]; exact inside)
     apply domain <;> omega
-  obtain ⟨ready,run,empty,cost,remaining,locals,globals,postCode,addresses,endian,c0,c8,c16,c24,c32,c40,c48,c56,c64⟩ :=
+  obtain ⟨ready,run,empty,cost,remaining,locals,globals,postCode,addresses,endian,c0,c8,c16,c24,c32,c40,c48,c56,c64,zeroFrame⟩ :=
     evaluate_htabGrow_zero_header state table (capacity * 2) pointer (htabGrowValues pointer capacity stride)
       (htabGrowUsed pointer capacity stride) (htabGrowOrder pointer capacity stride) (htabGrowOrderPos pointer capacity stride)
       continuation code ticks ua (by omega) (by omega) tableLocal ncapLocal nkeysLocal nvalsLocal nusedLocal norderLocal
@@ -70,7 +72,11 @@ theorem evaluate_htabGrow_zero_invariant32 {F : Type} (state : PanSemStateFinite
   have nextPower : (capacity * (2 : BitVec 64)).toNat = 2 ^ (bits + 1) := by
     rw [doubled,power,Nat.pow_succ]
     omega
-  refine ⟨ready,run,?_,cost,remaining,locals,globals,postCode,addresses,endian⟩
+  have preserved : ∀ watched : BitVec 64, table.toNat + 72 ≤ watched.toNat → watched.toNat < pointer.toNat →
+      ready.memory watched = state.memory watched := by
+    intro watched lower upper
+    exact zeroFrame watched lower (by omega)
+  refine ⟨ready,run,?_,cost,remaining,locals,globals,postCode,addresses,endian,preserved⟩
   exact {
     code := postCode.trans code
     power := nextPower

@@ -35,7 +35,9 @@ theorem evaluate_htabGrow_order_allocation32 {F : Type} (state : PanSemStateFini
         (htabGrowOrderPos pointer capacity stride) 0 (bits + 1) ready ∧
       state.clock ≤ ready.clock + (capacity * 2).toNat + 3 ∧ ready.clock ≤ state.clock ∧
       ready.code = state.code ∧ ready.memaddrs = state.memaddrs ∧ ready.be = state.be ∧
-      ∀ name, name ∉ [ofString "norder",ofString "norder_pos"] → ready.locals.lookup name = state.locals.lookup name := by
+      (∀ name, name ∉ [ofString "norder",ofString "norder_pos"] → ready.locals.lookup name = state.locals.lookup name) ∧
+      (∀ watched : BitVec 64, table.toNat + 72 ≤ watched.toNat → watched.toNat < pointer.toNat →
+        ready.memory watched = state.memory watched) := by
   have safe := (htabGrow_allocation_plan_safe pointer capacity stride strideBound heapBudget).2.1
   obtain ⟨_,_,_,_,_,_,guard,finish,_⟩ := safe
   have arguments : evalListHOLFinite state
@@ -59,7 +61,7 @@ theorem evaluate_htabGrow_order_allocation32 {F : Type} (state : PanSemStateFini
       address.toNat < (htabGrowOrderPos pointer capacity stride).toNat + (capacity * 2).toNat * 8 → entered.memaddrs address := by
     change ∀ address : BitVec 64, _ → _ → allocated.memaddrs address
     rw [addresses]; exact domain
-  obtain ⟨ready,run,valid,cost,remaining,lastLocals,lastCode,lastAddresses,lastEndian⟩ :=
+  obtain ⟨ready,run,valid,cost,remaining,lastLocals,lastCode,lastAddresses,lastEndian,lastFrame⟩ :=
     evaluate_htabGrow_final_allocation32 entered table pointer capacity stride bits continuation (postCode.trans code) power
       strideAligned fits strideBound pointerAligned headerBefore heapBudget
       (by change (capacity * 2).toNat + 2 ≤ allocated.clock; omega) domainAfter
@@ -76,7 +78,7 @@ theorem evaluate_htabGrow_order_allocation32 {F : Type} (state : PanSemStateFini
   rw [decl]
   change ∃ ready, (let output := evaluateHOLFiniteState entered (.decCall (ofString "norder_pos") .one (ofString "alloc") [.panop .mul [.var .local (ofString "ncap"),.const 8]] (hashGrowZeroHeader continuation)); _) = _ ∧ _
   rw [run]
-  refine ⟨ready,?_,valid,?_,?_,lastCode.trans postCode,lastAddresses.trans addresses,lastEndian.trans endian,?_⟩
+  refine ⟨ready,?_,valid,?_,?_,lastCode.trans postCode,lastAddresses.trans addresses,lastEndian.trans endian,?_,?_⟩
   · dsimp only
     simp only [restoreGrowthLocals,saved]
   · change allocated.clock ≤ ready.clock + (capacity * 2).toNat + 2 at cost
@@ -88,6 +90,11 @@ theorem evaluate_htabGrow_order_allocation32 {F : Type} (state : PanSemStateFini
     have neReverse : name ≠ ofString "norder_pos" := by intro same; apply outside; simp [same]
     rw [lastLocals]
     simpa [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm neReverse] using other name neOrder
+  · intro watched lower upper
+    have preserved := lastFrame watched lower upper
+    rw [preserved]
+    change allocated.memory watched = state.memory watched
+    rw [memory]
 
 theorem source_htabGrow_order_allocation :
     sourceFindDeclarationCallScope (ofString "norder") (sourceFunctionBody Guest.guestFn_htab_grow) =

@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.HashGrowHeaderOccupancy
 import InitECandidate.Runtime.HashGrowHeaderState
+import InitECandidate.Runtime.HashGrowHeaderEarlier
 import InitECandidate.Runtime.MemzeroAlignedCombinedCall
 import InitECandidate.Runtime.MemcpyIntervalFrame
 namespace InitECandidate.Runtime
@@ -35,7 +36,9 @@ theorem evaluate_htabGrow_zero_header {F : Type} (state : PanSemStateFiniteExact
       ready.memory (table + 0) = state.memory (table + 0) ∧ ready.memory (table + 8) = state.memory (table + 8) ∧
       ready.memory (table + 16) = .word capacity ∧ ready.memory (table + 24) = .word 0 ∧
       ready.memory (table + 32) = .word keys ∧ ready.memory (table + 40) = .word values ∧
-      ready.memory (table + 48) = .word used ∧ ready.memory (table + 56) = .word order ∧ ready.memory (table + 64) = .word orderPos := by
+      ready.memory (table + 48) = .word used ∧ ready.memory (table + 56) = .word order ∧ ready.memory (table + 64) = .word orderPos ∧
+      (∀ watched : BitVec 64, table.toNat + 72 ≤ watched.toNat → watched.toNat < used.toNat →
+        ready.memory watched = state.memory watched) := by
   have arguments : evalListHOLFinite state
       (h := fun address => Classical.propDecidable (state.memaddrs address))
       [.var .local (ofString "nused"),.var .local (ofString "ncap")] = some [.val (.word used),.val (.word capacity)] := by
@@ -74,13 +77,17 @@ theorem evaluate_htabGrow_zero_header {F : Type} (state : PanSemStateFiniteExact
   have preserved0 : zeroed.memory (table + 0) = state.memory (table + 0) := protectedHeaders 0 (by decide)
   have preserved8 : zeroed.memory (table + 8) = state.memory (table + 8) := protectedHeaders 8 (by decide)
   refine ⟨ready,?_,?_,cost,remaining,locals,globals,postCode,addresses,endian,c0.trans preserved0,c8.trans preserved8,
-    c16,c24,c32,c40,c48,c56,c64⟩
+    c16,c24,c32,c40,c48,c56,c64,?_⟩
   · unfold hashGrowZeroHeader
     rw [evaluateHOLFiniteState_seq_line780,zeroRun]
     exact headerRun
   · have counts := htabGrow_header_preserves_occupancy zeroed table capacity keys values used order orderPos aligned headerBefore bounded
     rw [htabGrowHeaderPost_state] at counts
     exact counts.trans empty
+  · intro watched lower upper
+    have separate := memcpy_interval_separate used capacity watched aligned bounded (Or.inl upper)
+    have preserved := frame watched (fun byte inside => (separate byte inside).1) (fun byte inside => (separate byte inside).2)
+    exact (htabGrowHeaderPost_earlier zeroed table capacity keys values used order orderPos watched lower).trans preserved
 
 #print axioms evaluate_htabGrow_zero_header
 end InitECandidate.Runtime

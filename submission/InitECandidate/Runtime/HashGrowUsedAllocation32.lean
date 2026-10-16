@@ -31,7 +31,9 @@ theorem evaluate_htabGrow_used_allocation32 {F : Type} (state : PanSemStateFinit
         (htabGrowOrderPos pointer capacity stride) 0 (bits + 1) ready ∧
       state.clock ≤ ready.clock + (capacity * 2).toNat + 4 ∧ ready.clock ≤ state.clock ∧
       ready.code = state.code ∧ ready.memaddrs = state.memaddrs ∧ ready.be = state.be ∧
-      ∀ name, name ∉ [ofString "nused",ofString "norder",ofString "norder_pos"] → ready.locals.lookup name = state.locals.lookup name := by
+      (∀ name, name ∉ [ofString "nused",ofString "norder",ofString "norder_pos"] → ready.locals.lookup name = state.locals.lookup name) ∧
+      (∀ watched : BitVec 64, table.toNat + 72 ≤ watched.toNat → watched.toNat < pointer.toNat →
+        ready.memory watched = state.memory watched) := by
   have safe := (htabGrow_allocation_plan_safe pointer capacity stride strideBound heapBudget).2.1
   obtain ⟨_,_,_,_,guard,finish,_⟩ := safe
   have arguments : evalListHOLFinite state
@@ -53,7 +55,7 @@ theorem evaluate_htabGrow_used_allocation32 {F : Type} (state : PanSemStateFinit
       address.toNat < (htabGrowOrderPos pointer capacity stride).toNat + (capacity * 2).toNat * 8 → entered.memaddrs address := by
     change ∀ address : BitVec 64, _ → _ → allocated.memaddrs address
     rw [addresses]; exact domain
-  obtain ⟨ready,run,valid,cost,remaining,lastCode,lastAddresses,lastEndian,lastOther⟩ :=
+  obtain ⟨ready,run,valid,cost,remaining,lastCode,lastAddresses,lastEndian,lastOther,lastFrame⟩ :=
     evaluate_htabGrow_order_allocation32 entered table pointer capacity stride bits continuation (postCode.trans code) power
       strideAligned fits strideBound pointerAligned headerBefore heapBudget
       (by change (capacity * 2).toNat + 3 ≤ allocated.clock; omega) domainAfter
@@ -71,7 +73,7 @@ theorem evaluate_htabGrow_used_allocation32 {F : Type} (state : PanSemStateFinit
   rw [decl]
   change ∃ ready, (let output := evaluateHOLFiniteState entered (hashGrowOrderAllocation continuation); _) = _ ∧ _
   rw [run]
-  refine ⟨ready,?_,valid,?_,?_,lastCode.trans postCode,lastAddresses.trans addresses,lastEndian.trans endian,?_⟩
+  refine ⟨ready,?_,valid,?_,?_,lastCode.trans postCode,lastAddresses.trans addresses,lastEndian.trans endian,?_,?_⟩
   · dsimp only
     simp only [restoreGrowthLocals,saved0,saved1]
   · change allocated.clock ≤ ready.clock + (capacity * 2).toNat + 3 at cost
@@ -85,6 +87,11 @@ theorem evaluate_htabGrow_used_allocation32 {F : Type} (state : PanSemStateFinit
       apply outside
       exact List.mem_cons_of_mem _ member
     exact (lastOther name outsideRest).trans (other name neCurrent)
+  · intro watched lower upper
+    have preserved := lastFrame watched lower upper
+    rw [preserved]
+    change allocated.memory watched = state.memory watched
+    rw [memory]
 
 theorem source_htabGrow_used_allocation :
     sourceFindDeclarationCallScope (ofString "nused") (sourceFunctionBody Guest.guestFn_htab_grow) =

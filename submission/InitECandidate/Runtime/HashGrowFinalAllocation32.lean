@@ -35,7 +35,9 @@ theorem evaluate_htabGrow_final_allocation32 {F : Type} (state : PanSemStateFini
         (htabGrowOrderPos pointer capacity stride) 0 (bits + 1) ready ∧
       state.clock ≤ ready.clock + (capacity * 2).toNat + 2 ∧ ready.clock ≤ state.clock ∧
       ready.locals = (setVarHOLFinite (ofString "norder_pos") (.val (.word (htabGrowOrderPos pointer capacity stride))) state).locals ∧
-      ready.code = state.code ∧ ready.memaddrs = state.memaddrs ∧ ready.be = state.be := by
+      ready.code = state.code ∧ ready.memaddrs = state.memaddrs ∧ ready.be = state.be ∧
+      (∀ watched : BitVec 64, table.toNat + 72 ≤ watched.toNat → watched.toNat < pointer.toNat →
+        ready.memory watched = state.memory watched) := by
   have safe := (htabGrow_allocation_plan_safe pointer capacity stride strideBound heapBudget).2.1
   obtain ⟨_,_,_,_,_,_,_,_,guard,finish,_⟩ := safe
   have arguments : evalListHOLFinite state
@@ -55,7 +57,7 @@ theorem evaluate_htabGrow_final_allocation32 {F : Type} (state : PanSemStateFini
       address.toNat < (htabGrowOrderPos pointer capacity stride).toNat + (capacity * 2).toNat * 8 → entered.memaddrs address := by
     change ∀ address : BitVec 64, _ → _ → allocated.memaddrs address
     rw [addresses]; exact domain
-  obtain ⟨ready,run,valid,cost,remaining,lastLocals,_,lastCode,lastAddresses,lastEndian⟩ :=
+  obtain ⟨ready,run,valid,cost,remaining,lastLocals,_,lastCode,lastAddresses,lastEndian,lastFrame⟩ :=
     evaluate_htabGrow_zero_invariant32 entered table pointer capacity stride bits continuation (postCode.trans code) power
       strideAligned fits strideBound pointerAligned headerBefore heapBudget
       (by change (capacity * 2).toNat + 1 ≤ allocated.clock; omega) domainAfter
@@ -71,7 +73,7 @@ theorem evaluate_htabGrow_final_allocation32 {F : Type} (state : PanSemStateFini
   rw [decl]
   change ∃ ready, (let output := evaluateHOLFiniteState entered (hashGrowZeroHeader continuation); _) = _ ∧ _
   rw [run]
-  refine ⟨ready,rfl,valid,?_,?_,?_,lastCode.trans postCode,lastAddresses.trans addresses,lastEndian.trans endian⟩
+  refine ⟨ready,rfl,valid,?_,?_,?_,lastCode.trans postCode,lastAddresses.trans addresses,lastEndian.trans endian,?_⟩
   · change entered.clock ≤ ready.clock + (capacity * 2).toNat + 1 at cost
     change state.clock ≤ ready.clock + (capacity * 2).toNat + 2
     change allocated.clock ≤ ready.clock + (capacity * 2).toNat + 1 at cost
@@ -80,6 +82,12 @@ theorem evaluate_htabGrow_final_allocation32 {F : Type} (state : PanSemStateFini
     omega
   · rw [lastLocals]
     simp only [entered,setVarHOLFinite,locals]
+  · intro watched lower upper
+    have preserved := lastFrame watched lower upper
+    change ready.memory watched = state.memory watched
+    rw [preserved]
+    change allocated.memory watched = state.memory watched
+    rw [memory]
 
 #print axioms evaluate_htabGrow_final_allocation32
 end InitECandidate.Runtime

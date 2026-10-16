@@ -38,7 +38,9 @@ theorem evaluate_htabGrow_prefix32 {F : Type} (state : PanSemStateFiniteExact 64
       ready.locals.lookup (ofString "vals") = some (.val (.word values)) ∧
       ready.locals.lookup (ofString "order") = some (.val (.word order)) ∧
       ready.locals.lookup (ofString "nitems") = some (.val (.word count)) ∧
-      ∀ name, name ∉ [ofString "cap",ofString "stride",ofString "keys",ofString "vals",ofString "order",ofString "nitems",ofString "ncap",ofString "nkeys",ofString "nvals",ofString "nused",ofString "norder",ofString "norder_pos"] → ready.locals.lookup name = state.locals.lookup name := by
+      (∀ name, name ∉ [ofString "cap",ofString "stride",ofString "keys",ofString "vals",ofString "order",ofString "nitems",ofString "ncap",ofString "nkeys",ofString "nvals",ofString "nused",ofString "norder",ofString "norder_pos"] → ready.locals.lookup name = state.locals.lookup name) ∧
+      (∀ watched : BitVec 64, table.toNat + 72 ≤ watched.toNat → watched.toNat < pointer.toNat →
+        ready.memory watched = state.memory watched) := by
   obtain ⟨_,_,_,_,_,_,_,_,_,_,_,limit⟩ := htabGrow_array_layout table pointer capacity stride strideBound pointerAligned headerBefore heapBudget
   have headerDomain : ∀ offset : Nat, offset ≤ 64 → state.memaddrs (table + BitVec.ofNat 64 offset) := by
     intro offset small
@@ -59,7 +61,7 @@ theorem evaluate_htabGrow_prefix32 {F : Type} (state : PanSemStateFiniteExact 64
       (headerDomain 24 (by decide)) cell24
   have t : loaded.locals.lookup (ofString "t") = some (.val (.word table)) :=
     (oldOther _ (by decide)).trans tableLocal
-  obtain ⟨ready,allocations,valid,cost,remaining,lastCode,lastAddresses,lastEndian,newOther⟩ :=
+  obtain ⟨ready,allocations,valid,cost,remaining,lastCode,lastAddresses,lastEndian,newOther,newFrame⟩ :=
     evaluate_htabGrow_keys_allocation32 loaded table pointer capacity stride bits continuation (postCode.trans code) power
       strideAligned fits strideBound pointerAligned headerBefore heapBudget (by rw [clock]; exact ticks)
       (by rw [addresses]; exact domain) (by rw [memory]; exact keyField) (by rw [memory]; exact cell8)
@@ -80,7 +82,7 @@ theorem evaluate_htabGrow_prefix32 {F : Type} (state : PanSemStateFiniteExact 64
     (newOther (ofString "vals") (by decide)).trans valsBinding,
     (newOther (ofString "order") (by decide)).trans orderBinding,
     (newOther (ofString "nitems") (by decide)).trans countBinding,
-    ?_⟩
+    ?_,?_⟩
   · dsimp only
     rw [saved]
   · rw [clock] at cost
@@ -99,6 +101,9 @@ theorem evaluate_htabGrow_prefix32 {F : Type} (state : PanSemStateFiniteExact 64
       change name ∈ [ofString "cap",ofString "stride",ofString "keys",ofString "vals",ofString "order",ofString "nitems",ofString "ncap"] ++ [ofString "nkeys",ofString "nvals",ofString "nused",ofString "norder",ofString "norder_pos"]
       exact List.mem_append_right _ member
     exact (newOther name newOutside).trans (oldOther name oldOutside)
+  · intro watched lower upper
+    have preserved := newFrame watched lower upper
+    rw [preserved,memory]
 
 #print axioms evaluate_htabGrow_prefix32
 end InitECandidate.Runtime
