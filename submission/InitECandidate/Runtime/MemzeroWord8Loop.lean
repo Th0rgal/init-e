@@ -21,7 +21,7 @@ theorem evaluate_memzero_word8_loop {F : Type} (destination size : BitVec 64)
         post.locals.lookup (ofString "i") = some (.val (.word finalIndex)) ∧
         finalIndex.toNat ≤ size.toNat ∧ size.toNat - finalIndex.toNat < 8 ∧
         ZeroBytePrefix post destination finalIndex.toNat ∧
-        state.clock ≤ post.clock + rank ∧ post.clock ≤ state.clock ∧
+        state.clock + (size.toNat - finalIndex.toNat) ≤ post.clock + rank ∧ post.clock ≤ state.clock ∧
         post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
         ∀ name, name ≠ ofString "i" → post.locals.lookup name = state.locals.lookup name := by
   classical
