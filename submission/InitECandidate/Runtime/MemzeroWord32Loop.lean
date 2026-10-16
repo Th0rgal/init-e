@@ -5,8 +5,8 @@ open Flapjack.Basis.Pure.MlString
 
 def memzeroWord32Loop : ProgHOL 64 := .while (memzeroBlockCondition 32) memzeroWord32Body
 
-/-- The real aligned eight-byte loop terminates, preserves zero coverage, and
-leaves fewer than eight bytes for the tail loop. Its clock cost is bounded by
+/-- The real aligned thirty-two-byte loop terminates, preserves zero coverage, and
+leaves fewer than thirty-two bytes for the tail loop. Its clock cost is bounded by
 the initial remaining byte count. -/
 theorem evaluate_memzero_word32_loop {F : Type} (destination size : BitVec 64)
     (small : destination.toNat + size.toNat ≤ 33806089496) :
@@ -20,7 +20,7 @@ theorem evaluate_memzero_word32_loop {F : Type} (destination size : BitVec 64)
       ∃ post finalIndex, evaluateHOLFiniteState state memzeroWord32Loop = (none,post) ∧
         post.locals.lookup (ofString "i") = some (.val (.word finalIndex)) ∧
         finalIndex.toNat ≤ size.toNat ∧ size.toNat - finalIndex.toNat < 32 ∧
-        ZeroBytePrefix post destination finalIndex.toNat ∧
+        (destination.toNat + finalIndex.toNat) % 8 = 0 ∧ ZeroBytePrefix post destination finalIndex.toNat ∧
         state.clock + (size.toNat - finalIndex.toNat) ≤ post.clock + rank ∧ post.clock ≤ state.clock ∧
         post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
         ∀ name, name ≠ ofString "i" → post.locals.lookup name = state.locals.lookup name := by
@@ -58,7 +58,7 @@ theorem evaluate_memzero_word32_loop {F : Type} (destination size : BitVec 64)
         intro offset bound; rw [addresses]; exact domain offset bound
       have nextAligned : (destination.toNat + (index + 32).toNat) % 8 = 0 := by rw [advancedNat]; omega
       have decreases : size.toNat - (index + 32).toNat < rank := by rw [advancedNat]; omega
-      obtain ⟨post,finalIndex,tail,finalLocal,finalBound,remainder,finalZero,cost,remaining,
+      obtain ⟨post,finalIndex,tail,finalLocal,finalBound,remainder,finalAligned,finalZero,cost,remaining,
         finalGlobals,finalCode,finalDomain,finalEndian,otherLocals⟩ := ih _ decreases next (index + 32)
         nextDst nextSize nextIndex (by rw [advancedNat]; exact guard) rfl
         (by change next.clock = state.clock - 1 at ticks; rw [advancedNat]; omega)
@@ -73,7 +73,7 @@ theorem evaluate_memzero_word32_loop {F : Type} (destination size : BitVec 64)
         have equalClock : (decClockHOLFinite state).clock = next.clock := ticks.symm
         rw [equalClock]
         simp
-      refine ⟨post,finalIndex,run.trans tail,finalLocal,finalBound,remainder,finalZero,?_,?_,
+      refine ⟨post,finalIndex,run.trans tail,finalLocal,finalBound,remainder,finalAligned,finalZero,?_,?_,
         finalGlobals.trans globals,finalCode.trans code,finalDomain.trans addresses,finalEndian.trans endian,?_⟩
       · change next.clock = state.clock - 1 at ticks
         rw [advancedNat] at cost
@@ -92,7 +92,7 @@ theorem evaluate_memzero_word32_loop {F : Type} (destination size : BitVec 64)
         rw [evaluateHOLFiniteState_while_total,evalHOLFinite_eq_toExact,condition]
         rw [flag]
         simp
-      exact ⟨state,index,run,indexLocal,inside,by omega,zero,by omega,by omega,rfl,rfl,rfl,rfl,by intro name different; rfl⟩
+      exact ⟨state,index,run,indexLocal,inside,by omega,aligned,zero,by omega,by omega,rfl,rfl,rfl,rfl,by intro name different; rfl⟩
 
 #print axioms evaluate_memzero_word32_loop
 end InitECandidate.Runtime
