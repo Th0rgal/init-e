@@ -6,6 +6,8 @@ open Flapjack Flapjack.LoopSemStateFiniteExact
 A conditional charges its one live-set cut; primitive computations charge zero. -/
 def loopExprFuel {width : Nat} [NeZero width] : HolLoopProg width → Option Nat
   | .skip | .assign _ _ | .loadByte _ _ | .load32 _ _ | .arith _ => some 0
+  | .break _ | .continue _ | .raise _ | .return _ | .setGlobal _ _ => some 0
+  | .tick => some 1
   | .seq a b => do return (← loopExprFuel a) + (← loopExprFuel b)
   | .ite _ _ _ a b _ => do return (← loopExprFuel a) + (← loopExprFuel b) + 1
   | .mark body => loopExprFuel body
@@ -95,6 +97,28 @@ theorem loopExprFuel_correct {width : Nat} [NeZero width] {F : Type}
     subst fuel
     rw [evaluate]
     repeat' first | (simp [setVar]) | split
+  case «return» regs =>
+    simp only [loopExprFuel,Option.some.injEq] at supported
+    subst fuel
+    rw [evaluate]
+    split <;> simp [LoopSemStateFiniteExact.callEnv]
+  case «raise» reg =>
+    simp only [loopExprFuel,Option.some.injEq] at supported
+    subst fuel
+    rw [evaluate]
+    split <;> simp [LoopSemStateFiniteExact.callEnv]
+  case setGlobal reg value =>
+    simp only [loopExprFuel,Option.some.injEq] at supported
+    subst fuel
+    rw [evaluate]
+    split <;> simp [setGlobals]
+  case «break» label => simp [loopExprFuel,evaluate] at supported ⊢
+  case «continue» label => simp [loopExprFuel,evaluate] at supported ⊢
+  case tick =>
+    simp only [loopExprFuel,Option.some.injEq] at supported
+    subst fuel
+    rw [evaluate]
+    split <;> simp only [decClock] <;> omega
   case skip => simp [evaluate,loopExprFuel] at supported ⊢
   all_goals simp [loopExprFuel] at supported
 termination_by sizeOf p
