@@ -16,7 +16,10 @@ theorem evaluate_source_alloc_success {F : Type} (state : PanSemStateFiniteExact
     ∃ post, evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_alloc) =
         (some (.returned (.val (.word pointer))),post) ∧
       post.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd pointer size))) ∧
-      post.clock = state.clock ∧ post.memory = state.memory := by
+      post.clock = state.clock ∧ post.memory = state.memory ∧
+      post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.eshapes = state.eshapes ∧
+      post.be = state.be ∧ post.globals = (setGlobalHOLFinite (ofString "heap_ptr")
+        (.val (.word (allocationEnd pointer size))) state).globals := by
   classical
   let pState := setVarHOLFinite (ofString "p") (.val (.word pointer)) state
   let qState := setVarHOLFinite (ofString "q") (.val (.word (allocationEnd pointer size))) pState
@@ -54,7 +57,7 @@ theorem evaluate_source_alloc_success {F : Type} (state : PanSemStateFiniteExact
     simp [evaluateHOLFiniteState_skip]
   have afterPointer : evaluateHOLFiniteState pState allocationAfterPointer =
       (some (.returned (.val (.word pointer))),qPost) := evaluate_seq_none check qRun
-  refine ⟨post,?_,?_,rfl,rfl⟩
+  refine ⟨post,?_,?_,rfl,rfl,?_,?_,?_,?_,?_⟩
   · rw [source_alloc_body,evaluateHOLFiniteState_dec_total]
     dsimp only
     have initial : @evalHOLExact 64 F _ state.toExact
@@ -67,6 +70,8 @@ theorem evaluate_source_alloc_success {F : Type} (state : PanSemStateFiniteExact
     rw [if_pos shapeOk,afterPointer]
   · simp [post,qPost,returned,emptyLocalsHOLFinite,setKvarHOLFinite,setGlobalHOLFinite,
       HolFiniteMapExact.lookup_update,FUPDATE]
+  all_goals simp only [post,qPost,returned,emptyLocalsHOLFinite,setKvarHOLFinite,setGlobalHOLFinite,
+    qState,pState,setVarHOLFinite]
 
 #print axioms evaluate_source_alloc_success
 end InitECandidate.Runtime
