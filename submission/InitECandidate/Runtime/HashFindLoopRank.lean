@@ -33,7 +33,8 @@ theorem evaluate_hashFindLoop_rank {F : Type}
       ∃ result post, evaluateHOLFiniteState state hashFindLoop = (result,post) ∧
         state.clock ≤ post.clock + 2 * rank ∧ post.clock ≤ state.clock ∧
         (result = none ∨ ∃ found : BitVec 64, found.toNat < capacity.toNat ∧
-          result = some (.returned (.val (.word found)))) := by
+          result = some (.returned (.val (.word found)))) ∧
+        (result = none → ∃ finalIndex, invariant post finalIndex) := by
   intro rank
   induction rank using Nat.strongRecOn with
   | ind rank ih =>
@@ -48,7 +49,7 @@ theorem evaluate_hashFindLoop_rank {F : Type}
         have equal := congrArg BitVec.toNat zero
         simpa [BitVec.toNat_ofNat,Nat.mod_eq_of_lt (show byte.toNat < 2 ^ 64 by omega)] using equal
       have run := evaluate_hashFind_empty state used index i u (by simpa only [byteZero] using loaded)
-      exact ⟨none,state,run,by omega,Nat.le_refl _,Or.inl rfl⟩
+      exact ⟨none,state,run,by omega,Nat.le_refl _,Or.inl rfl,fun _ => ⟨index,valid⟩⟩
     · have different : index ≠ empty := by
         intro same
         rw [same,emptyLoad state index valid] at loaded
@@ -73,12 +74,12 @@ theorem evaluate_hashFindLoop_rank {F : Type}
         have smaller : hashProbeDistance capacity.toNat (hashProbeNext index capacity).toNat empty.toNat < rank := by
           rw [hashProbeNext_wrap index capacity bits power inside,← distance]
           exact hashProbeDistance_decreases _ _ _ inside emptyInside naturalDifferent
-        obtain ⟨finalResult,post,tail,cost,remaining,finalOutcome⟩ := ih _ smaller next (hashProbeNext index capacity)
+        obtain ⟨finalResult,post,tail,cost,remaining,finalOutcome,finalInvariant⟩ := ih _ smaller next (hashProbeNext index capacity)
           (nextValid continuing) nextInside rfl (by rw [ticks]; exact enough.2)
         rw [continuing] at run
-        refine ⟨finalResult,post,run.trans tail,by omega,by omega,finalOutcome⟩
+        refine ⟨finalResult,post,run.trans tail,by omega,by omega,finalOutcome,finalInvariant⟩
       · rw [returned] at run
-        exact ⟨_,next,run,by omega,by omega,Or.inr ⟨index,inside,rfl⟩⟩
+        exact ⟨_,next,run,by omega,by omega,Or.inr ⟨index,inside,rfl⟩,by intro impossible; cases impossible⟩
 
 #print axioms evaluate_hashFindLoop_rank
 end InitECandidate.Runtime

@@ -64,7 +64,8 @@ theorem evaluate_hashFindLoop32 {F : Type} (keys stride key capacity used empty 
     ∃ result post, evaluateHOLFiniteState state hashFindLoop = (result,post) ∧
       state.clock ≤ post.clock + 2 * hashProbeDistance capacity.toNat index.toNat empty.toNat ∧
       post.clock ≤ state.clock ∧ (result = none ∨ ∃ found : BitVec 64,
-        found.toNat < capacity.toNat ∧ result = some (.returned (.val (.word found)))) := by
+        found.toNat < capacity.toNat ∧ result = some (.returned (.val (.word found)))) ∧
+      (result = none → ∃ finalIndex, HashFindInvariant32 keys stride key capacity used empty post finalIndex) := by
   apply evaluate_hashFindLoop_rank capacity empty used bits power emptyInside
     (HashFindInvariant32 keys stride key capacity used empty)
     (fun _ _ h => ⟨h.indexLocal,h.usedLocal⟩)
@@ -95,11 +96,12 @@ theorem evaluate_hashFindLoop32_capacity {F : Type} (keys stride key capacity us
     ∃ result post, evaluateHOLFiniteState state hashFindLoop = (result,post) ∧
       state.clock ≤ post.clock + 2 * capacity.toNat ∧
       post.clock ≤ state.clock ∧ (result = none ∨ ∃ found : BitVec 64,
-        found.toNat < capacity.toNat ∧ result = some (.returned (.val (.word found)))) := by
+        found.toNat < capacity.toNat ∧ result = some (.returned (.val (.word found)))) ∧
+      (result = none → ∃ finalIndex, HashFindInvariant32 keys stride key capacity used empty post finalIndex) := by
   have rankBound := hashProbeDistance_lt_capacity capacity.toNat index.toNat empty.toNat valid.inside emptyInside
-  obtain ⟨result,post,run,cost,remaining,outcome⟩ := evaluate_hashFindLoop32 keys stride key capacity used empty bits
+  obtain ⟨result,post,run,cost,remaining,outcome,finalInvariant⟩ := evaluate_hashFindLoop32 keys stride key capacity used empty bits
     power emptyInside keysAligned strideAligned keyAligned strideFits bounded state index valid (by omega)
-  exact ⟨result,post,run,by omega,remaining,outcome⟩
+  exact ⟨result,post,run,by omega,remaining,outcome,finalInvariant⟩
 
 #print axioms evaluate_hashFindLoop32_capacity
 #print axioms HashFindInvariant32.preserve
