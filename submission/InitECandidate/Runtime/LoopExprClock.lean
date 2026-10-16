@@ -7,6 +7,7 @@ A conditional charges its one live-set cut; primitive computations charge zero. 
 def loopExprFuel {width : Nat} [NeZero width] : HolLoopProg width → Option Nat
   | .skip | .assign _ _ | .loadByte _ _ | .load32 _ _ | .arith _ => some 0
   | .break _ | .continue _ | .raise _ | .return _ | .setGlobal _ _ => some 0
+  | .store _ _ | .store32 _ _ | .storeByte _ _ | .primitive _ _ _ | .shMem _ _ _ => some 0
   | .tick => some 1
   | .seq a b => do return (← loopExprFuel a) + (← loopExprFuel b)
   | .ite _ _ _ a b _ => do return (← loopExprFuel a) + (← loopExprFuel b) + 1
@@ -97,6 +98,31 @@ theorem loopExprFuel_correct {width : Nat} [NeZero width] {F : Type}
     subst fuel
     rw [evaluate]
     repeat' first | (simp [setVar]) | split
+  case store address reg =>
+    simp only [loopExprFuel,Option.some.injEq] at supported
+    subst fuel
+    rw [evaluate]
+    repeat' first | (simp only [Nat.add_zero]) | split | (have h := memStore_clock ‹_›; omega) | omega
+  case store32 address reg =>
+    simp only [loopExprFuel,Option.some.injEq] at supported
+    subst fuel
+    rw [evaluate]
+    repeat' first | (simp [setVar]) | split
+  case storeByte address reg =>
+    simp only [loopExprFuel,Option.some.injEq] at supported
+    subst fuel
+    rw [evaluate]
+    repeat' first | (simp [setVar]) | split
+  case primitive dest op args =>
+    simp only [loopExprFuel,Option.some.injEq] at supported
+    subst fuel
+    rw [evaluate]
+    repeat' first | (simp [setVars]) | split
+  case shMem op reg address =>
+    simp only [loopExprFuel,Option.some.injEq] at supported
+    subst fuel
+    rw [evaluate]
+    repeat' first | (simp [shMemOp_clock]) | split
   case «return» regs =>
     simp only [loopExprFuel,Option.some.injEq] at supported
     subst fuel

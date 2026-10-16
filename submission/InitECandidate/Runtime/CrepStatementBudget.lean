@@ -109,6 +109,79 @@ theorem crep_storeGlob_bounded {width : Nat} [NeZero width] {F : Type}
   have full := loopExprFuel_append code [.setGlobal address value] _ 0 first rfl
   exact ⟨_,Nat.le_refl _,by simpa [compileHOLExact,compiled] using full⟩
 
+theorem crep_store_bounded {width : Nat} [NeZero width] {F : Type}
+    (dst src : CrepExpHOL width) (s : CrepSemHOLState width F) :
+    BoundedCrepPropertyAt (.store dst src) s (crepExprFuel dst + crepExprFuel src) := by
+  apply crep_statement_of_static
+  intro ctxt live
+  rcases firstCompiled : compileExpHOLExact ctxt (ctxt.vmax + 1) live dst with ⟨dc,address,next,nlive⟩
+  rcases secondCompiled : compileExpHOLExact ctxt next nlive src with ⟨sc,value,final,out⟩
+  have first := compileExp_fuel ctxt (ctxt.vmax + 1) live dst
+  have second := compileExp_fuel ctxt next nlive src
+  rw [firstCompiled] at first
+  rw [secondCompiled] at second
+  have head := loopExprFuel_append dc sc _ _ first second
+  have full := loopExprFuel_append _ [.assign final value, .store address final] _ 0 head rfl
+  exact ⟨_,Nat.le_refl _,by simpa [compileHOLExact,firstCompiled,secondCompiled] using full⟩
+
+theorem crep_primitive_bounded {width : Nat} [NeZero width] {F : Type}
+    (dest args : List Nat) (op : PrimOp) (s : CrepSemHOLState width F) :
+    BoundedCrepPropertyAt (.primitive dest op args) s 0 := by
+  apply crep_statement_of_static
+  intro ctxt live
+  refine ⟨0,Nat.le_refl _,?_⟩
+  cases hd : dest.mapM ctxt.vars.lookup <;> cases ha : args.mapM ctxt.vars.lookup <;>
+    simp [compileHOLExact,hd,ha,loopExprFuel]
+
+theorem crep_shMem_bounded {width : Nat} [NeZero width] {F : Type}
+    (op : WordMemOp) (name : Nat) (e : CrepExpHOL width) (s : CrepSemHOLState width F) :
+    BoundedCrepPropertyAt (.shMem op name e) s (crepExprFuel e) := by
+  apply crep_statement_of_static
+  intro ctxt live
+  cases found : ctxt.vars.lookup name with
+  | none => exact ⟨0,Nat.zero_le _,by simp [compileHOLExact,found,loopExprFuel]⟩
+  | some mapped =>
+    rcases compiled : compileExpHOLExact ctxt (ctxt.vmax + 1) live e with ⟨code,value,next,out⟩
+    have first := compileExp_fuel ctxt (ctxt.vmax + 1) live e
+    rw [compiled] at first
+    have full := loopExprFuel_append code [.shMem op mapped value] _ 0 first rfl
+    exact ⟨_,Nat.le_refl _,by simpa [compileHOLExact,found,compiled] using full⟩
+
+#print axioms crep_primitive_bounded
+#print axioms crep_shMem_bounded
+#print axioms crep_store_bounded
+theorem crep_store32_bounded {width : Nat} [NeZero width] {F : Type}
+    (dst src : CrepExpHOL width) (s : CrepSemHOLState width F) :
+    BoundedCrepPropertyAt (.store32 dst src) s (crepExprFuel dst + crepExprFuel src) := by
+  apply crep_statement_of_static
+  intro ctxt live
+  rcases firstCompiled : compileExpHOLExact ctxt (ctxt.vmax + 1) live dst with ⟨dc,address,next,nlive⟩
+  rcases secondCompiled : compileExpHOLExact ctxt next nlive src with ⟨sc,value,final,out⟩
+  have first := compileExp_fuel ctxt (ctxt.vmax + 1) live dst
+  have second := compileExp_fuel ctxt next nlive src
+  rw [firstCompiled] at first
+  rw [secondCompiled] at second
+  have head := loopExprFuel_append dc sc _ _ first second
+  have full := loopExprFuel_append _ [.assign final address, .assign (final + 1) value, .store32 final (final + 1)] _ 0 head rfl
+  exact ⟨_,Nat.le_refl _,by simpa [compileHOLExact,firstCompiled,secondCompiled] using full⟩
+
+#print axioms crep_store32_bounded
+theorem crep_storeByte_bounded {width : Nat} [NeZero width] {F : Type}
+    (dst src : CrepExpHOL width) (s : CrepSemHOLState width F) :
+    BoundedCrepPropertyAt (.storeByte dst src) s (crepExprFuel dst + crepExprFuel src) := by
+  apply crep_statement_of_static
+  intro ctxt live
+  rcases firstCompiled : compileExpHOLExact ctxt (ctxt.vmax + 1) live dst with ⟨dc,address,next,nlive⟩
+  rcases secondCompiled : compileExpHOLExact ctxt next nlive src with ⟨sc,value,final,out⟩
+  have first := compileExp_fuel ctxt (ctxt.vmax + 1) live dst
+  have second := compileExp_fuel ctxt next nlive src
+  rw [firstCompiled] at first
+  rw [secondCompiled] at second
+  have head := loopExprFuel_append dc sc _ _ first second
+  have full := loopExprFuel_append _ [.assign final address, .assign (final + 1) value, .storeByte final (final + 1)] _ 0 head rfl
+  exact ⟨_,Nat.le_refl _,by simpa [compileHOLExact,firstCompiled,secondCompiled] using full⟩
+
+#print axioms crep_storeByte_bounded
 #print axioms crep_return_bounded
 #print axioms crep_assign_bounded
 #print axioms crep_storeGlob_bounded
