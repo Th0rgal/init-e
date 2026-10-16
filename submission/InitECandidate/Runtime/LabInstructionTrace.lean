@@ -65,6 +65,9 @@ theorem instruction_successor_ffi {F : Type} (state : LabSem.State 64 Config F) 
   obtain ⟨_, _, _, hffi, _⟩ := asmInstConsts i state
   exact hffi
 
+theorem instruction_ffi {F : Type} (state : LabSem.State 64 Config F) (i : HolInst 64) :
+    (asmInst i state).ffi = state.ffi := instruction_successor_ffi state i
+
 /-- Recursively compose the concrete label-instruction simulations. The
 native budget grows linearly in the actual source trace length. -/
 theorem instructionTrace_bounded {F : Type} {start final : LabSem.State 64 Config F} {length : Nat}
@@ -76,32 +79,40 @@ theorem instructionTrace_bounded {F : Type} {start final : LabSem.State 64 Confi
     ∃ count post asm2, count ≤ labStepCeiling code * length ∧
       (∀ clock, evaluateTargetHOL mc start.ffi (clock + count) machine =
         evaluateTargetHOL (shiftInterfer count mc) final.ffi clock post) ∧
+      (∀ clock, findNextInterference mc start.ffi (clock + count) machine =
+        findNextInterference (shiftInterfer count mc) final.ffi clock post) ∧
       stateRel (shiftInterfer count mc, code, labs, p) final asm2 post := by
   induction trace generalizing mc asm machine with
   | nil state =>
-    refine ⟨0, machine, asm, by omega, ?_, ?_⟩
+    refine ⟨0, machine, asm, by omega, ?_, ?_, ?_⟩
+    · intro clock; simp [shiftInterfer_zero]
     · intro clock; simp [shiftInterfer_zero]
     · simpa [shiftInterfer_zero] using related
   | step state final i bytes n length clock fetch success rest ih =>
-    obtain ⟨firstCount, middle, middleAsm, firstBound, positive, firstRun, middleRel⟩ :=
+    obtain ⟨firstCount, middle, middleAsm, firstBound, positive, firstRun, firstSearch, middleRel⟩ :=
       fetched_inst_uniform_bound state i mc code labs p asm machine bytes n target fetch success encoder related
-    obtain ⟨restCount, post, finalAsm, restBound, restRun, finalRel⟩ :=
+    obtain ⟨restCount, post, finalAsm, restBound, restRun, restSearch, finalRel⟩ :=
       ih (shiftInterfer firstCount mc) middleAsm middle target encoder middleRel
-    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_⟩
+    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_, ?_⟩
     · rw [Nat.mul_add, Nat.mul_one]
       omega
     · intro clock
       rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
         firstRun]
       rw [← instruction_successor_ffi state i, restRun, shiftInterfer_twice]
+    · intro clock
+      rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
+        firstSearch]
+      simpa only [instruction_ffi, instruction_successor_ffi, LabSem.updPc, LabSem.updReg, incPc, decClock,
+        shiftInterfer_twice, Nat.add_comm] using restSearch clock
     · simpa only [shiftInterfer_twice, Nat.add_comm] using finalRel
 
   | jump state final label pc w bytes n length clock fetch destination rest ih =>
-    obtain ⟨firstCount, middle, firstBound, positive, firstRun, middleRel⟩ :=
+    obtain ⟨firstCount, middle, firstBound, positive, firstRun, firstSearch, middleRel⟩ :=
       fetched_jump_bounded state label pc w mc code labs p asm machine bytes n target fetch destination encoder related
-    obtain ⟨restCount, post, finalAsm, restBound, restRun, finalRel⟩ :=
+    obtain ⟨restCount, post, finalAsm, restBound, restRun, restSearch, finalRel⟩ :=
       ih (shiftInterfer firstCount mc) _ middle target encoder middleRel
-    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_⟩
+    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_, ?_⟩
     · have ceiling : 16 ≤ labStepCeiling code := by unfold labStepCeiling; omega
       rw [Nat.mul_add, Nat.mul_one]
       omega
@@ -109,13 +120,18 @@ theorem instructionTrace_bounded {F : Type} {start final : LabSem.State 64 Confi
       rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
         firstRun]
       simpa only [LabSem.updPc, decClock, shiftInterfer_twice, Nat.add_comm] using restRun clock
+    · intro clock
+      rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
+        firstSearch]
+      simpa only [instruction_ffi, instruction_successor_ffi, LabSem.updPc, LabSem.updReg, incPc, decClock,
+        shiftInterfer_twice, Nat.add_comm] using restSearch clock
     · simpa only [shiftInterfer_twice, Nat.add_comm] using finalRel
   | jumpReg state final r n1 n2 pc bytes n length clock fetch register destination rest ih =>
-    obtain ⟨firstCount, middle, firstBound, positive, firstRun, middleRel⟩ :=
+    obtain ⟨firstCount, middle, firstBound, positive, firstRun, firstSearch, middleRel⟩ :=
       fetched_jumpReg_bounded state r n1 n2 pc mc code labs p asm machine bytes n target fetch register destination encoder related
-    obtain ⟨restCount, post, finalAsm, restBound, restRun, finalRel⟩ :=
+    obtain ⟨restCount, post, finalAsm, restBound, restRun, restSearch, finalRel⟩ :=
       ih (shiftInterfer firstCount mc) _ middle target encoder middleRel
-    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_⟩
+    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_, ?_⟩
     · have ceiling : 16 ≤ labStepCeiling code := by unfold labStepCeiling; omega
       rw [Nat.mul_add, Nat.mul_one]
       omega
@@ -123,49 +139,69 @@ theorem instructionTrace_bounded {F : Type} {start final : LabSem.State 64 Confi
       rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
         firstRun]
       simpa only [LabSem.updPc, decClock, shiftInterfer_twice, Nat.add_comm] using restRun clock
+    · intro clock
+      rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
+        firstSearch]
+      simpa only [instruction_ffi, instruction_successor_ffi, LabSem.updPc, LabSem.updReg, incPc, decClock,
+        shiftInterfer_twice, Nat.add_comm] using restSearch clock
     · simpa only [shiftInterfer_twice, Nat.add_comm] using finalRel
 
   | branchTaken state final cmp r operand label pc w bytes n length clock fetch chosen destination rest ih =>
-    obtain ⟨firstCount, middle, firstBound, positive, firstRun, middleRel⟩ :=
+    obtain ⟨firstCount, middle, firstBound, positive, firstRun, firstSearch, middleRel⟩ :=
       fetched_branch_taken_bounded state cmp r operand label w mc code labs p asm machine bytes n target fetch encoder related chosen pc destination
     have ceiling : 16 ≤ labStepCeiling code := by unfold labStepCeiling; omega
-    obtain ⟨restCount, post, finalAsm, restBound, restRun, finalRel⟩ :=
+    obtain ⟨restCount, post, finalAsm, restBound, restRun, restSearch, finalRel⟩ :=
       ih (shiftInterfer firstCount mc) _ middle target encoder middleRel
-    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_⟩
+    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_, ?_⟩
     · rw [Nat.mul_add, Nat.mul_one]
       omega
     · intro clock
       rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
         firstRun]
       simpa only [LabSem.updPc, LabSem.updReg, incPc, decClock, shiftInterfer_twice, Nat.add_comm] using restRun clock
+    · intro clock
+      rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
+        firstSearch]
+      simpa only [instruction_ffi, instruction_successor_ffi, LabSem.updPc, LabSem.updReg, incPc, decClock,
+        shiftInterfer_twice, Nat.add_comm] using restSearch clock
     · simpa only [shiftInterfer_twice, Nat.add_comm] using finalRel
   | branchFallthrough state final cmp r operand label w bytes n length clock fetch chosen rest ih =>
-    obtain ⟨encoded, firstCount, middle, position, firstBound, positive, firstRun, middleRel⟩ :=
+    obtain ⟨encoded, firstCount, middle, position, firstBound, positive, firstRun, firstSearch, middleRel⟩ :=
       fetched_branch_fallthrough_bounded state cmp r operand label w mc code labs p asm machine bytes n target fetch encoder related chosen
     have uniform := related_line_count_bound related encoded firstCount position firstBound
-    obtain ⟨restCount, post, finalAsm, restBound, restRun, finalRel⟩ :=
+    obtain ⟨restCount, post, finalAsm, restBound, restRun, restSearch, finalRel⟩ :=
       ih (shiftInterfer firstCount mc) _ middle target encoder middleRel
-    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_⟩
+    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_, ?_⟩
     · rw [Nat.mul_add, Nat.mul_one]
       omega
     · intro clock
       rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
         firstRun]
       simpa only [LabSem.updPc, LabSem.updReg, incPc, decClock, shiftInterfer_twice, Nat.add_comm] using restRun clock
+    · intro clock
+      rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
+        firstSearch]
+      simpa only [instruction_ffi, instruction_successor_ffi, LabSem.updPc, LabSem.updReg, incPc, decClock,
+        shiftInterfer_twice, Nat.add_comm] using restSearch clock
     · simpa only [shiftInterfer_twice, Nat.add_comm] using finalRel
   | locValue state final r label pc w bytes n length clock fetch destination rest ih =>
-    obtain ⟨encoded, firstCount, middle, middleAsm, position, firstBound, positive, firstRun, middleRel⟩ :=
+    obtain ⟨encoded, firstCount, middle, middleAsm, position, firstBound, positive, firstRun, firstSearch, middleRel⟩ :=
       fetched_locValue_bounded state r label pc w mc code labs p asm machine bytes n target fetch destination encoder related
     have uniform := related_line_count_bound related encoded firstCount position firstBound
-    obtain ⟨restCount, post, finalAsm, restBound, restRun, finalRel⟩ :=
+    obtain ⟨restCount, post, finalAsm, restBound, restRun, restSearch, finalRel⟩ :=
       ih (shiftInterfer firstCount mc) _ middle target encoder middleRel
-    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_⟩
+    refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_, ?_⟩
     · rw [Nat.mul_add, Nat.mul_one]
       omega
     · intro clock
       rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
         firstRun]
       simpa only [LabSem.updPc, LabSem.updReg, incPc, decClock, shiftInterfer_twice, Nat.add_comm] using restRun clock
+    · intro clock
+      rw [show clock + (firstCount + restCount) = (clock + restCount) + firstCount by omega,
+        firstSearch]
+      simpa only [instruction_ffi, instruction_successor_ffi, LabSem.updPc, LabSem.updReg, incPc, decClock,
+        shiftInterfer_twice, Nat.add_comm] using restSearch clock
     · simpa only [shiftInterfer_twice, Nat.add_comm] using finalRel
 
 /-- These traces are faithful evaluator prefixes and cannot contain more
@@ -238,12 +274,50 @@ theorem instructionTrace_halt_bounded {F : Type} {start final : LabSem.State 64 
   constructor
   · rw [(instructionTrace_source trace).1, evaluate]
     by_cases zero : value = (0#64) <;> simp [clock, fetch, result, zero]
-  · obtain ⟨firstCount, middle, middleAsm, firstBound, firstRun, middleRel⟩ :=
+  · obtain ⟨firstCount, middle, middleAsm, firstBound, firstRun, firstSearch, middleRel⟩ :=
       instructionTrace_bounded trace mc code labs p asm machine target encoder related
     obtain ⟨lastCount, post, lastBound, lastRun⟩ := fetched_halt_bounded final w value
       (shiftInterfer firstCount mc) code labs p middleAsm middle bytes n target fetch result encoder middleRel
     refine ⟨lastCount + firstCount, post, by omega, ?_⟩
     rw [firstRun, lastRun]
+
+theorem instructionTrace_oracle_fields {F : Type}
+    {start final : LabSem.State 64 Config F} {length : Nat}
+    (trace : InstructionTrace start final length) :
+    final.ioRegs = start.ioRegs ∧ final.ioFpRegs = start.ioFpRegs ∧
+      final.ccRegs = start.ccRegs ∧ final.ccFpRegs = start.ccFpRegs ∧ final.ffi = start.ffi := by
+  induction trace with
+  | nil state => exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  | step state final i bytes n length clock fetch success rest ih =>
+    obtain ⟨_, _, _, hffi, hio, hiofp, hcc, hccfp, _⟩ := asmInstConsts i state
+    exact ⟨ih.1.trans hio, ih.2.1.trans hiofp, ih.2.2.1.trans hcc,
+      ih.2.2.2.1.trans hccfp, ih.2.2.2.2.trans hffi⟩
+  | jump state final label pc w bytes n length clock fetch destination rest ih => exact ih
+  | jumpReg state final r n1 n2 pc bytes n length clock fetch register destination rest ih => exact ih
+  | branchTaken state final cmp r operand label pc w bytes n length clock fetch chosen destination rest ih => exact ih
+  | branchFallthrough state final cmp r operand label w bytes n length clock fetch chosen rest ih => exact ih
+  | locValue state final r label pc w bytes n length clock fetch destination rest ih => exact ih
+
+/-- The same bounded trace witness also advances the source/target oracle tie,
+so an FFI call may follow this trace without an extra oracle hypothesis. -/
+theorem instructionTrace_with_oracle {F : Type} {start final : LabSem.State 64 Config F} {length : Nat}
+    (trace : InstructionTrace start final length)
+    (mc : MachineConfig 64 riscv_state RiscVProjection) (code : LabProgHOL 64)
+    (labs : Spt (Spt Nat)) (p : BitVec 64) (asm : AsmState 64) (machine : riscv_state)
+    (target : mc.target = riscvTarget) (encoder : encoderCorrect mc.target)
+    (related : stateRel (mc, code, labs, p) start asm machine)
+    (tie : oracleTie mc machine start) :
+    ∃ count post asm2, count ≤ labStepCeiling code * length ∧
+      (∀ clock, evaluateTargetHOL mc start.ffi (clock + count) machine =
+        evaluateTargetHOL (shiftInterfer count mc) final.ffi clock post) ∧
+      stateRel (shiftInterfer count mc, code, labs, p) final asm2 post ∧
+      oracleTie (shiftInterfer count mc) post final := by
+  obtain ⟨count, post, asm2, bound, run, search, rel⟩ :=
+    instructionTrace_bounded trace mc code labs p asm machine target encoder related
+  obtain ⟨io, iofp, cc, ccfp, ffi⟩ := instructionTrace_oracle_fields trace
+  refine ⟨count, post, asm2, bound, run, rel, ?_⟩
+  apply oracleTie_step mc machine post start final count
+  exact ⟨tie, fun clock => by simpa only [ffi] using search clock, io, iofp, cc, ccfp, ffi⟩
 
 end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.instructionTrace_bounded
@@ -251,3 +325,5 @@ end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.instructionTrace_source
 
 #print axioms InitECandidate.Runtime.LabToTarget.instructionTrace_halt_bounded
+
+#print axioms InitECandidate.Runtime.LabToTarget.instructionTrace_with_oracle

@@ -94,6 +94,8 @@ theorem fetched_inst_bounded {F : Type}
       posVal (s1.pc + 1) 0 code2 = posVal s1.pc 0 code2 + encoded.length ∧ count ≤ 16 * (encoded.length + 1) ∧ count ≠ 0 ∧
       (∀ clock, evaluateTargetHOL mc s1.ffi (clock + count) ms1 =
         evaluateTargetHOL (shiftInterfer count mc) s1.ffi clock ms2) ∧
+      (∀ clock, findNextInterference mc s1.ffi (clock + count) ms1 =
+        findNextInterference (shiftInterfer count mc) s1.ffi clock ms2) ∧
       stateRel (shiftInterfer count mc, code2, labs, p)
         (incPc (decClock (asmInst i s1)))
         (Flapjack.Compiler.Encoders.AsmSem.updPc (t1.pc + BitVec.ofNat 64 encoded.length) (Flapjack.Compiler.Encoders.AsmSem.instUpd i t1)) ms2 := by
@@ -107,7 +109,7 @@ theorem fetched_inst_bounded {F : Type}
     (fun a ha => by simpa [asmUpd, Flapjack.Compiler.Encoders.AsmSem.updPc] using hout a ha) (by intro x h; cases h)
   have related := (instLemma i s1 mc code2 labs p t1 ms1 encoded ms2 ⟨hf, hrel, hpos⟩).2.2
     (run 0).2.2.1
-  exact ⟨encoded, count, ms2, hpos, bound, (run 0).2.2.2, fun clock => (run clock).1,
+  exact ⟨encoded, count, ms2, hpos, bound, (run 0).2.2.2, fun clock => (run clock).1, fun clock => (run clock).2.1,
     stateRel_shiftInterfer _ _ _ _ _ _ _ count related⟩
 
 theorem leading_line_bounded {F σ : Type}
@@ -157,6 +159,8 @@ theorem fetched_jumpReg_bounded {F : Type}
     ∃ count ms2, count ≤ 16 ∧ count ≠ 0 ∧
       (∀ clock, evaluateTargetHOL mc s1.ffi (clock + count) ms1 =
         evaluateTargetHOL (shiftInterfer count mc) s1.ffi clock ms2) ∧
+      (∀ clock, findNextInterference mc s1.ffi (clock + count) ms1 =
+        findNextInterference (shiftInterfer count mc) s1.ffi clock ms2) ∧
       stateRel (shiftInterfer count mc, code2, labs, p) (LabSem.updPc pc (decClock s1))
         (Flapjack.Compiler.Encoders.AsmSem.updPc (p + BitVec.ofNat 64 (posVal pc 0 code2)) t1) ms2 := by
   obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
@@ -178,7 +182,7 @@ theorem fetched_jumpReg_bounded {F : Type}
   have hrel' := stateRel_shiftInterfer _ _ _ _ _ _ _ l
     (stateRel_frame hrel s1.regs s1.fpRegs s1.memory pc (s1.clock - 1) t1.regs t1.fpRegs
       t1.mem _ htrel c30 c29 (fun x hx => (c31 x hx).2.2) (fun _ _ => rfl) rfl)
-  exact ⟨l, ms2, bound, (hl 0).2.2.2, fun clock => (hl clock).1, hrel'⟩
+  exact ⟨l, ms2, bound, (hl 0).2.2.2, fun clock => (hl clock).1, fun clock => (hl clock).2.1, hrel'⟩
 
 theorem fetched_jump_bounded {F : Type}
     (s1 : LabSem.State 64 Config F) (jt : Lab) (pc : Nat) (w : BitVec 64)
@@ -193,6 +197,8 @@ theorem fetched_jump_bounded {F : Type}
     ∃ count ms2, count ≤ 16 ∧ count ≠ 0 ∧
       (∀ clock, evaluateTargetHOL mc s1.ffi (clock + count) ms1 =
         evaluateTargetHOL (shiftInterfer count mc) s1.ffi clock ms2) ∧
+      (∀ clock, findNextInterference mc s1.ffi (clock + count) ms1 =
+        findNextInterference (shiftInterfer count mc) s1.ffi clock ms2) ∧
       stateRel (shiftInterfer count mc, code2, labs, p) (LabSem.updPc pc (decClock s1))
         (Flapjack.Compiler.Encoders.AsmSem.updPc (p + BitVec.ofNat 64 (posVal pc 0 code2)) t1) ms2 := by
   obtain ⟨hfind, -⟩ := findPos_of_getPcValue hrel jt pc hpc
@@ -211,7 +217,7 @@ theorem fetched_jump_bounded {F : Type}
   have hrel' := stateRel_shiftInterfer _ _ _ _ _ _ _ l
     (stateRel_frame hrel s1.regs s1.fpRegs s1.memory pc (s1.clock - 1) t1.regs t1.fpRegs
       t1.mem _ htrel c30 c29 (fun x hx => (c31 x hx).2.2) (fun _ _ => rfl) rfl)
-  exact ⟨l, ms2, bound, (hl 0).2.2.2, fun clock => (hl clock).1, hrel'⟩
+  exact ⟨l, ms2, bound, (hl 0).2.2.2, fun clock => (hl clock).1, fun clock => (hl clock).2.1, hrel'⟩
 
 theorem fetched_locValue_bounded {F : Type}
     (s1 : LabSem.State 64 Config F) (reg : Nat) (lab : Lab) (pc : Nat) (w : BitVec 64)
@@ -228,6 +234,8 @@ theorem fetched_locValue_bounded {F : Type}
       count ≤ 16 * (encoded.length + 1) ∧ count ≠ 0 ∧
       (∀ clock, evaluateTargetHOL mc s1.ffi (clock + count) ms1 =
         evaluateTargetHOL (shiftInterfer count mc) s1.ffi clock ms2) ∧
+      (∀ clock, findNextInterference mc s1.ffi (clock + count) ms1 =
+        findNextInterference (shiftInterfer count mc) s1.ffi clock ms2) ∧
       stateRel (shiftInterfer count mc, code2, labs, p)
         (incPc (decClock (LabSem.updReg reg (labToLoc lab) s1))) asm2 ms2 := by
   rcases lab with ⟨l1, l2⟩
@@ -260,7 +268,7 @@ theorem fetched_locValue_bounded {F : Type}
   have hrel' := stateRel_shiftInterfer _ _ _ _ _ _ _ l
     (stateRel_frame hrel _ s1.fpRegs s1.memory (s1.pc + 1) (s1.clock - 1) _ t1.fpRegs
       t1.mem _ htrel hregs c29 (fun x hx => (c31 x hx).2.2) (fun _ _ => rfl) rfl)
-  exact ⟨bytes', l, ms2, _, hpos, bound, (hl 0).2.2.2, fun clock => (hl clock).1, hrel'⟩
+  exact ⟨bytes', l, ms2, _, hpos, bound, (hl 0).2.2.2, fun clock => (hl clock).1, fun clock => (hl clock).2.1, hrel'⟩
 
 theorem fetched_branch_fallthrough_bounded {F : Type}
     (s1 : LabSem.State 64 Config F) (cmp : HolCmp) (rr : Nat) (ri : HolRegImm 64)
@@ -278,6 +286,8 @@ theorem fetched_branch_fallthrough_bounded {F : Type}
       count ≤ 16 * (encoded.length + 1) ∧ count ≠ 0 ∧
       (∀ clock, evaluateTargetHOL mc s1.ffi (clock + count) ms1 =
         evaluateTargetHOL (shiftInterfer count mc) s1.ffi clock ms2) ∧
+      (∀ clock, findNextInterference mc s1.ffi (clock + count) ms1 =
+        findNextInterference (shiftInterfer count mc) s1.ffi clock ms2) ∧
       stateRel (shiftInterfer count mc, code2, labs, p) (incPc (decClock s1))
         (Flapjack.Compiler.Encoders.AsmSem.updPc
           (p + BitVec.ofNat 64 (posVal (s1.pc + 1) 0 code2)) t1) ms2 := by
@@ -298,7 +308,7 @@ theorem fetched_branch_fallthrough_bounded {F : Type}
   have hrel' := stateRel_shiftInterfer _ _ _ _ _ _ _ l
     (stateRel_frame hrel s1.regs s1.fpRegs s1.memory (s1.pc + 1) (s1.clock - 1) t1.regs
       t1.fpRegs t1.mem _ htrel c30 c29 (fun x hx => (c31 x hx).2.2) (fun _ _ => rfl) rfl)
-  exact ⟨bytes', l, ms2, hpos, bound, (hl 0).2.2.2, fun clock => (hl clock).1, hrel'⟩
+  exact ⟨bytes', l, ms2, hpos, bound, (hl 0).2.2.2, fun clock => (hl clock).1, fun clock => (hl clock).2.1, hrel'⟩
 
 theorem fetched_branch_taken_bounded {F : Type}
     (s1 : LabSem.State 64 Config F) (cmp : HolCmp) (rr : Nat) (ri : HolRegImm 64)
@@ -315,6 +325,8 @@ theorem fetched_branch_taken_bounded {F : Type}
     ∃ count ms2, count ≤ 16 ∧ count ≠ 0 ∧
       (∀ clock, evaluateTargetHOL mc s1.ffi (clock + count) ms1 =
         evaluateTargetHOL (shiftInterfer count mc) s1.ffi clock ms2) ∧
+      (∀ clock, findNextInterference mc s1.ffi (clock + count) ms1 =
+        findNextInterference (shiftInterfer count mc) s1.ffi clock ms2) ∧
       stateRel (shiftInterfer count mc, code2, labs, p) (LabSem.updPc pc (decClock s1))
         (Flapjack.Compiler.Encoders.AsmSem.updPc (p + BitVec.ofNat 64 (posVal pc 0 code2)) t1) ms2 := by
   obtain ⟨w', bytes', len', hok, hmem, hpos, hdis⟩ := fetchedLabAsmLine hrel hfetch
@@ -336,7 +348,7 @@ theorem fetched_branch_taken_bounded {F : Type}
   have hrel' := stateRel_shiftInterfer _ _ _ _ _ _ _ l
     (stateRel_frame hrel s1.regs s1.fpRegs s1.memory pc (s1.clock - 1) t1.regs t1.fpRegs
       t1.mem _ htrel c30 c29 (fun x hx => (c31 x hx).2.2) (fun _ _ => rfl) rfl)
-  exact ⟨l, ms2, bound, (hl 0).2.2.2, fun clock => (hl clock).1, hrel'⟩
+  exact ⟨l, ms2, bound, (hl 0).2.2.2, fun clock => (hl clock).1, fun clock => (hl clock).2.1, hrel'⟩
 
 /-- The final halt line and target dispatcher need at most seventeen native
 clock units, with exactly the source halt result and unchanged FFI. -/

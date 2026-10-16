@@ -48,12 +48,14 @@ theorem fetched_inst_uniform_bound {F : Type}
     ∃ count ms2 asm2, count ≤ labStepCeiling code2 ∧ count ≠ 0 ∧
       (∀ clock, evaluateTargetHOL mc s1.ffi (clock + count) ms1 =
         evaluateTargetHOL (shiftInterfer count mc) s1.ffi clock ms2) ∧
+      (∀ clock, findNextInterference mc s1.ffi (clock + count) ms1 =
+        findNextInterference (shiftInterfer count mc) s1.ffi clock ms2) ∧
       stateRel (shiftInterfer count mc, code2, labs, p)
         (incPc (decClock (asmInst i s1))) asm2 ms2 := by
-  obtain ⟨encoded, count, ms2, position, bound, positive, run, related⟩ :=
+  obtain ⟨encoded, count, ms2, position, bound, positive, run, search, related⟩ :=
     fetched_inst_bounded s1 i mc code2 labs p t1 ms1 bytes n target hfetch hf hec hrel
   exact ⟨count, ms2, _, related_line_count_bound hrel encoded count position bound,
-    positive, run, related⟩
+    positive, run, search, related⟩
 
 end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.related_line_count_bound
