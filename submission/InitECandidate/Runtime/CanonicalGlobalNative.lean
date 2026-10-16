@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.BaselineGlobalEntry
+import InitECandidate.Runtime.BaselineGlobalsClock
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 0
 namespace InitECandidate.Runtime
@@ -11,7 +11,6 @@ theorem canonical_global_return_native (input : Guest.InputBlob)
     (initialRun : PanSemStateFiniteExact.evaluateHOLFiniteState
       {canonicalPanEntryState input with locals := HolFiniteMapExact.empty}
       (nestedSeqHOL FrontendStages.Declarations.globalInitializers) = (none,initialized))
-    (clock : initialized.clock = (canonicalPanEntryState input).clock)
     (fuel : Nat) (post : PanSemStateFiniteExact 64 Guest.HostMemory) (value : ValueHOL 64)
     (run : ({initialized with clock := fuel} : PanSemStateFiniteExact 64 Guest.HostMemory).evaluateHOLFiniteState
       (.call none FrontendStages.Declarations.globalNewStart []) = (some (.returned value),post)) :
@@ -23,8 +22,8 @@ theorem canonical_global_return_native (input : Guest.InputBlob)
       ((outcome = .success ∧ final.ffi = post.ffi) ∨
         (outcome = .resourceLimitHit ∧ List.IsPrefix final.ffi.ioEvents post.ffi.ioEvents ∧
           wordPost.stackMax.getD (wordPost.stackLimit + 1) > wordPost.stackLimit)) := by
-  obtain ⟨wrapped,wrappedRun,ffi⟩ := canonical_global_entry_one_clock input initialized
-    initialRun clock fuel (some (.returned value)) post run
+  obtain ⟨wrapped,wrappedRun,ffi⟩ := canonical_global_entry_clock input initialized
+    initialRun fuel (some (.returned value)) post run
   obtain ⟨wordPost,final,outcome,count,native,bound,nativeRun,observation⟩ :=
     canonical_pan_return_native input (fuel + 1) wrapped value wrappedRun
   rw [ffi] at observation
@@ -38,7 +37,6 @@ theorem canonical_global_ffi_native (input : Guest.InputBlob)
     (initialRun : PanSemStateFiniteExact.evaluateHOLFiniteState
       {canonicalPanEntryState input with locals := HolFiniteMapExact.empty}
       (nestedSeqHOL FrontendStages.Declarations.globalInitializers) = (none,initialized))
-    (clock : initialized.clock = (canonicalPanEntryState input).clock)
     (fuel : Nat) (post : PanSemStateFiniteExact 64 Guest.HostMemory) (event : HolFinalEvent)
     (run : ({initialized with clock := fuel} : PanSemStateFiniteExact 64 Guest.HostMemory).evaluateHOLFiniteState
       (.call none FrontendStages.Declarations.globalNewStart []) = (some (.finalFfi event),post)) :
@@ -50,8 +48,8 @@ theorem canonical_global_ffi_native (input : Guest.InputBlob)
       ((outcome = .ffiOutcome event ∧ final.ffi = post.ffi) ∨
         (outcome = .resourceLimitHit ∧ List.IsPrefix final.ffi.ioEvents post.ffi.ioEvents ∧
           wordPost.stackMax.getD (wordPost.stackLimit + 1) > wordPost.stackLimit)) := by
-  obtain ⟨wrapped,wrappedRun,ffi⟩ := canonical_global_entry_one_clock input initialized
-    initialRun clock fuel (some (.finalFfi event)) post run
+  obtain ⟨wrapped,wrappedRun,ffi⟩ := canonical_global_entry_clock input initialized
+    initialRun fuel (some (.finalFfi event)) post run
   obtain ⟨wordPost,final,outcome,count,native,bound,nativeRun,observation⟩ :=
     canonical_pan_ffi_native input (fuel + 1) wrapped event wrappedRun
   rw [ffi] at observation
