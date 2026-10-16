@@ -96,6 +96,39 @@ theorem entrySimulation_bounded {width : Nat} [NeZero width] {C F : Type}
   · rw [if_neg same] at outcome
     exact Or.inr ⟨same, outcome⟩
 
+/-- Retains the nonzero resource words needed to distinguish rejection from success
+when composing the entry bound with later compiler stages. -/
+theorem entrySimulation_with_resource_words_bounded {width : Nat} [NeZero width] {C F : Type}
+    (ac : AsmConfigExact width) (k : Nat)
+    (source : WordSemStateFiniteExact width (Nat × C) F)
+    (target : StackSemStateFiniteExact width C F) (lens : List Nat) (start fuel : Nat)
+    (result : Option (WordSemResult width)) (post : WordSemStateFiniteExact width (Nat × C) F)
+    (related : stateRel ac k 0 0 source target lens 0)
+    (run : WordSemStateFiniteExact.evaluate (.call none (some start) [0] none)
+      {source with clock := fuel} = (result, post))
+    (notError : result ≠ some .error) :
+    ∃ targetFuel targetResult final,
+      targetFuel ≤ fuel + wordWork (.call none (some start) [0] none) {source with clock := fuel} ∧
+      StackSemEvaluate.evaluate (.call none (.inl start) none, {target with clock := targetFuel}) =
+        (targetResult, final) ∧
+      (1 : BitVec width) ≠ 0 ∧ (2 : BitVec width) ≠ 0 ∧
+      ((result.map compileResult = targetResult ∧ post.ffi = final.ffi ∧ post.clock = final.clock) ∨
+        (result.map compileResult ≠ targetResult ∧ targetResult = some (.halt (.word 2)) ∧
+          List.IsPrefix final.ffi.ioEvents post.ffi.ioEvents ∧
+          post.stackMax.getD (post.stackLimit + 1) > post.stackLimit)) := by
+  have moved := SemanticsHelpers.stateRelWithClock ac k fuel source target lens 0 related
+  obtain ⟨extra, bound, final, targetResult, targetRun, oneNe, twoNe, outcome⟩ :=
+    compCall_bounded ac start {source with clock := fuel} k result post
+      {target with clock := fuel} lens ⟨run, notError, moved⟩
+  refine ⟨fuel + extra, targetResult, final, by omega, targetRun, oneNe, twoNe, ?_⟩
+  by_cases same : result.map compileResult = targetResult
+  · rw [if_pos same] at outcome
+    exact Or.inl ⟨same, outcome⟩
+  · rw [if_neg same] at outcome
+    exact Or.inr ⟨same, outcome⟩
+
+#print axioms entrySimulation_with_resource_words_bounded
+
 #print axioms entrySimulation_bounded
 #print axioms compCall_bounded
 end InitECandidate.Runtime.WordToStack

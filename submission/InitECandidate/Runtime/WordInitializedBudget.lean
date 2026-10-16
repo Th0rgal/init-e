@@ -30,13 +30,12 @@ private theorem mem_of_lookup {α : Type} {key : Nat} {value : α} :
       · simp only [ho, decide_false, Bool.false_eq_true, if_false] at h
         exact List.mem_cons_of_mem _ (mem_of_lookup h)
 
-/-- The actual top-level compiler and initialization premises establish the
-full entry relation. No semantic non-failure or target evaluation is assumed. -/
-theorem initialized_relation {width : Nat} [NeZero width] {C F : Type}
+/-- The original seven compiler initialization premises, shared by entry bridges. -/
+abbrev InitializationPremises {width : Nat} [NeZero width] {C F : Type}
     (asmConf : AsmConfigExact width) (code : List (Nat × Nat × WordLangProgHOL (BitVec width)))
     (t : StackSemStateFiniteExact width C F) (k : Nat)
-    (coracle : Nat → (Nat × C) × List (Nat × Nat × WordLangProgHOL (BitVec width)))
-    (h : t.code = sptFromAList (compileNative asmConf false code).2.2.2 ∧
+    (coracle : Nat → (Nat × C) × List (Nat × Nat × WordLangProgHOL (BitVec width))) : Prop :=
+  t.code = sptFromAList (compileNative asmConf false code).2.2.2 ∧
       k = asmConf.regCount - (5 + asmConf.avoidRegs.length) ∧
       initStateOk asmConf k t coracle ∧
       panPropsALookupEq raiseStubLocation code = none ∧
@@ -44,7 +43,15 @@ theorem initialized_relation {width : Nat} [NeZero width] {C F : Type}
       (compileNative asmConf false code).1 <+: t.bitmaps ∧
       (∀ entry ∈ code, flatExpConventions entry.2.2 = true ∧
         postAllocConventionsHOL (asmConf.regCount - (5 + asmConf.avoidRegs.length))
-          entry.2.2 = true)) :
+          entry.2.2 = true)
+
+/-- The actual top-level compiler and initialization premises establish the
+full entry relation. No semantic non-failure or target evaluation is assumed. -/
+theorem initialized_relation {width : Nat} [NeZero width] {C F : Type}
+    (asmConf : AsmConfigExact width) (code : List (Nat × Nat × WordLangProgHOL (BitVec width)))
+    (t : StackSemStateFiniteExact width C F) (k : Nat)
+    (coracle : Nat → (Nat × C) × List (Nat × Nat × WordLangProgHOL (BitVec width)))
+    (h : InitializationPremises asmConf code t k coracle) :
     stateRel asmConf k 0 0 (makeInit asmConf k t (sptFromAList code) coracle) t [] 0 := by
   classical
   obtain ⟨codeEq, kEq, ok, noRaise, noStore, bitmapsPrefix, conventions⟩ := h
@@ -98,15 +105,7 @@ theorem initialized_entry_bounded {width : Nat} [NeZero width] {C F : Type}
     (asmConf : AsmConfigExact width) (code : List (Nat × Nat × WordLangProgHOL (BitVec width)))
     (t : StackSemStateFiniteExact width C F) (k : Nat)
     (coracle : Nat → (Nat × C) × List (Nat × Nat × WordLangProgHOL (BitVec width)))
-    (h : t.code = sptFromAList (compileNative asmConf false code).2.2.2 ∧
-      k = asmConf.regCount - (5 + asmConf.avoidRegs.length) ∧
-      initStateOk asmConf k t coracle ∧
-      panPropsALookupEq raiseStubLocation code = none ∧
-      panPropsALookupEq storeConstsStubLocation code = none ∧
-      (compileNative asmConf false code).1 <+: t.bitmaps ∧
-      (∀ entry ∈ code, flatExpConventions entry.2.2 = true ∧
-        postAllocConventionsHOL (asmConf.regCount - (5 + asmConf.avoidRegs.length))
-          entry.2.2 = true))
+    (h : InitializationPremises asmConf code t k coracle)
     (start fuel : Nat) (result : Option (WordSemResult width))
     (post : WordSemStateFiniteExact width (Nat × C) F)
     (run : WordSemStateFiniteExact.evaluate (.call none (some start) [0] none)
@@ -123,6 +122,32 @@ theorem initialized_entry_bounded {width : Nat} [NeZero width] {C F : Type}
           post.stackMax.getD (post.stackLimit + 1) > post.stackLimit)) := by
   exact entrySimulation_bounded asmConf k (makeInit asmConf k t (sptFromAList code) coracle)
     t [] start fuel result post (initialized_relation asmConf code t k coracle h) run notError
+
+/-- Initialized entry transfer retaining the rejection-word discrimination facts. -/
+theorem initialized_entry_with_resource_words_bounded {width : Nat} [NeZero width] {C F : Type}
+    (asmConf : AsmConfigExact width) (code : List (Nat × Nat × WordLangProgHOL (BitVec width)))
+    (t : StackSemStateFiniteExact width C F) (k : Nat)
+    (coracle : Nat → (Nat × C) × List (Nat × Nat × WordLangProgHOL (BitVec width)))
+    (h : InitializationPremises asmConf code t k coracle)
+    (start fuel : Nat) (result : Option (WordSemResult width))
+    (post : WordSemStateFiniteExact width (Nat × C) F)
+    (run : WordSemStateFiniteExact.evaluate (.call none (some start) [0] none)
+      {makeInit asmConf k t (sptFromAList code) coracle with clock := fuel} = (result, post))
+    (notError : result ≠ some .error) :
+    ∃ targetFuel targetResult final,
+      targetFuel ≤ fuel + wordWork (.call none (some start) [0] none)
+        {makeInit asmConf k t (sptFromAList code) coracle with clock := fuel} ∧
+      StackSemEvaluate.evaluate (.call none (.inl start) none, {t with clock := targetFuel}) =
+        (targetResult, final) ∧
+      (1 : BitVec width) ≠ 0 ∧ (2 : BitVec width) ≠ 0 ∧
+      ((result.map Flapjack.WordToStackProofs.CompCorrect.compileResult = targetResult ∧ post.ffi = final.ffi ∧ post.clock = final.clock) ∨
+        (result.map Flapjack.WordToStackProofs.CompCorrect.compileResult ≠ targetResult ∧ targetResult = some (.halt (.word 2)) ∧
+          List.IsPrefix final.ffi.ioEvents post.ffi.ioEvents ∧
+          post.stackMax.getD (post.stackLimit + 1) > post.stackLimit)) := by
+  exact entrySimulation_with_resource_words_bounded asmConf k (makeInit asmConf k t (sptFromAList code) coracle)
+    t [] start fuel result post (initialized_relation asmConf code t k coracle h) run notError
+
+#print axioms initialized_entry_with_resource_words_bounded
 
 #print axioms initialized_entry_bounded
 #print axioms initialized_relation
