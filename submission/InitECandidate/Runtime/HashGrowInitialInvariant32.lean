@@ -1,7 +1,7 @@
 import InitECandidate.Runtime.HashGrowLayout
 import InitECandidate.Runtime.HashGrowHeaderOccupancy
+import InitECandidate.Runtime.HashGrowHeaderState
 import InitECandidate.Runtime.HashTableArraysInvariant32
-set_option maxHeartbeats 2000000
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.PanSemStateFiniteExact
 
@@ -35,6 +35,7 @@ theorem htabGrow_initial_invariant32 {F : Type} (state : PanSemStateFiniteExact 
   have countPreserved := htabGrow_header_preserves_occupancy state table (capacity * 2) pointer
     (htabGrowValues pointer capacity stride) (htabGrowUsed pointer capacity stride)
     (htabGrowOrder pointer capacity stride) (htabGrowOrderPos pointer capacity stride) ua (by omega) (by omega)
+  rw [htabGrowHeaderPost_state] at countPreserved ⊢
   exact {
     code := code
     power := nextPower
