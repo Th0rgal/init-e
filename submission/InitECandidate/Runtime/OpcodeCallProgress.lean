@@ -53,10 +53,11 @@ theorem original_stop_call_progress (state : PanSemStateFiniteExact 64 Guest.Hos
       post.memory (frame + 104) = .word 0 ∧ HasGasFunding post frame funding ∧
       post.clock = state.clock - 2 ∧ post.memory (frame + 0) = .word (pc + 1) ∧
       post.code = state.code ∧ post.globals = state.globals ∧ post.memaddrs = state.memaddrs ∧
-      post.locals = state.locals := by
+      post.locals = state.locals ∧
+      (∀ address, address ≠ frame + 0 → address ≠ frame + 104 → post.memory address = state.memory address) := by
   let entry := callEntryStateHOLFinite state HolFiniteMapExact.empty
   have entryClock : entry.clock ≠ 0 := by change state.clock - 1 ≠ 0; omega
-  obtain ⟨bodyPost,bodyRun,inactive,related,bodyClock,pcValue,bodyCode,globals,domain⟩ :=
+  obtain ⟨bodyPost,bodyRun,inactive,related,bodyClock,pcValue,bodyCode,globals,domain,footprint⟩ :=
     original_stop_progress entry frame pc funding code entryClock hFrame pcDomain pcMemory activeDomain memory
   have installed : state.code.lookup (ofString "op_stop") =
       some ([],sourceFunctionBody Guest.guestFn_op_stop,.one) := by
@@ -71,7 +72,7 @@ theorem original_stop_call_progress (state : PanSemStateFiniteExact 64 Guest.Hos
     rw [bodyClock]
     change state.clock - 1 - 1 = state.clock - 2
     omega
-  exact ⟨{bodyPost with locals := state.locals},call,inactive,related,finalClock,pcValue,bodyCode,globals,domain,rfl⟩
+  exact ⟨{bodyPost with locals := state.locals},call,inactive,related,finalClock,pcValue,bodyCode,globals,domain,rfl,footprint⟩
 
 #print axioms original_jumpdest_call_progress
 #print axioms original_stop_call_progress

@@ -40,11 +40,12 @@ theorem original_dispatch_stop_progress (state : PanSemStateFiniteExact 64 Guest
       post.memory (frame + 104) = .word 0 ∧ HasGasFunding post frame funding ∧
       post.clock = state.clock - 2 ∧ post.memory (frame + 0) = .word (pc + 1) ∧
       post.code = state.code ∧ post.globals = state.globals ∧ post.memaddrs = state.memaddrs ∧
-      post.locals = HolFiniteMapExact.empty := by
-  obtain ⟨stepPost,stepRun,inactive,related,clockValue,pcValue,codeValue,globals,domain,locals⟩ :=
+      post.locals = HolFiniteMapExact.empty ∧
+      (∀ address, address ≠ frame + 0 → address ≠ frame + 104 → post.memory address = state.memory address) := by
+  obtain ⟨stepPost,stepRun,inactive,related,clockValue,pcValue,codeValue,globals,domain,locals,footprint⟩ :=
     original_stop_call_progress state frame pc funding code clock hFrame pcDomain pcMemory activeDomain memory
   have run := evaluate_dispatch_stop_path state stepPost opcode stepRun
-  exact ⟨emptyLocalsHOLFinite stepPost,run,inactive,related,clockValue,pcValue,codeValue,globals,domain,rfl⟩
+  exact ⟨emptyLocalsHOLFinite stepPost,run,inactive,related,clockValue,pcValue,codeValue,globals,domain,rfl,footprint⟩
 
 #print axioms original_dispatch_stop_progress
 end InitECandidate.Runtime

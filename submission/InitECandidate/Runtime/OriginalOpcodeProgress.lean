@@ -47,14 +47,15 @@ theorem original_stop_progress (state : PanSemStateFiniteExact 64 Guest.HostMemo
         (some (.returned (.val (.word 0))),post) ∧
       post.memory (frame + 104) = .word 0 ∧ HasGasFunding post frame funding ∧
       post.clock = state.clock - 1 ∧ post.memory (frame + 0) = .word (pc + 1) ∧
-      post.code = state.code ∧ post.globals = state.globals ∧ post.memaddrs = state.memaddrs := by
+      post.code = state.code ∧ post.globals = state.globals ∧ post.memaddrs = state.memaddrs ∧
+      (∀ address, address ≠ frame + 0 → address ≠ frame + 104 → post.memory address = state.memory address) := by
   have pcAdd : state.code.lookup (ofString "pc_add") =
       some ([(ofString "n",.one)],sourceFunctionBody Guest.guestFn_pc_add,.one) := by
     rw [code]; exact originalRuntimeCode_pcAdd_lookup
   exact ⟨stopOpcodePost state frame pc,
     evaluate_source_stop state frame pc pcAdd clock hFrame pcDomain pcMemory activeDomain,
     stopOpcodePost_inactive state frame pc,stopOpcodePost_funding state frame pc funding memory,
-    stopOpcodePost_clock state frame pc,pcAddCallPost_pc _ frame pc 1,rfl,rfl,rfl⟩
+    stopOpcodePost_clock state frame pc,pcAddCallPost_pc _ frame pc 1,rfl,rfl,rfl,stopOpcodePost_memory_preserved state frame pc⟩
 
 #print axioms original_jumpdest_progress
 #print axioms original_stop_progress

@@ -64,14 +64,15 @@ theorem original_dispatch_stop_call_progress (state : PanSemStateFiniteExact 64 
       post.memory (frame + 104) = .word 0 ∧ HasGasFunding post frame funding ∧
       post.clock = state.clock - 3 ∧ post.memory (frame + 0) = .word (pc + 1) ∧
       post.code = state.code ∧ post.globals = state.globals ∧ post.memaddrs = state.memaddrs ∧
-      post.locals = state.locals := by
+      post.locals = state.locals ∧
+      (∀ address, address ≠ frame + 0 → address ≠ frame + 104 → post.memory address = state.memory address) := by
   let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
     HolFiniteMapExact.empty.update (ofString "op",.val (.word 0))
   let entry := callEntryStateHOLFinite state callee
   have opcode : entry.locals.lookup (ofString "op") = some (.val (.word 0)) := by
     simp [entry,callEntryStateHOLFinite,callee,HolFiniteMapExact.lookup_update,FUPDATE]
   have entryClock : 2 ≤ entry.clock := by change 2 ≤ state.clock - 1; omega
-  obtain ⟨bodyPost,bodyRun,inactive,related,bodyClock,pcValue,bodyCode,globals,domain,locals⟩ :=
+  obtain ⟨bodyPost,bodyRun,inactive,related,bodyClock,pcValue,bodyCode,globals,domain,locals,footprint⟩ :=
     original_dispatch_stop_progress entry frame pc funding code opcode entryClock hFrame pcDomain pcMemory activeDomain memory
   have installed : state.code.lookup (ofString "op_dispatch") =
       some ([(ofString "op",.one)],sourceFunctionBody Guest.guestFn_op_dispatch,.one) := by
@@ -85,7 +86,7 @@ theorem original_dispatch_stop_call_progress (state : PanSemStateFiniteExact 64 
     rw [bodyClock]
     change state.clock - 1 - 2 = state.clock - 3
     omega
-  exact ⟨{bodyPost with locals := state.locals},call,inactive,related,finalClock,pcValue,bodyCode,globals,domain,rfl⟩
+  exact ⟨{bodyPost with locals := state.locals},call,inactive,related,finalClock,pcValue,bodyCode,globals,domain,rfl,footprint⟩
 
 #print axioms original_dispatch_stop_call_progress
 end InitECandidate.Runtime

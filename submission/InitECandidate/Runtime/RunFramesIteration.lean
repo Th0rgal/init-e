@@ -88,15 +88,17 @@ theorem runFrames_stop_loop_progress
     ∃ post, evaluateHOLFiniteState state runFramesLoopBody = (none,post) ∧
       post.memory (frame + 104) = .word 0 ∧ HasGasFunding post frame funding ∧
       post.clock = state.clock - 3 ∧ post.memory (frame + 0) = .word (pc + 1) ∧
-      post.locals = state.locals := by
-  obtain ⟨post,dispatch,inactive,funded,ticks,pcValue,_,_,_,locals⟩ :=
+      post.locals = state.locals ∧ post.code = state.code ∧ post.globals = state.globals ∧
+      post.memaddrs = state.memaddrs ∧
+      (∀ address, address ≠ frame + 0 → address ≠ frame + 104 → post.memory address = state.memory address) := by
+  obtain ⟨post,dispatch,inactive,funded,ticks,pcValue,postCode,postGlobals,postDomain,locals,footprint⟩ :=
     original_dispatch_stop_call_progress (runFramesLoopDispatchEntry state pc)
       runFramesOpcodeExpression (some runFramesExceptionHandler) arguments frame pc funding code clock
       frameGlobal pcDomain pcMemory activeDomain memory
   have body := evaluate_runFrames_loop_dispatch state post continuation frame pc length active
     contGlobal frameGlobal pendingDomain pendingMemory activeDomain activeMemory running
     pcDomain pcMemory lengthDomain lengthMemory inside dispatch locals
-  exact ⟨{post with locals := state.locals},body,inactive,funded,ticks,pcValue,rfl⟩
+  exact ⟨{post with locals := state.locals},body,inactive,funded,ticks,pcValue,rfl,postCode,postGlobals,postDomain,footprint⟩
 
 #print axioms runFrames_stop_loop_progress
 #print axioms evaluate_runFrames_loop_dispatch

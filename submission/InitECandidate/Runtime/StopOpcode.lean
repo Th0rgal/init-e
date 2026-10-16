@@ -54,6 +54,16 @@ theorem stopOpcodePost_funding {F : Type} (state : PanSemStateFiniteExact 64 F)
     simpa [HasGasFunding,sourceWriteWord] using memory
   exact pcAddCallPost_funding _ frame pc 1 funding preserved
 
+/-- STOP writes only the active flag and program counter. -/
+theorem stopOpcodePost_memory_preserved {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (frame pc address : BitVec 64) (notPc : address ≠ frame + 0)
+    (notActive : address ≠ frame + 104) :
+    (stopOpcodePost state frame pc).memory address = state.memory address := by
+  have notPcZero : address ≠ frame := by simpa using notPc
+  have notActiveLiteral : address ≠ frame + (104#64) := notActive
+  simp [stopOpcodePost,pcAddCallPost,sourceWriteWord,emptyLocalsHOLFinite,notPcZero,notActiveLiteral]
+
+#print axioms stopOpcodePost_memory_preserved
 #print axioms evaluate_source_stop
 #print axioms stopOpcodePost_inactive
 #print axioms stopOpcodePost_clock
