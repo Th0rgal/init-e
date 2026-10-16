@@ -99,7 +99,7 @@ theorem crep_assign_bounded {width : Nat} [NeZero width] {F : Type}
     exact ⟨_,Nat.le_refl _,by simpa [compileHOLExact,found,compiled] using full⟩
 
 theorem crep_storeGlob_bounded {width : Nat} [NeZero width] {F : Type}
-    (address : Nat) (e : CrepExpHOL width) (s : CrepSemHOLState width F) :
+    (address : BitVec 5) (e : CrepExpHOL width) (s : CrepSemHOLState width F) :
     BoundedCrepPropertyAt (.storeGlob address e) s (crepExprFuel e) := by
   apply crep_statement_of_static
   intro ctxt live
