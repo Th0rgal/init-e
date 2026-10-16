@@ -126,8 +126,68 @@ theorem flattenSeq_bounded (s1 : StackSemStateFiniteExact width C F) (c1 c2 : Ho
     simp only [lenFlat, hpc, h2]
     omega
 
+/- Only the state reached by the first evaluator call needs a continuation bound. -/
+/-- `Seq` case. -/
+theorem flattenSeq_reached_bounded (s1 : StackSemStateFiniteExact width C F) (c1 c2 : HolProg width)
+    (firstBudget secondBudget : Nat)
+    (first : BoundedFlattenProp c1 s1 firstBudget)
+    (second : ∀ (middle : StackSemStateFiniteExact width C F),
+      StackSemEvaluate.evaluate (c1, s1) = (none, middle) →
+      BoundedFlattenProp c2 middle secondBudget) :
+    BoundedFlattenProp (.seq c1 c2) s1 (firstBudget + secondBudget) := by
+  rintro t r s2 n l cs bs t1 ⟨ev, nerr, rel, ca, inst, labs⟩
+  rw [StackSemEvaluate.evaluate_seq, StackSemEvaluateClock.fixClockEvaluate] at ev
+  simp only [Flapjack.Compiler.Backend.StackProps.callArgs] at ca
+  rcases h1 : Flapjack.Compiler.Backend.StackToLab.flattenHOL false c1 n l cs bs with ⟨xs, nr1, l1⟩
+  rcases h2 : Flapjack.Compiler.Backend.StackToLab.flattenHOL false c2 n l1 cs bs with ⟨ys, nr2, l2⟩
+  have hflat : appListAppend (Flapjack.Compiler.Backend.StackToLab.flattenHOL t (.seq c1 c2) n l cs bs).1 =
+      appListAppend xs ++ ((if t then [.label n 1 0] else []) ++ appListAppend ys) := by
+    rw [Flapjack.Compiler.Backend.StackToLab.flattenHOL]
+    cases t <;> simp [h1, h2, appListAppendAppend, appListAppendList]
+  rw [hflat] at inst
+  obtain ⟨instXs, instRest⟩ := codeInstalledAppendImp _ _ _ _ inst
+  have instYs : codeInstalled (t1.pc + ((appListAppend xs).filter
+      (fun x => !isLabelHOL x)).length) (appListAppend ys) t1.code := by
+    cases t
+    · simpa using instRest
+    · simp only [if_true, List.singleton_append, codeInstalled_cons, isLabelHOL] at instRest
+      exact instRest.2
+  have lenFlat : ((appListAppend (Flapjack.Compiler.Backend.StackToLab.flattenHOL t (.seq c1 c2) n l cs bs).1).filter
+      (fun x => !isLabelHOL x)).length =
+      ((appListAppend xs).filter (fun x => !isLabelHOL x)).length +
+        ((appListAppend ys).filter (fun x => !isLabelHOL x)).length := by
+    rw [hflat]; cases t <;> simp [List.filter_append, isLabelHOL]
+  rcases e1 : StackSemEvaluate.evaluate (c1, s1) with ⟨r1, s1'⟩
+  rw [e1] at ev
+  have lt1 : MeasureLt c1 s1 (.seq c1 c2) s1 :=
+    .inr ⟨rfl, StackSemMeasure.seq_first_size_lt c1 c2⟩
+  cases r1 with
+  | some x =>
+    simp only [Prod.mk.injEq] at ev
+    obtain ⟨rfl, rfl⟩ := ev
+    have := first false (some x) s1' n l cs bs t1
+      ⟨e1, nerr, rel, ca.1, by rw [h1]; exact instXs, labs⟩
+    exact boundedFlattenConcl_mono (Nat.le_add_right _ _) (boundedFlattenConclSome firstBudget this)
+  | none =>
+    simp only at ev
+    have c1h := first false none s1' n l cs bs t1
+      ⟨e1, by simp, rel, ca.1, by rw [h1]; exact instXs, labs⟩
+    obtain ⟨ck, firstBound, t2, run, f1, f2, f3, f4, f5, pre, hpc, rel2⟩ := c1h
+    rw [h1] at hpc
+    have lt2 : MeasureLt c2 s1' (.seq c1 c2) s1 :=
+      measureLtOfClockLe (StackSemEvaluateClock.evaluateClock _ _ _ _ e1)
+        (StackSemMeasure.seq_second_size_lt c1 c2)
+    have c2h := second s1' e1 false r s2 n l1 cs bs t2
+      (flattenHypsMid ev nerr rel2 ca.2 f1 f2 f3 f4 f5 pre
+        (by rw [h2, hpc]; exact instYs) labs)
+    refine boundedFlattenConclCompose firstBudget secondBudget firstBound run f1 f2 f3 f4 f5 pre ?_ c2h
+    simp only [lenFlat, hpc, h2]
+    omega
+
 end
 end InitECandidate.Runtime.StackToLab
 #print axioms InitECandidate.Runtime.StackToLab.boundedFlattenConclCompose
 
 #print axioms InitECandidate.Runtime.StackToLab.flattenSeq_bounded
+
+#print axioms InitECandidate.Runtime.StackToLab.flattenSeq_reached_bounded

@@ -195,6 +195,117 @@ decreasing_by
   simp only [StackSemStateOps.decClock]
   omega
 
+/- One evaluated loop body and its actual reentry suffice; no uniform bound over unrelated states. -/
+/-- `Loop` case. -/
+theorem flattenLoop_reached_bounded (s1 : StackSemStateFiniteExact width C F) (body : HolProg width)
+    (budget restBudget : Nat) (first : BoundedFlattenProp body s1 budget)
+    (next : ∀ (result : Option (StackSemResult width)) (middle : StackSemStateFiniteExact width C F),
+      StackSemEvaluate.evaluate (body, s1) = (result, middle) →
+      StackSemControl.contLoop result = true → middle.clock ≠ 0 →
+      BoundedFlattenProp (.loop body) (StackSemStateOps.decClock middle) restBudget) :
+    BoundedFlattenProp (.loop body) s1 (budget + restBudget) := by
+  rintro t r s2 n l cs bs t1 ⟨ev, nerr, rel, ca, inst, labs⟩
+  rw [StackSemEvaluate.evaluate_loop, StackSemEvaluateClock.fixClockEvaluate] at ev
+  simp only [Flapjack.Compiler.Backend.StackProps.callArgs] at ca
+  have tf : Flapjack.Compiler.Backend.StackToLab.flattenHOL t (.loop body) n l cs bs = Flapjack.Compiler.Backend.StackToLab.flattenHOL false (.loop body) n l cs bs := by
+    cases t
+    · rfl
+    · exact flattenTF (by simp [Flapjack.Compiler.Backend.StackToLab.isSeqHOL])
+  rcases h1 : Flapjack.Compiler.Backend.StackToLab.flattenHOL false body n (l + 2) (l :: cs) ((l + 1) :: bs) with ⟨xs, nr1, l1⟩
+  have hflat : appListAppend (Flapjack.Compiler.Backend.StackToLab.flattenHOL t (.loop body) n l cs bs).1 =
+      .label n l 0 :: (appListAppend xs ++
+        [.labAsm (.jump (.lab n l)) 0 [] 0, .label n (l + 1) 0]) := by
+    rw [tf, Flapjack.Compiler.Backend.StackToLab.flattenHOL]; simp [h1, appListAppendAppend, appListAppendList]
+  have total : ((appListAppend (Flapjack.Compiler.Backend.StackToLab.flattenHOL t (.loop body) n l cs bs).1).filter
+      (fun x => !isLabelHOL x)).length =
+      ((appListAppend xs).filter (fun x => !isLabelHOL x)).length + 1 := by
+    rw [hflat]; simp [List.filter_append, isLabelHOL]
+  have inst0 := inst
+  rw [hflat] at inst
+  obtain ⟨locL, inst1⟩ := labelAt inst
+  obtain ⟨instXs, instRest⟩ := codeInstalledAppendImp _ _ _ _ inst1
+  obtain ⟨fetchJ, instRest2⟩ := lineAt rfl instRest
+  obtain ⟨locL1, -⟩ := labelAt instRest2
+  rcases e1 : StackSemEvaluate.evaluate (body, s1) with ⟨res, s1'⟩
+  rw [e1] at ev
+  simp only at ev
+  have lt1 : MeasureLt body s1 (.loop body) s1 :=
+    .inr ⟨rfl, StackSemMeasure.loop_body_size_lt body⟩
+  have labs' : ∀ k ∈ (l :: cs) ++ ((l + 1) :: bs) ++ [0], (locToPc n k t1.code).isSome := by
+    intro k hk
+    by_cases e : k = l
+    · subst e; simp [locL]
+    by_cases e' : k = l + 1
+    · subst e'; simp [locL1]
+    apply labs k
+    simp only [List.cons_append, List.mem_cons, List.mem_append] at hk ⊢
+    tauto
+  have nerrBody : res ≠ some .error := by
+    rintro rfl
+    simp [StackSemControl.contLoop, StackSemControl.exitLoop] at ev
+    exact nerr ev.1.symm
+  have bh := first false res s1' n (l + 2) (l :: cs) ((l + 1) :: bs) t1
+    ⟨e1, nerrBody, rel, ca, by rw [h1]; exact instXs, labs'⟩
+  by_cases hc : StackSemControl.contLoop res = true
+  · rw [if_pos hc] at ev
+    obtain ⟨ck, bound, t2, run, f1, f2, f3, f4, f5, pre, rel2, fetch2⟩ := boundedLoopReentry h1 fetchJ hc budget bh
+    split_ifs at ev with hz
+    · simp only [Prod.mk.injEq] at ev
+      obtain ⟨rfl, rfl⟩ := ev
+      refine ⟨ck, bound.trans (Nat.le_add_right _ _), t2, run, f1, f2, f3, f4, f5, pre, ?_, ?_⟩
+      · simp [StackSemStateOps.emptyEnv, relFfi rel2]
+      · rw [relClock rel2]; exact hz
+    · have clk2 : t2.clock ≠ 0 := by rw [relClock rel2]; exact hz
+      have lt2 : MeasureLt (.loop body) (StackSemStateOps.decClock s1') (.loop body) s1 := by
+        left
+        have := StackSemEvaluateClock.evaluateClock _ _ _ _ e1
+        simp only [StackSemStateOps.decClock]
+        omega
+      have locL2 := locToPcIsPrefix _ _ _ _ _ ⟨locL, pre⟩
+      have rel3 : stateRel (StackSemStateOps.decClock s1')
+          { t2 with pc := t1.pc, clock := t2.clock - 1 } := StateRel.stateRelDecClock rel2
+      have lh := next res s1' e1 hc hz t r s2 n l cs bs
+        { t2 with pc := t1.pc, clock := t2.clock - 1 }
+        ⟨ev, nerr, rel3, by rw [f1, f2, f3, f4, f5]; exact ca,
+          codeInstalledIsPrefix _ _ _ _ ⟨inst0, pre⟩,
+          fun k hk => isSomeLocToPcPrefix ⟨labs k hk, pre⟩⟩
+      refine boundedFlattenConclCompose (ck := ck) (t2 := { t2 with pc := t1.pc, clock := t2.clock - 1 })
+        budget restBudget bound
+        (fun ck1 => ?_) f1 f2 f3 f4 f5 pre rfl lh
+      rw [run, show t2.clock + ck1 = (t2.clock - 1 + ck1) + 1 by omega,
+        jumpStep (t2.clock - 1 + ck1) fetch2 locL2]
+  · rw [if_neg hc] at ev
+    simp only [Prod.mk.injEq] at ev
+    obtain ⟨rfl, rfl⟩ := ev
+    rcases res with _ | x
+    · simp [StackSemControl.contLoop] at hc
+    rcases x with v | v | k | k | v | _ | o | _
+    · exact boundedFlattenConcl_mono (Nat.le_add_right budget restBudget) (boundedFlattenConclResult (h := bh) (budget := budget) rfl (by cases v <;> rfl))
+    · exact boundedFlattenConcl_mono (Nat.le_add_right budget restBudget) (boundedFlattenConclResult (h := bh) (budget := budget) rfl (by cases v <;> rfl))
+    · -- `Break k`
+      rcases k with _ | k
+      · -- `Break 0` leaves the loop after the break label
+        simp only [StackSemControl.exitLoop, if_true]
+        obtain ⟨ck, bound, t2, h⟩ := bh
+        simp only [haltView, Option.map_some, resultView, Flapjack.Compiler.Backend.StackToLab.findLabHOL,
+          List.getElem?_cons_zero, Option.getD_some] at h
+        obtain ⟨run, f1, f2, f3, f4, f5, pre, -, hw⟩ := h
+        obtain ⟨hpc, rel2⟩ := hw _ (locToPcIsPrefix _ _ _ _ _ ⟨locL1, pre⟩)
+        refine ⟨ck, bound.trans (Nat.le_add_right _ _), t2, run, f1, f2, f3, f4, f5, pre, ?_, rel2⟩
+        rw [← hpc, total]
+        omega
+      · simp only [StackSemControl.exitLoop, Nat.add_one_ne_zero, if_false, Nat.add_sub_cancel]
+        refine boundedFlattenConcl_mono (Nat.le_add_right budget restBudget) (boundedFlattenConclResult (h := bh) (budget := budget) (by simp [haltView]) ?_)
+        simp [resultView, Flapjack.Compiler.Backend.StackToLab.findLabHOL]
+    · -- `Continue k`, `k ≠ 0`
+      rcases k with _ | k
+      · simp [StackSemControl.contLoop] at hc
+      · simp only [StackSemControl.exitLoop, Nat.add_sub_cancel]
+        refine boundedFlattenConcl_mono (Nat.le_add_right budget restBudget) (boundedFlattenConclResult (h := bh) (budget := budget) (by simp [haltView]) ?_)
+        simp [resultView, Flapjack.Compiler.Backend.StackToLab.findLabHOL]
+    all_goals exact boundedFlattenConcl_mono (Nat.le_add_right budget restBudget) (boundedFlattenConclResult (h := bh) (budget := budget) rfl (by simp [resultView]))
 end
 end InitECandidate.Runtime.StackToLab
 #print axioms InitECandidate.Runtime.StackToLab.flattenLoop_bounded
+
+#print axioms InitECandidate.Runtime.StackToLab.flattenLoop_reached_bounded
