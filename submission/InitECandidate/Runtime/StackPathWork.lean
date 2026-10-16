@@ -8,7 +8,7 @@ open Flapjack.Compiler.Encoders.Asm
 open Flapjack.StackSemStateOps Flapjack.StackSemControl
 
 /-- Work budget that charges only a selected conditional branch and only a
-reached sequence suffix. Returning calls charge only a valid reached continuation, with the existing factor-two overhead. -/
+reached sequence suffix. Returning calls charge only a valid reached continuation, with additive callee and continuation overhead. -/
 noncomputable def pathWork {width : Nat} [NeZero width] {C F : Type}
     (prog : HolProg width) (s : StackSemStateFiniteExact width C F) : Nat :=
   match prog with
@@ -25,11 +25,16 @@ noncomputable def pathWork {width : Nat} [NeZero width] {C F : Type}
       2 + pathWork body s +
         if contLoop returned.1 && returned.2.clock != 0 then
           pathWork (.loop body) (decClock returned.2) else 0
-  | .jumpLower _ _ dest =>
-      if s.clock = 0 then 2 else
-        match findCode (.inl dest) s.regs s.code with
-        | none => 2
-        | some body => 2 + pathWork body (decClock s)
+  | .jumpLower r1 r2 dest =>
+      match StackSemStateOps.getVar r1 s, StackSemStateOps.getVar r2 s with
+      | some (.word x), some (.word y) =>
+        if wordCmpHOL .lower x y then
+          if s.clock = 0 then 2 else
+            match findCode (.inl dest) s.regs s.code with
+            | none => 2
+            | some body => 2 + pathWork body (decClock s)
+        else 2
+      | _, _ => 2
   | .rawCall dest =>
       if s.clock = 0 then 2 else
         match sptLookup dest s.code with
@@ -48,12 +53,12 @@ noncomputable def pathWork {width : Nat} [NeZero width] {C F : Type}
             let entry := decClock (setVar link (.loc l1 l2) s)
             let middle := (fixClock entry (StackSemEvaluate.evaluate (body, entry))).2
             have lower : middle.clock ≤ entry.clock := StackSemMeasure.fixClock_clock_le entry _
-            2 * (pathWork body entry + selectedContinuationBudget
+            pathWork body entry + selectedContinuationBudget
               (fixClock entry (StackSemEvaluate.evaluate (body, entry))).1 l1 l2 handler
               (pathWork rp middle)
               (match (generalizing := false) handler with
               | none => 0
-              | some (hp, _, _) => pathWork hp middle)) + 2
+              | some (hp, _, _) => pathWork hp middle) + 2
   | _ => 2
 termination_by (s.clock, sizeOf prog)
 decreasing_by

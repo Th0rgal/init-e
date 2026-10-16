@@ -67,7 +67,7 @@ theorem pathWork_jumpLower_bound (s1 : StackSemStateFiniteExact width C F) (r1 r
       have step := fun c => (jumpCmpStep (b := true) c fetch hcmp)
       simp only [if_true, entry] at step
       refine boundedFlattenConcl_mono (a := 0 + pathWork prog (StackSemStateOps.decClock s1)) ?_ ?_
-      · simp only [pathWork, if_neg h0, hfind]
+      · simp only [pathWork, hx, hy, hlow, ↓reduceIte, if_neg h0, hfind]
         omega
       · exact boundedComposeSome 0 (pathWork prog (StackSemStateOps.decClock s1)) (by decide) (runEnter (by omega) step) rfl rfl rfl rfl rfl
           (List.prefix_refl _)

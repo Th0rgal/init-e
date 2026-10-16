@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.StackToLabCall
+import InitECandidate.Runtime.StackCallAdditiveCompose
 import InitECandidate.Runtime.StackToLabCall
 import Flapjack.Compiler.Backend.StackToLab.Proofs.FlattenCorrect.Call
 
@@ -32,13 +32,13 @@ noncomputable def selectedCallWork {width : Nat} [NeZero width] {C F : Type}
     | some prog =>
       let entry := StackSemStateOps.decClock (StackSemStateOps.setVar link (.loc l1 l2) s)
       let returned := StackSemControl.fixClock entry (StackSemEvaluate.evaluate (prog, entry))
-      2 * (work prog entry + selectedContinuationBudget returned.1 l1 l2 handler
-        (work rp returned.2) (match handler with | none => 0 | some (hp, _, _) => work hp returned.2)) + 2
+      work prog entry + selectedContinuationBudget returned.1 l1 l2 handler
+        (work rp returned.2) (match handler with | none => 0 | some (hp, _, _) => work hp returned.2) + 2
 
 section
 variable {width : Nat} [NeZero width] {C F : Type}
 /-- Full returning-call simulation charges the callee and only its reached valid
-continuation, retaining the existing factor-two composition overhead. -/
+continuation, using independent additive callee and continuation budgets. -/
 theorem flattenCallRet_selected_bounded (work : HolProg width → StackSemStateFiniteExact width C F → Nat)
     (s1 : StackSemStateFiniteExact width C F) (rp : HolProg width)
     (link l1 l2 : Nat) (dest : Nat ⊕ Nat) (handler : Option (HolProg width × Nat × Nat))
@@ -87,28 +87,31 @@ theorem flattenCallRet_selected_bounded (work : HolProg width → StackSemStateF
   have lt : MeasureLt prog (StackSemStateOps.decClock
       (StackSemStateOps.setVar link (.loc l1 l2) s1)) (.call (some (rp, link, l1, l2)) dest
         handler) s1 := .inl (setVarDecClockLt h0)
-  let budget := work prog (StackSemStateOps.decClock (StackSemStateOps.setVar link (.loc l1 l2) s1)) +
+  let calleeBudget := work prog (StackSemStateOps.decClock (StackSemStateOps.setVar link (.loc l1 l2) s1))
+  let budget := calleeBudget +
     selectedContinuationBudget res0 l1 l2 handler (work rp s2')
       (match (generalizing := false) handler with | none => 0 | some (hp, _, _) => work hp s2')
-  have workEq : selectedCallWork work s1 rp link l1 l2 dest handler = 2 * budget + 2 := by
+  have workEq : selectedCallWork work s1 rp link l1 l2 dest handler = budget + 2 := by
     rw [selectedCallWork, if_neg h0, hfind]
     dsimp only
     rw [StackSemEvaluateClock.fixClockEvaluate, e2]
   rw [workEq]
-  have calleeLe : work prog (StackSemStateOps.decClock (StackSemStateOps.setVar link (.loc l1 l2) s1)) ≤ budget := by
+  have calleeLe : calleeBudget ≤ budget := by
     dsimp only [budget]
     omega
   have phRaw := ih prog _ lt true res0 s2' d (Flapjack.Compiler.Backend.StackAlloc.nextLabHOL prog 2) [] [] tE
     ⟨e2, nerr0, relE, by rw [f1, f2, f3, f4, f5]; exact caP, by rw [fcode, fpc]; exact instP,
       by simp [fcode, entry]⟩
-  have ph := boundedFlattenConcl_mono calleeLe phRaw
+  have ph := phRaw
   have hs2clk : s2'.clock < s1.clock :=
     Nat.lt_of_le_of_lt (StackSemEvaluateClock.evaluateClock _ _ _ _ e2) (setVarDecClockLt h0)
   have prop := fun (x : StackSemResult width) (hind : ∀ cs bs cs' bs' : List Nat, ∀ m m',
       resultView x m cs bs = resultView x m' cs' bs')
-      (phx : BoundedFlattenConcl prog true (some x) s2' d (Flapjack.Compiler.Backend.StackAlloc.nextLabHOL prog 2) [] [] tE budget) =>
-    boundedCallPropagate (p' := .call (some (rp, link, l1, l2)) dest handler) (t := t) (n := n) (l := l)
-      (cs := cs) (bs := bs) budget run1 f1 f2 f3 f4 f5 fcode hind phx
+      (phx : BoundedFlattenConcl prog true (some x) s2' d (Flapjack.Compiler.Backend.StackAlloc.nextLabHOL prog 2) [] [] tE calleeBudget) =>
+    boundedFlattenConcl_mono (a := 0 + calleeBudget + 2) (b := budget + 2) (by omega)
+      (boundedCallPropagate_additive (p' := .call (some (rp, link, l1, l2)) dest handler)
+        (t := t) (n := n) (l := l) (cs := cs) (bs := bs)
+        calleeBudget run1 f1 f2 f3 f4 f5 fcode hind phx)
   rcases res0 with _ | x
   · exact (err ev').elim
   rcases x with v | v | k | k | v | _ | o | _
@@ -118,28 +121,28 @@ theorem flattenCallRet_selected_bounded (work : HolProg width → StackSemStateF
     swap; · rw [if_pos hv] at ev'; exact (err ev').elim
     rw [if_neg (not_not.mpr hv)] at ev'
     subst hv
-    have returnLe : work rp s2' ≤ budget := by
+    have budgetEq : budget = calleeBudget + work rp s2' := by
       simp [budget, selectedContinuationBudget]
+    rw [budgetEq]
     obtain ⟨ck', calleeBound, t3, run3, g1, g2, g3, g4, g5, pre3, hw⟩ :=
-      boundedFlattenConclVloc (n1 := l1) (n2 := l2) budget rfl rfl ph
+      boundedFlattenConclVloc (n1 := l1) (n2 := l2) calleeBudget rfl rfl ph
     rw [fcode] at pre3
     obtain ⟨hpc3, rel3⟩ := hw (t1.pc + 1 + 1) (locToPcIsPrefix _ _ _ _ _ ⟨locL, pre3⟩)
     have rh := ih rp s2' (.inl hs2clk) false r s2 n l cs bs t3
       ⟨ev', nerr, rel3, by rw [g1, g2, g3, g4, g5, f1, f2, f3, f4, f5]; exact caR,
         by rw [← hpc3, h1]; exact codeInstalledIsPrefix _ _ _ _ ⟨instXs, pre3⟩,
         fun k hk => isSomeLocToPcPrefix ⟨labs k hk, pre3⟩⟩
-    have rh := boundedFlattenConcl_mono returnLe rh
     have run13 := chainRun run1 run3
     rcases handler with _ | ⟨hp, hs, hl⟩
     · rw [hrest rfl] at hflat
-      refine callCompose budget (by omega) run13 (by rw [g1, f1]) (by rw [g2, f2]) (by rw [g3, f3])
+      refine callCompose_additive calleeBudget (work rp s2') (by omega) run13 (by rw [g1, f1]) (by rw [g2, f2]) (by rw [g3, f3])
         (by rw [g4, f4]) (by rw [g5, f5]) pre3 ?_ rh
       rw [hflat, ← hpc3, h1]
       cases dest <;> simp [isLabelHOL, Flapjack.Compiler.Backend.StackToLab.compileJumpHOL] <;> omega
     · obtain ⟨ys, m2, fetchJ, locH, instYs, locEnd, total, -⟩ := callHandlerCode h1 inst0
       cases r with
       | some x =>
-        exact callComposeSome budget (by omega) run13 (by rw [g1, f1]) (by rw [g2, f2])
+        exact callComposeSome_additive calleeBudget (work rp s2') (by omega) run13 (by rw [g1, f1]) (by rw [g2, f2])
           (by rw [g3, f3]) (by rw [g4, f4]) (by rw [g5, f5]) pre3 rh
       | none =>
         obtain ⟨ck2, continuationBound, t4, run4, k1, k2, k3, k4, k5, pre4, hpc4, rel4⟩ := rh
@@ -170,9 +173,12 @@ theorem flattenCallRet_selected_bounded (work : HolProg width → StackSemStateF
       swap; · rw [if_pos hv] at ev'; exact (err ev').elim
       rw [if_neg (not_not.mpr hv)] at ev'
       subst hv
+      have budgetEq : budget = calleeBudget + work hp s2' := by
+        simp [budget, selectedContinuationBudget]
+      rw [budgetEq]
       obtain ⟨ys, m2, -, locH, instYs, -, total, h2⟩ := callHandlerCode h1 inst0
       obtain ⟨ck', calleeBound, t3, run3, g1, g2, g3, g4, g5, pre3, hw⟩ :=
-        boundedFlattenConclVloc (n1 := hs) (n2 := hl) budget rfl rfl ph
+        boundedFlattenConclVloc (n1 := hs) (n2 := hl) calleeBudget rfl rfl ph
       rw [fcode] at pre3
       obtain ⟨hpc3, rel3⟩ := hw _ (locToPcIsPrefix _ _ _ _ _ ⟨locH, pre3⟩)
       simp only at caH
@@ -182,10 +188,7 @@ theorem flattenCallRet_selected_bounded (work : HolProg width → StackSemStateF
         ⟨ev', nerr, rel3, by rw [g1, g2, g3, g4, g5, f1, f2, f3, f4, f5]; exact caH,
           by rw [← hpc3, h2]; exact codeInstalledIsPrefix _ _ _ _ ⟨instYs, pre3⟩,
           fun k hk => isSomeLocToPcPrefix ⟨labs k hk, pre3⟩⟩
-      have handlerLe : work hp s2' ≤ budget := by
-        simp [budget, selectedContinuationBudget]
-      have rh := boundedFlattenConcl_mono handlerLe rh
-      refine callCompose budget (by omega) (chainRun run1 run3) (by rw [g1, f1]) (by rw [g2, f2])
+      refine callCompose_additive calleeBudget (work hp s2') (by omega) (chainRun run1 run3) (by rw [g1, f1]) (by rw [g2, f2])
         (by rw [g3, f3]) (by rw [g4, f4]) (by rw [g5, f5]) pre3 ?_ rh
       rw [total, ← hpc3, h2]
       omega
