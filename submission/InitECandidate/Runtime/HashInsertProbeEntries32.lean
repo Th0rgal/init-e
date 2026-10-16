@@ -7,7 +7,10 @@ open Flapjack.Basis.Pure.MlString
 /-- Original probe and insertion preserve all three entry invariants. -/
 theorem evaluate_hashInsert_probe_entries32 {F : Type} (state : PanSemStateFiniteExact 64 F)
     (capacity used table values value order orderPos count initialIndex keys stride key : BitVec 64) (bits : Nat)
-    (power : capacity.toNat = 2 ^ bits)
+    (tableLocal : state.locals.lookup (ofString "t") = some (.val (.word table)))
+    (orderLocal : state.locals.lookup (ofString "order") = some (.val (.word order)))
+    (orderPosLocal : state.locals.lookup (ofString "order_pos") = some (.val (.word orderPos)))
+    (valueLocal : state.locals.lookup (ofString "value") = some (.val (.word value)))
     (indexLocal : state.locals.lookup (ofString "i") = some (.val (.word initialIndex)))
     (capacityLocal : state.locals.lookup (ofString "cap") = some (.val (.word capacity)))
     (usedLocal : state.locals.lookup (ofString "used") = some (.val (.word used)))
@@ -17,11 +20,6 @@ theorem evaluate_hashInsert_probe_entries32 {F : Type} (state : PanSemStateFinit
     (lengthLocal : state.locals.lookup (ofString "klen") = some (.val (.word (32 : BitVec 64))))
     (inside : initialIndex.toNat < capacity.toNat)
     (budget : capacity.toNat + (32 : BitVec 64).toNat + 1 ≤ state.clock)
-    (readable : ∀ current : BitVec 64, current.toNat < capacity.toNat → ∃ byte, hashOccupancyRead state used current = some byte)
-    (room : hashOccupiedCount capacity (hashOccupancyRead state used) < capacity.toNat)
-    (prepared : ∀ slot : BitVec 64, slot.toNat < capacity.toNat → hashOccupancyRead state used slot = some 0 →
-      ∃ cell : BitVec 64, HashInsertTailReady capacity used table values value order orderPos count slot cell
-        (setVarHOLFinite (ofString "i") (.val (.word slot)) state))
     (invariant : HashTableArraysInvariant32 table keys stride capacity used values order orderPos count bits state)
     (sourceAligned : key.toNat % 8 = 0)
     (sourceWordDomain : ∀ offset : Nat, offset < 32 → state.memaddrs (key + BitVec.ofNat 64 offset))
@@ -41,8 +39,23 @@ theorem evaluate_hashInsert_probe_entries32 {F : Type} (state : PanSemStateFinit
       post.globals = state.globals ∧ post.code = state.code ∧
       post.memaddrs = state.memaddrs ∧ post.be = state.be := by
   change capacity.toNat + 32 + 1 ≤ state.clock at budget
+  have facts := invariant.insertion_memory state table keys stride capacity used values order orderPos count bits
+  have environment := facts.enter capacity used table values value order orderPos count state state
+    rfl rfl rfl tableLocal orderLocal orderPosLocal usedLocal valueLocal
+  have prepared := environment.prepare capacity used table values value order orderPos count state
+  have readable : ∀ current : BitVec 64, current.toNat < capacity.toNat →
+      ∃ byte, hashOccupancyRead state used current = some byte := by
+    intro current inRange
+    have available := facts.byteDomain current inRange
+    unfold hashOccupancyRead panMemLoadByteHOL
+    dsimp only
+    rw [if_pos available]
+    exact ⟨_,rfl⟩
+  have room : hashOccupiedCount capacity (hashOccupancyRead state used) < capacity.toNat := by
+    rw [← invariant.agreement]
+    exact invariant.room
   obtain ⟨probed,slot,cell,probeRun,probeCost,probeRemaining,probeMemory,probeGlobals,probeCode,addresses,probeEndian,ready,other⟩ :=
-    evaluate_hashInsert_probe_ready state capacity used table values value order orderPos count initialIndex bits power
+    evaluate_hashInsert_probe_ready state capacity used table values value order orderPos count initialIndex bits invariant.power
       indexLocal capacityLocal usedLocal inside (by omega) readable room prepared
   have probedInvariant := invariant.after_read state probed table keys stride capacity used values order orderPos count bits
     probeMemory probeCode addresses probeEndian
