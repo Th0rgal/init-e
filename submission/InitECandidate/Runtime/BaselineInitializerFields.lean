@@ -44,6 +44,24 @@ theorem canonical_heap_base_register (input : Guest.InputBlob) :
   have equal := Option.some.inj (heap.symm.trans installed)
   exact WordLocW.word.inj equal
 
+theorem canonical_heap_base_source (input : Guest.InputBlob) :
+    canonicalHeapBase input = BitVec.ofNat 64 sourceBase := by
+  rw [canonical_heap_base_register]
+  have name : StackNames.findNameSpt baselineCompilerConfig.stackConf.regNames 2 = 11 := by decide_cbv
+  rw [name]
+  exact (canonical_source_registers input).1
+
+theorem canonical_pan_entry_base (input : Guest.InputBlob) :
+    (canonicalPanEntryState input).baseAddr = BitVec.ofNat 64 sourceBase :=
+  canonical_heap_base_source input
+
+theorem canonical_pan_declaration_base (input : Guest.InputBlob) :
+    (canonicalPanDeclarationState input).baseAddr = BitVec.ofNat 64 sourceBase :=
+  canonical_heap_base_source input
+
+#print axioms canonical_heap_base_source
+#print axioms canonical_pan_entry_base
+#print axioms canonical_pan_declaration_base
 #print axioms entry_frontend_heap_register
 #print axioms canonical_heap_base_register
 #print axioms entry_selected_fields

@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.BaselineWordMemoryEntry
+import InitECandidate.Runtime.BaselineSourceRegisterEntry
 import InitECandidate.Runtime.BaselineCrepNative
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 0
@@ -7,7 +7,10 @@ open InitE InitECandidate.Proofs Flapjack Flapjack.Compiler.Backend
 open Flapjack.Compiler.Encoders.RiscV.Target
 
 noncomputable def canonicalRuntimeEntry (input : Guest.InputBlob) : BaselineRuntimeEntry input :=
-  Classical.choose (baselineRuntimeEntry_word_memory_exists input)
+  Classical.choose (baselineRuntimeEntry_source_registers_exists input)
+
+theorem canonical_source_registers (input : Guest.InputBlob) : EntrySourceRegisters (canonicalRuntimeEntry input) :=
+  (Classical.choose_spec (baselineRuntimeEntry_source_registers_exists input)).2
 
 noncomputable def canonicalHeapBase (input : Guest.InputBlob) : BitVec 64 :=
   Classical.choose (entryLoopState_exists (canonicalRuntimeEntry input))
@@ -18,7 +21,7 @@ noncomputable def canonicalHeapCapacity (input : Guest.InputBlob) : BitVec 64 :=
 theorem canonical_frontend_noLabels (input : Guest.InputBlob) :
     noLabelsHOL (entryFrontendState (canonicalRuntimeEntry input)).memory
       (fun address => (entryFrontendState (canonicalRuntimeEntry input)).mdomain address = true) :=
-  entryFrontendState_noLabels _ (Classical.choose_spec (baselineRuntimeEntry_word_memory_exists input))
+  entryFrontendState_noLabels _ (Classical.choose_spec (baselineRuntimeEntry_source_registers_exists input)).1
 
 theorem canonical_loop_related (input : Guest.InputBlob) :
     loopToWordStateRelHOLExact
