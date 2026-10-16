@@ -1,9 +1,7 @@
 import InitECandidate.Runtime.HashNewSeparation
+import InitECandidate.Runtime.HashNewValuesAllocation
 namespace InitECandidate.Runtime
 open Flapjack
-
-def htabNewValues (table keyLength capacity : BitVec 64) : BitVec 64 :=
-  allocationPlanEnd table [72,capacity * allocationEnd 0 keyLength]
 
 def htabNewOrder (table keyLength capacity : BitVec 64) : BitVec 64 :=
   allocationEnd (htabNewUsed table keyLength capacity) capacity
