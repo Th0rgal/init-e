@@ -1,0 +1,135 @@
+import InitECandidate.Runtime.TransactionRegistryWorldFrame
+import InitECandidate.Runtime.RollbackNewTableRegistryDeclaration
+import InitECandidate.Runtime.HashNewCallBeforeHeader
+import InitECandidate.Runtime.HashNewHeapDomains
+import InitECandidate.Runtime.StateFreshTxFieldsFrontierFrame
+import InitECandidate.Runtime.JournalUndoRecordIntervals
+import InitECandidate.Runtime.JournalSavedValuesMono
+import InitECandidate.Runtime.HashTableValuesInPhysicalFrame
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- An actual successful constructor enlarges the transaction registry without
+losing live undo records or the eight original fields. Declaration calls bind
+the new pointer for storage-helper continuations. -/
+theorem TransactionRegistryWorld.new_table_registered_values_in {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (widths : BitVec 64 → BitVec 64) (tables : Set (BitVec 64))
+    (fieldPointer ts journal snapshot count pointer capacity : BitVec 64) (bits : Nat)
+    (valid : TransactionRegistryWorld widths tables fieldPointer ts journal snapshot count state)
+    (keyArgument capacityArgument : ExpHOL 64)
+    (arguments : evalListHOLFinite state (h := fun address => Classical.propDecidable (state.memaddrs address))
+      [keyArgument,capacityArgument] = some [.val (.word (widths pointer)),.val (.word capacity)])
+    (power : capacity.toNat = 2 ^ bits) (large : 1 < capacity.toNat)
+    (supported : widths pointer = 20 ∨ widths pointer = 32 ∨ widths pointer = 52)
+    (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (aligned : pointer.toNat % 8 = 0)
+    (headerBefore : ts.toNat + 72 ≤ pointer.toNat)
+    (space : pointer.toNat + 81 * capacity.toNat + 114 ≤ 33806089496)
+    (watched targets : Set (BitVec 64)) (watchedSubset : watched ⊆ tables)
+    (registered : ∀ other ∈ watched, HashTableValuesIn other targets state)
+    (saved : JournalSavedValuesIn journal count.toNat watched targets state)
+    (ticks : capacity.toNat + 8 ≤ state.clock) :
+    ∃ post, evaluateHOLFiniteState state (.call (some (none,none)) (ofString "htab_new") [keyArgument,capacityArgument]) = (none,post) ∧
+      TransactionRegistryWorld widths (insert pointer tables) fieldPointer ts journal snapshot count post ∧
+      (∀ other ∈ watched, HashTableValuesIn other (insert pointer targets) post) ∧
+      JournalSavedValuesIn journal count.toNat watched (insert pointer targets) post ∧
+      state.clock ≤ post.clock + capacity.toNat + 8 ∧ post.clock ≤ state.clock ∧ post.locals = state.locals ∧
+      post.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd (htabNewOrderPos pointer (widths pointer) capacity) (capacity * 8)))) ∧
+      (∀ name continuation, evaluateHOLFiniteState state (.decCall name .one (ofString "htab_new") [keyArgument,capacityArgument] continuation) =
+        (let output := evaluateHOLFiniteState (setVarHOLFinite name (.val (.word pointer)) post) continuation;
+          (output.1,{output.2 with locals := HolFiniteMapExact.resVarEq output.2.locals (name,state.locals.lookup name)}))) := by
+  have keyBound : (widths pointer).toNat ≤ 52 := by
+    rcases supported with same | same | same <;> rw [same] <;> decide
+  obtain ⟨tableDomain,headerDomain,wordDomain,byteDomain⟩ := htabNew_heap_domains state pointer (widths pointer) capacity keyBound space valid.journalWorld.heapDomain
+  obtain ⟨post,run,family,apart,cost,remaining,locals,code,domain,endian,globals,heapNext,declaration,_⟩ :=
+    rollback_htabNew_registry_declaration state widths tables keyArgument capacityArgument pointer capacity bits arguments power tableDomain
+      valid.journalWorld.code ticks heap keyBound aligned space headerDomain wordDomain byteDomain large
+      (fun table member => (valid.journalWorld.world.ready table member).after_read rfl rfl rfl rfl rfl) valid.journalWorld.separated
+  obtain ⟨checked,checkedRun,_,_,_,_,_,_,_,memory,_⟩ := evaluate_htabNew_call_and_declaration_before_header state
+    keyArgument capacityArgument pointer (widths pointer) capacity arguments valid.journalWorld.code ticks heap keyBound aligned space headerDomain wordDomain byteDomain
+  have same : post = checked := congrArg Prod.snd (run.symm.trans checkedRun)
+  have beforeMemory : ∀ address : BitVec 64, address.toNat < pointer.toNat → post.memory address = state.memory address := by
+    rw [same]; exact memory
+  have liveBound : journal.toNat + count.toNat * 32 ≤ 33806089496 := by
+    have cap := valid.journalWorld.world.capacity
+    have bound := valid.journalWorld.journalBound
+    omega
+  have recordFrame : ∀ index : Nat, index < count.toNat → ∀ offset ∈ ([0,8,16,24] : List Nat),
+      post.memory (journal + BitVec.ofNat 64 index * 32 + BitVec.ofNat 64 offset) =
+        state.memory (journal + BitVec.ofNat 64 index * 32 + BitVec.ofNat 64 offset) := by
+    intro index inside offset member
+    have small : offset < 32 := by simp at member; omega
+    have interval := journal_undo_field_interval journal count.toNat index offset liveBound inside small
+    have cap := valid.journalWorld.world.capacity
+    have before := valid.journalBeforeTs
+    exact beforeMemory _ (by omega)
+  have headers : ∀ table ∈ insert pointer tables, ts.toNat + 72 ≤ table.toNat := by
+    intro table member
+    rcases Set.mem_insert_iff.mp member with same | old
+    · simpa only [same] using headerBefore
+    · exact valid.tableHeaders table old
+  let logical := setVarHOLFinite (ofString "snap") (.val (.word snapshot)) post
+  have world : RollbackWorld widths (insert pointer tables) journal snapshot count logical := by
+    refine ⟨(globals (ofString "journal_n") (by decide)).trans valid.journalWorld.world.counter,?_,
+      (globals (ofString "journal") (by decide)).trans valid.journalWorld.world.journalGlobal,valid.journalWorld.world.capacity,
+      valid.journalWorld.world.records.after_frame (after := logical) (Nat.le_refl _) domain recordFrame,?_,?_,?_⟩
+    · simp [logical,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    · intro index inside table cell
+      have preserved : post.memory (journal + BitVec.ofNat 64 index * 32) = state.memory (journal + BitVec.ofNat 64 index * 32) := by
+        simpa using recordFrame index inside 0 (by simp)
+      have oldCell := preserved.symm.trans cell
+      exact Set.mem_insert_of_mem pointer (valid.journalWorld.world.references index inside table oldCell)
+    · intro table member
+      exact (family table member).after_read rfl rfl rfl rfl rfl
+    · intro table member
+      have header := headers table member
+      have cap := valid.journalWorld.world.capacity
+      have before := valid.journalBeforeTs
+      omega
+  have journalWorld : JournalRuntimeWorld widths (insert pointer tables) journal snapshot count post := by
+    refine ⟨world,apart,valid.journalWorld.journalBound,valid.journalWorld.journalAligned,?_,?_,
+      (globals (ofString "journal_cap") (by decide)).trans valid.journalWorld.capacity,code.trans valid.journalWorld.code,?_⟩
+    · intro table member
+      have header := headers table member
+      have before := valid.journalBeforeTs
+      omega
+    · intro address upper
+      rw [domain]; exact valid.journalWorld.heapDomain address upper
+    · intro table member
+      rcases Set.mem_insert_iff.mp member with same | old
+      · simpa only [same] using supported
+      · exact valid.journalWorld.supported table old
+  have postValues : ∀ other ∈ watched, HashTableValuesIn other (insert pointer targets) post := by
+    intro other belongs
+    obtain ⟨op,ok,os,oc,ou,ov,oo,orev,oi,ob,otherReady,_,_⟩ := valid.journalWorld.world.ready other (watchedSubset belongs)
+    have actualReady : HashTableReady (widths other) other ok os oc ou ov oo orev oi ob op state :=
+      otherReady.after_read _ state (widths other) other ok os oc ou ov oo orev oi ob op rfl rfl rfl rfl rfl
+    have frontier : op = pointer := by
+      have equal := actualReady.live.frontier.heap.symm.trans heap
+      simpa only [Option.some.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq] using equal
+    have framed := (registered other belongs).physical_frame state post (widths other) other ok os oc ou ov oo orev oi ob actualReady.live.arrays targets
+      (by
+        intro address member
+        have hk := actualReady.live.arrays.headerKeys
+        have ku := actualReady.live.arrays.keysBefore
+        have vu := actualReady.live.arrays.valuesBefore
+        have uo := actualReady.live.arrays.usedBefore
+        have ooBound := actualReady.live.arrays.orderBefore
+        have allocated := actualReady.live.frontier.allocated
+        rw [frontier] at allocated
+        apply beforeMemory
+        unfold tablePhysicalRegion at member
+        omega) domain endian
+    exact framed.mono (fun value member => Set.mem_insert_of_mem pointer member)
+  have postSaved : JournalSavedValuesIn journal count.toNat watched (insert pointer targets) post :=
+    (saved.after_frame (Nat.le_refl _) (by intro index inside offset belongs; exact recordFrame index inside offset (by simp at belongs ⊢; omega))).mono_targets
+      (fun value member => Set.mem_insert_of_mem pointer member)
+  refine ⟨post,run,⟨journalWorld,valid.fields.after_frontier_frame state post ts fieldPointer pointer (by omega) headerBefore beforeMemory,
+    (globals (ofString "ts") (by decide)).trans valid.tsGlobal,valid.tsBound,valid.journalBeforeTs,?_,headers⟩,
+    postValues,postSaved,cost,remaining,locals,heapNext,declaration⟩
+  intro table member
+  exact Set.mem_insert_of_mem pointer (valid.fieldRegistry member)
+
+#print axioms TransactionRegistryWorld.new_table_registered_values_in
+end InitECandidate.Runtime
