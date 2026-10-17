@@ -16,6 +16,14 @@ structure RlpSlicesMemoryWitness {F : Type} (state : PanSemStateFiniteExact 64 F
     state.memaddrs (array + slot * 16#64) ∧ state.memaddrs (array + slot * 16#64 + 8#64)
   filled : RlpSlicePrefix state array control.index.toNat
 
+def RlpSlicesMemoryWitness.decClock {F : Type} {state : PanSemStateFiniteExact 64 F}
+    {pointer count array : BitVec 64} (valid : RlpSlicesMemoryWitness state pointer count array) :
+    RlpSlicesMemoryWitness (decClockHOLFinite state) pointer count array := by
+  refine ⟨valid.control.decClock,valid.arrayLocal,valid.fits,valid.domain,?_⟩
+  intro slot inside
+  obtain ⟨p,n,entry⟩ := valid.filled slot inside
+  exact ⟨p,n,RlpSliceEntry.after_frame state _ _ _ _ _ entry rfl rfl rfl⟩
+
 /-- Actual normal iterations preserve the combined control/memory invariant
 and strictly lower the remaining-slice rank. -/
 theorem rlpSlices_memory_witness_step {F : Type} (state post : PanSemStateFiniteExact 64 F)
