@@ -1,0 +1,83 @@
+import InitECandidate.Runtime.HashInsertIndexEntriesWidth
+import InitECandidate.Runtime.HashInsertHashScopeSupported
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Actual hash call and insertion retain all entry invariants across local scopes. -/
+theorem evaluate_hashInsert_hash_all_entries_supported {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (capacity used table values value order orderPos count keys stride key keyLength : BitVec 64) (bits : Nat)
+    (supported : keyLength = 20 ∨ keyLength = 32 ∨ keyLength = 52)
+    (tableLocal : state.locals.lookup (ofString "t") = some (.val (.word table)))
+    (orderLocal : state.locals.lookup (ofString "order") = some (.val (.word order)))
+    (orderPosLocal : state.locals.lookup (ofString "order_pos") = some (.val (.word orderPos)))
+    (valueLocal : state.locals.lookup (ofString "value") = some (.val (.word value)))
+    (capacityLocal : state.locals.lookup (ofString "cap") = some (.val (.word capacity)))
+    (usedLocal : state.locals.lookup (ofString "used") = some (.val (.word used)))
+    (keysLocal : state.locals.lookup (ofString "keys") = some (.val (.word keys)))
+    (strideLocal : state.locals.lookup (ofString "stride") = some (.val (.word stride)))
+    (keyLocal : state.locals.lookup (ofString "key") = some (.val (.word key)))
+    (lengthLocal : state.locals.lookup (ofString "klen") = some (.val (.word keyLength)))
+    (budget : capacity.toNat + keyLength.toNat + 2 ≤ state.clock)
+    (invariant : HashTableArraysInvariant keyLength table keys stride capacity used values order orderPos count bits state)
+    (sourceAligned : key.toNat % 8 = 0)
+    (sourceWordDomain : ∀ offset : Nat, offset < keyLength.toNat → state.memaddrs (key + BitVec.ofNat 64 offset))
+    (sourceByteDomain : ∀ offset : Nat, offset < keyLength.toNat → state.memaddrs (panByteAlignHOL (key + BitVec.ofNat 64 offset)))
+    (keysBeforeValues : keys.toNat + capacity.toNat * stride.toNat ≤ values.toNat)
+    (entries : HashValueEntriesWord used values capacity state)
+    (reverseEntries : HashReverseEntriesBound used orderPos capacity count state)
+    (orderEntries : HashOrderEntriesBound order capacity count state) :
+    ∃ post, evaluateHOLFiniteState state hashInsertHashScope =
+      (some (.returned (.val (.word (0 : BitVec 64)))),post) ∧
+      post.memory (table + 24) = .word (count + 1) ∧
+      (count + 1).toNat = hashOccupiedCount capacity (hashOccupancyRead post used) ∧
+      state.clock ≤ post.clock + capacity.toNat + keyLength.toNat + 2 ∧ post.clock ≤ state.clock ∧
+      HashValueEntriesWord used values capacity post ∧
+      HashReverseEntriesBound used orderPos capacity (count + 1) post ∧
+      HashOrderEntriesBound order capacity (count + 1) post ∧
+      post.globals = state.globals ∧ post.code = state.code ∧
+      post.memaddrs = state.memaddrs ∧ post.be = state.be := by
+  have arguments : evalListHOLFinite state
+      (h := fun address => Classical.propDecidable (state.memaddrs address))
+      [.var .local (ofString "key"),.var .local (ofString "klen")] =
+        some [.val (.word key),.val (.word keyLength)] := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,keyLocal,lengthLocal]
+  obtain ⟨hash,hashed,clock,memory,globals,postCode,addresses,endian,locals,decl⟩ :=
+    evaluate_hash_supported_declaration state _ _ key keyLength arguments invariant.code (by omega)
+      sourceAligned supported sourceWordDomain sourceByteDomain
+  let entered := setVarHOLFinite (ofString "h") (.val (.word hash)) hashed
+  have other : ∀ name, name ≠ ofString "h" → entered.locals.lookup name = state.locals.lookup name := by
+    intro name different
+    simp [entered,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm different,locals]
+  have h : entered.locals.lookup (ofString "h") = some (.val (.word hash)) := by
+    simp [entered,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  have enteredInvariant := invariant.after_read state entered keyLength table keys stride capacity used values order orderPos count bits
+    memory postCode addresses endian
+  have ticks : entered.clock = state.clock - 1 := clock
+  obtain ⟨post,tail,header,agreement,cost,remaining,words,reverse,ordered,postGlobals,code,domain,postEndian⟩ :=
+    evaluate_hashInsert_index_entries_width entered capacity used table values value order orderPos count hash keys stride key keyLength bits
+      ((other _ (by decide)).trans tableLocal) ((other _ (by decide)).trans orderLocal)
+      ((other _ (by decide)).trans orderPosLocal) ((other _ (by decide)).trans valueLocal)
+      h ((other _ (by decide)).trans capacityLocal) ((other _ (by decide)).trans usedLocal)
+      ((other _ (by decide)).trans keysLocal) ((other _ (by decide)).trans strideLocal)
+      ((other _ (by decide)).trans keyLocal) ((other _ (by decide)).trans lengthLocal)
+      (by change capacity.toNat + keyLength.toNat + 1 ≤ entered.clock; omega) enteredInvariant sourceAligned
+      (by change ∀ offset : Nat, _ → hashed.memaddrs _; rw [addresses]; exact sourceWordDomain)
+      (by change ∀ offset : Nat, _ → hashed.memaddrs _; rw [addresses]; exact sourceByteDomain)
+      keysBeforeValues
+      (entries.after_read state entered used values capacity memory addresses endian)
+      (reverseEntries.after_read state entered used orderPos capacity count memory addresses endian)
+      (orderEntries.after_memory state entered order capacity count memory)
+  unfold hashInsertHashScope
+  rw [decl]
+  change ∃ post, (let output := evaluateHOLFiniteState entered hashInsertIndexScope; _) = _ ∧ _
+  rw [tail]
+  refine ⟨_,rfl,header,agreement,?_,?_,?_,?_,?_,postGlobals.trans globals,code.trans postCode,domain.trans addresses,postEndian.trans endian⟩
+  · change state.clock ≤ post.clock + capacity.toNat + keyLength.toNat + 2; omega
+  · change post.clock ≤ state.clock; omega
+  · exact words.after_read post _ used values capacity rfl rfl rfl
+  · exact reverse.after_read post _ used orderPos capacity (count + 1) rfl rfl rfl
+  · exact ordered.after_memory post _ order capacity (count + 1) rfl
+
+#print axioms evaluate_hashInsert_hash_all_entries_supported
+end InitECandidate.Runtime
