@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.PanEvaluationMetadata
+import InitECandidate.Runtime.RollbackWorldJournalSetCallGlobals
 import InitECandidate.Runtime.RollbackWorldJournalSetCallSuccess
 import InitECandidate.Runtime.RollbackWorldJournalDeleteCallSuccess
 namespace InitECandidate.Runtime
@@ -29,12 +30,15 @@ theorem rollback_world_jset_call_contract {F : Type} (state : PanSemStateFiniteE
     output.1 ≠ some .timeOut ∧ state.clock ≤ output.2.clock + (2 ^ 73 + 1) ∧ output.2.clock ≤ state.clock ∧
       output.2.code = state.code ∧ output.2.memaddrs = state.memaddrs ∧ output.2.be = state.be ∧
       (output.1 = none → RollbackWorld widths tables journal snapshot (count + 1)
-        (setVarHOLFinite (ofString "snap") (.val (.word snapshot)) output.2) ∧ RollbackPhysicalSeparated widths tables output.2) := by
+        (setVarHOLFinite (ofString "snap") (.val (.word snapshot)) output.2) ∧ RollbackPhysicalSeparated widths tables output.2 ∧ output.2.globals.lookup (ofString "journal_cap") = state.globals.lookup (ofString "journal_cap")) := by
   have bounded := rollback_world_jset_call_bounded state widths tables journal snapshot count table key value world separated member supported tableArgument keyArgument valueArgument arguments keyAligned keyWords keyBytes ticks journalBound journalAligned journalHeaders heapDomain capacityGlobal code
   have metadata := evaluateHOLFiniteState_metadata state (.call (some (none,none)) (ofString "jset") [tableArgument,keyArgument,valueArgument])
   refine ⟨bounded.1,bounded.2.1,bounded.2.2,metadata.1,metadata.2.1,metadata.2.2.1,?_⟩
   intro success
-  exact rollback_world_jset_call_success state widths tables journal snapshot count table key value world separated member supported tableArgument keyArgument valueArgument arguments keyAligned keyWords keyBytes ticks journalBound journalAligned journalHeaders heapDomain capacityGlobal code success
+  obtain ⟨nextWorld,apart⟩ := rollback_world_jset_call_success state widths tables journal snapshot count table key value world separated member supported tableArgument keyArgument valueArgument arguments keyAligned keyWords keyBytes ticks journalBound journalAligned journalHeaders heapDomain capacityGlobal code success
+
+  have globals := rollback_world_jset_call_success_globals state widths tables journal snapshot count table key value world separated member supported tableArgument keyArgument valueArgument arguments keyAligned keyWords keyBytes ticks journalBound journalAligned journalHeaders heapDomain capacityGlobal code success
+  exact ⟨nextWorld,apart,globals (ofString "journal_cap") (by decide) (by decide)⟩
 
 #print axioms rollback_world_jset_call_contract
 
