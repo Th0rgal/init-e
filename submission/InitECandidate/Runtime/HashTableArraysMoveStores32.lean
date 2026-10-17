@@ -10,9 +10,9 @@ theorem HashTableArraysInvariant32.after_word {F : Type}
     (header : ∀ offset ∈ ([0,8,16,24,32,40,48,56,64] : List Nat), table + BitVec.ofNat 64 offset ≠ destination)
     (occupancy : ∀ slot : BitVec 64, slot.toNat < capacity.toNat → panByteAlignHOL (used + slot) ≠ destination) :
     HashTableArraysInvariant32 table keys stride capacity used values order orderPos count bits (sourceWriteWord state destination value) := by
-  apply invariant.framed state _ table keys stride capacity used values order orderPos count bits ?_ ?_ rfl rfl
+  apply invariant.framed state (sourceWriteWord state destination value) table keys stride capacity used values order orderPos count bits ?_ ?_ rfl rfl
   · intro offset member
-    change (if table + BitVec.ofNat 64 offset = destination then .word value else _) = _
+    change (if table + BitVec.ofNat 64 offset = destination then HolWordLab.word value else _) = _
     rw [if_neg (header offset member)]
   · intro slot inside
     simp [hashOccupancyRead,panMemLoadByteHOL,sourceWriteWord,occupancy slot inside]
