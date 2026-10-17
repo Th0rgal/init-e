@@ -26,7 +26,7 @@ structure HashDeleteLoopInvariant32 {F : Type}
   reverseLocal : state.locals.lookup (ofString "order_pos") = some (.val (.word orderPos))
   indices : ∃ hole index : BitVec 64, hole.toNat < capacity.toNat ∧ index.toNat < capacity.toNat ∧
     state.locals.lookup (ofString "i") = some (.val (.word hole)) ∧
-    state.locals.lookup (ofString "j") = some (.val (.word index))
+    state.locals.lookup (ofString "j") = some (.val (.word index)) ∧ hashOccupancyRead state used hole ≠ some 0
 
 noncomputable def hashDeleteStateRank {F : Type} (capacity empty : BitVec 64)
     (state : PanSemStateFiniteExact 64 F) : Nat :=
@@ -45,7 +45,7 @@ theorem HashDeleteLoopInvariant32.rank_bounds {F : Type}
     (state : PanSemStateFiniteExact 64 F)
     (valid : HashDeleteLoopInvariant32 table keys stride capacity used values order orderPos items empty bits state) :
     0 < hashDeleteStateRank capacity empty state ∧ hashDeleteStateRank capacity empty state ≤ capacity.toNat := by
-  obtain ⟨hole,index,_,inside,_,binding⟩ := valid.indices
+  obtain ⟨hole,index,_,inside,_,binding,_⟩ := valid.indices
   rw [hashDeleteStateRank_of_local capacity empty index state binding]
   exact hashDeleteRank_bounded capacity index empty bits valid.arrays.power inside valid.emptyInside
 

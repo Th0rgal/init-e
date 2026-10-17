@@ -14,7 +14,7 @@ theorem HashDeleteLoopInvariant32.step {F : Type}
        (evaluateHOLFiniteState state hashDeleteLoopBody = (none,post) ∧
         hashDeleteStateRank capacity empty post < hashDeleteStateRank capacity empty state)) := by
   classical
-  obtain ⟨hole,index,holeInside,indexInside,holeLocal,indexLocal⟩ := valid.indices
+  obtain ⟨hole,index,holeInside,indexInside,holeLocal,indexLocal,holeOccupied⟩ := valid.indices
   let next := hashProbeNext index capacity
   have nextInside : next.toNat < capacity.toNat := by
     rw [hashProbeNext_toNat index capacity bits valid.arrays.power indexInside]
@@ -38,7 +38,7 @@ theorem HashDeleteLoopInvariant32.step {F : Type}
       valuesLocal := ((other (ofString "vals") (by decide))).trans valid.valuesLocal
       orderLocal := ((other (ofString "order") (by decide))).trans valid.orderLocal
       reverseLocal := ((other (ofString "order_pos") (by decide))).trans valid.reverseLocal
-      indices := ⟨hole,next,holeInside,nextInside,((other _ (by decide))).trans holeLocal,scanPost⟩
+      indices := ⟨hole,next,holeInside,nextInside,((other _ (by decide))).trans holeLocal,scanPost,by unfold hashOccupancyRead; rw [memory,domain,endian]; exact holeOccupied⟩
     }
     exact ⟨post,postValid,by omega,by omega,Or.inl run⟩
   · obtain ⟨post,run,cost,remaining,globals,code,domain,endian,reverse,ordered,occupancy,holePost,words,scanPost,arrays,other⟩ :=
@@ -46,11 +46,11 @@ theorem HashDeleteLoopInvariant32.step {F : Type}
         valid.keysLocal valid.strideLocal holeLocal indexLocal valid.sizeLocal valid.usedLocal valid.capacityLocal
         table bits valid.arrays nextInside emptyNext valid.keyValueOrder budget valid.valuesLocal valid.orderLocal valid.reverseLocal
         valid.reverse valid.ordered holeInside valid.valuesWord
-    obtain ⟨newHole,newInside,newLocal⟩ : ∃ newHole : BitVec 64, newHole.toNat < capacity.toNat ∧
-        post.locals.lookup (ofString "i") = some (.val (.word newHole)) := by
+    obtain ⟨newHole,newInside,newLocal,newOccupied⟩ : ∃ newHole : BitVec 64, newHole.toNat < capacity.toNat ∧
+        post.locals.lookup (ofString "i") = some (.val (.word newHole)) ∧ hashOccupancyRead post used newHole ≠ some 0 := by
       rcases holePost with oldHole | moved
-      · exact ⟨hole,holeInside,oldHole⟩
-      · exact ⟨next,nextInside,moved⟩
+      · exact ⟨hole,holeInside,oldHole,by rw [occupancy hole holeInside]; exact holeOccupied⟩
+      · exact ⟨next,nextInside,moved,by rw [occupancy next nextInside]; exact emptyNext⟩
     have postValid : HashDeleteLoopInvariant32 table keys stride capacity used values order orderPos items empty bits post := {
       valid with
       arrays := arrays
@@ -66,7 +66,7 @@ theorem HashDeleteLoopInvariant32.step {F : Type}
       valuesLocal := ((other (ofString "vals") (by decide) (by decide) (by decide) (by decide) (by decide))).trans valid.valuesLocal
       orderLocal := ((other (ofString "order") (by decide) (by decide) (by decide) (by decide) (by decide))).trans valid.orderLocal
       reverseLocal := ((other (ofString "order_pos") (by decide) (by decide) (by decide) (by decide) (by decide))).trans valid.reverseLocal
-      indices := ⟨newHole,next,newInside,nextInside,newLocal,scanPost⟩
+      indices := ⟨newHole,next,newInside,nextInside,newLocal,scanPost,newOccupied⟩
     }
     have different : next ≠ empty := by intro same; apply emptyNext; rw [same]; exact valid.emptyRead
     have decrease := hashDeleteRank_decreases capacity index empty bits valid.arrays.power indexInside valid.emptyInside different

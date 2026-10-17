@@ -14,6 +14,7 @@ theorem HashTableArraysInvariant32.delete_scan_from_hole {F : Type}
     (ordered : HashOrderEntriesBound order capacity items state)
     (keyValueOrder : keys.toNat + capacity.toNat * stride.toNat ≤ values.toNat)
     (holeInside : hole.toNat < capacity.toNat)
+    (holeOccupied : hashOccupancyRead state used hole ≠ some 0)
     (holeLocal : state.locals.lookup (ofString "i") = some (.val (.word hole)))
     (keysLocal : state.locals.lookup (ofString "keys") = some (.val (.word keys)))
     (strideLocal : state.locals.lookup (ofString "stride") = some (.val (.word stride)))
@@ -52,7 +53,7 @@ theorem HashTableArraysInvariant32.delete_scan_from_hole {F : Type}
     valuesLocal := ((other _ (by decide))).trans valuesLocal
     orderLocal := ((other _ (by decide))).trans orderLocal
     reverseLocal := ((other _ (by decide))).trans reverseLocal
-    indices := ⟨hole,hole,holeInside,holeInside,((other _ (by decide))).trans holeLocal,j⟩
+    indices := ⟨hole,hole,holeInside,holeInside,((other _ (by decide))).trans holeLocal,j,holeOccupied⟩
   }
   obtain ⟨post,run,valid,cost,remaining⟩ := evaluate_hashDelete_loop_capacity32 table keys stride capacity used values order orderPos items empty bits entered ready budget
   exact ⟨empty,post,run,valid,cost,remaining⟩
