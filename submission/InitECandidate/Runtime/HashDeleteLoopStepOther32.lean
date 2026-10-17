@@ -1,0 +1,58 @@
+import InitECandidate.Runtime.HashDeleteLoopStep32
+import InitECandidate.Runtime.HashDeleteOccupiedIterationOther32
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- The ranked scan step carries both the target invariant and another table. -/
+theorem HashDeleteLoopInvariant32.step_with_other {F : Type}
+    (table keys stride capacity used values order orderPos items empty : BitVec 64) (bits : Nat)
+    (state : PanSemStateFiniteExact 64 F)
+    (valid : HashDeleteLoopInvariant32 table keys stride capacity used values order orderPos items empty bits state)
+    (otherTable pointer otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems : BitVec 64) (otherBits : Nat)
+    (ready : HashTableReady32 otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer state)
+    (separated : orderPos.toNat + capacity.toNat * 8 ≤ otherTable.toNat ∨
+      otherOrderPos.toNat + otherCapacity.toNat * 8 ≤ table.toNat)
+    (budget : 34 ≤ state.clock) :
+    ∃ post, (HashDeleteLoopInvariant32 table keys stride capacity used values order orderPos items empty bits post ∧
+      HashTableReady32 otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer post) ∧
+      state.clock ≤ post.clock + 34 ∧ post.clock ≤ state.clock ∧
+      (evaluateHOLFiniteState state hashDeleteLoopBody = (some .break,post) ∨
+       (evaluateHOLFiniteState state hashDeleteLoopBody = (none,post) ∧
+        hashDeleteStateRank capacity empty post < hashDeleteStateRank capacity empty state)) := by
+  classical
+  obtain ⟨post,postValid,cost,remaining,body⟩ := valid.step table keys stride capacity used values order orderPos items empty bits state budget
+  obtain ⟨hole,index,holeInside,indexInside,holeLocal,indexLocal,holeOccupied⟩ := valid.indices
+  let next := hashProbeNext index capacity
+  have nextInside : next.toNat < capacity.toNat := by
+    rw [hashProbeNext_toNat index capacity bits valid.arrays.power indexInside]
+    exact Nat.mod_lt _ (by rw [valid.arrays.power]; exact Nat.two_pow_pos bits)
+  have preserved : HashTableReady32 otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer post := by
+    by_cases emptyNext : hashOccupancyRead state used next = some 0
+    · obtain ⟨checked,run,_,_,_,_,_,memory,globals,code,domain,endian,_,_⟩ :=
+        evaluate_hashDelete_empty_allocated_iteration32 state table keys stride capacity used values order orderPos items index bits
+          valid.arrays valid.valuesWord valid.reverse valid.ordered indexLocal valid.capacityLocal valid.usedLocal emptyNext
+      have same : post = checked := by
+        rcases body with stopped | running
+        · exact congrArg Prod.snd (stopped.symm.trans run)
+        · have bad := congrArg Prod.fst (running.1.symm.trans run)
+          contradiction
+      rw [same]
+      exact ready.after_read state checked otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer memory globals code domain endian
+    · obtain ⟨checked,run,checkedReady,_,_,_,_,_,_⟩ :=
+        evaluate_hashDelete_occupied_iteration_other32 state keys stride hole index values order orderPos used capacity items
+          valid.keysLocal valid.strideLocal holeLocal indexLocal valid.sizeLocal valid.usedLocal valid.capacityLocal
+          table bits valid.arrays nextInside emptyNext valid.keyValueOrder budget valid.valuesLocal valid.orderLocal valid.reverseLocal
+          valid.reverse valid.ordered holeInside valid.valuesWord
+          otherTable pointer otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits ready separated
+      have same : post = checked := by
+        rcases body with stopped | running
+        · have bad := congrArg Prod.fst (stopped.symm.trans run)
+          contradiction
+        · exact congrArg Prod.snd (running.1.symm.trans run)
+      rw [same]
+      exact checkedReady
+  exact ⟨post,⟨postValid,preserved⟩,cost,remaining,body⟩
+
+#print axioms HashDeleteLoopInvariant32.step_with_other
+end InitECandidate.Runtime
