@@ -37,8 +37,10 @@ theorem evaluate_hashDelete_hash_allocated_linked32 {F : Type} (state : PanSemSt
       (∀ slot : BitVec 64, slot.toNat < capacity.toNat →
         hashOccupancyRead post used slot = hashOccupancyRead state used slot) ∧
       (post.locals.lookup (ofString "i") = some (.val (.word hole)) ∨ post.locals.lookup (ofString "i") = some (.val (.word scan))) ∧ HashValueEntriesWord used values capacity post ∧ post.locals.lookup (ofString "j") = some (.val (.word scan)) ∧ HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits post ∧
-      (HashDeleteOrderLinked used order orderPos capacity items hole deletedPosition post ∨
-        HashDeleteOrderLinked used order orderPos capacity items scan deletedPosition post) ∧
+      ((post.locals.lookup (ofString "i") = some (.val (.word hole)) ∧
+        HashDeleteOrderLinked used order orderPos capacity items hole deletedPosition post) ∨
+       (post.locals.lookup (ofString "i") = some (.val (.word scan)) ∧
+        HashDeleteOrderLinked used order orderPos capacity items scan deletedPosition post)) ∧
       (∀ name, name ≠ ofString "i" → name ≠ ofString "h" → name ≠ ofString "home" → name ≠ ofString "movable" →
         post.locals.lookup name = state.locals.lookup name) := by
   obtain ⟨aligned,words,_,_⟩ := invariant.key_slot_domains state table keys stride capacity used values order orderPos items scan bits scanInside
@@ -94,7 +96,11 @@ theorem evaluate_hashDelete_hash_allocated_linked32 {F : Type} (state : PanSemSt
       rw [restore_other_local _ _ (ofString "j") _ (by decide)]
       exact scanPost
     · right
-      exact postLinked.after_read post _ used order orderPos capacity items scan deletedPosition rfl rfl rfl
+      refine ⟨?_,?_⟩
+      · change (HolFiniteMapExact.resVarEq post.locals (ofString "h",state.locals.lookup (ofString "h"))).lookup (ofString "i") = _
+        rw [restore_other_local _ _ (ofString "i") _ (by decide)]
+        exact holePost
+      · exact postLinked.after_read post _ used order orderPos capacity items scan deletedPosition rfl rfl rfl
     · intro name notIndex notHash notHome notMovable
       change (HolFiniteMapExact.resVarEq post.locals (ofString "h",state.locals.lookup (ofString "h"))).lookup name = _
       rw [restore_other_local _ _ name _ notHash]
@@ -121,7 +127,11 @@ theorem evaluate_hashDelete_hash_allocated_linked32 {F : Type} (state : PanSemSt
       rw [restore_other_local _ _ (ofString "j") _ (by decide)]
       exact (other _ (by decide)).trans scanLocal
     · left
-      exact linked.after_read state _ used order orderPos capacity items hole deletedPosition memory domain endian
+      refine ⟨?_,?_⟩
+      · change (HolFiniteMapExact.resVarEq entered.locals (ofString "h",state.locals.lookup (ofString "h"))).lookup (ofString "i") = _
+        rw [restore_other_local _ _ (ofString "i") _ (by decide)]
+        exact (other _ (by decide)).trans holeLocal
+      · exact linked.after_read state _ used order orderPos capacity items hole deletedPosition memory domain endian
     · intro name _ notHash _ _
       change (HolFiniteMapExact.resVarEq entered.locals (ofString "h",state.locals.lookup (ofString "h"))).lookup name = _
       rw [restore_other_local _ _ name _ notHash]
