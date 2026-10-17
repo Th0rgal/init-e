@@ -1,8 +1,10 @@
+import InitECandidate.Runtime.RlpItemLongBodyBound
 import InitECandidate.Runtime.RlpItemLongReadBound
 import InitECandidate.Runtime.RlpReadLengthReadFrame
 import InitECandidate.Runtime.RlpErrorChecksReturnFlow
 import InitECandidate.Runtime.ReadOnlyGlobals
 import InitECandidate.Runtime.PanDecCallReturnedGlobals
+import InitECandidate.Runtime.PanDecWordResultScope
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -47,4 +49,50 @@ theorem rlpItem_long_read_returned_globals {F : Type} (state post : PanSemStateF
 
 #print axioms rlpItem_long_finish_returned_globals
 #print axioms rlpItem_long_read_returned_globals
+
+theorem rlpItem_long_body_returned_globals {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (pointer headerLength : BitVec 64) (value : ValueHOL 64)
+    (pointerLocal : state.locals.lookup (ofString "p") = some (.val (.word pointer)))
+    (headerLocal : state.locals.lookup (ofString "ll") = some (.val (.word headerLength)))
+    (code : state.code = originalRuntimeCode)
+    (run : evaluateHOLFiniteState state rlpItemLongBody = (some (.returned value),post)) :
+    post.globals = state.globals := by
+  obtain ⟨result,middle,checked,normal,noReturn⟩ := evaluate_rlp_error_check_flow state
+    (.cmp .lower (.op .sub [.var .local (ofString "len"),.const 1]) (.var .local (ofString "ll"))) 3 code
+  rw [source_rlpItem_long_body,evaluateHOLFiniteState_seq_line780,checked] at run
+  cases result with
+  | some stopped => exact False.elim (noReturn value (Prod.mk.inj run).1)
+  | none =>
+    have same := normal rfl
+    subst middle
+    exact rlpItem_long_read_returned_globals state post pointer headerLength value pointerLocal headerLocal code run
+
+#print axioms rlpItem_long_body_returned_globals
+
+theorem rlpItem_long_string_returned_globals {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (pointer header : BitVec 64) (value : ValueHOL 64)
+    (pointerLocal : state.locals.lookup (ofString "p") = some (.val (.word pointer)))
+    (headerLocal : state.locals.lookup (ofString "b") = some (.val (.word header)))
+    (code : state.code = originalRuntimeCode)
+    (run : evaluateHOLFiniteState state rlpItemLongString = (some (.returned value),post)) :
+    post.globals = state.globals := by
+  have initializer : @evalHOLExact 64 F _ state.toExact
+      (fun address => Classical.propDecidable (state.memaddrs address))
+      (.op .sub [.var .local (ofString "b"),.const 183]) = some (.val (.word (header - 183))) := by
+    simp [evalHOLExact,evalListHOLExact,headerLocal,wordOpHOL,wordOp,valueIsWord,valueWord]
+  rw [source_rlpItem_long_string] at run
+  obtain ⟨output,bodyRun,restored⟩ := evaluate_dec_word_result_scope state post (ofString "ll")
+    (.op .sub [.var .local (ofString "b"),.const 183]) (header - 183) rlpItemLongBody
+    (some (.returned value)) initializer run
+  let entered := setVarHOLFinite (ofString "ll") (.val (.word (header - 183))) state
+  have atPointer : entered.locals.lookup (ofString "p") = some (.val (.word pointer)) := by
+    simpa [entered,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      show ofString "ll" ≠ ofString "p" by decide] using pointerLocal
+  have atLength : entered.locals.lookup (ofString "ll") = some (.val (.word (header - 183))) := by
+    simp [entered,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  have globals := rlpItem_long_body_returned_globals entered output pointer (header - 183) value atPointer atLength code bodyRun
+  rw [restored]
+  exact globals
+
+#print axioms rlpItem_long_string_returned_globals
 end InitECandidate.Runtime
