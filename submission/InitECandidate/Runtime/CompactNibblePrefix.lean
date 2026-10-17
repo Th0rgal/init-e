@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.KeyToNibblesGeneralTailRange
+import InitECandidate.Runtime.PanEvaluationMetadata
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -29,7 +30,9 @@ theorem evaluate_compactNibble_prefix {F : Type} (state : PanSemStateFiniteExact
     ∃ post, evaluateHOLFiniteState state compactNibblePrefix = (none,post) ∧
       post.clock = state.clock ∧
       post.locals.lookup (ofString "k") = some (.val (.word (if odd = 0 then 0 else 1))) ∧
-      TrieNibbleRange post out (if odd = 0 then 0 else 1) := by
+      TrieNibbleRange post out (if odd = 0 then 0 else 1) ∧
+      post.memaddrs = state.memaddrs ∧ post.code = state.code ∧
+      (∀ name, name ≠ ofString "k" → post.locals.lookup name = state.locals.lookup name) := by
   rw [source_compactNibble_prefix,evaluateHOLFiniteState_ite]
   by_cases zero : odd = 0
   · simp [evalHOLExact,oddLocal,Compiler.Encoders.Asm.wordCmpHOL,zero,evaluateHOLFiniteState_skip]
@@ -66,14 +69,21 @@ theorem evaluate_compactNibble_prefix {F : Type} (state : PanSemStateFiniteExact
         (by simpa using address) value domain cellRead
       have same := Prod.mk.inj (store.symm.trans exactStore)
       simpa only [sourceWriteByte] using congrArg (fun s : PanSemStateFiniteExact 64 F => s.locals) same.2
+    have metadata := evaluateHOLFiniteState_metadata state
+      (.storeByte (.var .local (ofString "out")) (.op .and [.var .local (ofString "c0"),.const 15]))
+    rw [store] at metadata
+    dsimp only at metadata
     have assignment := evaluate_local_word_assignment middle (ofString "k") (.const 1) 0 1
       (by rw [locals]; exact kLocal) (by rfl)
     rw [evaluateHOLFiniteState_seq_line780,store]
     dsimp only
     rw [assignment]
-    refine ⟨_,rfl,clock,?_,?_⟩
+    refine ⟨_,rfl,clock,?_,?_,metadata.2.1,metadata.1,?_⟩
     · simp [zeroNat,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
     · simpa [zeroNat] using range.after_frame (show (setVarHOLFinite (ofString "k") (.val (.word (1 : BitVec 64))) middle).memory = middle.memory from rfl) rfl rfl
+
+    · intro name different
+      simpa [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm different] using congrArg (fun ls => ls.lookup name) locals
 
 #print axioms evaluate_compactNibble_prefix
 end InitECandidate.Runtime
