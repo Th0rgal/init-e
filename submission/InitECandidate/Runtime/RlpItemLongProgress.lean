@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.RlpItemLongBodyBound
+import InitECandidate.Runtime.RlpErrorCheckFlow
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -11,15 +12,15 @@ theorem rlpItem_long_finish_return_progress {F : Type} (state post : PanSemState
     (payloadLocal : state.locals.lookup (ofString "n") = some (.val (.word payload)))
     (totalLocal : state.locals.lookup (ofString "len") = some (.val (.word total)))
     (headerFits : 1 + headerLength.toNat ≤ total.toNat)
-    (code : state.code = originalRuntimeCode) (ticks : 1 ≤ state.clock)
+    (code : state.code = originalRuntimeCode)
     (run : evaluateHOLFiniteState state rlpItemLongFinish = (some (.returned value),post)) :
     payload.toNat < total.toNat ∧ 0 < (1 + (headerLength + payload)).toNat ∧
       (1 + (headerLength + payload)).toNat ≤ total.toNat := by
   have fits : payload.toNat ≤ (total - 1 - headerLength).toNat := by
     by_contra bad
     have less : (total - 1 - headerLength).toNat < payload.toNat := by omega
-    obtain ⟨firstResult,middle,firstRun,_,_,_,normal,noReturn,_,_⟩ := evaluate_rlp_error_check state
-      (.cmp .notLower (.const 55) (.var .local (ofString "n"))) 5 code ticks
+    obtain ⟨firstResult,middle,firstRun,normal,noReturn⟩ := evaluate_rlp_error_check_flow state
+      (.cmp .notLower (.const 55) (.var .local (ofString "n"))) 5 code
     have actual := run
     rw [source_rlpItem_long_finish] at actual
     change evaluateHOLFiniteState state (.seq
@@ -52,14 +53,14 @@ theorem rlpItem_long_finish_return_progress {F : Type} (state post : PanSemState
         rfl
       rw [evaluateHOLFiniteState_seq_line780,evaluateHOLFiniteState_ite,guard] at actual
       simp only [show (1 : BitVec 64) ≠ 0 from by decide,if_false] at actual
-      have bound := evaluate_rlpFail_call_bounded state (.const 3) 3 code (by omega) (by rfl)
+      have terminal := evaluate_rlpFail_call_terminal state (.const 3) 3 code (by rfl)
       have failure := evaluate_discard_call_no_return state (ofString "rlp_fail") [.const 3] value
       cases called : evaluateHOLFiniteState state (.call (some (none,none)) (ofString "rlp_fail") [.const 3]) with
       | mk result output =>
-        rw [called] at bound failure actual
-        dsimp only at bound failure actual
+        rw [called] at terminal failure actual
+        dsimp only at terminal failure actual
         cases result with
-        | none => exact False.elim (bound.2.2 rfl)
+        | none => exact False.elim (terminal rfl)
         | some stopped => exact False.elim (failure (Prod.mk.inj actual).1)
   have totalPositive : 1 ≤ total.toNat := by omega
   have tailNat : (total - 1).toNat = total.toNat - 1 := by
