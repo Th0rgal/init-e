@@ -1,4 +1,3 @@
-import InitECandidate.Runtime.AllocationSeparation
 import InitECandidate.Runtime.HashTableReadyWordOutside
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.PanSemStateFiniteExact
