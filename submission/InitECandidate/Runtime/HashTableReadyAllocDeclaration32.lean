@@ -20,17 +20,18 @@ theorem HashTableReady32.alloc_declaration {F : Type} (state : PanSemStateFinite
       post.clock = state.clock - 1 ∧ post.memory = state.memory ∧
       post.locals = state.locals ∧ post.code = state.code ∧
       post.memaddrs = state.memaddrs ∧ post.eshapes = state.eshapes ∧ post.be = state.be ∧
+      post.globals = (setGlobalHOLFinite (ofString "heap_ptr") (.val (.word (allocationEnd pointer size))) state).globals ∧
       (∀ name continuation, evaluateHOLFiniteState state (.decCall name .one (ofString "alloc") [argument] continuation) =
         (let output := evaluateHOLFiniteState (setVarHOLFinite name (.val (.word pointer)) post) continuation;
           (output.1,{output.2 with locals := (HolFiniteMapExact.resVarEq output.2.locals (name,state.locals.lookup name))}))) := by
   obtain ⟨post,run,postReady,ticks,memory,locals,code,domain,shapes,endian⟩ :=
     ready.alloc_call state table keys stride capacity used values order orderPos count bits pointer size argument arguments clock request
-  obtain ⟨checked,checkedRun,_,_,_,_,_,_,_,_,decl⟩ :=
+  obtain ⟨checked,checkedRun,_,_,_,_,_,_,_,globals,decl⟩ :=
     evaluate_alloc_call_and_declaration state argument pointer size arguments ready.live.arrays.code clock ready.live.frontier.heap request
       (allocationEnd_within_heap pointer size ready.live.frontier.bounded request)
   have same : post = checked := congrArg Prod.snd (run.symm.trans checkedRun)
-  rw [← same] at decl
-  exact ⟨post,run,postReady,ticks,memory,locals,code,domain,shapes,endian,decl⟩
+  rw [← same] at decl globals
+  exact ⟨post,run,postReady,ticks,memory,locals,code,domain,shapes,endian,globals,decl⟩
 
 #print axioms HashTableReady32.alloc_declaration
 end InitECandidate.Runtime
