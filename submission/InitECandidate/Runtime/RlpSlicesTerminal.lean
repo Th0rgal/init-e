@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.PanDecCallTerminal
 import InitECandidate.Runtime.RlpSlicesBodyBound
 import InitECandidate.Runtime.PanDecCallNormalReturnProperty
 import InitECandidate.Runtime.PanDecCallNormalWord
@@ -52,6 +53,18 @@ theorem evaluate_rlpSlices_allocation_terminal {F : Type} (state : PanSemStateFi
     have terminal := evaluate_rlpSlices_initialized_terminal (setVarHOLFinite (ofString "arr") value ready)
     rw [tail] at terminal
     exact terminal rfl
+
+/-- The entire original slice builder cannot fall through, at arbitrary state
+and clock, including malformed arguments and failed code lookups. -/
+theorem evaluate_rlpSlices_body_terminal {F : Type} (state : PanSemStateFiniteExact 64 F) :
+    (evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_rlp_list_to_slices)).1 ≠ none := by
+  rw [source_rlpSlices_body]
+  apply evaluate_decCall_terminal
+  intro current
+  rw [source_rlpSlices_allocation]
+  exact evaluate_decCall_terminal current _ _ _ _ _ evaluate_rlpSlices_initialized_terminal
+
+#print axioms evaluate_rlpSlices_body_terminal
 
 #print axioms evaluate_rlpSlices_initialized_terminal
 #print axioms evaluate_rlpSlices_allocation_terminal
