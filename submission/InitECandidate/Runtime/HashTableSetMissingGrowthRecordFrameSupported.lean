@@ -1,0 +1,66 @@
+import InitECandidate.Runtime.HashSetMissingGrowthRecordFrameSupported
+import InitECandidate.Runtime.HashTableGrowOldArraysWidth
+import InitECandidate.Runtime.HashTableArraysMemory
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+theorem HashTableArraysInvariant.set_missing_growth_supported_record_frame {F : Type}
+    (state : PanSemStateFiniteExact 64 F)
+    (keyLength table pointer keys stride capacity used values order orderPos items key value : BitVec 64) (bits : Nat)
+    (supported : keyLength = 20 ∨ keyLength = 32 ∨ keyLength = 52)
+    (invariant : HashTableArraysInvariant keyLength table keys stride capacity used values order orderPos items bits state)
+    (entries : HashOrderEntriesBound order capacity items state)
+    (allocated : orderPos.toNat + capacity.toNat * 8 ≤ pointer.toNat)
+    (strideBound : stride.toNat ≤ 56) (pointerAligned : pointer.toNat % 8 = 0)
+    (pointerBound : pointer.toNat ≤ 33806089496)
+    (capacityBound : capacity.toNat ≤ 33806089496)
+    (safePlan : AllocationPlanSafe pointer (htabGrowAllocationSizes capacity stride))
+    (ticks : 2 * (capacity * 2).toNat + keyLength.toNat + 10 + items.toNat * ((capacity * 2).toNat + keyLength.toNat + 4) ≤ state.clock)
+    (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (domain : ∀ address : BitVec 64, table.toNat ≤ address.toNat →
+      address.toNat < (htabGrowOrderPos pointer capacity stride).toNat + (capacity * 2).toNat * 8 → state.memaddrs address)
+    (tableLocal : state.locals.lookup (ofString "t") = some (.val (.word table)))
+    (keyLocal : state.locals.lookup (ofString "key") = some (.val (.word key)))
+    (valueLocal : state.locals.lookup (ofString "value") = some (.val (.word value)))
+    (loadFactor : capacity.toNat < (items.toNat + 1) * 2)
+    (capacityLarge : 1 < capacity.toNat)
+    (keyAligned : key.toNat % 8 = 0)
+    (sourceWordDomain : ∀ offset : Nat, offset < keyLength.toNat → state.memaddrs (key + BitVec.ofNat 64 offset))
+    (sourceByteDomain : ∀ offset : Nat, offset < keyLength.toNat → state.memaddrs (panByteAlignHOL (key + BitVec.ofNat 64 offset)))
+    (journal : BitVec 64) (journalCount : Nat)
+    (journalBefore : journal.toNat + journalCount * 32 ≤ pointer.toNat)
+    (separateHeader : journal.toNat + journalCount * 32 ≤ table.toNat ∨ table.toNat + 72 ≤ journal.toNat) :
+    ∃ post, evaluateHOLFiniteState state hashSetMissing =
+        (some (.returned (.val (.word (0 : BitVec 64)))),post) ∧
+      HashTableReady keyLength table pointer stride (capacity * 2) (htabGrowUsed pointer capacity stride)
+        (htabGrowValues pointer capacity stride) (htabGrowOrder pointer capacity stride)
+        (htabGrowOrderPos pointer capacity stride) (items + 1) (bits + 1)
+        (allocationEnd (htabGrowOrderPos pointer capacity stride) ((capacity * 2) * 8)) post ∧
+      state.clock ≤ post.clock + 2 * (capacity * 2).toNat + keyLength.toNat + 10 + items.toNat * ((capacity * 2).toNat + keyLength.toNat + 4) ∧
+      post.clock ≤ state.clock ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be ∧ (∀ index : Nat, index < journalCount → ∀ offset ∈ ([0,8,16,24] : List Nat),
+        post.memory (journal + BitVec.ofNat 64 index * 32 + BitVec.ofNat 64 offset) =
+          state.memory (journal + BitVec.ofNat 64 index * 32 + BitVec.ofNat 64 offset)) := by
+  have old := invariant.old_arrays_width state keyLength table keys stride capacity used values order orderPos items bits pointer.toNat entries allocated (by omega)
+  have header : table.toNat + 72 ≤ pointer.toNat := by
+    have := old.headerOrder
+    have := old.orderEnd
+    omega
+  have doubled : (capacity * (2 : BitVec 64)).toNat = 2 * capacity.toNat := by
+    rw [BitVec.toNat_mul_of_lt (by change capacity.toNat * 2 < 2 ^ 64; omega)]
+    change capacity.toNat * 2 = 2 * capacity.toNat
+    omega
+  have roomAfter : items.toNat + 1 < (capacity * 2).toNat := by
+    rw [doubled]
+    have := invariant.room
+    omega
+  exact evaluate_hashSet_missing_growth_supported_record_frame state keyLength table pointer capacity stride keys values order items key value bits supported
+    invariant.code invariant.power old invariant.strideAligned invariant.fits strideBound pointerAligned header pointerBound capacityBound safePlan ticks heap domain
+    invariant.cell0 invariant.cell16 invariant.cell8 invariant.cell32 invariant.cell40 invariant.cell56 invariant.cell24
+    tableLocal keyLocal valueLocal
+    (invariant.header_domain state keyLength table keys stride capacity used values order orderPos items bits 16 (by decide))
+    (invariant.header_domain state keyLength table keys stride capacity used values order orderPos items bits 24 (by decide))
+    loadFactor invariant.room roomAfter keyAligned sourceWordDomain sourceByteDomain journal journalCount journalBefore separateHeader
+
+#print axioms HashTableArraysInvariant.set_missing_growth_supported_record_frame
+end InitECandidate.Runtime
