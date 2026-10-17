@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.PanDecCallNormalScope
+import InitECandidate.Runtime.PanDecCallUnconditionalNormalScope
 import InitECandidate.Runtime.LocalScopeRestore
 import InitECandidate.Runtime.BlobHashesSource
 import InitECandidate.Runtime.DiscardCallSuccessLocals
@@ -70,7 +70,7 @@ theorem blobHashes_step_normal_progress {F : Type} (state post : PanSemStateFini
       [.rfield 0 (.var .local (ofString "lst")),.var .local (ofString "i"),.const 32] blobHashesCopyAndAdvance := by
     rw [blobHashesCopyAndAdvance,source_blobHashes_step]
   rw [step] at run
-  obtain ⟨value,ready,output,locals,tail,restored⟩ := evaluate_decCall_normal_scope state post _ _ _ _ _ run
+  obtain ⟨value,ready,output,locals,tail,restored⟩ := evaluate_decCall_unconditional_normal_scope state post _ _ _ _ _ run
   let entered := setVarHOLFinite (ofString "h") value ready
   have atIndex : entered.locals.lookup (ofString "i") = some (.val (.word index)) := by
     simpa [entered,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,locals,
