@@ -27,7 +27,14 @@ theorem evaluate_hashDelete_count_tail {F : Type} (state : PanSemStateFiniteExac
     (reverseDomain : state.memaddrs (orderPos + lastSlot * 8)) :
     ∃ post, evaluateHOLFiniteState state hashDeleteCountTail = (some (.returned (.val (.word (1 : BitVec 64)))),post) ∧
       post.clock = state.clock ∧ post.globals = state.globals ∧ post.code = state.code ∧
-      post.memaddrs = state.memaddrs ∧ post.be = state.be := by
+      post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
+      post.memory = (sourceWriteWord
+        (if deletedPosition = count - 1 then state else
+          sourceWriteWord (sourceWriteWord state (order + deletedPosition * 8) lastSlot)
+            (orderPos + lastSlot * 8) deletedPosition) (table + 24) (count - 1)).memory ∧
+      (∀ watched : BitVec 64, watched ≠ order + deletedPosition * 8 →
+        watched ≠ orderPos + lastSlot * 8 → watched ≠ table + 24 →
+        post.memory watched = state.memory watched) := by
   let loaded := setVarHOLFinite (ofString "n") (.val (.word count)) state
   let entered := setVarHOLFinite (ofString "last_pos") (.val (.word (count - 1))) loaded
   have other : ∀ name, name ≠ ofString "n" → name ≠ ofString "last_pos" → entered.locals.lookup name = state.locals.lookup name := by
@@ -53,7 +60,10 @@ theorem evaluate_hashDelete_count_tail {F : Type} (state : PanSemStateFiniteExac
   have shape : shapeEqHOL .one (shapeOfHOLExact (.val (.word (count - 1)))) = true := by simp [shapeEqHOL,shapeOfHOLExact]
   rw [if_pos shape,run]
   dsimp only
-  split <;> exact ⟨_,rfl,rfl,rfl,rfl,rfl,rfl⟩
+  split <;> refine ⟨_,rfl,rfl,rfl,rfl,rfl,rfl,rfl,?_⟩ <;>
+    intro watched first second third <;>
+    dsimp only [sourceWriteWord,entered,loaded,setVarHOLFinite,emptyLocalsHOLFinite] <;>
+    rw [if_neg third] <;> first | rfl | (rw [if_neg second,if_neg first])
 
 #print axioms source_hashDelete_count_tail
 #print axioms evaluate_hashDelete_count_tail
