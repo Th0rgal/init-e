@@ -48,5 +48,34 @@ theorem HashDeleteOrderLinked.final_swap_stores {F : Type} (state : PanSemStateF
     change (if orderPos + slot * 8 = order + deletedPosition * 8 then HolWordLab.word lastSlot else _) = _
     rw [if_neg separates.1]
 
+/-- When the deleted position is already last, only the count header is written. -/
+theorem HashDeleteOrderLinked.final_last_store {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (used order orderPos capacity items hole table : BitVec 64)
+    (linked : HashDeleteOrderLinked used order orderPos capacity items hole (items - 1) state)
+    (positive : 0 < items.toNat)
+    (holeEmpty : hashOccupancyRead state used hole = some 0)
+    (occupancySeparate : ∀ slot : BitVec 64, slot.toNat < capacity.toNat →
+      panByteAlignHOL (used + slot) ≠ table + 24)
+    (reverseSeparate : ∀ slot : BitVec 64, slot.toNat < capacity.toNat →
+      orderPos + slot * 8 ≠ table + 24) :
+    HashReverseEntriesBound used orderPos capacity (items - 1)
+      (sourceWriteWord state (table + 24) (items - 1)) := by
+  apply linked.final_last_reverse_bound state _ used order orderPos capacity items hole positive
+  · intro slot inside occupied
+    have separate : panByteAlignHOL (used + slot) ≠ table + 24#64 := occupancySeparate slot inside
+    have same : hashOccupancyRead (sourceWriteWord state (table + 24) (items - 1)) used slot =
+        hashOccupancyRead state used slot := by
+      simp [hashOccupancyRead,panMemLoadByteHOL,sourceWriteWord,separate]
+      rfl
+    have before : hashOccupancyRead state used slot ≠ some 0 := by rw [← same]; exact occupied
+    refine ⟨?_,before⟩
+    intro equal
+    subst slot
+    exact before holeEmpty
+  · intro slot inside
+    change (if orderPos + slot * 8 = table + 24 then HolWordLab.word (items - 1) else _) = _
+    rw [if_neg (reverseSeparate slot inside)]
+
+#print axioms HashDeleteOrderLinked.final_last_store
 #print axioms HashDeleteOrderLinked.final_swap_stores
 end InitECandidate.Runtime
