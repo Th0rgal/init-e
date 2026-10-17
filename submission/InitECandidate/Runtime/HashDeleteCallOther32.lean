@@ -1,0 +1,66 @@
+import InitECandidate.Runtime.HashDeleteBodyOther32
+import InitECandidate.Runtime.OriginalHashDeleteCode
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Actual deletion call with caller-local restoration and call-entry cost. -/
+theorem evaluate_hashDelete32_call_with_other {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (tableArgument keyArgument : ExpHOL 64)
+    (table keys stride capacity used values order orderPos items key : BitVec 64) (bits : Nat)
+    (invariant : HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits state)
+    (entries : HashValueEntriesWord used values capacity state)
+    (reverse : HashReverseEntriesBound used orderPos capacity items state)
+    (ordered : HashOrderEntriesBound order capacity items state)
+    (linked : HashOrderLinked used order orderPos capacity items state)
+    (keyValueOrder : keys.toNat + capacity.toNat * stride.toNat ≤ values.toNat)
+    (keyAligned : key.toNat % 8 = 0)
+    (keyDomain : ∀ offset ∈ ([0,8,16,24] : List Nat), state.memaddrs (key + BitVec.ofNat 64 offset))
+    (arguments : evalListHOLFinite state
+      (h := fun address => Classical.propDecidable (state.memaddrs address)) [tableArgument,keyArgument] = some [.val (.word table),.val (.word key)])
+    (otherTable pointer otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems : BitVec 64) (otherBits : Nat)
+    (otherReady : HashTableReady32 otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer state)
+    (separated : orderPos.toNat + capacity.toNat * 8 ≤ otherTable.toNat ∨
+      otherOrderPos.toNat + otherCapacity.toNat * 8 ≤ table.toNat)
+    (budget : capacity.toNat * 37 + 3 ≤ state.clock) :
+    ∃ post, evaluateHOLFiniteState state (.call (some (none,none)) (ofString "htab_del") [tableArgument,keyArgument]) = (none,post) ∧
+      HashTableReady32 otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer post ∧
+      state.clock ≤ post.clock + capacity.toNat * 37 + 3 ∧ post.clock ≤ state.clock ∧
+      post.globals = state.globals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
+      post.locals = state.locals := by
+  let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
+    (HolFiniteMapExact.empty.update (ofString "t",.val (.word table))).update (ofString "key",.val (.word key))
+  let entry := callEntryStateHOLFinite state callee
+  have different : ofString "key" ≠ ofString "t" := by decide
+  have t : entry.locals.lookup (ofString "t") = some (.val (.word table)) := by
+    simp [entry,callEntryStateHOLFinite,callee,HolFiniteMapExact.lookup_update,FUPDATE,different]
+  have k : entry.locals.lookup (ofString "key") = some (.val (.word key)) := by
+    simp [entry,callEntryStateHOLFinite,callee,HolFiniteMapExact.lookup_update,FUPDATE]
+  obtain ⟨result,post,body,preserved,cost,remaining,globals,code,domain,endian⟩ := evaluate_source_hashDelete32_with_other entry
+    table keys stride capacity used values order orderPos items key bits
+    (invariant.after_read state entry table keys stride capacity used values order orderPos items bits rfl rfl rfl rfl)
+    (entries.after_read state entry used values capacity rfl rfl rfl)
+    (reverse.after_read state entry used orderPos capacity items rfl rfl rfl)
+    (ordered.after_memory state entry order capacity items rfl)
+    (linked.after_read state entry used order orderPos capacity items rfl rfl rfl)
+    keyValueOrder t k keyAligned keyDomain
+    otherTable pointer otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits
+    (otherReady.after_read state entry otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer rfl rfl rfl rfl rfl) separated (by change capacity.toNat * 37 + 2 ≤ state.clock - 1; omega)
+  have installed : state.code.lookup (ofString "htab_del") =
+      some ([(ofString "t",.one),(ofString "key",.one)],sourceFunctionBody Guest.guestFn_htab_del,.one) := by
+    rw [invariant.code]; exact originalRuntimeCode_hashDelete_lookup
+  have lookup := pan_two_word_lookup state.code.lookup (ofString "htab_del") (ofString "t") (ofString "key")
+    (sourceFunctionBody Guest.guestFn_htab_del) table key (by decide) installed
+  have call := evaluateHOLFiniteState_call_return_caller_locals state none (ofString "htab_del")
+    [tableArgument,keyArgument] [.val (.word table),.val (.word key)] (sourceFunctionBody Guest.guestFn_htab_del)
+    callee .one (.val (.word result)) post arguments lookup (by omega) body (by simp [shapeOfHOLExact,shapeEqHOL])
+  refine ⟨{post with locals := state.locals},call,preserved.after_read post _ otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer rfl rfl rfl rfl rfl,?_,?_,globals,code,domain,endian,rfl⟩
+  · change state.clock ≤ post.clock + capacity.toNat * 37 + 3
+    change state.clock - 1 ≤ post.clock + capacity.toNat * 37 + 2 at cost
+    omega
+  · change post.clock ≤ state.clock
+    change post.clock ≤ state.clock - 1 at remaining
+    omega
+
+#print axioms evaluate_hashDelete32_call_with_other
+end InitECandidate.Runtime
