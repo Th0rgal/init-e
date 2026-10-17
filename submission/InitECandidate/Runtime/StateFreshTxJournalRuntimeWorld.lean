@@ -25,10 +25,10 @@ theorem evaluate_stateFreshTx_journal_runtime_world {F : Type} (state : PanSemSt
       JournalRuntimeWorld widths (stateFreshTxRegistryAfter (allocationEnd pointer 72) stateFreshTxAllTables ∅) journal snapshot 0 post ∧
       state.clock ≤ post.clock + 338 ∧ post.clock ≤ state.clock ∧ post.locals = state.locals ∧
       (∀ address, address.toNat < (allocationEnd pointer 72).toNat → widths address = base address) := by
-  obtain ⟨widths,post,run,world,apart,cost,remaining,domainEq,locals,preserve,headers,journalBound,postCode,_,capacity⟩ :=
+  obtain ⟨widths,post,run,world,apart,cost,remaining,domainEq,locals,preserve,headers,journalBound,postCode,_,capacity,supported⟩ :=
     evaluate_stateFreshTx_call_journal_reserved_frame state base pointer oldTs bs journal snapshot oldCount code heap tsGlobal bsGlobal
       journalGlobal counterGlobal reservation journalBefore domain ticks
-  refine ⟨widths,post,run,⟨world,apart,journalBound,journalAligned,headers,?_,capacity.trans capacityGlobal,postCode.trans code⟩,
+  refine ⟨widths,post,run,⟨world,apart,journalBound,journalAligned,headers,?_,capacity.trans capacityGlobal,postCode.trans code,supported⟩,
     cost,remaining,locals,preserve⟩
   intro address upper
   rw [domainEq]

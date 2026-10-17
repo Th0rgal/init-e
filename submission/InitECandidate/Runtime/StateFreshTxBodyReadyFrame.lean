@@ -29,16 +29,17 @@ theorem evaluate_stateFreshTx_body_ready_frame {F : Type} (state : PanSemStateFi
       RollbackPhysicalSeparated widths (stateFreshTxRegistryAfter (allocationEnd pointer 72) stateFreshTxAllTables ∅) post ∧
       state.clock ≤ post.clock + 337 ∧ post.clock ≤ state.clock ∧ post.memaddrs = state.memaddrs ∧
       (∀ address, address.toNat < (allocationEnd pointer 72).toNat → widths address = base address) ∧ post.code = state.code ∧ post.be = state.be ∧
-      (∀ name, name ≠ ofString "heap_ptr" → name ≠ ofString "journal_n" → name ≠ ofString "ts" → post.globals.lookup name = state.globals.lookup name) := by
+      (∀ name, name ≠ ofString "heap_ptr" → name ≠ ofString "journal_n" → name ≠ ofString "ts" → post.globals.lookup name = state.globals.lookup name) ∧
+      (∀ table ∈ stateFreshTxRegistryAfter (allocationEnd pointer 72) stateFreshTxAllTables ∅, widths table = 20 ∨ widths table = 32 ∨ widths table = 52) := by
   obtain ⟨middle,allocationRun,clock,locals,midCode,addresses,midEndian,_,ts,heapNext,globals⟩ :=
     evaluate_stateFreshTx_allocate state pointer oldTs bs code (by omega) heap tsGlobal bsGlobal request (by omega) (domain pointer (by omega))
   have covers := allocationEnd_covers pointer (72 : BitVec 64) headerSpace
-  obtain ⟨widths,post,finish,world,apart,cost,remaining,postDomain,preserve,postCode,postEndian,postGlobals⟩ :=
+  obtain ⟨widths,post,finish,world,apart,cost,remaining,postDomain,preserve,postCode,postEndian,postGlobals,supported⟩ :=
     evaluate_stateFreshTx_tables_ready_frame middle base (allocationEnd pointer 72) pointer journal snapshot oldCount
       (midCode.trans code) heapNext ts ((globals (ofString "journal") (by decide) (by decide)).trans journalGlobal)
       ((globals (ofString "journal_n") (by decide) (by decide)).trans counterGlobal)
       covers.2.2 covers.1 journalBefore (by intro address bound; rw [addresses]; exact domain address bound) budget (by omega)
-  refine ⟨widths,post,?_,world,apart,by omega,by omega,postDomain.trans addresses,preserve,postCode.trans midCode,postEndian.trans midEndian,?_⟩
+  refine ⟨widths,post,?_,world,apart,by omega,by omega,postDomain.trans addresses,preserve,postCode.trans midCode,postEndian.trans midEndian,?_,supported⟩
   · rw [source_stateFreshTx_body,← evaluate_seq_assoc]
     rw [evaluateHOLFiniteState_seq_line780,allocationRun]
     simpa only [locals] using finish

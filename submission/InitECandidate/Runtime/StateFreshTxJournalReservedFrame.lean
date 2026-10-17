@@ -27,8 +27,9 @@ theorem evaluate_stateFreshTx_call_journal_reserved_frame {F : Type} (state : Pa
       (∀ address, address.toNat < (allocationEnd pointer 72).toNat → widths address = base address) ∧
       (∀ table ∈ stateFreshTxRegistryAfter (allocationEnd pointer 72) stateFreshTxAllTables ∅,
         journal.toNat + 524288 * 32 ≤ table.toNat) ∧ journal.toNat + 524288 * 32 ≤ 33806089496 ∧ post.code = state.code ∧ post.be = state.be ∧
-      post.globals.lookup (ofString "journal_cap") = state.globals.lookup (ofString "journal_cap") := by
-  obtain ⟨widths,post,run,world,apart,cost,remaining,domainEq,locals,preserve,postCode,postEndian,postGlobals⟩ :=
+      post.globals.lookup (ofString "journal_cap") = state.globals.lookup (ofString "journal_cap") ∧
+      (∀ table ∈ stateFreshTxRegistryAfter (allocationEnd pointer 72) stateFreshTxAllTables ∅, widths table = 20 ∨ widths table = 32 ∨ widths table = 52) := by
+  obtain ⟨widths,post,run,world,apart,cost,remaining,domainEq,locals,preserve,postCode,postEndian,postGlobals,supported⟩ :=
     evaluate_stateFreshTx_call_ready_frame state base pointer oldTs bs journal snapshot oldCount code heap tsGlobal bsGlobal journalGlobal counterGlobal
       reservation (by omega) domain ticks
   obtain ⟨_,headerSpace,space⟩ := stateFreshTx_reservation pointer reservation
@@ -36,7 +37,7 @@ theorem evaluate_stateFreshTx_call_journal_reserved_frame {F : Type} (state : Pa
   have fullHeaders := stateFreshTx_registry_lower_bound stateFreshTxAllTables (allocationEnd pointer 72) ∅
     (journal.toNat + 524288 * 32) stateFreshTx_all_literals (by omega)
     (by intro table member; exact False.elim member) (by simpa only [stateFreshTx_all_budgets.1] using space)
-  exact ⟨widths,post,run,world,apart,cost,remaining,domainEq,locals,preserve,fullHeaders,by omega,postCode,postEndian,postGlobals (ofString "journal_cap") (by decide) (by decide) (by decide)⟩
+  exact ⟨widths,post,run,world,apart,cost,remaining,domainEq,locals,preserve,fullHeaders,by omega,postCode,postEndian,postGlobals (ofString "journal_cap") (by decide) (by decide) (by decide),supported⟩
 
 #print axioms evaluate_stateFreshTx_call_journal_reserved_frame
 end InitECandidate.Runtime

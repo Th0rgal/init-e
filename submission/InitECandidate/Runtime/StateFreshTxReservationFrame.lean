@@ -26,7 +26,8 @@ theorem evaluate_stateFreshTx_body_reserved_frame {F : Type} (state : PanSemStat
       RollbackPhysicalSeparated widths (stateFreshTxRegistryAfter (allocationEnd pointer 72) stateFreshTxAllTables ∅) post ∧
       state.clock ≤ post.clock + 337 ∧ post.clock ≤ state.clock ∧ post.memaddrs = state.memaddrs ∧
       (∀ address, address.toNat < (allocationEnd pointer 72).toNat → widths address = base address) ∧ post.code = state.code ∧ post.be = state.be ∧
-      (∀ name, name ≠ ofString "heap_ptr" → name ≠ ofString "journal_n" → name ≠ ofString "ts" → post.globals.lookup name = state.globals.lookup name) := by
+      (∀ name, name ≠ ofString "heap_ptr" → name ≠ ofString "journal_n" → name ≠ ofString "ts" → post.globals.lookup name = state.globals.lookup name) ∧
+      (∀ table ∈ stateFreshTxRegistryAfter (allocationEnd pointer 72) stateFreshTxAllTables ∅, widths table = 20 ∨ widths table = 32 ∨ widths table = 52) := by
   obtain ⟨request,headerSpace,budget⟩ := stateFreshTx_reservation pointer reservation
   exact evaluate_stateFreshTx_body_ready_frame state base pointer oldTs bs journal snapshot oldCount code heap tsGlobal bsGlobal
     journalGlobal counterGlobal request headerSpace budget journalBefore domain ticks

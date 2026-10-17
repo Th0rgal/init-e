@@ -26,9 +26,10 @@ theorem evaluate_stateFreshTx_call_ready_frame {F : Type} (state : PanSemStateFi
       RollbackPhysicalSeparated widths (stateFreshTxRegistryAfter (allocationEnd pointer 72) stateFreshTxAllTables ∅) post ∧
       state.clock ≤ post.clock + 338 ∧ post.clock ≤ state.clock ∧ post.memaddrs = state.memaddrs ∧ post.locals = state.locals ∧
       (∀ address, address.toNat < (allocationEnd pointer 72).toNat → widths address = base address) ∧ post.code = state.code ∧ post.be = state.be ∧
-      (∀ name, name ≠ ofString "heap_ptr" → name ≠ ofString "journal_n" → name ≠ ofString "ts" → post.globals.lookup name = state.globals.lookup name) := by
+      (∀ name, name ≠ ofString "heap_ptr" → name ≠ ofString "journal_n" → name ≠ ofString "ts" → post.globals.lookup name = state.globals.lookup name) ∧
+      (∀ table ∈ stateFreshTxRegistryAfter (allocationEnd pointer 72) stateFreshTxAllTables ∅, widths table = 20 ∨ widths table = 32 ∨ widths table = 52) := by
   let entry := callEntryStateHOLFinite state HolFiniteMapExact.empty
-  obtain ⟨widths,bodyPost,body,world,apart,cost,remaining,addresses,preserve,bodyCode,bodyEndian,bodyGlobals⟩ :=
+  obtain ⟨widths,bodyPost,body,world,apart,cost,remaining,addresses,preserve,bodyCode,bodyEndian,bodyGlobals,supported⟩ :=
     evaluate_stateFreshTx_body_reserved_frame entry base pointer oldTs bs journal snapshot oldCount code heap tsGlobal bsGlobal
       journalGlobal counterGlobal reservation journalBefore domain (by change 337 ≤ state.clock - 1; omega)
   let exited := {emptyLocalsHOLFinite bodyPost with locals := HolFiniteMapExact.resVarEq (emptyLocalsHOLFinite bodyPost).locals (ofString "t",entry.locals.lookup (ofString "t"))}
@@ -44,7 +45,7 @@ theorem evaluate_stateFreshTx_call_ready_frame {F : Type} (state : PanSemStateFi
     world.after_read rfl rfl rfl rfl rfl (by simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE])
   have entryClock : entry.clock = state.clock - 1 := rfl
   refine ⟨widths,post,call,worldPost,apart.after_read rfl rfl rfl rfl rfl,by change state.clock ≤ bodyPost.clock + 338; omega,
-    by change bodyPost.clock ≤ state.clock; omega,addresses,rfl,preserve,bodyCode,bodyEndian,bodyGlobals⟩
+    by change bodyPost.clock ≤ state.clock; omega,addresses,rfl,preserve,bodyCode,bodyEndian,bodyGlobals,supported⟩
 
 #print axioms evaluate_stateFreshTx_call_ready_frame
 end InitECandidate.Runtime

@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.StateFreshTxWidthExtension
+import InitECandidate.Runtime.StateFreshTxRegistryWidths
 import InitECandidate.Runtime.StateFreshTxDeclarationSequenceResetFrame
 set_option maxRecDepth 10000
 namespace InitECandidate.Runtime
@@ -30,8 +31,10 @@ theorem evaluate_stateFreshTx_tables_ready_frame {F : Type} (state : PanSemState
       RollbackPhysicalSeparated widths (stateFreshTxRegistryAfter pointer stateFreshTxAllTables ∅) post ∧
       state.clock ≤ post.clock + 336 ∧ post.clock ≤ state.clock ∧ post.memaddrs = state.memaddrs ∧
       (∀ address, address.toNat < pointer.toNat → widths address = base address) ∧ post.code = state.code ∧ post.be = state.be ∧
-      (∀ name, name ≠ ofString "heap_ptr" → name ≠ ofString "journal_n" → post.globals.lookup name = state.globals.lookup name) := by
+      (∀ name, name ≠ ofString "heap_ptr" → name ≠ ofString "journal_n" → post.globals.lookup name = state.globals.lookup name) ∧
+      (∀ table ∈ stateFreshTxRegistryAfter pointer stateFreshTxAllTables ∅, widths table = 20 ∨ widths table = 32 ∨ widths table = 52) := by
   obtain ⟨widths,plan,preserve⟩ := stateFreshTx_all_width_extension base pointer budget
+  have supported := stateFreshTx_registry_supported_widths stateFreshTxAllTables widths pointer ∅ plan stateFreshTx_all_supported_widths (by intro table member; exact False.elim member)
   have firstWidth : widths pointer = (20 : BitVec 64) := plan.1
   have restPlan : StateFreshTxPlan widths (stateFreshTxNextTable pointer 20 64) stateFreshTxRemainingTables := plan.2.2.2.2.2.2
   have firstNat : (widths pointer).toNat = 20 := by rw [firstWidth]; rfl
@@ -49,7 +52,7 @@ theorem evaluate_stateFreshTx_tables_ready_frame {F : Type} (state : PanSemState
       (by intro other member; exact False.elim member)
       (by simpa [stateFreshTxNextTable,firstWidth] using restPlan)
       journal snapshot oldCount journalGlobal counterGlobal journalBefore
-  refine ⟨widths,post,?_,?_,?_,?_,remaining,addresses,preserve,postCode,postEndian,postGlobals⟩
+  refine ⟨widths,post,?_,?_,?_,?_,remaining,addresses,preserve,postCode,postEndian,postGlobals,supported⟩
   · exact run
   · simpa [stateFreshTxAllTables,stateFreshTxRegistryAfter,stateFreshTxNextTable,firstWidth] using world
   · simpa [stateFreshTxAllTables,stateFreshTxRegistryAfter,stateFreshTxNextTable,firstWidth] using apart
