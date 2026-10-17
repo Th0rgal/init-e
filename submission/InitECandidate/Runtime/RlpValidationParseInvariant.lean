@@ -109,7 +109,7 @@ theorem rlpValidation_parse_invariant {F : Type} (state post : PanSemStateFinite
       change output.clock = ready.clock - 1 at clock
       change state.clock ≤ output.clock + 13
       omega
-  
+
 
 #print axioms rlpValidation_parse_invariant
 end InitECandidate.Runtime
