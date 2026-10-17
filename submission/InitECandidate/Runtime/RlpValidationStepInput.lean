@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.RlpValidationStepArena
+import InitECandidate.Runtime.RlpValidationStepCeiling
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -44,19 +44,20 @@ theorem rlpValidation_step_input_invariant {F : Type} (state post : PanSemStateF
       RlpValidationIntervals newPosition newStop newFrames ∧
       rlpValidationRank newPosition newStop newFrames < rlpValidationRank position stop frames ∧
       state.clock ≤ post.clock + 13 ∧
-      rlpValidationRank newPosition newStop newFrames ≤ 2 * inputLimit := by
+      rlpValidationRank newPosition newStop newFrames ≤ 2 * inputLimit ∧
+      RlpValidationStackCeiling ceiling newFrames ∧ frontier ≤ ceiling := by
   have ordered : position.toNat ≤ stop.toNat := by
     cases intervals with
     | nil _ _ ordered => exact ordered
     | cons _ _ _ _ ordered _ _ => exact ordered
   have inputBound := (rlpValidation_input_bound position stop frames inputLimit limitBound rankBound ordered).2
-  have result := rlpValidation_step_arena_invariant state post position stop scratch frame frames
+  have result := rlpValidation_step_ceiling_invariant state post position stop scratch frame frames
     positionLocal stopLocal topLocal stack intervals inputBound scratchGlobal frameGlobal code ticks
     orderedFrame framePositive ceiling scratchBelow stackCeiling arena flag flagLocal run
   rcases result with terminal | progressing
   · exact Or.inl terminal
-  · obtain ⟨newPosition,newStop,frontier,newFrames,atPosition,atStop,atTop,validStack,validIntervals,decreases,cost⟩ := progressing
-    exact Or.inr ⟨newPosition,newStop,frontier,newFrames,atPosition,atStop,atTop,validStack,validIntervals,decreases,cost,by omega⟩
+  · obtain ⟨newPosition,newStop,frontier,newFrames,atPosition,atStop,atTop,validStack,validIntervals,decreases,cost,ceilingPost,frontierPost⟩ := progressing
+    exact Or.inr ⟨newPosition,newStop,frontier,newFrames,atPosition,atStop,atTop,validStack,validIntervals,decreases,cost,by omega,ceilingPost,frontierPost⟩
 
 #print axioms rlpValidation_input_bound
 #print axioms rlpValidation_step_input_invariant
