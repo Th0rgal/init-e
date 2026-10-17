@@ -1,0 +1,129 @@
+import InitECandidate.Runtime.HashTableReadyHasWidths
+import InitECandidate.Runtime.OriginalHashHasCode
+import InitECandidate.Runtime.PanTwoWordResultLookup
+import InitECandidate.Runtime.PanDecCallReturn
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+theorem HashTableReady.has20_declaration {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (table pointer keys stride capacity used values order orderPos items key : BitVec 64) (bits : Nat)
+    (ready : HashTableReady 20 table keys stride capacity used values order orderPos items bits pointer state)
+    (name : MlS) (tableArgument keyArgument : ExpHOL 64)
+    (arguments : evalListHOLFinite state
+      (h := fun address => Classical.propDecidable (state.memaddrs address)) [tableArgument,keyArgument] =
+        some [.val (.word table),.val (.word key)])
+    (keyAligned : key.toNat % 8 = 0)
+    (keyWords : ∀ offset : Nat, offset < (20 : BitVec 64).toNat → state.memaddrs (key + BitVec.ofNat 64 offset))
+    (keyBytes : ∀ offset : Nat, offset < (20 : BitVec 64).toNat → state.memaddrs (panByteAlignHOL (key + BitVec.ofNat 64 offset)))
+    (budget : 2 * capacity.toNat + 3 ≤ state.clock) :
+    ∃ value : BitVec 64, ∃ post, (value = 0 ∨ value = 1) ∧
+      HashTableReady 20 table keys stride capacity used values order orderPos items bits pointer post ∧
+      post.locals.lookup name = some (.val (.word value)) ∧
+      state.clock ≤ post.clock + 2 * capacity.toNat + 3 ∧ post.clock ≤ state.clock ∧
+      post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧
+      post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
+      (∀ other, other ≠ name → post.locals.lookup other = state.locals.lookup other) ∧
+      (∀ continuation, evaluateHOLFiniteState state
+        (.decCall name .one (ofString "htab_has") [tableArgument,keyArgument] continuation) =
+        (let output := evaluateHOLFiniteState post continuation;
+          (output.1,{output.2 with locals := HolFiniteMapExact.resVarEq output.2.locals (name,state.locals.lookup name)}))) := by
+  let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
+    (HolFiniteMapExact.empty.update (ofString "t",.val (.word table))).update (ofString "key",.val (.word key))
+  let entry := callEntryStateHOLFinite state callee
+  have different : ofString "key" ≠ ofString "t" := by decide
+  have t : entry.locals.lookup (ofString "t") = some (.val (.word table)) := by
+    simp [entry,callEntryStateHOLFinite,callee,HolFiniteMapExact.lookup_update,FUPDATE,different]
+  have k : entry.locals.lookup (ofString "key") = some (.val (.word key)) := by
+    simp [entry,callEntryStateHOLFinite,callee,HolFiniteMapExact.lookup_update,FUPDATE]
+  have entryReady := HashTableReady.after_read state entry 20 table keys stride capacity used values order orderPos items bits pointer ready rfl rfl rfl rfl rfl
+  obtain ⟨value,bodyPost,boolean,run,postReady,cost,remaining,memory,globals,code,domain,endian⟩ :=
+    entryReady.has20 entry table pointer keys stride capacity used values order orderPos items key bits t k keyAligned keyWords keyBytes
+      (by change 2 * capacity.toNat + 2 ≤ state.clock - 1; omega)
+  let post := setVarHOLFinite name (.val (.word value)) {bodyPost with locals := state.locals}
+  have installed : state.code.lookup (ofString "htab_has") =
+      some ([(ofString "t",.one),(ofString "key",.one)],sourceFunctionBody Guest.guestFn_htab_has,.one) := by
+    rw [ready.live.arrays.code]; exact originalRuntimeCode_hashHas_lookup
+  have lookup := pan_two_word_result_lookup state.code.lookup (ofString "htab_has") (ofString "t") (ofString "key")
+    (sourceFunctionBody Guest.guestFn_htab_has) table key .one (by decide) installed
+  refine ⟨value,post,boolean,
+    HashTableReady.after_read bodyPost post 20 table keys stride capacity used values order orderPos items bits pointer postReady rfl rfl rfl rfl rfl,
+    ?_,?_,?_,memory,globals,code,domain,endian,?_,?_⟩
+  · simp [post,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  · change state.clock ≤ bodyPost.clock + 2 * capacity.toNat + 3
+    change state.clock - 1 ≤ bodyPost.clock + 2 * capacity.toNat + 2 at cost
+    omega
+  · change bodyPost.clock ≤ state.clock
+    change bodyPost.clock ≤ state.clock - 1 at remaining
+    omega
+  · intro other different
+    simp [post,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm different]
+  · intro continuation
+    exact evaluate_decCall_return_caller_locals state bodyPost name (ofString "htab_has") .one .one
+      [tableArgument,keyArgument] [.val (.word table),.val (.word key)] (sourceFunctionBody Guest.guestFn_htab_has) continuation callee
+      (.val (.word value)) arguments lookup (by omega) run remaining
+      (by simp [shapeOfHOLExact,shapeEqHOL]) (by simp [shapeOfHOLExact,shapeEqHOL])
+
+
+theorem HashTableReady.has52_declaration {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (table pointer keys stride capacity used values order orderPos items key : BitVec 64) (bits : Nat)
+    (ready : HashTableReady 52 table keys stride capacity used values order orderPos items bits pointer state)
+    (name : MlS) (tableArgument keyArgument : ExpHOL 64)
+    (arguments : evalListHOLFinite state
+      (h := fun address => Classical.propDecidable (state.memaddrs address)) [tableArgument,keyArgument] =
+        some [.val (.word table),.val (.word key)])
+    (keyAligned : key.toNat % 8 = 0)
+    (keyWords : ∀ offset : Nat, offset < (52 : BitVec 64).toNat → state.memaddrs (key + BitVec.ofNat 64 offset))
+    (keyBytes : ∀ offset : Nat, offset < (52 : BitVec 64).toNat → state.memaddrs (panByteAlignHOL (key + BitVec.ofNat 64 offset)))
+    (budget : 2 * capacity.toNat + 3 ≤ state.clock) :
+    ∃ value : BitVec 64, ∃ post, (value = 0 ∨ value = 1) ∧
+      HashTableReady 52 table keys stride capacity used values order orderPos items bits pointer post ∧
+      post.locals.lookup name = some (.val (.word value)) ∧
+      state.clock ≤ post.clock + 2 * capacity.toNat + 3 ∧ post.clock ≤ state.clock ∧
+      post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧
+      post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
+      (∀ other, other ≠ name → post.locals.lookup other = state.locals.lookup other) ∧
+      (∀ continuation, evaluateHOLFiniteState state
+        (.decCall name .one (ofString "htab_has") [tableArgument,keyArgument] continuation) =
+        (let output := evaluateHOLFiniteState post continuation;
+          (output.1,{output.2 with locals := HolFiniteMapExact.resVarEq output.2.locals (name,state.locals.lookup name)}))) := by
+  let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
+    (HolFiniteMapExact.empty.update (ofString "t",.val (.word table))).update (ofString "key",.val (.word key))
+  let entry := callEntryStateHOLFinite state callee
+  have different : ofString "key" ≠ ofString "t" := by decide
+  have t : entry.locals.lookup (ofString "t") = some (.val (.word table)) := by
+    simp [entry,callEntryStateHOLFinite,callee,HolFiniteMapExact.lookup_update,FUPDATE,different]
+  have k : entry.locals.lookup (ofString "key") = some (.val (.word key)) := by
+    simp [entry,callEntryStateHOLFinite,callee,HolFiniteMapExact.lookup_update,FUPDATE]
+  have entryReady := HashTableReady.after_read state entry 52 table keys stride capacity used values order orderPos items bits pointer ready rfl rfl rfl rfl rfl
+  obtain ⟨value,bodyPost,boolean,run,postReady,cost,remaining,memory,globals,code,domain,endian⟩ :=
+    entryReady.has52 entry table pointer keys stride capacity used values order orderPos items key bits t k keyAligned keyWords keyBytes
+      (by change 2 * capacity.toNat + 2 ≤ state.clock - 1; omega)
+  let post := setVarHOLFinite name (.val (.word value)) {bodyPost with locals := state.locals}
+  have installed : state.code.lookup (ofString "htab_has") =
+      some ([(ofString "t",.one),(ofString "key",.one)],sourceFunctionBody Guest.guestFn_htab_has,.one) := by
+    rw [ready.live.arrays.code]; exact originalRuntimeCode_hashHas_lookup
+  have lookup := pan_two_word_result_lookup state.code.lookup (ofString "htab_has") (ofString "t") (ofString "key")
+    (sourceFunctionBody Guest.guestFn_htab_has) table key .one (by decide) installed
+  refine ⟨value,post,boolean,
+    HashTableReady.after_read bodyPost post 52 table keys stride capacity used values order orderPos items bits pointer postReady rfl rfl rfl rfl rfl,
+    ?_,?_,?_,memory,globals,code,domain,endian,?_,?_⟩
+  · simp [post,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  · change state.clock ≤ bodyPost.clock + 2 * capacity.toNat + 3
+    change state.clock - 1 ≤ bodyPost.clock + 2 * capacity.toNat + 2 at cost
+    omega
+  · change bodyPost.clock ≤ state.clock
+    change bodyPost.clock ≤ state.clock - 1 at remaining
+    omega
+  · intro other different
+    simp [post,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm different]
+  · intro continuation
+    exact evaluate_decCall_return_caller_locals state bodyPost name (ofString "htab_has") .one .one
+      [tableArgument,keyArgument] [.val (.word table),.val (.word key)] (sourceFunctionBody Guest.guestFn_htab_has) continuation callee
+      (.val (.word value)) arguments lookup (by omega) run remaining
+      (by simp [shapeOfHOLExact,shapeEqHOL]) (by simp [shapeOfHOLExact,shapeEqHOL])
+
+
+#print axioms HashTableReady.has20_declaration
+#print axioms HashTableReady.has52_declaration
+end InitECandidate.Runtime
