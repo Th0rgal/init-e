@@ -10,6 +10,7 @@ def avoidsGlobalAssignment (watched : MlS) : ProgHOL 64 → Bool
   | .while _ body => avoidsGlobalAssignment watched body
   | .assign .global name _ => !(name == watched)
   | .assign .local _ _ => true
+  | .store _ _ | .storeByte _ _ => true
   | .skip | .break | .continue | .annot _ _ | .raise _ _ | .return _ => true
   | _ => false
 
@@ -111,6 +112,20 @@ theorem evaluate_avoidsGlobalAssignment {F : Type} (watched : MlS) (program : Pr
     split
     · rfl
     · split <;> rfl
+  | store destination value =>
+    rw [evaluateHOLFiniteState_store]
+    split
+    · split
+      · split <;> simp
+      · simp
+    · simp
+  | storeByte destination value =>
+    rw [evaluateHOLFiniteState_storeByte]
+    split
+    · split
+      · split <;> simp
+      · simp
+    · simp
   | _ => simp [shape,avoidsGlobalAssignment] at supported
 termination_by (state.clock,sizeOf program)
 decreasing_by all_goals simp_all [decClockHOLFinite,setVarHOLFinite] <;> omega
