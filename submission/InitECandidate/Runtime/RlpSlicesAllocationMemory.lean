@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.AllocationReturnedGuard
 import InitECandidate.Runtime.RlpSlicesInitializationMemory
 import InitECandidate.Runtime.RlpSlicesAllocationDomain
 import InitECandidate.Runtime.RlpSlicesAllocationBound
@@ -59,6 +60,30 @@ theorem rlpSlices_allocation_success_memory {F : Type} (state post : PanSemState
     intro slot inside
     obtain ⟨p,n,entry⟩ := filled slot inside
     exact ⟨p,n,RlpSliceEntry.after_frame output _ _ _ _ _ entry rfl rfl rfl⟩
+
+theorem rlpSlices_allocation_return_memory {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (pointer count array : BitVec 64)
+    (pointerLocal : state.locals.lookup (ofString "p") = some (.val (.word pointer)))
+    (countLocal : state.locals.lookup (ofString "count") = some (.val (.word count)))
+    (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
+    (arrayBound : array.toNat ≤ 33806089496) (countBound : count.toNat * 16 < 2^64)
+    (arena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
+    (code : state.code = originalRuntimeCode) (budget : count.toNat * 12 + 2 ≤ state.clock)
+    (value : ValueHOL 64)
+    (run : evaluateHOLFiniteState state rlpSlicesAllocation = (some (.returned value),post)) :
+    value = .rStruct [.val (.word array),.val (.word count)] ∧ RlpSlicePrefix post array count.toNat := by
+  let argument : ExpHOL 64 := .panop .mul [.var .local (ofString "count"),.const 16]
+  have args : evalListHOLFinite state (h := fun address => Classical.propDecidable (state.memaddrs address)) [argument] =
+      some [.val (.word (count * 16))] := by
+    simp [argument,evalListHOLFinite,evalListHOLExact,evalHOLExact,countLocal,panOpHOL,valueIsWord,valueWord]
+  have called : evaluateHOLFiniteState state (.decCall (ofString "arr") .one (ofString "alloc") [argument] rlpSlicesInitialized) =
+      (some (.returned value),post) := by simpa only [source_rlpSlices_allocation] using run
+  have request := alloc_declaration_returned_request state post argument array (count * 16) (ofString "arr") .one
+    rlpSlicesInitialized value args code heap called
+  exact rlpSlices_allocation_success_memory state post pointer count array pointerLocal countLocal heap arrayBound countBound
+    request arena code budget value run
+
+#print axioms rlpSlices_allocation_return_memory
 
 #print axioms rlpSlices_allocation_success_memory
 end InitECandidate.Runtime
