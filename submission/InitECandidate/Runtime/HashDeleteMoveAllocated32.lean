@@ -14,7 +14,7 @@ open Flapjack.Basis.Pure.MlString
 
 /-- Table allocation supplies all key-copy domains and protected source cells. -/
 theorem evaluate_hashDelete_move_allocated32 {F : Type} (state : PanSemStateFiniteExact 64 F)
-    (keys stride hole scan values order orderPos position value used capacity items : BitVec 64)
+    (keys stride hole scan values order orderPos used capacity items : BitVec 64)
     (keysLocal : state.locals.lookup (ofString "keys") = some (.val (.word keys)))
     (strideLocal : state.locals.lookup (ofString "stride") = some (.val (.word stride)))
     (holeLocal : state.locals.lookup (ofString "i") = some (.val (.word hole)))
@@ -23,15 +23,13 @@ theorem evaluate_hashDelete_move_allocated32 {F : Type} (state : PanSemStateFini
     (table : BitVec 64) (bits : Nat)
     (invariant : HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits state)
     (scanInside : scan.toNat < capacity.toNat)
+    (occupied : hashOccupancyRead state used scan ≠ some 0)
     (keysBeforeValues : keys.toNat + capacity.toNat * stride.toNat ≤ values.toNat)
     (budget : 33 ≤ state.clock)
     (valuesLocal : state.locals.lookup (ofString "vals") = some (.val (.word values)))
     (orderLocal : state.locals.lookup (ofString "order") = some (.val (.word order)))
     (reverseLocal : state.locals.lookup (ofString "order_pos") = some (.val (.word orderPos)))
-    (valueCell : state.memory (values + scan * 8) = .word value)
-    (loadCell : state.memory (orderPos + scan * 8) = .word position)
     (entries : HashReverseEntriesBound used orderPos capacity items state)
-    (positionBound : position.toNat < items.toNat)
     (orderEntries : HashOrderEntriesBound order capacity items state)
     (holeInside : hole.toNat < capacity.toNat)
     (valueEntries : HashValueEntriesWord used values capacity state)
@@ -43,6 +41,8 @@ theorem evaluate_hashDelete_move_allocated32 {F : Type} (state : PanSemStateFini
       (∀ slot : BitVec 64, slot.toNat < capacity.toNat →
         hashOccupancyRead post used slot = hashOccupancyRead state used slot) ∧
       post.locals = (setVarHOLFinite (ofString "i") (.val (.word scan)) state).locals ∧ HashValueEntriesWord used values capacity post := by
+  obtain ⟨value,valueCell⟩ := valueEntries scan scanInside occupied
+  obtain ⟨position,loadCell,positionBound⟩ := entries scan scanInside occupied
   have bounds := invariant.delete_copy_bounds state table keys stride capacity used values order orderPos items hole scan bits holeInside scanInside
   have protectedCells := invariant.delete_copy_separate state table keys stride capacity used values order orderPos items hole scan bits holeInside scanInside keysBeforeValues
   have occupancy := invariant.delete_occupancy_separate state table keys stride capacity used values order orderPos items hole position bits
