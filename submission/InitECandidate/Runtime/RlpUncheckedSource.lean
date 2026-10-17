@@ -56,4 +56,28 @@ theorem source_rlpUnchecked_long_list : rlpUncheckedLongList =
     sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   rfl
 
+theorem source_rlpUnchecked_single : rlpUncheckedAfterByte =
+    .seq (.ite (.cmp .lower (.var .local (ofString "b")) (.const 128)) (.return (.const 1)) .skip) rlpUncheckedAfterSingle := by
+  simp only [rlpUncheckedAfterByte,rlpUncheckedAfterSingle,sourceFunctionBody,
+    InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
+theorem source_rlpUnchecked_short_string : rlpUncheckedAfterSingle =
+    .seq (.ite (.cmp .notLower (.const 183) (.var .local (ofString "b"))) (.return (.op .sub [.op .add [.const 1,.var .local (ofString "b")],.const 128])) .skip) rlpUncheckedAfterShort := by
+  simp only [rlpUncheckedAfterByte,rlpUncheckedAfterSingle,rlpUncheckedAfterShort,sourceFunctionBody,
+    InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
+theorem source_rlpUnchecked_long_string_dispatch : rlpUncheckedAfterShort =
+    .seq (.ite (.cmp .notLower (.const 191) (.var .local (ofString "b"))) rlpUncheckedLongString .skip) rlpUncheckedAfterLong := by
+  simp only [rlpUncheckedAfterByte,rlpUncheckedAfterSingle,rlpUncheckedAfterShort,rlpUncheckedLongString,rlpUncheckedAfterLong,sourceFunctionBody,
+    InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
+theorem source_rlpUnchecked_short_list : rlpUncheckedAfterLong =
+    .seq (.ite (.cmp .notLower (.const 247) (.var .local (ofString "b"))) (.return (.op .sub [.op .add [.const 1,.var .local (ofString "b")],.const 192])) .skip) rlpUncheckedLongList := by
+  simp only [rlpUncheckedAfterByte,rlpUncheckedAfterSingle,rlpUncheckedAfterShort,rlpUncheckedAfterLong,rlpUncheckedLongList,sourceFunctionBody,
+    InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
 end InitECandidate.Runtime
