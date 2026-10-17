@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.RlpValidationStepCeiling
+import InitECandidate.Runtime.RlpValidationStepState
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -36,28 +36,30 @@ theorem rlpValidation_step_input_invariant {F : Type} (state post : PanSemStateF
     (flagLocal : state.locals.lookup (ofString "go") = some (.val (.word flag)))
     (run : evaluateHOLFiniteState state rlpValidationStep = (none,post)) :
     (post.locals.lookup (ofString "go") = some (.val (.word 0)) ∧ post.clock = state.clock) ∨
-    ∃ (newPosition newStop : BitVec 64) (frontier : Nat) (newFrames : List RlpValidationFrame),
+    ∃ (newPosition newStop : BitVec 64) (frontier : BitVec 64) (newFrames : List RlpValidationFrame),
       post.locals.lookup (ofString "pos") = some (.val (.word newPosition)) ∧
       post.locals.lookup (ofString "end") = some (.val (.word newStop)) ∧
       post.locals.lookup (ofString "top") = some (.val (.word (rlpValidationStackTop newFrames))) ∧
-      RlpValidationStack post.memory frontier newFrames ∧
+      RlpValidationStack post.memory frontier.toNat newFrames ∧
       RlpValidationIntervals newPosition newStop newFrames ∧
       rlpValidationRank newPosition newStop newFrames < rlpValidationRank position stop frames ∧
       state.clock ≤ post.clock + 13 ∧
       rlpValidationRank newPosition newStop newFrames ≤ 2 * inputLimit ∧
-      RlpValidationStackCeiling ceiling newFrames ∧ frontier ≤ ceiling := by
+      RlpValidationStackCeiling ceiling newFrames ∧ frontier.toNat ≤ ceiling ∧
+      post.globals.lookup (ofString "scratch_ptr") = some (.val (.word frontier)) ∧
+      post.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)) ∧ frame ≤ frontier := by
   have ordered : position.toNat ≤ stop.toNat := by
     cases intervals with
     | nil _ _ ordered => exact ordered
     | cons _ _ _ _ ordered _ _ => exact ordered
   have inputBound := (rlpValidation_input_bound position stop frames inputLimit limitBound rankBound ordered).2
-  have result := rlpValidation_step_ceiling_invariant state post position stop scratch frame frames
+  have result := rlpValidation_step_state_invariant state post position stop scratch frame frames
     positionLocal stopLocal topLocal stack intervals inputBound scratchGlobal frameGlobal code ticks
     orderedFrame framePositive ceiling scratchBelow stackCeiling arena flag flagLocal run
   rcases result with terminal | progressing
   · exact Or.inl terminal
-  · obtain ⟨newPosition,newStop,frontier,newFrames,atPosition,atStop,atTop,validStack,validIntervals,decreases,cost,ceilingPost,frontierPost⟩ := progressing
-    exact Or.inr ⟨newPosition,newStop,frontier,newFrames,atPosition,atStop,atTop,validStack,validIntervals,decreases,cost,by omega,ceilingPost,frontierPost⟩
+  · obtain ⟨newPosition,newStop,frontier,newFrames,atPosition,atStop,atTop,validStack,validIntervals,decreases,cost,ceilingPost,frontierPost,scratchPost,framePost,orderedPost⟩ := progressing
+    exact Or.inr ⟨newPosition,newStop,frontier,newFrames,atPosition,atStop,atTop,validStack,validIntervals,decreases,cost,by omega,ceilingPost,frontierPost,scratchPost,framePost,orderedPost⟩
 
 #print axioms rlpValidation_input_bound
 #print axioms rlpValidation_step_input_invariant
