@@ -1,0 +1,62 @@
+import InitECandidate.Runtime.HashTableSetLookupGrowthSupported
+import InitECandidate.Runtime.HashTableSetLookupLinkedSupported
+import InitECandidate.Runtime.DeclarationResultUnique
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+theorem HashTableArraysInvariant.set_above_threshold_supported_safe_plan {F : Type}
+    (state : PanSemStateFiniteExact 64 F)
+    (keyLength table pointer keys stride capacity used values order orderPos items key value : BitVec 64) (bits : Nat)
+    (supported : keyLength = 20 ∨ keyLength = 32 ∨ keyLength = 52)
+    (invariant : HashTableArraysInvariant keyLength table keys stride capacity used values order orderPos items bits state)
+    (entries : HashOrderEntriesBound order capacity items state)
+    (valueEntries : HashValueEntriesWord used values capacity state)
+    (reverseEntries : HashReverseEntriesBound used orderPos capacity items state)
+    (linked : HashOrderLinked used order orderPos capacity items state)
+    (allocated : orderPos.toNat + capacity.toNat * 8 ≤ pointer.toNat)
+    (strideBound : stride.toNat ≤ 56) (pointerAligned : pointer.toNat % 8 = 0)
+    (pointerBound : pointer.toNat ≤ 33806089496)
+    (capacityBound : capacity.toNat ≤ 33806089496)
+    (safePlan : AllocationPlanSafe pointer (htabGrowAllocationSizes capacity stride))
+    (ticks : 2 * capacity.toNat + 2 * (capacity * 2).toNat + keyLength.toNat + 12 + items.toNat * ((capacity * 2).toNat + keyLength.toNat + 4) ≤ state.clock)
+    (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (domain : ∀ address : BitVec 64, table.toNat ≤ address.toNat →
+      address.toNat < (htabGrowOrderPos pointer capacity stride).toNat + (capacity * 2).toNat * 8 → state.memaddrs address)
+    (tableLocal : state.locals.lookup (ofString "t") = some (.val (.word table)))
+    (keyLocal : state.locals.lookup (ofString "key") = some (.val (.word key)))
+    (valueLocal : state.locals.lookup (ofString "value") = some (.val (.word value)))
+    (loadFactor : capacity.toNat < (items.toNat + 1) * 2)
+    (capacityLarge : 1 < capacity.toNat)
+    (keyAligned : key.toNat % 8 = 0)
+    (sourceWordDomain : ∀ offset : Nat, offset < keyLength.toNat → state.memaddrs (key + BitVec.ofNat 64 offset))
+    (sourceByteDomain : ∀ offset : Nat, offset < keyLength.toNat → state.memaddrs (panByteAlignHOL (key + BitVec.ofNat 64 offset))) :
+    ∃ post, evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_htab_set) =
+        (some (.returned (.val (.word (0 : BitVec 64)))),post) ∧
+      ((HashTableArraysInvariant keyLength table keys stride capacity used values order orderPos items bits post ∧
+        HashOrderEntriesBound order capacity items post ∧
+        HashValueEntriesWord used values capacity post ∧ HashReverseEntriesBound used orderPos capacity items post ∧ HashOrderLinked used order orderPos capacity items post) ∨
+       (HashTableArraysInvariant keyLength table pointer stride (capacity * 2) (htabGrowUsed pointer capacity stride)
+        (htabGrowValues pointer capacity stride) (htabGrowOrder pointer capacity stride)
+        (htabGrowOrderPos pointer capacity stride) (items + 1) (bits + 1) post ∧
+        HashOrderEntriesBound (htabGrowOrder pointer capacity stride) (capacity * 2) (items + 1) post ∧
+        HashValueEntriesWord (htabGrowUsed pointer capacity stride) (htabGrowValues pointer capacity stride) (capacity * 2) post ∧
+        HashReverseEntriesBound (htabGrowUsed pointer capacity stride) (htabGrowOrderPos pointer capacity stride) (capacity * 2) (items + 1) post ∧
+        HashOrderLinked (htabGrowUsed pointer capacity stride) (htabGrowOrder pointer capacity stride) (htabGrowOrderPos pointer capacity stride) (capacity * 2) (items + 1) post)) ∧
+      state.clock ≤ post.clock + 2 * capacity.toNat + 2 * (capacity * 2).toNat + keyLength.toNat + 12 + items.toNat * ((capacity * 2).toNat + keyLength.toNat + 4) ∧
+      post.clock ≤ state.clock ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
+  obtain ⟨found,ready,inside,decl,growth⟩ := invariant.set_lookup_growth_supported_safe_plan state keyLength table pointer keys stride capacity used values order orderPos items key value bits supported
+    entries allocated strideBound pointerAligned pointerBound capacityBound safePlan ticks heap domain tableLocal keyLocal valueLocal loadFactor capacityLarge keyAligned sourceWordDomain sourceByteDomain
+  obtain ⟨existing,other,_,_,otherDecl,present⟩ := invariant.set_lookup_supported_linked_entries state keyLength table keys stride capacity used values order orderPos items key value bits supported
+    tableLocal keyLocal valueLocal keyAligned sourceWordDomain sourceByteDomain (by omega) entries valueEntries reverseEntries linked
+  have equal := declaration_word_result_unique state ready other (ofString "i") (ofString "htab_find_slot")
+    [.var .local (ofString "t"),.var .local (ofString "key")] found existing decl otherDecl
+  by_cases missing : found = capacity
+  · obtain ⟨post,run,valid,orderValid,words,reverse,postLinked,cost,remaining,code,addresses,endian⟩ := growth missing
+    exact ⟨post,run,Or.inr ⟨valid,orderValid,words,reverse,postLinked⟩,cost,remaining,code,addresses,endian⟩
+  · have different : existing ≠ capacity := by rw [← equal]; exact missing
+    obtain ⟨post,run,valid,orderValid,words,reverse,postLinked,cost,remaining,_,code,addresses,endian⟩ := present different
+    exact ⟨post,run,Or.inl ⟨valid,orderValid,words,reverse,postLinked⟩,by omega,remaining,code,addresses,endian⟩
+
+#print axioms HashTableArraysInvariant.set_above_threshold_supported_safe_plan
+end InitECandidate.Runtime
