@@ -36,13 +36,13 @@ theorem evaluate_hashDelete_move_scoped32 {F : Type} (state : PanSemStateFiniteE
       post.memaddrs = state.memaddrs ∧ post.be = state.be ∧ HashReverseEntriesBound used orderPos capacity items post ∧ HashOrderEntriesBound order capacity items post ∧
       (∀ slot : BitVec 64, slot.toNat < capacity.toNat →
         hashOccupancyRead post used slot = hashOccupancyRead state used slot) ∧
-      post.locals.lookup (ofString "i") = some (.val (.word scan)) ∧ HashValueEntriesWord used values capacity post ∧ post.locals.lookup (ofString "j") = some (.val (.word scan)) := by
+      post.locals.lookup (ofString "i") = some (.val (.word scan)) ∧ HashValueEntriesWord used values capacity post ∧ post.locals.lookup (ofString "j") = some (.val (.word scan)) ∧ HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits post := by
   let entered := hashDeleteMoveEntry state hash capacity
   have other : ∀ name, name ≠ ofString "home" → name ≠ ofString "movable" → entered.locals.lookup name = state.locals.lookup name := by
     intro name notHome notMovable
     simp [entered,hashDeleteMoveEntry,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm notHome,Ne.symm notMovable]
   have enteredInvariant := invariant.after_read state entered table keys stride capacity used values order orderPos items bits rfl rfl rfl rfl
-  obtain ⟨post,run,cost,remaining,globals,code,domain,endian,reverse,ordered,occupancy,locals,words⟩ :=
+  obtain ⟨post,run,cost,remaining,globals,code,domain,endian,reverse,ordered,occupancy,locals,words,arrays⟩ :=
     evaluate_hashDelete_move_allocated32 entered keys stride hole scan values order orderPos used capacity items
       ((other _ (by decide) (by decide)).trans keysLocal) ((other _ (by decide) (by decide)).trans strideLocal)
       ((other _ (by decide) (by decide)).trans holeLocal) ((other _ (by decide) (by decide)).trans scanLocal)
@@ -55,7 +55,7 @@ theorem evaluate_hashDelete_move_scoped32 {F : Type} (state : PanSemStateFiniteE
   have scopeRun := evaluate_hashDelete_move_scope_run state post hole scan hash capacity holeLocal scanLocal hashLocal capacityLocal moves run
   refine ⟨hashDeleteMoveExit state post,scopeRun,cost,remaining,globals,code,domain,endian,
     reverse.after_read post _ used orderPos capacity items rfl rfl rfl,
-    ordered.after_memory post _ order capacity items rfl,occupancy,?_,words.after_read post _ used values capacity rfl rfl rfl,?_⟩
+    ordered.after_memory post _ order capacity items rfl,occupancy,?_,words.after_read post _ used values capacity rfl rfl rfl,?_,arrays.after_read post _ table keys stride capacity used values order orderPos items bits rfl rfl rfl rfl⟩
   · unfold hashDeleteMoveExit
     rw [restore_other_local _ _ (ofString "i") _ (by decide),restore_other_local _ _ (ofString "i") _ (by decide)]
     rw [locals]

@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.HashDeleteMoveArrays32
 import InitECandidate.Runtime.HashReverseMoveGeometry32
 import InitECandidate.Runtime.HashValueInsertGeometry32
 import InitECandidate.Runtime.HashDeleteOccupancyGeometry32
@@ -40,7 +41,7 @@ theorem evaluate_hashDelete_move_allocated32 {F : Type} (state : PanSemStateFini
       post.memaddrs = state.memaddrs ∧ post.be = state.be ∧ HashReverseEntriesBound used orderPos capacity items post ∧ HashOrderEntriesBound order capacity items post ∧
       (∀ slot : BitVec 64, slot.toNat < capacity.toNat →
         hashOccupancyRead post used slot = hashOccupancyRead state used slot) ∧
-      post.locals = (setVarHOLFinite (ofString "i") (.val (.word scan)) state).locals ∧ HashValueEntriesWord used values capacity post := by
+      post.locals = (setVarHOLFinite (ofString "i") (.val (.word scan)) state).locals ∧ HashValueEntriesWord used values capacity post ∧ HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits post := by
   obtain ⟨value,valueCell⟩ := valueEntries scan scanInside occupied
   obtain ⟨position,loadCell,positionBound⟩ := entries scan scanInside occupied
   have bounds := invariant.delete_copy_bounds state table keys stride capacity used values order orderPos items hole scan bits holeInside scanInside
@@ -100,13 +101,20 @@ theorem evaluate_hashDelete_move_allocated32 {F : Type} (state : PanSemStateFini
     have address := orderAddress position (Nat.lt_trans positionBound room)
     have product := Nat.mul_lt_mul_of_pos_right (Nat.lt_trans positionBound room) (by decide : 0 < 8)
     apply invariant.domain <;> omega
-  exact evaluate_hashDelete_move_all_invariants state keys stride hole scan 32 values order orderPos position value used capacity items
+  obtain ⟨post,run,cost,remaining,globals,code,domain,endian,reverse,ordered,reads,locals,words⟩ := evaluate_hashDelete_move_all_invariants state keys stride hole scan 32 values order orderPos position value used capacity items
     keysLocal strideLocal holeLocal scanLocal sizeLocal bounds.small bounds.aligned bounds.sourceAligned budget
     bounds.wordDomain bounds.byteDomain bounds.sourceWordDomain bounds.sourceByteDomain protectedCells invariant.code
     valuesLocal orderLocal reverseLocal valueDomain valueCell destinationDomain loadDomain loadCell separate orderDomain reverseDomain
     entries positionBound copyOccupancy copyReverse valueOccupancy valueReverse storeOccupancy storeReverse
     orderEntries holeInside copyOrder valueSeparate orderSeparate positionSeparate distinct
     valueEntries copyValues valueDistinct orderValues reverseValues
+  obtain ⟨checked,checkedRun,_,_,arrays⟩ := evaluate_hashDelete_move_arrays32 state keys stride hole scan values order orderPos position value used capacity items
+    keysLocal strideLocal holeLocal scanLocal sizeLocal bounds.small bounds.aligned bounds.sourceAligned budget
+    bounds.wordDomain bounds.byteDomain bounds.sourceWordDomain bounds.sourceByteDomain protectedCells invariant.code
+    valuesLocal orderLocal reverseLocal valueDomain valueCell destinationDomain loadDomain loadCell separate orderDomain reverseDomain
+    table bits invariant holeInside positionBound
+  have same : post = checked := congrArg Prod.snd (run.symm.trans checkedRun)
+  exact ⟨post,run,cost,remaining,globals,code,domain,endian,reverse,ordered,reads,locals,words,by rw [same]; exact arrays⟩
 
 #print axioms evaluate_hashDelete_move_allocated32
 end InitECandidate.Runtime
