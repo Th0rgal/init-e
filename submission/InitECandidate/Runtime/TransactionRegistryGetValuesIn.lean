@@ -27,7 +27,7 @@ theorem TransactionRegistryWorld.table_get_values_in {F : Type}
       state.clock ≤ post.clock + 2 ^ 66 ∧ post.clock ≤ state.clock ∧
       TransactionRegistryWorld widths tables fieldPointer ts journal snapshot count post ∧
       (∀ other ∈ watched, HashTableValuesIn other targets post) ∧
-      JournalSavedValuesIn journal count.toNat watched targets post ∧ post.locals = state.locals ∧ 
+      JournalSavedValuesIn journal count.toNat watched targets post ∧ post.locals = state.locals ∧
       (∀ name continuation, evaluateHOLFiniteState state
         (.decCall name (.comb [.one,.one]) (ofString "htab_get") [tableArgument,keyArgument] continuation) =
         (let output := evaluateHOLFiniteState (setVarHOLFinite name (.rStruct [.val (.word present),.val (.word value)]) post) continuation;
