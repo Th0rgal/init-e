@@ -8,8 +8,8 @@ namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
-/-- Original fixed-byte calls with straight continuations inherit the common
-input budget from their concrete slice prefix. -/
+/-- Original fixed-byte extraction and the blob copy continuation inherit a
+common input budget from the concrete slice prefix. -/
 theorem evaluate_txFixedBytes_blob_copy_bounded {F : Type} (state : PanSemStateFiniteExact 64 F)
     (arguments : List (ExpHOL 64)) (buffer : BitVec 64)
     (bufferLocal : state.locals.lookup (ofString "buf") = some (.val (.word buffer)))
