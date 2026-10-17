@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.PanEvaluationMetadata
 import Flapjack.Pancake.Semantics.PanSem.EvaluateClock
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -14,7 +15,7 @@ theorem evaluate_decCall_one_normal_word_frame {F : Type}
     (bodyFrame : ∀ result output, evaluateHOLFiniteState (callEntryStateHOLFinite state callee) body =
       (result,output) → output.memory = state.memory ∧ output.globals = state.globals)
     (run : evaluateHOLFiniteState state (.decCall name .one function arguments continuation) = (none,post)) :
-    ∃ (word : BitVec 64) (ready output : PanSemStateFiniteExact 64 F), ready.locals = state.locals ∧ ready.memory = state.memory ∧ ready.globals = state.globals ∧
+    ∃ (word : BitVec 64) (ready output : PanSemStateFiniteExact 64 F), ready.locals = state.locals ∧ ready.memory = state.memory ∧ ready.globals = state.globals ∧ ready.memaddrs = state.memaddrs ∧ ready.code = state.code ∧
       evaluateHOLFiniteState (setVarHOLFinite name (.val (.word word)) ready) continuation = (none,output) ∧
       post = {output with locals := HolFiniteMapExact.resVarEq output.locals (name,state.locals.lookup name)} := by
   rw [evaluateHOLFiniteState_decCall_total,args] at run
@@ -52,13 +53,22 @@ theorem evaluate_decCall_one_normal_word_frame {F : Type}
               change tailResult = none at normal
               subst tailResult
               have frame := bodyFrame _ _ bodyRun
-              refine ⟨word,ready,output,rfl,?_,?_,tailRun,(Prod.mk.inj run).2.symm⟩
+              have metadata := evaluateHOLFiniteState_metadata (callEntryStateHOLFinite state callee) body
+              rw [bodyRun] at metadata
+              dsimp only at metadata
+              refine ⟨word,ready,output,rfl,?_,?_,?_,?_,tailRun,(Prod.mk.inj run).2.symm⟩
               · change (fixClockHOLFinite (callEntryStateHOLFinite state callee) (some (PanSemResultExact.returned value),bodyPost)).2.memory = _
                 unfold fixClockHOLFinite
                 split <;> exact frame.1
               · change (fixClockHOLFinite (callEntryStateHOLFinite state callee) (some (PanSemResultExact.returned value),bodyPost)).2.globals = _
                 unfold fixClockHOLFinite
                 split <;> exact frame.2
+              · change (fixClockHOLFinite (callEntryStateHOLFinite state callee) (some (PanSemResultExact.returned value),bodyPost)).2.memaddrs = _
+                unfold fixClockHOLFinite
+                split <;> exact metadata.2.1
+              · change (fixClockHOLFinite (callEntryStateHOLFinite state callee) (some (PanSemResultExact.returned value),bodyPost)).2.code = _
+                unfold fixClockHOLFinite
+                split <;> exact metadata.1
           · cases run
         | error => cases run
         | timeOut => cases run

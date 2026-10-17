@@ -14,7 +14,7 @@ theorem evaluate_rlpUnchecked_declaration_normal_frame {F : Type} (state post : 
       some [.val (.word pointer)])
     (code : state.code = originalRuntimeCode) (ticks : 11 ≤ state.clock)
     (run : evaluateHOLFiniteState state (.decCall name .one (ofString "rlp_item_total_unchecked") arguments continuation) = (none,post)) :
-    ∃ (word : BitVec 64) (ready output : PanSemStateFiniteExact 64 F), ready.locals = state.locals ∧ ready.memory = state.memory ∧ ready.globals = state.globals ∧
+    ∃ (word : BitVec 64) (ready output : PanSemStateFiniteExact 64 F), ready.locals = state.locals ∧ ready.memory = state.memory ∧ ready.globals = state.globals ∧ ready.memaddrs = state.memaddrs ∧ ready.code = state.code ∧
       evaluateHOLFiniteState (setVarHOLFinite name (.val (.word word)) ready) continuation = (none,output) ∧
       post = {output with locals := HolFiniteMapExact.resVarEq output.locals (name,state.locals.lookup name)} := by
   have installed : state.code.lookup (ofString "rlp_item_total_unchecked") =
