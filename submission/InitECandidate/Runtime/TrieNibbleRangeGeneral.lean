@@ -93,6 +93,55 @@ theorem TrieNibbleRange.suffix {F : Type} {state : PanSemStateFiniteExact 64 F}
   rw [BitVec.toNat_sub_of_le (BitVec.le_def.mpr bounded)]
   omega
 
+/-- Adjacent valid ranges combine when their logical lengths do not wrap.
+This joins a compact path's optional first nibble to its decoded suffix. -/
+theorem TrieNibbleRange.concat {F : Type} {state : PanSemStateFiniteExact 64 F}
+    {nibs first second : BitVec 64}
+    (left : TrieNibbleRange state nibs first)
+    (right : TrieNibbleRange state (nibs + first) second)
+    (bounded : first.toNat + second.toNat < 2^64) :
+    TrieNibbleRange state nibs (first + second) := by
+  have total : (first + second).toNat = first.toNat + second.toNat := by
+    rw [BitVec.toNat_add]
+    exact Nat.mod_eq_of_lt bounded
+  intro offset inside byte loaded
+  rw [total] at inside
+  by_cases earlier : offset < first.toNat
+  · exact left offset earlier byte loaded
+  · apply right (offset - first.toNat) (by omega) byte
+    have address : first + BitVec.ofNat 64 (offset - first.toNat) = BitVec.ofNat 64 offset := by
+      have natural : first.toNat + (offset - first.toNat) = offset := by omega
+      calc
+        first + BitVec.ofNat 64 (offset - first.toNat) =
+            BitVec.ofNat 64 (first.toNat + (offset - first.toNat)) := by simp [BitVec.ofNat_add]
+        _ = BitVec.ofNat 64 offset := by rw [natural]
+    simpa only [BitVec.add_assoc,address] using loaded
+
+/-- Writing a nibble preserves every existing nibble range, including when
+the write overlaps that range or shares an aligned word with its bytes. -/
+theorem TrieNibbleRange.after_small_byte {F : Type} {state : PanSemStateFiniteExact 64 F}
+    {nibs length : BitVec 64} (valid : TrieNibbleRange state nibs length)
+    (address value cell : BitVec 64) (small : value.toNat < 16)
+    (domain : state.memaddrs (panByteAlignHOL address))
+    (memory : state.memory (panByteAlignHOL address) = .word cell) :
+    TrieNibbleRange (sourceWriteByte state address value cell) nibs length := by
+  intro offset inside byte loaded
+  change @panMemLoadByteHOL 64 _ (sourceWriteByte state address value cell).memory
+    state.memaddrs (fun a => Classical.propDecidable (state.memaddrs a)) state.be
+    (nibs + BitVec.ofNat 64 offset) = some byte at loaded
+  by_cases same : nibs + BitVec.ofNat 64 offset = address
+  · rw [same,sourceWriteByte_load_self state address value cell domain] at loaded
+    have equal := Option.some.inj loaded
+    subst byte
+    change (BitVec.ofNat 8 value.toNat).toNat < 16
+    simp only [BitVec.toNat_ofNat]
+    omega
+  · apply valid offset inside byte
+    exact (sourceWriteByte_load_other state address value cell
+      (nibs + BitVec.ofNat 64 offset) same memory).symm.trans loaded
+
+#print axioms TrieNibbleRange.after_small_byte
+#print axioms TrieNibbleRange.concat
 #print axioms TrieNibbleRange.prefix
 #print axioms TrieNibbleRange.slice
 #print axioms TrieNibbleRange.suffix
