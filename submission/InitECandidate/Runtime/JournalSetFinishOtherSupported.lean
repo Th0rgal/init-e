@@ -1,0 +1,69 @@
+import InitECandidate.Runtime.HashTableSetCallOtherSupported
+import InitECandidate.Runtime.HashTableReadyGlobals
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Full original journal-set suffix, including growth, returns a reusable table. -/
+theorem HashTableReady.jset_finish_supported_with_other_safe_plan {F : Type}
+    (state : PanSemStateFiniteExact 64 F)
+    (keyLength table pointer keys stride capacity used values order orderPos items key value count : BitVec 64) (bits : Nat)
+    (supported : keyLength = 20 ∨ keyLength = 32 ∨ keyLength = 52)
+    (ready : HashTableReady keyLength table keys stride capacity used values order orderPos items bits pointer state)
+    (strideBound : stride.toNat ≤ 56)
+    (safePlan : AllocationPlanSafe pointer (htabGrowAllocationSizes capacity stride))
+    (ticks : 3 * capacity.toNat + 2 * (capacity * 2).toNat + keyLength.toNat + 13 + items.toNat * ((capacity * 2).toNat + keyLength.toNat + 4) ≤ state.clock)
+    (domain : ∀ address : BitVec 64, table.toNat ≤ address.toNat →
+      address.toNat < (htabGrowOrderPos pointer capacity stride).toNat + (capacity * 2).toNat * 8 → state.memaddrs address)
+    (t : state.locals.lookup (ofString "t") = some (.val (.word table)))
+    (k : state.locals.lookup (ofString "key") = some (.val (.word key)))
+    (v : state.locals.lookup (ofString "value") = some (.val (.word value)))
+    (countGlobal : state.globals.lookup (ofString "journal_n") = some (.val (.word count)))
+    (capacityLarge : 1 < capacity.toNat)
+    (keyAligned : key.toNat % 8 = 0)
+    (sourceWordDomain : ∀ offset : Nat, offset < keyLength.toNat → state.memaddrs (key + BitVec.ofNat 64 offset))
+    (sourceByteDomain : ∀ offset : Nat, offset < keyLength.toNat → state.memaddrs (panByteAlignHOL (key + BitVec.ofNat 64 offset)))
+    (otherKeyLength otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems : BitVec 64) (otherBits : Nat)
+    (otherReady : HashTableReady otherKeyLength otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer state)
+    (separate : otherOrderPos.toNat + otherCapacity.toNat * 8 ≤ table.toNat ∨ table.toNat + 72 ≤ otherTable.toNat)
+    (beforeKeys : otherOrderPos.toNat + otherCapacity.toNat * 8 ≤ keys.toNat)
+    (beforeValues : otherOrderPos.toNat + otherCapacity.toNat * 8 ≤ values.toNat) :
+    ∃ post, evaluateHOLFiniteState state journalSetFinish32 =
+      (some (.returned (.val (.word (0 : BitVec 64)))),post) ∧
+      ((∃ nextCount : BitVec 64, (nextCount = items ∨ nextCount = items + 1) ∧
+        HashTableReady keyLength table keys stride capacity used values order orderPos nextCount bits pointer post ∧
+        HashTableReady otherKeyLength otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer post) ∨ (HashTableReady keyLength table pointer stride (capacity * 2) (htabGrowUsed pointer capacity stride)
+        (htabGrowValues pointer capacity stride) (htabGrowOrder pointer capacity stride) (htabGrowOrderPos pointer capacity stride) (items + 1) (bits + 1)
+        (allocationEnd (htabGrowOrderPos pointer capacity stride) ((capacity * 2) * 8)) post ∧
+        HashTableReady otherKeyLength otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits
+        (allocationEnd (htabGrowOrderPos pointer capacity stride) ((capacity * 2) * 8)) post)) ∧
+      state.clock ≤ post.clock + 3 * capacity.toNat + 2 * (capacity * 2).toNat + keyLength.toNat + 13 + items.toNat * ((capacity * 2).toNat + keyLength.toNat + 4) ∧
+      post.clock ≤ state.clock ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be := by
+  let incremented := setGlobalHOLFinite (ofString "journal_n") (.val (.word (count + 1))) state
+  have nextReady := ready.after_global state keyLength table pointer keys stride capacity used values order orderPos items bits
+    (ofString "journal_n") (.val (.word (count + 1))) (by decide)
+  have nextOther := otherReady.after_global state otherKeyLength otherTable pointer otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits
+    (ofString "journal_n") (.val (.word (count + 1))) (by decide)
+  have arguments : evalListHOLFinite incremented
+      (h := fun address => Classical.propDecidable (incremented.memaddrs address))
+      [.var .local (ofString "t"),.var .local (ofString "key"),.var .local (ofString "value")] =
+      some [.val (.word table),.val (.word key),.val (.word value)] := by
+    simp [incremented,setGlobalHOLFinite,evalListHOLFinite,evalListHOLExact,evalHOLExact,t,k,v]
+  obtain ⟨post,run,cases,cost,remaining,_,code,addresses,endian⟩ :=
+    nextReady.set_call_supported_with_other_safe_plan incremented keyLength table pointer keys stride capacity used values order orderPos items key value bits supported
+      strideBound safePlan ticks domain capacityLarge keyAligned sourceWordDomain sourceByteDomain
+      otherKeyLength otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits nextOther separate beforeKeys beforeValues
+      (.var .local (ofString "t")) (.var .local (ofString "key")) (.var .local (ofString "value")) arguments
+  refine ⟨emptyLocalsHOLFinite post,evaluate_journalSetFinish32 state post count countGlobal run,?_,cost,remaining,code,addresses,endian⟩
+  rcases cases with unchanged | grown
+  · obtain ⟨nextCount,counts,valid,otherValid⟩ := unchanged
+    exact Or.inl ⟨nextCount,counts,valid.after_read post (emptyLocalsHOLFinite post) keyLength table keys stride capacity used values order orderPos nextCount bits pointer rfl rfl rfl rfl rfl,
+      otherValid.after_read post (emptyLocalsHOLFinite post) otherKeyLength otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits pointer rfl rfl rfl rfl rfl⟩
+  · exact Or.inr ⟨grown.1.after_read post (emptyLocalsHOLFinite post) keyLength table pointer stride (capacity * 2) (htabGrowUsed pointer capacity stride)
+      (htabGrowValues pointer capacity stride) (htabGrowOrder pointer capacity stride) (htabGrowOrderPos pointer capacity stride) (items + 1) (bits + 1)
+      (allocationEnd (htabGrowOrderPos pointer capacity stride) ((capacity * 2) * 8)) rfl rfl rfl rfl rfl,
+      grown.2.after_read post (emptyLocalsHOLFinite post) otherKeyLength otherTable otherKeys otherStride otherCapacity otherUsed otherValues otherOrder otherOrderPos otherItems otherBits
+      (allocationEnd (htabGrowOrderPos pointer capacity stride) ((capacity * 2) * 8)) rfl rfl rfl rfl rfl⟩
+
+#print axioms HashTableReady.jset_finish_supported_with_other_safe_plan
+end InitECandidate.Runtime
