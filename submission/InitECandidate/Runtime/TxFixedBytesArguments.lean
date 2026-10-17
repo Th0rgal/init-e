@@ -11,6 +11,17 @@ structure RlpSliceEntry {F : Type} (state : PanSemStateFiniteExact 64 F)
   pointerCell : state.memory (array + index * 16#64) = .word pointer
   lengthCell : state.memory (array + index * 16#64 + 8#64) = .word length
 
+/-- An entry survives every state change that retains its domains and two cells. -/
+theorem RlpSliceEntry.after_frame {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (array index pointer length : BitVec 64) (entry : RlpSliceEntry state array index pointer length)
+    (domain : post.memaddrs = state.memaddrs)
+    (pointerFrame : post.memory (array + index * 16#64) = state.memory (array + index * 16#64))
+    (lengthFrame : post.memory (array + index * 16#64 + 8#64) = state.memory (array + index * 16#64 + 8#64)) :
+    RlpSliceEntry post array index pointer length := by
+  refine ⟨?_,?_,pointerFrame.trans entry.pointerCell,lengthFrame.trans entry.lengthCell⟩
+  · rw [domain]; exact entry.pointerDomain
+  · rw [domain]; exact entry.lengthDomain
+
 /-- The original argument expressions read the pointer and length from their
 actual slice cells. No independent expression-evaluation certificate is needed. -/
 theorem eval_txFixedBytes_arguments {F : Type} (state : PanSemStateFiniteExact 64 F)

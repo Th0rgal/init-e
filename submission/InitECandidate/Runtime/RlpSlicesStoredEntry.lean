@@ -7,7 +7,7 @@ open Flapjack.Basis.Pure.MlString
 
 /-- The actual two slice stores and counter assignments establish the concrete
 entry consumed by fixed-byte extraction. -/
-theorem evaluate_rlpSlices_updates_entry {F : Type} (state : PanSemStateFiniteExact 64 F)
+theorem evaluate_rlpSlices_updates_entry_frame {F : Type} (state : PanSemStateFiniteExact 64 F)
     (array index pointer offset total : BitVec 64)
     (arrayLocal : state.locals.lookup (ofString "arr") = some (.val (.word array)))
     (indexLocal : state.locals.lookup (ofString "i") = some (.val (.word index)))
@@ -17,7 +17,9 @@ theorem evaluate_rlpSlices_updates_entry {F : Type} (state : PanSemStateFiniteEx
     (domain0 : state.memaddrs (array + index * 16#64))
     (domain8 : state.memaddrs (array + index * 16#64 + 8#64)) :
     ∃ post, evaluateHOLFiniteState state rlpSlicesUpdates = (none,post) ∧
-      RlpSliceEntry post array index (pointer + offset) total ∧ post.clock = state.clock := by
+      RlpSliceEntry post array index (pointer + offset) total ∧ post.clock = state.clock ∧ post.memaddrs = state.memaddrs ∧
+      (∀ cell, cell ≠ array + index * 16#64 → cell ≠ array + index * 16#64 + 8#64 →
+        post.memory cell = state.memory cell) := by
   let address := array + index * 16#64
   have separate : address ≠ address + 8#64 := by
     intro equal
@@ -38,7 +40,7 @@ theorem evaluate_rlpSlices_updates_entry {F : Type} (state : PanSemStateFiniteEx
   have advances := evaluate_rlpSlices_advances second offset index total offsetLocal indexLocal totalLocal
   let post := setVarHOLFinite (ofString "i") (.val (.word (index + 1)))
     (setVarHOLFinite (ofString "off") (.val (.word (offset + total))) second)
-  refine ⟨post,?_,?_,rfl⟩
+  refine ⟨post,?_,?_,rfl,rfl,?_⟩
   · rw [source_rlpSlices_updates]
     exact evaluate_seq_none one (evaluate_seq_none two advances)
   · refine ⟨domain0,domain8,?_,?_⟩
@@ -47,6 +49,27 @@ theorem evaluate_rlpSlices_updates_entry {F : Type} (state : PanSemStateFiniteEx
       rw [if_neg separate,if_pos rfl]
     · change (if address + 8#64 = address + 8#64 then .word total else first.memory (address + 8#64)) = _
       rw [if_pos rfl]
+  · intro cell different0 different8
+    change (if cell = address + 8#64 then .word total else
+      if cell = address then .word (pointer + offset) else state.memory cell) = _
+    rw [if_neg different8,if_neg different0]
+
+theorem evaluate_rlpSlices_updates_entry {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (array index pointer offset total : BitVec 64)
+    (arrayLocal : state.locals.lookup (ofString "arr") = some (.val (.word array)))
+    (indexLocal : state.locals.lookup (ofString "i") = some (.val (.word index)))
+    (pointerLocal : state.locals.lookup (ofString "p") = some (.val (.word pointer)))
+    (offsetLocal : state.locals.lookup (ofString "off") = some (.val (.word offset)))
+    (totalLocal : state.locals.lookup (ofString "total") = some (.val (.word total)))
+    (domain0 : state.memaddrs (array + index * 16#64))
+    (domain8 : state.memaddrs (array + index * 16#64 + 8#64)) :
+    ∃ post, evaluateHOLFiniteState state rlpSlicesUpdates = (none,post) ∧
+      RlpSliceEntry post array index (pointer + offset) total ∧ post.clock = state.clock := by
+  obtain ⟨post,run,entry,clock,_,_⟩ := evaluate_rlpSlices_updates_entry_frame state array index pointer offset total
+    arrayLocal indexLocal pointerLocal offsetLocal totalLocal domain0 domain8
+  exact ⟨post,run,entry,clock⟩
+
+#print axioms evaluate_rlpSlices_updates_entry_frame
 
 #print axioms evaluate_rlpSlices_updates_entry
 end InitECandidate.Runtime
