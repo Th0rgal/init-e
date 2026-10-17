@@ -29,7 +29,8 @@ theorem rlpItem_body_return_progress {F : Type} (state post : PanSemStateFiniteE
       | some stopped => exact False.elim (noReturn (Prod.mk.inj run).1)
   · cases loaded : @panMemLoadByteHOL 64 _ state.memory state.memaddrs
         (fun address => Classical.propDecidable (state.memaddrs address)) state.be pointer with
-    | some byte => exact rlpItem_loaded_return_progress state post pointer total byte value
+    | some byte =>
+      exact rlpItem_loaded_return_progress state post pointer total byte value
         pointerLocal totalLocal zero loaded code ticks run
     | none =>
       have check : evaluateHOLFiniteState state
