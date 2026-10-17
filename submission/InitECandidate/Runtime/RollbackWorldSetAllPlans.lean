@@ -14,7 +14,7 @@ theorem RollbackWorld.set_call_all_plans {F : Type} (state : PanSemStateFiniteEx
     (ready : HashTableReady (widths table) table keys stride capacity used values order orderPos items bits pointer state)
     (strideBound : stride.toNat ≤ 56) (large : 1 < capacity.toNat)
     (budget : 3 * capacity.toNat + 2 * (capacity * 2).toNat + (widths table).toNat + 13 + items.toNat * ((capacity * 2).toNat + (widths table).toNat + 4) ≤ state.clock)
-    (domain : ∀ address : BitVec 64, table.toNat ≤ address.toNat → address.toNat < (htabGrowOrderPos pointer capacity stride).toNat + (capacity * 2).toNat * 8 → state.memaddrs address)
+    (domain : AllocationPlanSafe pointer (htabGrowAllocationSizes capacity stride) → ∀ address : BitVec 64, table.toNat ≤ address.toNat → address.toNat < (htabGrowOrderPos pointer capacity stride).toNat + (capacity * 2).toNat * 8 → state.memaddrs address)
     (tableArgument keyArgument valueArgument : ExpHOL 64)
     (args : evalListHOLFinite state (h := fun address => Classical.propDecidable (state.memaddrs address))
       [tableArgument,keyArgument,valueArgument] = some [.val (.word table),.val (.word key),.val (.word value)])
@@ -42,7 +42,7 @@ theorem RollbackWorld.set_call_all_plans {F : Type} (state : PanSemStateFiniteEx
   · by_cases safePlan : AllocationPlanSafe pointer (htabGrowAllocationSizes capacity stride)
     · exact Or.inl (RollbackWorld.set_call_preserves_separation state widths tables
         table pointer keys stride capacity used values order orderPos items key value bits supported ready strideBound large
-        safePlan budget domain tableArgument keyArgument valueArgument args keyAligned words bytes
+        safePlan budget (domain safePlan) tableArgument keyArgument valueArgument args keyAligned words bytes
         journal snapshot count world registered separated)
     · have outcome := RollbackWorld.set_unsafe_growth_call_dichotomy state widths tables
         table pointer keys stride capacity used values order orderPos items key value bits supported ready
