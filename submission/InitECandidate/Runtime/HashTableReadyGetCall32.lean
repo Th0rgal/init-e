@@ -24,6 +24,7 @@ theorem HashTableReady32.get_declaration {F : Type} (state : PanSemStateFiniteEx
       state.clock ≤ post.clock + 2 * capacity.toNat + 3 ∧ post.clock ≤ state.clock ∧
       post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧
       post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
+      (∀ other, other ≠ name → post.locals.lookup other = state.locals.lookup other) ∧
       (∀ continuation, evaluateHOLFiniteState state
         (.decCall name (.comb [.one,.one]) (ofString "htab_get") [tableArgument,keyArgument] continuation) =
         (let output := evaluateHOLFiniteState post continuation;
@@ -48,7 +49,7 @@ theorem HashTableReady32.get_declaration {F : Type} (state : PanSemStateFiniteEx
     (sourceFunctionBody Guest.guestFn_htab_get) table key (.comb [.one,.one]) (by decide) installed
   refine ⟨present,value,post,boolean,
     postReady.after_read bodyPost post table keys stride capacity used values order orderPos items bits pointer rfl rfl rfl rfl rfl,
-    ?_,?_,?_,memory,globals,code,domain,endian,?_⟩
+    ?_,?_,?_,memory,globals,code,domain,endian,?_,?_⟩
   · simp [post,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
   · change state.clock ≤ bodyPost.clock + 2 * capacity.toNat + 3
     change state.clock - 1 ≤ bodyPost.clock + 2 * capacity.toNat + 2 at cost
@@ -56,6 +57,8 @@ theorem HashTableReady32.get_declaration {F : Type} (state : PanSemStateFiniteEx
   · change bodyPost.clock ≤ state.clock
     change bodyPost.clock ≤ state.clock - 1 at remaining
     omega
+  · intro other different
+    simp [post,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm different]
   · intro continuation
     exact evaluate_decCall_return_caller_locals state bodyPost name (ofString "htab_get") (.comb [.one,.one]) (.comb [.one,.one])
       [tableArgument,keyArgument] [.val (.word table),.val (.word key)] (sourceFunctionBody Guest.guestFn_htab_get) continuation callee

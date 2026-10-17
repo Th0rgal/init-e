@@ -20,13 +20,14 @@ theorem HashTableReady32.jset_lookup {F : Type} (state : PanSemStateFiniteExact 
       state.clock ≤ post.clock + 2 * capacity.toNat + 3 ∧ post.clock ≤ state.clock ∧
       post.memory = state.memory ∧ post.globals = state.globals ∧ post.code = state.code ∧
       post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
+      (∀ other, other ≠ ofString "old" → post.locals.lookup other = state.locals.lookup other) ∧
       evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_jset) =
         (let output := evaluateHOLFiniteState post journalSetAfterGet32;
           (output.1,{output.2 with locals := (HolFiniteMapExact.resVarEq output.2.locals ((ofString "old"),state.locals.lookup (ofString "old")))})) := by
-  obtain ⟨present,value,post,boolean,postReady,savedLocal,cost,remaining,memory,globals,code,domain,endian,decl⟩ :=
+  obtain ⟨present,value,post,boolean,postReady,savedLocal,cost,remaining,memory,globals,code,domain,endian,locals,decl⟩ :=
     ready.get_declaration state table pointer keys stride capacity used values order orderPos items key bits
       (ofString "old") (.var .local (ofString "t")) (.var .local (ofString "key")) arguments keyAligned keyDomain budget
-  refine ⟨present,value,post,boolean,postReady,savedLocal,cost,remaining,memory,globals,code,domain,endian,?_⟩
+  refine ⟨present,value,post,boolean,postReady,savedLocal,cost,remaining,memory,globals,code,domain,endian,locals,?_⟩
   rw [source_journalSet32]
   exact decl journalSetAfterGet32
 
