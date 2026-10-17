@@ -32,7 +32,9 @@ theorem evaluate_hashDelete_occupied_allocated_iteration32 {F : Type} (state : P
       post.memaddrs = state.memaddrs ∧ post.be = state.be ∧ HashReverseEntriesBound used orderPos capacity items post ∧ HashOrderEntriesBound order capacity items post ∧
       (∀ slot : BitVec 64, slot.toNat < capacity.toNat →
         hashOccupancyRead post used slot = hashOccupancyRead state used slot) ∧
-      (post.locals.lookup (ofString "i") = some (.val (.word hole)) ∨ post.locals.lookup (ofString "i") = some (.val (.word (hashProbeNext index capacity)))) ∧ HashValueEntriesWord used values capacity post ∧ post.locals.lookup (ofString "j") = some (.val (.word (hashProbeNext index capacity))) ∧ HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits post := by
+      (post.locals.lookup (ofString "i") = some (.val (.word hole)) ∨ post.locals.lookup (ofString "i") = some (.val (.word (hashProbeNext index capacity)))) ∧ HashValueEntriesWord used values capacity post ∧ post.locals.lookup (ofString "j") = some (.val (.word (hashProbeNext index capacity))) ∧ HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits post ∧
+      (∀ name, name ≠ ofString "i" → name ≠ ofString "j" → name ≠ ofString "h" → name ≠ ofString "home" → name ≠ ofString "movable" →
+        post.locals.lookup name = state.locals.lookup name) := by
   let next := hashProbeNext index capacity
   let advanced := setVarHOLFinite (ofString "j") (.val (.word next)) state
   have other : ∀ name, name ≠ ofString "j" → advanced.locals.lookup name = state.locals.lookup name := by
@@ -53,7 +55,7 @@ theorem evaluate_hashDelete_occupied_allocated_iteration32 {F : Type} (state : P
     simpa [same] using loaded
   have selected := evaluate_hashDelete_occupied_iteration state index capacity used byte indexLocal capacityLocal usedLocal loaded nonzero
   have advancedInvariant := invariant.after_read state advanced table keys stride capacity used values order orderPos items bits rfl rfl rfl rfl
-  obtain ⟨post,run,cost,remaining,globals,code,domain,endian,reverse,ordered,occupancy,holePost,words,scanPost,arrays⟩ :=
+  obtain ⟨post,run,cost,remaining,globals,code,domain,endian,reverse,ordered,occupancy,holePost,words,scanPost,arrays,otherPost⟩ :=
     evaluate_hashDelete_hash_allocated32 advanced keys stride hole next values order orderPos used capacity items
       ((other _ (by decide)).trans keysLocal) ((other _ (by decide)).trans strideLocal)
       ((other _ (by decide)).trans holeLocal) j ((other _ (by decide)).trans sizeLocal)
@@ -62,7 +64,9 @@ theorem evaluate_hashDelete_occupied_allocated_iteration32 {F : Type} (state : P
       (entries.after_read state advanced used orderPos capacity items rfl rfl rfl)
       (orderEntries.after_memory state advanced order capacity items rfl) holeInside
       (valueEntries.after_read state advanced used values capacity rfl rfl rfl)
-  exact ⟨post,selected.trans run,cost,remaining,globals,code,domain,endian,reverse,ordered,occupancy,holePost,words,scanPost,arrays⟩
+  refine ⟨post,selected.trans run,cost,remaining,globals,code,domain,endian,reverse,ordered,occupancy,holePost,words,scanPost,arrays,?_⟩
+  intro name notHole notScan notHash notHome notMovable
+  exact (otherPost name notHole notHash notHome notMovable).trans (other name notScan)
 
 #print axioms evaluate_hashDelete_occupied_allocated_iteration32
 end InitECandidate.Runtime

@@ -56,7 +56,7 @@ theorem evaluate_hashDelete_hash_allocated_move32 {F : Type} (state : PanSemStat
     rw [show entered.memory = state.memory from memory,show entered.memaddrs = state.memaddrs from domain,show entered.be = state.be from endian]
   have enteredInvariant := invariant.after_read state entered table keys stride capacity used values order orderPos items bits memory code domain endian
   have clock : entered.clock = state.clock - 1 := ticks
-  obtain ⟨post,run,cost,remaining,postGlobals,postCode,postDomain,postEndian,reverse,ordered,occupancy,holePost,valuePost,scanPost,arrays⟩ :=
+  obtain ⟨post,run,cost,remaining,postGlobals,postCode,postDomain,postEndian,reverse,ordered,occupancy,holePost,valuePost,scanPost,arrays,otherPost⟩ :=
     evaluate_hashDelete_move_scoped32 entered keys stride hole scan values order orderPos used capacity items
       ((other _ (by decide)).trans keysLocal) ((other _ (by decide)).trans strideLocal)
       ((other _ (by decide)).trans holeLocal) ((other _ (by decide)).trans scanLocal)

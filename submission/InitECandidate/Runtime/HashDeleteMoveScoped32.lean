@@ -36,7 +36,9 @@ theorem evaluate_hashDelete_move_scoped32 {F : Type} (state : PanSemStateFiniteE
       post.memaddrs = state.memaddrs ∧ post.be = state.be ∧ HashReverseEntriesBound used orderPos capacity items post ∧ HashOrderEntriesBound order capacity items post ∧
       (∀ slot : BitVec 64, slot.toNat < capacity.toNat →
         hashOccupancyRead post used slot = hashOccupancyRead state used slot) ∧
-      post.locals.lookup (ofString "i") = some (.val (.word scan)) ∧ HashValueEntriesWord used values capacity post ∧ post.locals.lookup (ofString "j") = some (.val (.word scan)) ∧ HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits post := by
+      post.locals.lookup (ofString "i") = some (.val (.word scan)) ∧ HashValueEntriesWord used values capacity post ∧ post.locals.lookup (ofString "j") = some (.val (.word scan)) ∧ HashTableArraysInvariant32 table keys stride capacity used values order orderPos items bits post ∧
+      (∀ name, name ≠ ofString "i" → name ≠ ofString "home" → name ≠ ofString "movable" →
+        post.locals.lookup name = state.locals.lookup name) := by
   let entered := hashDeleteMoveEntry state hash capacity
   have other : ∀ name, name ≠ ofString "home" → name ≠ ofString "movable" → entered.locals.lookup name = state.locals.lookup name := by
     intro name notHome notMovable
@@ -55,7 +57,7 @@ theorem evaluate_hashDelete_move_scoped32 {F : Type} (state : PanSemStateFiniteE
   have scopeRun := evaluate_hashDelete_move_scope_run state post hole scan hash capacity holeLocal scanLocal hashLocal capacityLocal moves run
   refine ⟨hashDeleteMoveExit state post,scopeRun,cost,remaining,globals,code,domain,endian,
     reverse.after_read post _ used orderPos capacity items rfl rfl rfl,
-    ordered.after_memory post _ order capacity items rfl,occupancy,?_,words.after_read post _ used values capacity rfl rfl rfl,?_,arrays.after_read post _ table keys stride capacity used values order orderPos items bits rfl rfl rfl rfl⟩
+    ordered.after_memory post _ order capacity items rfl,occupancy,?_,words.after_read post _ used values capacity rfl rfl rfl,?_,arrays.after_read post _ table keys stride capacity used values order orderPos items bits rfl rfl rfl rfl,?_⟩
   · unfold hashDeleteMoveExit
     rw [restore_other_local _ _ (ofString "i") _ (by decide),restore_other_local _ _ (ofString "i") _ (by decide)]
     rw [locals]
@@ -66,6 +68,11 @@ theorem evaluate_hashDelete_move_scoped32 {F : Type} (state : PanSemStateFiniteE
     have different : ofString "i" ≠ ofString "j" := by decide
     simp only [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,if_neg different]
     exact (other _ (by decide) (by decide)).trans scanLocal
+  · intro name notIndex notHome notMovable
+    unfold hashDeleteMoveExit
+    rw [restore_other_local _ _ name _ notHome,restore_other_local _ _ name _ notMovable,locals]
+    change (entered.locals.update (ofString "i",.val (.word scan))).lookup name = _
+    simpa [HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm notIndex] using other name notHome notMovable
 
 #print axioms evaluate_hashDelete_move_scoped32
 end InitECandidate.Runtime
