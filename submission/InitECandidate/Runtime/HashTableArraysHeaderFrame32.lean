@@ -9,7 +9,7 @@ theorem HashTableArraysInvariant32.framed {F : Type} (state post : PanSemStateFi
     (invariant : HashTableArraysInvariant32 table keys stride capacity used values order orderPos count bits state)
     (header : ∀ offset ∈ ([0,8,16,24,32,40,48,56,64] : List Nat),
       post.memory (table + BitVec.ofNat 64 offset) = state.memory (table + BitVec.ofNat 64 offset))
-    (reads : hashOccupancyRead post used = hashOccupancyRead state used)
+    (reads : ∀ slot : BitVec 64, slot.toNat < capacity.toNat → hashOccupancyRead post used slot = hashOccupancyRead state used slot)
     (code : post.code = state.code)
     (addresses : post.memaddrs = state.memaddrs) :
     HashTableArraysInvariant32 table keys stride capacity used values order orderPos count bits post := by
@@ -40,7 +40,7 @@ theorem HashTableArraysInvariant32.framed {F : Type} (state post : PanSemStateFi
     cell48 := (header 48 (by simp)).trans invariant.cell48
     cell56 := (header 56 (by simp)).trans invariant.cell56
     cell64 := (header 64 (by simp)).trans invariant.cell64
-    agreement := by rw [reads]; exact invariant.agreement
+    agreement := by rw [hashOccupiedCount_congr capacity _ _ reads]; exact invariant.agreement
     room := invariant.room
   }
 
