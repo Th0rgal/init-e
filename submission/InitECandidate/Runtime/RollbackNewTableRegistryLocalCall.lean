@@ -33,8 +33,10 @@ theorem rollback_htabNew_registry_local_call {F : Type} (state : PanSemStateFini
       (∀ other ∈ insert table tables, RollbackTableReady widths other post) ∧
       RollbackPhysicalSeparated widths (insert table tables) post ∧
       post.locals.lookup name = some (.val (.word table)) ∧
+      post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be ∧ HeapGlobalsFrame state post ∧
+      post.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd (htabNewOrderPos table (widths table) capacity) (capacity * 8)))) ∧
       state.clock ≤ post.clock + capacity.toNat + 8 ∧ post.clock ≤ state.clock := by
-  obtain ⟨post,run,registry,apart,cost,remaining,locals,_,_,_,_,_,atLocal⟩ := rollback_htabNew_registry_declaration state widths tables
+  obtain ⟨post,run,registry,apart,cost,remaining,locals,postCode,domain,endian,globalsFrame,postHeap,_,atLocal⟩ := rollback_htabNew_registry_declaration state widths tables
     keyArgument capacityArgument table capacity bits arguments power tableDomain code ticks heap keyBound tableAligned budget
     headerDomain wordDomain byteDomain large family separated
   let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
@@ -65,7 +67,7 @@ theorem rollback_htabNew_registry_local_call {F : Type} (state : PanSemStateFini
     (sourceFunctionBody Guest.guestFn_htab_new) callee .one (.val (.word table)) bodyPost arguments lookup (by omega) body
     (by simp [shapeOfHOLExact,shapeEqHOL]) valid
   rw [← same] at assigned
-  refine ⟨setVarHOLFinite name (.val (.word table)) post,assigned,(atLocal name).1,(atLocal name).2,?_,cost,remaining⟩
+  refine ⟨setVarHOLFinite name (.val (.word table)) post,assigned,(atLocal name).1,(atLocal name).2,?_,postCode,domain,endian,globalsFrame,postHeap,cost,remaining⟩
   simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
 
 #print axioms rollback_htabNew_registry_local_call

@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.RollbackNewTableRegistry
 import InitECandidate.Runtime.RollbackWorldRead
+import InitECandidate.Runtime.HashNewHeaderCallHeapFrame
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -31,7 +32,7 @@ theorem rollback_htabNew_registry_declaration {F : Type} (state : PanSemStateFin
       (∀ other ∈ insert table tables, RollbackTableReady widths other post) ∧
       RollbackPhysicalSeparated widths (insert table tables) post ∧
       state.clock ≤ post.clock + capacity.toNat + 8 ∧ post.clock ≤ state.clock ∧
-      post.locals = state.locals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be ∧
+      post.locals = state.locals ∧ post.code = state.code ∧ post.memaddrs = state.memaddrs ∧ post.be = state.be ∧ HeapGlobalsFrame state post ∧
       post.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd (htabNewOrderPos table (widths table) capacity) (capacity * 8)))) ∧
       (∀ name continuation,
         evaluateHOLFiniteState state (.decCall name .one (ofString "htab_new") [keyArgument,capacityArgument] continuation) =
@@ -47,7 +48,12 @@ theorem rollback_htabNew_registry_declaration {F : Type} (state : PanSemStateFin
     headerDomain wordDomain byteDomain
   have same : post = checked := congrArg Prod.snd (run.symm.trans checkedRun)
   rw [← same] at locals postCode domain endian newReady decl
-  refine ⟨post,run,registry,apart,cost,remaining,locals,postCode,domain,endian,newReady.live.frontier.heap,decl,?_⟩
+  obtain ⟨framed,framedRun,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,globalsFrame,_⟩ :=
+    evaluate_htabNew_header_call_and_declaration_heap_frame state keyArgument capacityArgument table (widths table) capacity arguments
+      code ticks heap keyBound tableAligned budget headerDomain wordDomain byteDomain
+  have sameFramed : post = framed := congrArg Prod.snd (run.symm.trans framedRun)
+  rw [← sameFramed] at globalsFrame
+  refine ⟨post,run,registry,apart,cost,remaining,locals,postCode,domain,endian,globalsFrame,newReady.live.frontier.heap,decl,?_⟩
   intro name
   exact ⟨fun other member => (registry other member).after_read rfl rfl rfl rfl rfl,
     apart.after_read (after := setVarHOLFinite name (.val (.word table)) post) rfl rfl rfl rfl rfl⟩
