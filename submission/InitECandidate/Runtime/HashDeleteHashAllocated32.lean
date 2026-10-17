@@ -33,7 +33,7 @@ theorem evaluate_hashDelete_hash_allocated32 {F : Type} (state : PanSemStateFini
       post.memaddrs = state.memaddrs ∧ post.be = state.be ∧ HashReverseEntriesBound used orderPos capacity items post ∧ HashOrderEntriesBound order capacity items post ∧
       (∀ slot : BitVec 64, slot.toNat < capacity.toNat →
         hashOccupancyRead post used slot = hashOccupancyRead state used slot) ∧
-      (post.locals.lookup (ofString "i") = some (.val (.word hole)) ∨ post.locals.lookup (ofString "i") = some (.val (.word scan))) ∧ HashValueEntriesWord used values capacity post := by
+      (post.locals.lookup (ofString "i") = some (.val (.word hole)) ∨ post.locals.lookup (ofString "i") = some (.val (.word scan))) ∧ HashValueEntriesWord used values capacity post ∧ post.locals.lookup (ofString "j") = some (.val (.word scan)) := by
   obtain ⟨aligned,words,_,_⟩ := invariant.key_slot_domains state table keys stride capacity used values order orderPos items scan bits scanInside
   have hashDomain : ∀ offset ∈ ([0,8,16,24] : List Nat), state.memaddrs (keys + scan * stride + BitVec.ofNat 64 offset) := by
     intro offset member
@@ -56,7 +56,7 @@ theorem evaluate_hashDelete_hash_allocated32 {F : Type} (state : PanSemStateFini
   have clock : entered.clock = state.clock - 1 := ticks
   classical
   by_cases moves : hashDeleteMoveRequired hole scan (hash &&& (capacity - 1))
-  · obtain ⟨post,run,cost,remaining,postGlobals,postCode,postDomain,postEndian,reverse,ordered,occupancy,holePost,valuePost⟩ :=
+  · obtain ⟨post,run,cost,remaining,postGlobals,postCode,postDomain,postEndian,reverse,ordered,occupancy,holePost,valuePost,scanPost⟩ :=
       evaluate_hashDelete_move_scoped32 entered keys stride hole scan values order orderPos used capacity items
         ((other _ (by decide)).trans keysLocal) ((other _ (by decide)).trans strideLocal)
         ((other _ (by decide)).trans holeLocal) ((other _ (by decide)).trans scanLocal)
@@ -71,7 +71,7 @@ theorem evaluate_hashDelete_hash_allocated32 {F : Type} (state : PanSemStateFini
     rw [run]
     refine ⟨_,rfl,?_,?_,postGlobals.trans globals,postCode.trans code,postDomain.trans domain,postEndian.trans endian,
       reverse.after_read post _ used orderPos capacity items rfl rfl rfl,
-      ordered.after_memory post _ order capacity items rfl,?_,?_,valuePost.after_read post _ used values capacity rfl rfl rfl⟩
+      ordered.after_memory post _ order capacity items rfl,?_,?_,valuePost.after_read post _ used values capacity rfl rfl rfl,?_⟩
     · change state.clock ≤ post.clock + 34
       change entered.clock ≤ post.clock + 32 + 1 at cost
       omega
@@ -82,6 +82,9 @@ theorem evaluate_hashDelete_hash_allocated32 {F : Type} (state : PanSemStateFini
       change (HolFiniteMapExact.resVarEq post.locals (ofString "h",state.locals.lookup (ofString "h"))).lookup (ofString "i") = _
       rw [restore_other_local _ _ (ofString "i") _ (by decide)]
       exact holePost
+    · change (HolFiniteMapExact.resVarEq post.locals (ofString "h",state.locals.lookup (ofString "h"))).lookup (ofString "j") = _
+      rw [restore_other_local _ _ (ofString "j") _ (by decide)]
+      exact scanPost
   · have noMove := evaluate_hashDelete_no_move entered hole scan hash capacity
       ((other _ (by decide)).trans holeLocal) ((other _ (by decide)).trans scanLocal) h
       ((other _ (by decide)).trans capacityLocal) moves
@@ -91,7 +94,7 @@ theorem evaluate_hashDelete_hash_allocated32 {F : Type} (state : PanSemStateFini
     refine ⟨_,rfl,?_,?_,globals,code,domain,endian,
       entries.after_read state _ used orderPos capacity items memory domain endian,
       orderEntries.after_memory state _ order capacity items memory,?_,?_,
-      valueEntries.after_read state _ used values capacity memory domain endian⟩
+      valueEntries.after_read state _ used values capacity memory domain endian,?_⟩
     · change state.clock ≤ entered.clock + 34; omega
     · change entered.clock ≤ state.clock; omega
     · intro slot inside
@@ -100,6 +103,9 @@ theorem evaluate_hashDelete_hash_allocated32 {F : Type} (state : PanSemStateFini
       change (HolFiniteMapExact.resVarEq entered.locals (ofString "h",state.locals.lookup (ofString "h"))).lookup (ofString "i") = _
       rw [restore_other_local _ _ (ofString "i") _ (by decide)]
       exact (other _ (by decide)).trans holeLocal
+    · change (HolFiniteMapExact.resVarEq entered.locals (ofString "h",state.locals.lookup (ofString "h"))).lookup (ofString "j") = _
+      rw [restore_other_local _ _ (ofString "j") _ (by decide)]
+      exact (other _ (by decide)).trans scanLocal
 
 #print axioms evaluate_hashDelete_hash_allocated32
 end InitECandidate.Runtime
