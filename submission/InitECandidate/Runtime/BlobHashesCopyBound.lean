@@ -39,7 +39,7 @@ theorem evaluate_blobHashes_copy_bounded {F : Type} (state : PanSemStateFiniteEx
     rw [source_blobHashes_copy_tail,evaluateHOLFiniteState_seq_line780]
     change (let evaluated := (match evaluateHOLFiniteState state (.call (some (none,none)) (ofString "memcpy") arguments) with
       | (none,next) => evaluateHOLFiniteState next (.assign .local (ofString "i") (.op .add [.var .local (ofString "i"),.const 1]))
-      | stopped => stopped); _) 
+      | stopped => stopped); _)
     rw [run]
     cases result with
     | some stopped => exact bounded
