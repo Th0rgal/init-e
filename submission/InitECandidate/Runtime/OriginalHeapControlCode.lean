@@ -1,0 +1,81 @@
+import InitECandidate.Runtime.OriginalRuntimeCode
+import Init.Data.List.Find
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 1000000
+set_option cbv.maxSteps 1000000000
+set_option cbv.warning false
+namespace InitECandidate.Runtime
+open InitE Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+theorem originalRuntimeCode_heap_mark_lookup :
+    originalRuntimeCode.lookup (ofString "heap_mark") =
+      some ([],sourceFunctionBody Guest.guestFn_heap_mark,.one) := by
+  change (HolFiniteMapExact.empty.updateList (functionsHOL sourceDeclarations)).lookup _ = _
+  calc
+    _ = List.lookup (ofString "heap_mark") (functionsHOL sourceDeclarations).reverse := by
+      rw [HolFiniteMapExact.lookup_updateList]
+      change FUPDATE_LIST FEMPTY (functionsHOL sourceDeclarations) (ofString "heap_mark") = _
+      simpa only [List.reverse_reverse,FLOOKUP] using
+        FLOOKUP_FUPDATE_LIST_reverse_eq_lookup (functionsHOL sourceDeclarations).reverse (ofString "heap_mark")
+    _ = _ := by
+      let declarations := InitECandidate.Proofs.FrontendStages.Declarations.originals
+      have split : declarations = declarations.take 9 ++
+          InitECandidate.Proofs.FrontendStages.Declarations.original9 :: declarations.drop 10 := by kernel_rfl
+      have absent : ((functionsHOL (declarations.drop 10)).reverse).all
+          (fun entry => !((ofString "heap_mark") == entry.1)) = true := by decide_cbv
+      have head : functionsHOL
+          (InitECandidate.Proofs.FrontendStages.Declarations.original9 :: declarations.drop 10) =
+          (ofString "heap_mark",[],sourceFunctionBody Guest.guestFn_heap_mark,ShapeHOL.one) ::
+            functionsHOL (declarations.drop 10) := by
+        rw [InitECandidate.Proofs.FrontendStages.Declarations.original9_eq]
+        simp only [Guest.guestFn_heap_mark,declToHOL,functionsHOL,funDeclToHOL,
+          List.map_cons,List.map_nil,paramToHOL,shapeToHOL,sourceFunctionBody]
+      rw [InitECandidate.Proofs.FrontendStages.Declarations.sourceDeclarations_eq]
+      change List.lookup (ofString "heap_mark") (functionsHOL declarations).reverse = _
+      rw [split,functionsHOL_append,head,List.reverse_append,List.reverse_cons,List.append_assoc]
+      have noLookup : List.lookup (ofString "heap_mark") (functionsHOL (declarations.drop 10)).reverse = none := by
+        apply List.lookup_eq_none_iff.mpr
+        simpa only [bne] using List.all_eq_true.mp absent
+      rw [List.lookup_append,noLookup]
+      change List.lookup (ofString "heap_mark") (_ ++ _) = _
+      simp only [List.singleton_append,List.lookup_cons,beq_self_eq_true]
+
+
+theorem originalRuntimeCode_heap_release_lookup :
+    originalRuntimeCode.lookup (ofString "heap_release") =
+      some ([(ofString "m",.one)],sourceFunctionBody Guest.guestFn_heap_release,.one) := by
+  change (HolFiniteMapExact.empty.updateList (functionsHOL sourceDeclarations)).lookup _ = _
+  calc
+    _ = List.lookup (ofString "heap_release") (functionsHOL sourceDeclarations).reverse := by
+      rw [HolFiniteMapExact.lookup_updateList]
+      change FUPDATE_LIST FEMPTY (functionsHOL sourceDeclarations) (ofString "heap_release") = _
+      simpa only [List.reverse_reverse,FLOOKUP] using
+        FLOOKUP_FUPDATE_LIST_reverse_eq_lookup (functionsHOL sourceDeclarations).reverse (ofString "heap_release")
+    _ = _ := by
+      let declarations := InitECandidate.Proofs.FrontendStages.Declarations.originals
+      have split : declarations = declarations.take 10 ++
+          InitECandidate.Proofs.FrontendStages.Declarations.original10 :: declarations.drop 11 := by kernel_rfl
+      have absent : ((functionsHOL (declarations.drop 11)).reverse).all
+          (fun entry => !((ofString "heap_release") == entry.1)) = true := by decide_cbv
+      have head : functionsHOL
+          (InitECandidate.Proofs.FrontendStages.Declarations.original10 :: declarations.drop 11) =
+          (ofString "heap_release",[(ofString "m",.one)],sourceFunctionBody Guest.guestFn_heap_release,ShapeHOL.one) ::
+            functionsHOL (declarations.drop 11) := by
+        rw [InitECandidate.Proofs.FrontendStages.Declarations.original10_eq]
+        simp only [Guest.guestFn_heap_release,declToHOL,functionsHOL,funDeclToHOL,
+          List.map_cons,List.map_nil,paramToHOL,shapeToHOL,sourceFunctionBody]
+      rw [InitECandidate.Proofs.FrontendStages.Declarations.sourceDeclarations_eq]
+      change List.lookup (ofString "heap_release") (functionsHOL declarations).reverse = _
+      rw [split,functionsHOL_append,head,List.reverse_append,List.reverse_cons,List.append_assoc]
+      have noLookup : List.lookup (ofString "heap_release") (functionsHOL (declarations.drop 11)).reverse = none := by
+        apply List.lookup_eq_none_iff.mpr
+        simpa only [bne] using List.all_eq_true.mp absent
+      rw [List.lookup_append,noLookup]
+      change List.lookup (ofString "heap_release") (_ ++ _) = _
+      simp only [List.singleton_append,List.lookup_cons,beq_self_eq_true]
+
+
+#print axioms originalRuntimeCode_heap_mark_lookup
+#print axioms originalRuntimeCode_heap_release_lookup
+end InitECandidate.Runtime
