@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.PanEvaluationMetadata
 import InitECandidate.Runtime.RollbackWorldJournalSetCallGlobals
+import InitECandidate.Runtime.RollbackWorldJournalDeleteCallGlobals
 import InitECandidate.Runtime.RollbackWorldJournalSetCallSuccess
 import InitECandidate.Runtime.RollbackWorldJournalDeleteCallSuccess
 namespace InitECandidate.Runtime
@@ -67,12 +68,15 @@ theorem rollback_world_jdel_call_contract {F : Type} (state : PanSemStateFiniteE
       output.2.code = state.code ∧ output.2.memaddrs = state.memaddrs ∧ output.2.be = state.be ∧
       (output.1 = none → ∃ next : BitVec 64, (next = count ∨ next = count + 1) ∧
         RollbackWorld widths tables journal snapshot next
-          (setVarHOLFinite (ofString "snap") (.val (.word snapshot)) output.2) ∧ RollbackPhysicalSeparated widths tables output.2) := by
+          (setVarHOLFinite (ofString "snap") (.val (.word snapshot)) output.2) ∧ RollbackPhysicalSeparated widths tables output.2 ∧ output.2.globals.lookup (ofString "journal_cap") = state.globals.lookup (ofString "journal_cap")) := by
   have bounded := rollback_world_jdel_call_bounded state widths tables journal snapshot count table key world separated member supported tableArgument keyArgument arguments keyAligned keyWords keyBytes ticks journalBound journalAligned journalHeaders heapDomain capacityGlobal code
   have metadata := evaluateHOLFiniteState_metadata state (.call (some (none,none)) (ofString "jdel") [tableArgument,keyArgument])
   refine ⟨bounded.1,bounded.2.1,bounded.2.2,metadata.1,metadata.2.1,metadata.2.2.1,?_⟩
   intro success
-  exact rollback_world_jdel_call_success state widths tables journal snapshot count table key world separated member supported tableArgument keyArgument arguments keyAligned keyWords keyBytes ticks journalBound journalAligned journalHeaders heapDomain capacityGlobal code success
+  obtain ⟨next,counts,nextWorld,apart⟩ := rollback_world_jdel_call_success state widths tables journal snapshot count table key world separated member supported tableArgument keyArgument arguments keyAligned keyWords keyBytes ticks journalBound journalAligned journalHeaders heapDomain capacityGlobal code success
+
+  have globals := rollback_world_jdel_call_success_globals state widths tables journal snapshot count table key world separated member supported tableArgument keyArgument arguments keyAligned keyWords keyBytes ticks journalBound journalAligned journalHeaders heapDomain capacityGlobal code success
+  exact ⟨next,counts,nextWorld,apart,globals (ofString "journal_cap") (by decide) (by decide)⟩
 
 #print axioms rollback_world_jdel_call_contract
 
