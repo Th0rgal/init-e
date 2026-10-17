@@ -26,7 +26,8 @@ theorem RollbackWorld.allocate_key {F : Type} {widths : BitVec 64 → BitVec 64}
       post.locals.lookup (ofString "kc") = some (.val (.word pointer)) ∧
       post.clock = state.clock - 1 ∧ post.memory = state.memory ∧ post.code = state.code ∧
       post.memaddrs = state.memaddrs ∧ post.be = state.be ∧ HeapGlobalsFrame state post ∧
-      post.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd pointer size))) := by
+      post.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd pointer size))) ∧
+      post.locals = (setVarHOLFinite (ofString "kc") (.val (.word pointer)) state).locals := by
   obtain ⟨allocated,_,ticks,memory,locals,postCode,domain,_,endian,globals,decl⟩ :=
     evaluate_alloc_call_and_declaration state argument pointer size arguments code clock heap request finish
   have heapNext : allocated.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd pointer size))) := by
@@ -42,8 +43,9 @@ theorem RollbackWorld.allocate_key {F : Type} {widths : BitVec 64 → BitVec 64}
   let post := setVarHOLFinite (ofString "kc") (.val (.word pointer)) allocated
   have postWorld : RollbackWorld widths tables journal snapshot count post := midWorld.after_read rfl rfl rfl rfl rfl (by
     simp [post,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,show ofString "kc" ≠ ofString "snap" from by decide])
-  refine ⟨post,decl (ofString "kc"),postWorld,midSep.after_read rfl rfl rfl rfl rfl,?_,ticks,memory,postCode,domain,endian,frame,heapNext⟩
-  simp [post,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  refine ⟨post,decl (ofString "kc"),postWorld,midSep.after_read rfl rfl rfl rfl rfl,?_,ticks,memory,postCode,domain,endian,frame,heapNext,?_⟩
+  · simp [post,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  · simp only [post,setVarHOLFinite,locals]
 
 #print axioms RollbackWorld.allocate_key
 end InitECandidate.Runtime
