@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.ProgBounded
+import InitECandidate.Runtime.PanUniformCalleeCallBound
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -126,6 +127,34 @@ theorem dec {F : Type} (state : PanSemStateFiniteExact 64 F) (name : MlS) (shape
     · exact inner value evaluated
     · simp
 
+/-- A handler-free call from a state whose arguments evaluate to `values`
+costs its looked-up body's bound plus the entry tick, in every outcome. -/
+theorem call {F : Type} {state : PanSemStateFiniteExact 64 F} {function : MlS}
+    {destination : Option (VarKind × MlS)} {arguments : List (ExpHOL 64)} {values : List (ValueHOL 64)} {bodyCost : Nat}
+    (args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments = some values)
+    (budget : bodyCost + 1 ≤ state.clock)
+    (bodies : ∀ body locals returnShape,
+      lookupCodeHOLFinite state.code.lookup function values = some (body,locals,returnShape) →
+      RunBounded (callEntryStateHOLFinite state locals) body bodyCost) :
+    RunBounded state (.call (some (destination,none)) function arguments) (bodyCost + 1) := by
+  unfold RunBounded
+  cases lookup : lookupCodeHOLFinite state.code.lookup function values with
+  | none => rw [evaluateHOLFiniteState_call,args]; dsimp only; rw [lookup]; simp
+  | some installed =>
+    obtain ⟨body,callee,returnShape⟩ := installed
+    have bounded := bodies body callee returnShape lookup
+    unfold RunBounded at bounded
+    cases ran : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) body with
+    | mk result post =>
+      rw [ran] at bounded
+      dsimp only at bounded
+      have output := evaluate_call_body_clock_no_timeout state post function destination arguments values body callee
+        returnShape result args lookup (by omega) ran bounded.2.2
+      rw [output.2]
+      have spent : state.clock - 1 ≤ post.clock + bodyCost := bounded.1
+      have kept : post.clock ≤ state.clock - 1 := bounded.2.1
+      exact ⟨by omega,by omega,output.1⟩
+
 end RunBounded
 
 #print axioms RunBounded.seq
@@ -133,4 +162,5 @@ end RunBounded
 #print axioms RunBounded.decCall
 #print axioms RunBounded.decWord
 #print axioms RunBounded.dec
+#print axioms RunBounded.call
 end InitECandidate.Runtime
