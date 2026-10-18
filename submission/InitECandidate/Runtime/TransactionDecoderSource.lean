@@ -55,5 +55,43 @@ theorem source_transaction_signature_first : transactionSignatureFirst =
     transactionAt,authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   rfl
 
+def transactionAuthorizationBranch : ProgHOL 64 :=
+  match transactionAt 38 with | .seq branch _ => branch | _ => .skip
+def transactionAuthorizationDecode : ProgHOL 64 :=
+  match transactionAuthorizationBranch with
+  | .ite _ (.decCall _ _ _ _ tail) _ => tail
+  | _ => .skip
+
+def transactionAuthorizationFinish : ProgHOL 64 :=
+  .seq (.store (.op .add [.var .local (ofString "tx"),.const 272]) (.rfield 0 (.var .local (ofString "au"))))
+    (.seq (.store (.op .add [.var .local (ofString "tx"),.const 280]) (.rfield 1 (.var .local (ofString "au"))))
+      (.assign .local (ofString "k") (.op .add [.var .local (ofString "k"),.const 1])))
+
+theorem source_transaction_authorization_decode : transactionAuthorizationDecode =
+    .decCall (ofString "au") (.comb [.one,.one]) (ofString "decode_authorizations")
+      [.rfield 0 (.var .local (ofString "aul")),.rfield 1 (.var .local (ofString "aul"))] transactionAuthorizationFinish := by
+  simp only [transactionAuthorizationDecode,transactionAuthorizationBranch,transactionAuthorizationFinish,transactionAt,
+    authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
+def transactionAccessBranch : ProgHOL 64 :=
+  match transactionAt 36 with | .seq branch _ => branch | _ => .skip
+def transactionAccessDecode : ProgHOL 64 :=
+  match transactionAccessBranch with
+  | .ite _ (.decCall _ _ _ _ tail) _ => tail
+  | _ => .skip
+
+def transactionAccessFinish : ProgHOL 64 :=
+  .seq (.store (.op .add [.var .local (ofString "tx"),.const 208]) (.rfield 0 (.var .local (ofString "acc"))))
+    (.seq (.store (.op .add [.var .local (ofString "tx"),.const 216]) (.rfield 1 (.var .local (ofString "acc"))))
+      (.assign .local (ofString "k") (.op .add [.var .local (ofString "k"),.const 1])))
+
+theorem source_transaction_access_decode : transactionAccessDecode =
+    .decCall (ofString "acc") (.comb [.one,.one]) (ofString "decode_access_list")
+      [.rfield 0 (.var .local (ofString "al")),.rfield 1 (.var .local (ofString "al"))] transactionAccessFinish := by
+  simp only [transactionAccessDecode,transactionAccessBranch,transactionAccessFinish,transactionAt,
+    authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
 #print axioms source_transaction_signature_last
 end InitECandidate.Runtime
