@@ -2,6 +2,7 @@ import InitECandidate.Runtime.TransactionChainIdOuterPrefix
 import InitECandidate.Runtime.TransactionChainIdFrame
 import InitECandidate.Runtime.TransactionChainIdBound
 import InitECandidate.Runtime.NoDirectReturn
+import InitECandidate.Runtime.TransactionChainIdIndexValue
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -25,6 +26,9 @@ theorem transaction_chain_id_returned_outer_contract {F : Type} (state post : Pa
     (outerBelow : outerArray.toNat + outerCount.toNat * 16 ≤ frame.toNat)
     (beforeTx : outerArray.toNat + outerCount.toNat * 16 ≤ tx.toNat)
     (headerBefore : tx.toNat + 8 < array.toNat)
+    (kind : BitVec 64)
+    (typeLocal : state.locals.lookup (ofString "t") = some (.val (.word kind)))
+    (indexLocal : state.locals.lookup (ofString "k") = some (.val (.word 0)))
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (transactionAt 17) = (some (.returned value),post)) :
     ∃ middle : PanSemStateFiniteExact 64 F,
@@ -35,7 +39,8 @@ theorem transaction_chain_id_returned_outer_contract {F : Type} (state post : Pa
       (∀ name, name ≠ ofString "w" → name ≠ ofString "k" → middle.locals.lookup name = state.locals.lookup name) ∧
       middle.code = state.code ∧ middle.memaddrs = state.memaddrs ∧
       state.clock ≤ middle.clock + (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92643) ∧
-      middle.clock ≤ state.clock := by
+      middle.clock ≤ state.clock ∧
+      middle.locals.lookup (ofString "k") = some (.val (.word (if kind = 0 then 0 else 1))) := by
   have noReturn := evaluate_noDirectReturn transactionChainIdBranch (by rfl) state value
   have bounded := evaluate_transaction_chain_id_bounded state array input inputLength scratch frame count.toNat ceiling inputLimit
     arrayLocal valid inside inputBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena budget
@@ -54,7 +59,7 @@ theorem transaction_chain_id_returned_outer_contract {F : Type} (state post : Pa
         arrayLocal valid inside inputBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena budget
         arrayBelow tx txLocal outerArray outerCount outerInput outerLength outerValid outerBelow beforeTx
         (Nat.lt_trans headerBefore array.isLt) branchRun
-      refine ⟨middle,run,retained.2,outer.2,retained.1,?_,metadata.1,metadata.2.1,bounded.1,bounded.2.1⟩
+      refine ⟨middle,run,retained.2,outer.2,retained.1,?_,metadata.1,metadata.2.1,bounded.1,bounded.2.1,transaction_chain_id_normal_index state middle kind typeLocal indexLocal branchRun⟩
       intro name notWord notIndex
       exact transaction_chain_id_other_local state middle name notWord notIndex branchRun
 

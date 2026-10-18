@@ -50,6 +50,7 @@ theorem transaction_body_returned_chain_id_contract {F : Type} (state post : Pan
       entry.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)) ∧
       entry.code = state.code ∧ entry.memaddrs = state.memaddrs ∧
       reserve ≤ entry.clock ∧ entry.clock ≤ state.clock ∧
+      entry.locals.lookup (ofString "k") = some (.val (.word (if kind = 0 then 0 else 1))) ∧
       evaluateHOLFiniteState entry (transactionAt 18) = (some (.returned value),output) ∧
       post.memory = output.memory := by
   obtain ⟨fieldCount,kind,ready,output,wordCount,naturalCount,bounded,spans,preserved,atArray,atTx,supported,atType,
@@ -68,17 +69,17 @@ theorem transaction_body_returned_chain_id_contract {F : Type} (state post : Pan
     exact Nat.le_trans (Nat.add_le_add_left (Nat.mul_le_mul_right 16 bounded) _) fieldsBeforeFrame
   have costBudget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) + 92643 ≤ ready.clock :=
     (Nat.le_add_right _ reserve).trans available
-  obtain ⟨entry,bodyRun,newSpans,oldSpans,globals,locals,entryCode,entryDomain,consumed,entryRemaining⟩ :=
+  obtain ⟨entry,bodyRun,newSpans,oldSpans,globals,locals,entryCode,entryDomain,consumed,entryRemaining,indexPost⟩ :=
     transaction_chain_id_returned_outer_contract ready output (allocationEnd tx 400) pointer length scratch frame fieldCount ceiling inputLimit
       atArray spans positive lengthBound limitBound scratchPost framePost (readyCode.trans code) orderedFrame framePositive scratchBelow
       (by intro address low high; rw [domain]; exact arena address low high) costBudget arrayBelow tx atTx
-      array count input inputLength preserved before beforeTx (by rw [geometry]; omega) value tail
+      array count input inputLength preserved before beforeTx (by rw [geometry]; omega) kind atType atIndex value tail
   refine ⟨fieldCount,kind,entry,output,naturalCount,bounded,newSpans,oldSpans,
     (locals _ (by decide) (by decide)).trans atArray,(locals _ (by decide) (by decide)).trans atTx,supported,
     (locals _ (by decide) (by decide)).trans atType,
     (globals _).trans heapPost,(globals _).trans scratchPost,(globals _).trans framePost,
     entryCode.trans readyCode,entryDomain.trans domain,remaining_chain_reserve available consumed,
-    entryRemaining.trans remaining,bodyRun,memory⟩
+    entryRemaining.trans remaining,indexPost,bodyRun,memory⟩
 
 #print axioms transaction_body_returned_chain_id_contract
 end InitECandidate.Runtime
