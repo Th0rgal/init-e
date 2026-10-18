@@ -93,6 +93,39 @@ theorem fullAt22_span {σ : Type} (s : PanSemStateFiniteExact 64 σ) (P L H offs
   · rw [BitVec.toNat_add, BitVec.toNat_add, BitVec.toNat_sub_of_le g1']
     simp; omega
 
+/-- Explicit pointer/length local frame at the actual At22. -/
+theorem fullAt22_locals {σ : Type} (s : PanSemStateFiniteExact 64 σ) (P L H offsets : BitVec 64)
+    (E : PanSemStateFiniteExact 64 σ) (h : FullAt22Entry s P L H offsets E) :
+    E.locals.lookup (ofString "p") = some (.val (.word (P + 2))) ∧
+    E.locals.lookup (ofString "len") = some (.val (.word (L - 2))) ∧
+    E.code = s.code ∧ E.memaddrs = s.memaddrs ∧
+    (∀ k, k ≠ ofString "p" → k ≠ ofString "len" → k ≠ ofString "o_npr" → k ≠ ofString "o_wit" →
+      k ≠ ofString "si" → k ≠ ofString "np" → k ≠ ofString "nlen" → k ≠ ofString "o_pl" →
+      k ≠ ofString "o_vh" → k ≠ ofString "o_rq" → E.locals.lookup k = s.locals.lookup k) := by
+  obtain ⟨E8, O0, O1, pre, mid⟩ := h
+  obtain ⟨_, _, _, el, _, ed8, ec8, _⟩ := pre
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, ed, ec, _, _, _, _, _, _, _, _, frame, _⟩ := mid
+  have nm := mid_names
+  simp only [ne_eq] at nm
+  have pl : ofString "len" ≠ ofString "p" := by decide_cbv
+  have lnames : ∀ n : String, n ∈ ["o_npr", "o_wit", "si", "np", "nlen", "o_pl", "o_vh", "o_rq"] →
+      ofString "len" ≠ ofString n := by
+    intro n hn; simp at hn; rcases hn with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide_cbv
+  have pnames : ∀ n : String, n ∈ ["o_npr", "o_wit", "si", "np", "nlen", "o_pl", "o_vh", "o_rq"] →
+      ofString "p" ≠ ofString n := by
+    intro n hn; simp at hn; rcases hn with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide_cbv
+  refine ⟨?_, ?_, ec.trans ec8, ed.trans ed8, ?_⟩
+  · rw [frame _ (pnames _ (by simp)) (pnames _ (by simp)) (pnames _ (by simp)) (pnames _ (by simp))
+      (pnames _ (by simp)) (pnames _ (by simp)) (pnames _ (by simp)) (pnames _ (by simp)), el]
+    simp [HolFiniteMapExact.lookup_update, FUPDATE, pl]
+  · rw [frame _ (lnames _ (by simp)) (lnames _ (by simp)) (lnames _ (by simp)) (lnames _ (by simp))
+      (lnames _ (by simp)) (lnames _ (by simp)) (lnames _ (by simp)) (lnames _ (by simp)), el]
+    simp [HolFiniteMapExact.lookup_update, FUPDATE]
+  · intro k kp kl k1 k2 k3 k4 k5 k6 k7 k8
+    rw [frame k k1 k2 k3 k4 k5 k6 k7 k8, el]
+    simp [HolFiniteMapExact.lookup_update, FUPDATE, Ne.symm kp, Ne.symm kl]
+
+#print axioms fullAt22_locals
 #print axioms evaluate_stateless_at22
 #print axioms fullAt22_geometry
 #print axioms fullAt22_span
