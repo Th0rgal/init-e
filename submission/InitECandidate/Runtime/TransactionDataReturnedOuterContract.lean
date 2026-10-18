@@ -35,6 +35,7 @@ theorem transaction_data_returned_outer_contract {F : Type} (state post : PanSem
       middle.globals.lookup (ofString "scratch_ptr") = some (.val (.word scratch)) ∧
       middle.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)) ∧
       middle.globals.lookup (ofString "heap_ptr") = state.globals.lookup (ofString "heap_ptr") ∧
+      (∀ name, name ≠ ofString "k" → name ≠ ofString "data" → middle.locals.lookup name = state.locals.lookup name) ∧
       middle.locals.lookup (ofString "k") = some (.val (.word (index + 1))) ∧
       middle.code = state.code ∧ middle.memaddrs = state.memaddrs ∧
       state.clock ≤ middle.clock + (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92634) ∧
@@ -84,7 +85,13 @@ theorem transaction_data_returned_outer_contract {F : Type} (state post : PanSem
     exact ⟨p,n,item.after_frame _ middle _ _ _ _ _ _ rfl rfl rfl⟩
   change (HolFiniteMapExact.resVarEq middle.locals (ofString "data",state.locals.lookup (ofString "data"))).lookup (ofString "k") = _ at indexPost
   rw [restore_other_local _ (ofString "data") (ofString "k") _ (by decide)] at indexPost
-  exact ⟨middle,output,tailRun,activeSlices,activeOuter,scratchPost,framePost,heapPost,indexPost,postCode,domain,consumed,remaining,by rw [restored]⟩
+  have activeLocals : ∀ name, name ≠ ofString "k" → name ≠ ofString "data" → middle.locals.lookup name = state.locals.lookup name := by
+    intro name notIndex notData
+    have same := locals name notIndex
+    change (HolFiniteMapExact.resVarEq middle.locals (ofString "data",state.locals.lookup (ofString "data"))).lookup name = _ at same
+    rw [restore_other_local _ (ofString "data") name _ notData] at same
+    exact same
+  exact ⟨middle,output,tailRun,activeSlices,activeOuter,scratchPost,framePost,heapPost,activeLocals,indexPost,postCode,domain,consumed,remaining,by rw [restored]⟩
 
 #print axioms transaction_data_returned_outer_contract
 end InitECandidate.Runtime
