@@ -46,4 +46,20 @@ theorem aligned_interval_byte_domains {F : Type} (state : PanSemStateFiniteExact
   omega
 
 #print axioms aligned_interval_byte_domains
+
+theorem aligned_word_domain_of_byte_domain_modular {F : Type}
+    (state : PanSemStateFiniteExact 64 F) (destination size : BitVec 64)
+    (baseAligned : destination.toNat % 8 = 0)
+    (domain : ∀ offset : Nat, offset < size.toNat →
+      state.memaddrs (panByteAlignHOL (destination + BitVec.ofNat 64 offset)))
+    (offset : Nat) (inside : offset < size.toNat) (aligned : offset % 8 = 0) :
+    state.memaddrs (destination + BitVec.ofNat 64 offset) := by
+  have off : (BitVec.ofNat 64 offset).toNat = offset :=
+    Nat.mod_eq_of_lt (Nat.lt_trans inside size.isLt)
+  have addressAligned : (destination + BitVec.ofNat 64 offset).toNat % 8 = 0 := by
+    rw [BitVec.toNat_add, off]
+    omega
+  simpa only [panByteAlign_eq_self_aligned _ addressAligned] using domain offset inside
+
+#print axioms aligned_word_domain_of_byte_domain_modular
 end InitECandidate.Runtime
