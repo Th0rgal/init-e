@@ -1,4 +1,5 @@
-import InitECandidate.Runtime.NoDirectReturnWhile
+import InitECandidate.Runtime.WhileNoLoopControl
+import InitECandidate.Runtime.NoDirectReturn
 import InitECandidate.Runtime.PanHandlerFreeCallControl
 import InitECandidate.Runtime.PanDecCallNoLoopControl
 import InitECandidate.Runtime.StoreControlFrame
@@ -6,12 +7,12 @@ namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 def noLoopControlWhile : ProgHOL 64 → Bool
-  | .while _ body => noDirectReturnWhile body
   | .dec _ _ _ body => noLoopControlWhile body
   | .seq first second => noLoopControlWhile first && noLoopControlWhile second
   | .ite _ yes no => noLoopControlWhile yes && noLoopControlWhile no
   | .decCall _ _ _ _ continuation => noLoopControlWhile continuation
   | .call (some (_,none)) _ _ => true
+  | .while _ _ => true
   | .store _ _ => true
   | .skip | .annot _ _ | .assign _ _ _ | .raise _ _ | .return _ => true
   | _ => false
@@ -23,11 +24,6 @@ theorem evaluate_noLoopControlWhile {F : Type} (program : ProgHOL 64)
     (evaluateHOLFiniteState state program).1 ≠ some .break ∧
     (evaluateHOLFiniteState state program).1 ≠ some .continue := by
   cases shape : program with
-  | «while» condition body =>
-    have child : noDirectReturnWhile body = true := by simpa only [shape,noLoopControlWhile] using supported
-    have kept := evaluate_while_terminal_control condition body
-      (fun current returned => evaluate_noDirectReturnWhile body child current returned) state
-    exact ⟨kept.1,kept.2.1⟩
   | skip => simp [evaluateHOLFiniteState_skip]
   | dec name kind initializer body =>
     have child : noLoopControlWhile body = true := by simpa only [shape,noLoopControlWhile] using supported
@@ -92,6 +88,7 @@ theorem evaluate_noLoopControlWhile {F : Type} (program : ProgHOL 64)
     split
     · simp
     · split <;> simp
+  | «while» condition body => exact evaluate_while_no_loop_control condition body state
   | _ => simp [shape,noLoopControlWhile] at supported
 termination_by sizeOf program
 decreasing_by all_goals simp_all <;> omega
