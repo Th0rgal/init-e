@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.PanHandlerFreeCallControl
 import InitECandidate.Runtime.PanDecCallNoLoopControl
 import InitECandidate.Runtime.StoreControlFrame
 namespace InitECandidate.Runtime
@@ -8,7 +9,7 @@ def noLoopControlStores : ProgHOL 64 → Bool
   | .seq first second => noLoopControlStores first && noLoopControlStores second
   | .ite _ yes no => noLoopControlStores yes && noLoopControlStores no
   | .decCall _ _ _ _ continuation => noLoopControlStores continuation
-  | .call (some (none,none)) _ _ => true
+  | .call (some (_,none)) _ _ => true
   | .store _ _ => true
   | .skip | .annot _ _ | .assign _ _ _ | .raise _ _ | .return _ => true
   | _ => false
@@ -68,12 +69,11 @@ theorem evaluate_noLoopControlStores {F : Type} (program : ProgHOL 64)
     | none => simp [shape,noLoopControlStores] at supported
     | some data =>
       obtain ⟨target,handler⟩ := data
-      cases target with
+      cases handler with
       | none =>
-        cases handler with
-        | none => exact evaluate_discard_call_no_loop_control state function arguments
-        | some handler => simp [shape,noLoopControlStores] at supported
-      | some target => simp [shape,noLoopControlStores] at supported
+        have control := evaluate_handlerFree_call_control state target function arguments
+        exact ⟨control.1,control.2.1⟩
+      | some handler => simp [shape,noLoopControlStores] at supported
   | annot tag text => simp [evaluateHOLFiniteState_annot]
   | raise name value =>
     rw [evaluateHOLFiniteState_raise]

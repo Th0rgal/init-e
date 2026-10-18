@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.PanHandlerFreeCallControl
 import InitECandidate.Runtime.PanDecCallNoReturn
 import InitECandidate.Runtime.TrapNoReturn
 import InitECandidate.Runtime.StoreControlFrame
@@ -9,7 +10,7 @@ def noDirectReturn : ProgHOL 64 → Bool
   | .seq first second => noDirectReturn first && noDirectReturn second
   | .ite _ yes no => noDirectReturn yes && noDirectReturn no
   | .decCall _ _ _ _ continuation => noDirectReturn continuation
-  | .call (some (none,none)) _ _ => true
+  | .call (some (_,none)) _ _ => true
   | .store _ _ => true
   | .skip | .break | .continue | .annot _ _ | .assign _ _ _ | .raise _ _ => true
   | _ => false
@@ -62,12 +63,9 @@ theorem evaluate_noDirectReturn {F : Type} (program : ProgHOL 64)
     | none => simp [shape,noDirectReturn] at supported
     | some data =>
       obtain ⟨target,handler⟩ := data
-      cases target with
-      | none =>
-        cases handler with
-        | none => exact evaluate_discard_call_no_return state function arguments value
-        | some handler => simp [shape,noDirectReturn] at supported
-      | some target => simp [shape,noDirectReturn] at supported
+      cases handler with
+      | none => exact (evaluate_handlerFree_call_control state target function arguments).2.2 value
+      | some handler => simp [shape,noDirectReturn] at supported
   | annot tag text => simp [evaluateHOLFiniteState_annot]
   | raise name value =>
     rw [evaluateHOLFiniteState_raise]
