@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.TransactionBodyReturnedFieldSpansContract
 import InitECandidate.Runtime.TransactionFieldCountReturned
+import InitECandidate.Runtime.TransactionIndexWordReturnedScope
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
 namespace InitECandidate.Runtime
@@ -42,16 +43,21 @@ theorem transaction_body_returned_count_contract {F : Type} (state post : PanSem
       entry.locals.lookup (ofString "tx") = some (.val (.word tx)) ∧
       (kind = 0 ∨ kind = 1 ∨ kind = 2 ∨ kind = 3 ∨ kind = 4) ∧
       entry.locals.lookup (ofString "t") = some (.val (.word kind)) ∧
-      evaluateHOLFiniteState entry (transactionAt 15) = (some (.returned value),output) ∧
+      entry.locals.lookup (ofString "k") = some (.val (.word 0)) ∧
+      entry.locals.lookup (ofString "w") = some (.val (.word 0)) ∧
+      evaluateHOLFiniteState entry (transactionAt 17) = (some (.returned value),output) ∧
       post.memory = output.memory := by
   obtain ⟨fieldCount,kind,ready,tailOutput,bounded,spans,preserved,atList,atTx,supported,atType,atCount,tail,memory⟩ :=
     transaction_body_returned_field_spans_contract state post pointer length scratch frame ceiling inputLimit
       pointerLocal lengthLocal inputRange lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive
       scratchBelow arena budget array count input inputLength valid before tx heap small aligned txArena countLimit heapArena
       allocationBeforeFrame beforeTx inputBeforeTx value run
-  obtain ⟨equal,output,bodyRun,bodyMemory⟩ := transaction_array_returned_field_count ready tailOutput
+  obtain ⟨equal,indexOutput,indexRun,bodyMemory⟩ := transaction_array_returned_field_count ready tailOutput
     (allocationEnd tx 400) fieldCount (BitVec.ofNat 64 (transactionRequiredFields kind)) value atList atCount tail
-  let entry := setVarHOLFinite (ofString "arr") (.val (.word (allocationEnd tx 400))) ready
+  obtain ⟨output,bodyRun,scopeMemory⟩ := transaction_index_word_returned_scope
+    (setVarHOLFinite (ofString "arr") (.val (.word (allocationEnd tx 400))) ready) indexOutput value indexRun
+  let entry := setVarHOLFinite (ofString "w") (.val (.word 0))
+    (setVarHOLFinite (ofString "k") (.val (.word 0)) (setVarHOLFinite (ofString "arr") (.val (.word (allocationEnd tx 400))) ready))
   have newSpans : RlpSliceInputPrefix entry (allocationEnd tx 400) pointer length fieldCount.toNat := by
     intro index inside
     obtain ⟨p,n,item⟩ := spans index inside
@@ -63,12 +69,19 @@ theorem transaction_body_returned_count_contract {F : Type} (state post : PanSem
   have naturalCount : fieldCount.toNat = transactionRequiredFields kind := by
     rw [equal]
     rcases supported with rfl | rfl | rfl | rfl | rfl <;> decide
-  refine ⟨fieldCount,kind,entry,output,equal,naturalCount,bounded,newSpans,oldSpans,?_,?_,supported,?_,bodyRun,memory.trans bodyMemory⟩
+  refine ⟨fieldCount,kind,entry,output,equal,naturalCount,bounded,newSpans,oldSpans,?_,?_,supported,?_,?_,?_,bodyRun,memory.trans (bodyMemory.trans scopeMemory)⟩
+  · simp [entry,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      show ofString "w" ≠ ofString "arr" by decide, show ofString "k" ≠ ofString "arr" by decide]
+  · simpa [entry,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      show ofString "arr" ≠ ofString "tx" by decide,
+      show ofString "w" ≠ ofString "tx" by decide, show ofString "k" ≠ ofString "tx" by decide] using atTx
+  · simpa [entry,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      show ofString "arr" ≠ ofString "t" by decide,
+      show ofString "w" ≠ ofString "t" by decide, show ofString "k" ≠ ofString "t" by decide] using atType
+
+  · simp [entry,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      show ofString "w" ≠ ofString "k" by decide]
   · simp [entry,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
-  · simpa [entry,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
-      show ofString "arr" ≠ ofString "tx" by decide] using atTx
-  · simpa [entry,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
-      show ofString "arr" ≠ ofString "t" by decide] using atType
 
 #print axioms transaction_body_returned_count_contract
 end InitECandidate.Runtime
