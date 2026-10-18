@@ -16,7 +16,7 @@ theorem rlpSlices_initialized_return_input_prefix {F : Type} (state post : PanSe
     (limitBound : inputLimit + 9 < 2^64) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
     (scratchBelow : scratch.toNat ≤ ceiling)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedBudget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) ≤ checked.clock)
     (reads : ∀ byteOffset : Nat, byteOffset < length.toNat →
       @panMemLoadByteHOL 64 _ checked.memory checked.memaddrs (fun a => Classical.propDecidable (checked.memaddrs a)) checked.be (pointer + BitVec.ofNat 64 byteOffset) =
@@ -57,7 +57,7 @@ theorem rlpSlices_initialized_return_input_prefix {F : Type} (state post : PanSe
     (setVarHOLFinite (ofString "i") (.val (.word (0 : BitVec 64))) state) middle
     (ofString "off") (.const 0) 0 rlpSlicesLoopAndReturn (some (.returned value)) (by rfl) bodyRun
   obtain ⟨shape,filled⟩ := rlpCountFill_loop_return_input_prefix pointer length scratch frame array count ceiling inputLimit
-    noWrap lengthBound limitBound orderedFrame framePositive scratchBelow inputBeforeFrame inputAligned inputBeforeArray
+    noWrap lengthBound limitBound orderedFrame framePositive scratchBelow inputBeforeFrame inputBeforeArray
     checkedFinal finalCount checked initial output vc memoryValid
     (by change (0 : BitVec 64) = vc.offset; exact offsetZero.symm)
     (by change (0 : BitVec 64) = vc.count; exact countZero.symm)

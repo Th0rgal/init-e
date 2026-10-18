@@ -40,7 +40,6 @@ theorem rlpCountFill_loop_synchronized_tails {F : Type}
     (checkedBudget : (length.toNat - offset.toNat) * ((2 * length.toNat + 1) * 15 + 19) ≤ checked.clock)
     (finalCount : checkedPostFinal.locals.lookup (ofString "count") = some (.val (.word sliceCount)))
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0)
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (uncheckedCount : unchecked.locals.lookup (ofString "count") = some (.val (.word sliceCount)))
     (checkedRun : evaluateHOLFiniteState checked rlpListCountLoop = (none,checkedPostFinal))
@@ -74,7 +73,7 @@ theorem rlpCountFill_loop_synchronized_tails {F : Type}
     uncheckedPointer uncheckedOffset uncheckedIndex array arrayLocal domain0 domain8 sliceCount indexInside
     arrayFits filledPrefix noWrap inside checkedCode uncheckedCode (by omega) uncheckedTicks reads
     scratch frame ceiling inputLimit lengthBound limitBound scratchGlobal frameGlobal orderedFrame framePositive
-    scratchBelow arena iterationBudget inputBeforeFrame inputAligned inputBeforeArray uncheckedCount checkedRun uncheckedRun
+    scratchBelow arena iterationBudget inputBeforeFrame inputBeforeArray uncheckedCount checkedRun uncheckedRun
 
 #print axioms rlpCountFill_loop_synchronized_tails
 end InitECandidate.Runtime

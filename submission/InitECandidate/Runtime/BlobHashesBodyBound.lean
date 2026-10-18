@@ -39,7 +39,7 @@ theorem evaluate_blobHashes_body_bounded {F : Type} (state : PanSemStateFiniteEx
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (arrayBeforeFrame : array.toNat + length.toNat * 16 ≤ frame.toNat)
     (budget : blobHashesBodyCost length.toNat ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_decode_blob_hashes)
@@ -82,7 +82,7 @@ theorem evaluate_blobHashes_body_bounded {F : Type} (state : PanSemStateFiniteEx
         obtain ⟨count,shape,countBound,slices,heapPost,scratchPost,framePost,interval,endpoint,aligned⟩ :=
           rlpSlices_body_returned_runtime_contract entry bodyPost pointer length scratch frame array ceiling inputLimit
             atPointer atLength noWrap lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena
-            heap arrayBound (by omega) heapArena entryBudget inputBeforeFrame inputAligned inputBeforeArray value actual
+            heap arrayBound (by omega) heapArena entryBudget inputBeforeFrame inputBeforeArray value actual
         subst value
         let resumed := setVarHOLFinite (ofString "lst") (.rStruct [.val (.word array),.val (.word count)]) {bodyPost with locals := state.locals}
         have listLocal : resumed.locals.lookup (ofString "lst") = some (.rStruct [.val (.word array),.val (.word count)]) := by

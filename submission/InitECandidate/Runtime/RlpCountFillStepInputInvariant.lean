@@ -1,7 +1,7 @@
 import InitECandidate.Runtime.RlpCountFillStepInputPrefix
 import InitECandidate.Runtime.RlpCountFillStepConsumedProgress
 import InitECandidate.Runtime.RlpListCountStepInputBytes
-import InitECandidate.Runtime.RlpSlicesStepInputBytes
+import InitECandidate.Runtime.RlpSlicesStepInputBytesUnaligned
 import InitECandidate.Runtime.RlpListCountStepReadable
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -40,7 +40,6 @@ theorem rlpCountFill_step_retains_input_invariant {F : Type}
     (arena : ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → checked.memaddrs address)
     (checkedBudget : (2 * length.toNat + 1) * 15 + 18 ≤ checked.clock)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0)
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedRun : evaluateHOLFiniteState checked rlpListCountStep = (none,checkedPost))
     (uncheckedRun : evaluateHOLFiniteState unchecked rlpSlicesStep = (none,uncheckedPost)) :
@@ -69,9 +68,9 @@ theorem rlpCountFill_step_retains_input_invariant {F : Type}
   have checkedBytes := rlpListCount_normal_step_input_bytes checked checkedPost pointer length offset scratch frame ceiling inputLimit
     checkedPointer checkedLength checkedOffset (by omega) noWrap lengthBound limitBound scratchGlobal frameGlobal
     checkedCode orderedFrame framePositive scratchBelow arena checkedBudget checkedRun inputBeforeFrame byteOffset byteInside
-  have uncheckedBytes := rlpSlices_step_input_bytes unchecked uncheckedPost array index pointer offset
+  have uncheckedBytes := rlpSlices_step_input_bytes_unaligned unchecked uncheckedPost array index pointer offset
     arrayLocal uncheckedIndex uncheckedPointer uncheckedOffset domain0 domain8 uncheckedCode uncheckedTicks uncheckedRun
-    pointer length sliceCount inputAligned inputBeforeArray indexInside arrayFits byteOffset byteInside
+    pointer length sliceCount inputBeforeArray indexInside arrayFits byteOffset byteInside
   exact checkedBytes.trans ((reads byteOffset byteInside).trans uncheckedBytes.symm)
 
 #print axioms rlpCountFill_step_retains_input_invariant

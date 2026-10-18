@@ -24,7 +24,7 @@ theorem evaluate_rlpSlices_declaration_input_prefix {F : Type} (state post : Pan
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (budget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) + length.toNat * 12 + 4 ≤ state.clock)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (run : evaluateHOLFiniteState state (.decCall name (.comb [.one,.one]) (ofString "rlp_list_to_slices") arguments continuation) = (none,post)) :
     ∃ (count : BitVec 64) (ready output : PanSemStateFiniteExact 64 F),
       count.toNat ≤ length.toNat ∧ ready.locals = state.locals ∧ RlpSliceInputPrefix ready array pointer length count.toNat ∧
@@ -48,7 +48,7 @@ theorem evaluate_rlpSlices_declaration_input_prefix {F : Type} (state post : Pan
   obtain ⟨count,shape,bounded,filled⟩ := rlpSlices_body_returned_input_prefix entry bodyPost pointer length scratch frame array ceiling inputLimit
     pointerLocal lengthLocal noWrap lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena
     heap arrayBound countLimit heapArena
-    (by change length.toNat * ((2 * length.toNat + 1) * 15 + 19) + length.toNat * 12 + 3 ≤ state.clock - 1; omega) inputBeforeFrame inputAligned inputBeforeArray value bodyRun
+    (by change length.toNat * ((2 * length.toNat + 1) * 15 + 19) + length.toNat * 12 + 3 ≤ state.clock - 1; omega) inputBeforeFrame inputBeforeArray value bodyRun
   subst value
   have readable : RlpSliceInputPrefix ready array pointer length count.toNat := by
     intro slot inside

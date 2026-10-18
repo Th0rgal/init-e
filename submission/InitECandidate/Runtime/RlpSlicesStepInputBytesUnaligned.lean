@@ -1,0 +1,42 @@
+import InitECandidate.Runtime.RlpSlicesStepMemoryFrame
+import InitECandidate.Runtime.RlpSlicesInputSeparationUnaligned
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+theorem rlpSlices_step_input_bytes_unaligned {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (array index pointer offset : BitVec 64)
+    (arrayLocal : state.locals.lookup (ofString "arr") = some (.val (.word array)))
+    (indexLocal : state.locals.lookup (ofString "i") = some (.val (.word index)))
+    (pointerLocal : state.locals.lookup (ofString "p") = some (.val (.word pointer)))
+    (offsetLocal : state.locals.lookup (ofString "off") = some (.val (.word offset)))
+    (domain0 : state.memaddrs (array + index * 16#64))
+    (domain8 : state.memaddrs (array + index * 16#64 + 8#64))
+    (code : state.code = originalRuntimeCode) (ticks : 11 ≤ state.clock)
+    (run : evaluateHOLFiniteState state rlpSlicesStep = (none,post))
+    (input length count : BitVec 64)
+    (inputBefore : input.toNat + length.toNat ≤ array.toNat)
+    (inside : index.toNat < count.toNat)
+    (fits : array.toNat + count.toNat * 16 ≤ 2^64)
+    (byteOffset : Nat) (offsetInside : byteOffset < length.toNat) :
+    @panMemLoadByteHOL 64 _ post.memory post.memaddrs
+      (fun address => Classical.propDecidable (post.memaddrs address)) post.be (input + BitVec.ofNat 64 byteOffset) =
+    @panMemLoadByteHOL 64 _ state.memory state.memaddrs
+      (fun address => Classical.propDecidable (state.memaddrs address)) state.be (input + BitVec.ofNat 64 byteOffset) := by
+  have separate := rlpSlices_input_cells_separate_unaligned input length array index count inputBefore inside fits byteOffset offsetInside
+  have frame := rlpSlices_step_memory_frame state post array index pointer offset arrayLocal indexLocal pointerLocal offsetLocal
+    domain0 domain8 code ticks run
+  have metadata := evaluateHOLFiniteState_metadata state rlpSlicesStep
+  rw [run] at metadata
+  dsimp only at metadata
+  have domain := metadata.2.1
+  have endian := metadata.2.2.1
+  have cell := frame (panByteAlignHOL (input + BitVec.ofNat 64 byteOffset)) separate.1 separate.2
+  by_cases accessible : state.memaddrs (panByteAlignHOL (input + BitVec.ofNat 64 byteOffset))
+  · have afterAccessible : post.memaddrs (panByteAlignHOL (input + BitVec.ofNat 64 byteOffset)) := by rw [domain]; exact accessible
+    simp [panMemLoadByteHOL,accessible,afterAccessible,endian,cell]
+  · have afterInaccessible : ¬post.memaddrs (panByteAlignHOL (input + BitVec.ofNat 64 byteOffset)) := by rw [domain]; exact accessible
+    simp [panMemLoadByteHOL,accessible,afterInaccessible]
+
+#print axioms rlpSlices_step_input_bytes_unaligned
+end InitECandidate.Runtime

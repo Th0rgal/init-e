@@ -19,7 +19,7 @@ theorem rlpSlices_allocation_success_input_prefix {F : Type} (state post : PanSe
     (limitBound : inputLimit + 9 < 2^64) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
     (scratchBelow : scratch.toNat ≤ ceiling)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedBudget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) ≤ checked.clock)
     (reads : ∀ byteOffset : Nat, byteOffset < length.toNat →
       @panMemLoadByteHOL 64 _ checked.memory checked.memaddrs (fun a => Classical.propDecidable (checked.memaddrs a)) checked.be (pointer + BitVec.ofNat 64 byteOffset) =
@@ -69,7 +69,7 @@ theorem rlpSlices_allocation_success_input_prefix {F : Type} (state post : PanSe
     subst result
     obtain ⟨shape,filled⟩ := rlpSlices_initialized_return_input_prefix entered output pointer count array length scratch frame ceiling inputLimit
       checked checkedFinal vc offsetZero countZero finalCount checkedRun noWrap lengthBound limitBound orderedFrame
-      framePositive scratchBelow inputBeforeFrame inputAligned inputBeforeArray checkedBudget
+      framePositive scratchBelow inputBeforeFrame inputBeforeArray checkedBudget
       (by
         intro byteOffset inside
         have kept := input_bytes_of_memory_below state entered pointer length frame inputBeforeFrame
@@ -93,7 +93,7 @@ theorem rlpSlices_allocation_return_input_prefix {F : Type} (state post : PanSem
     (limitBound : inputLimit + 9 < 2^64) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
     (scratchBelow : scratch.toNat ≤ ceiling)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedBudget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) ≤ checked.clock)
     (reads : ∀ byteOffset : Nat, byteOffset < length.toNat →
       @panMemLoadByteHOL 64 _ checked.memory checked.memaddrs (fun a => Classical.propDecidable (checked.memaddrs a)) checked.be (pointer + BitVec.ofNat 64 byteOffset) =
@@ -117,7 +117,7 @@ theorem rlpSlices_allocation_return_input_prefix {F : Type} (state post : PanSem
     rlpSlicesInitialized value args code heap called
   exact rlpSlices_allocation_success_input_prefix state post pointer count array length scratch frame ceiling inputLimit
     checked checkedFinal vc offsetZero countZero finalCount checkedRun noWrap lengthBound limitBound orderedFrame
-    framePositive scratchBelow inputBeforeFrame inputAligned inputBeforeArray checkedBudget reads pointerLocal countLocal heap arrayBound countBound
+    framePositive scratchBelow inputBeforeFrame inputBeforeArray checkedBudget reads pointerLocal countLocal heap arrayBound countBound
     request arena code budget value run
 
 #print axioms rlpSlices_allocation_return_input_prefix

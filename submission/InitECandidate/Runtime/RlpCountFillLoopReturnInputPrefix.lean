@@ -10,7 +10,7 @@ theorem rlpCountFill_loop_return_input_prefix {F : Type}
     (limitBound : inputLimit + 9 < 2^64) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
     (scratchBelow : scratch.toNat ≤ ceiling)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedFinal : PanSemStateFiniteExact 64 F)
     (finalCount : checkedFinal.locals.lookup (ofString "count") = some (.val (.word sliceCount)))
     (checked unchecked post : PanSemStateFiniteExact 64 F)
@@ -35,7 +35,7 @@ theorem rlpCountFill_loop_return_input_prefix {F : Type}
   | none =>
     obtain ⟨next,_,_⟩ := done rfl
     have filledInput := rlpCountFill_loop_input_prefix pointer length scratch frame array sliceCount ceiling inputLimit
-      noWrap lengthBound limitBound orderedFrame framePositive scratchBelow inputBeforeFrame inputAligned inputBeforeArray
+      noWrap lengthBound limitBound orderedFrame framePositive scratchBelow inputBeforeFrame inputBeforeArray
       checkedFinal loopPost finalCount checked unchecked vc vu offsetMatch countMatch filled reads checkedBudget uncheckedBudget checkedRun loopRun
     have returned : evaluateHOLFiniteState loopPost
         (.return (.rstruct [.var .local (ofString "arr"),.var .local (ofString "count")])) =

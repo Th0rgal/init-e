@@ -20,7 +20,7 @@ theorem rlpSlices_body_returned_runtime_contract {F : Type} (state post : PanSem
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (budget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) + length.toNat * 12 + 3 ≤ state.clock)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_rlp_list_to_slices) = (some (.returned value),post)) :
     ∃ count : BitVec 64, value = .rStruct [.val (.word array),.val (.word count)] ∧ count.toNat ≤ length.toNat ∧
@@ -36,7 +36,7 @@ theorem rlpSlices_body_returned_runtime_contract {F : Type} (state post : PanSem
     code orderedFrame framePositive scratchBelow arena heap arrayBound countLimit heapArena budget value run
   obtain ⟨other,otherShape,_,prefixInput⟩ := rlpSlices_body_returned_input_prefix
     state post pointer length scratch frame array ceiling inputLimit atPointer atLength noWrap lengthBound limitBound scratchGlobal frameGlobal
-    code orderedFrame framePositive scratchBelow arena heap arrayBound countLimit heapArena budget inputBeforeFrame inputAligned inputBeforeArray value run
+    code orderedFrame framePositive scratchBelow arena heap arrayBound countLimit heapArena budget inputBeforeFrame inputBeforeArray value run
   have structures := ValueHOL.rStruct.inj (shape.symm.trans otherShape)
   have fields := List.cons.inj structures
   have countValues := (List.cons.inj fields.2).1

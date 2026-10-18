@@ -26,7 +26,7 @@ theorem rlpSlices_body_returned_input_prefix {F : Type} (state post : PanSemStat
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (budget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) + length.toNat * 12 + 3 ≤ state.clock)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_rlp_list_to_slices) = (some (.returned value),post)) :
     ∃ count : BitVec 64, value = .rStruct [.val (.word array),.val (.word count)] ∧ count.toNat ≤ length.toNat ∧
@@ -103,7 +103,7 @@ theorem rlpSlices_body_returned_input_prefix {F : Type} (state post : PanSemStat
     exact counted.symm.trans resumedBytes.symm
   obtain ⟨returned,filled⟩ := rlpSlices_allocation_return_input_prefix resumed output pointer count array length scratch frame ceiling inputLimit
     (rlpListCountInitialState entry) loopPost valid offsetZero countZero loopCount loopRun noWrap lengthBound limitBound orderedFrame
-    framePositive scratchBelow inputBeforeFrame inputAligned inputBeforeArray countBudget reads pLocal cLocal atHeap arrayBound
+    framePositive scratchBelow inputBeforeFrame inputBeforeArray countBudget reads pLocal cLocal atHeap arrayBound
     (by omega) resumedArena (readyCode.trans (metadata.1.trans code)) enough value tail
   refine ⟨count,returned,countBound,?_⟩
   rw [restored]

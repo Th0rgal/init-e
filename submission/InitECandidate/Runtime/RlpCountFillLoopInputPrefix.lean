@@ -15,7 +15,7 @@ theorem rlpCountFill_loop_input_prefix {F : Type}
     (limitBound : inputLimit + 9 < 2^64) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
     (scratchBelow : scratch.toNat ≤ ceiling)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedFinal uncheckedFinal : PanSemStateFiniteExact 64 F)
     (finalCount : checkedFinal.locals.lookup (ofString "count") = some (.val (.word sliceCount)))
     (checked unchecked : PanSemStateFiniteExact 64 F)
@@ -93,7 +93,7 @@ theorem rlpCountFill_loop_input_prefix {F : Type}
             sliceCount indexInside vu.fits (filled.dec_clock unchecked array pointer length _) noWrap inside vc.code vu.control.code
             (by change 13 ≤ checked.clock - 1; dsimp [cost] at firstBudget; omega) uncheckedTicks reads
             scratch frame ceiling inputLimit lengthBound limitBound vc.scratchGlobal vc.frameGlobal orderedFrame framePositive
-            scratchBelow vc.arena checkedTicks inputBeforeFrame inputAligned inputBeforeArray cs us
+            scratchBelow vc.arena checkedTicks inputBeforeFrame inputBeforeArray cs us
         have ncOffset : nc.offset = vc.offset + consumed := HolWordLab.word.inj (ValueHOL.val.inj (Option.some.inj (nc.offsetLocal.symm.trans co)))
         have nuOffset : nu.control.offset = vc.offset + consumed := HolWordLab.word.inj (ValueHOL.val.inj (Option.some.inj (nu.control.offsetLocal.symm.trans uo)))
         obtain ⟨_,_,_,_,_,_,incrementC⟩ := rlpListCount_step_consumed (decClockHOLFinite checked) cm pointer length vc.offset vc.count

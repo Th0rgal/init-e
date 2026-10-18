@@ -26,7 +26,7 @@ theorem evaluate_blobHashes_declaration_bounded {F : Type} (state : PanSemStateF
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0) (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
+    (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (arrayBeforeFrame : array.toNat + length.toNat * 16 ≤ frame.toNat)
     (budget : blobHashesBodyCost length.toNat + 1 ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state (.decCall name (.comb [.one,.one]) (ofString "decode_blob_hashes") arguments continuation)
@@ -41,7 +41,7 @@ theorem evaluate_blobHashes_declaration_bounded {F : Type} (state : PanSemStateF
     simp [entry,callEntryStateHOLFinite,callee,rlpHeaderCallee,HolFiniteMapExact.lookup_update,FUPDATE]
   have bound := evaluate_blobHashes_body_bounded entry pointer length scratch frame array ceiling inputLimit
     pointerLocal lengthLocal noWrap lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive
-    scratchBelow arena heap arrayBound countLimit heapArena inputBeforeFrame inputAligned inputBeforeArray arrayBeforeFrame
+    scratchBelow arena heap arrayBound countLimit heapArena inputBeforeFrame inputBeforeArray arrayBeforeFrame
     (by change blobHashesBodyCost length.toNat ≤ state.clock - 1; exact Nat.le_sub_of_add_le budget)
   cases bodyRun : evaluateHOLFiniteState entry (sourceFunctionBody Guest.guestFn_decode_blob_hashes) with
   | mk bodyResult bodyPost =>

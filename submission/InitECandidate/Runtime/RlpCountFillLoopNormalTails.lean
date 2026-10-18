@@ -41,7 +41,6 @@ theorem rlpCountFill_loop_normal_tails {F : Type}
     (arena : ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → checked.memaddrs address)
     (checkedBudget : (2 * length.toNat + 1) * 15 + 19 ≤ checked.clock)
     (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
-    (inputAligned : pointer.toNat % 8 = 0)
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (uncheckedCount : unchecked.locals.lookup (ofString "count") = some (.val (.word sliceCount)))
     (checkedRun : evaluateHOLFiniteState checked rlpListCountLoop = (none,checkedPostFinal))
@@ -73,7 +72,7 @@ theorem rlpCountFill_loop_normal_tails {F : Type}
     (by change 13 ≤ checked.clock - 1; omega) (by change 11 ≤ unchecked.clock - 1; omega) reads
     scratch frame ceiling inputLimit lengthBound limitBound scratchGlobal frameGlobal orderedFrame framePositive
     scratchBelow arena (by change (2 * length.toNat + 1) * 15 + 18 ≤ checked.clock - 1; omega)
-    inputBeforeFrame inputAligned inputBeforeArray checkedStep uncheckedStep
+    inputBeforeFrame inputBeforeArray checkedStep uncheckedStep
   obtain ⟨filled,consumed,checkedOff,uncheckedOff,positive,fits,natural,bytes⟩ := paired
   obtain ⟨_,_,_,_,_,_,nextCount⟩ := rlpListCount_step_consumed (decClockHOLFinite checked) checkedMiddle
     pointer length offset count checkedPointer checkedLength checkedOffset checkedCount checkedCode
