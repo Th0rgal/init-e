@@ -1,0 +1,100 @@
+import InitECandidate.Runtime.PanDecCallCheckedNormalMemoryScope
+import InitECandidate.Runtime.TxScalarU256IndependentOuterPrefix
+import InitECandidate.Runtime.FourWordValueShape
+import InitECandidate.Runtime.AuthorizationsLastStorePrefix
+import InitECandidate.Runtime.AuthorizationsTailSource
+import InitECandidate.Runtime.TxScalarU256DeclarationInputBound
+import InitECandidate.Runtime.TxScalarU256InputBound
+import InitECandidate.Runtime.OriginalTxScalarU256Code
+import InitECandidate.Runtime.PanThreeWordShapeLookup
+import InitECandidate.Runtime.PanDecCallStraightBound
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 1000000
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Successful final scalar extraction, record store and index increment
+preserve the independent outer slice array used by the next iteration. -/
+theorem authorization_last_scalar_normal_independent_outer_prefix {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (record array count input inputLength scratch frame outerArray outerCount outerInput outerLength : BitVec 64) (ceiling inputLimit : Nat)
+    (recordLocal : state.locals.lookup (ofString "a") = some (.val (.word record)))
+    (entryLocal : state.locals.lookup (ofString "ent") = some (.rStruct [.val (.word array),.val (.word count)]))
+    (valid : RlpSliceInputPrefix state array input inputLength count.toNat) (inside : 5 < count.toNat)
+    (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
+    (scratchGlobal : state.globals.lookup (ofString "scratch_ptr") = some (.val (.word scratch)))
+    (frameGlobal : state.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)))
+    (code : state.code = originalRuntimeCode) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
+    (scratchBelow : scratch.toNat ≤ ceiling)
+    (arena : ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → state.memaddrs address)
+    (budget : inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668 ≤ state.clock)
+    (outerValid : RlpSliceInputPrefix state outerArray outerInput outerLength outerCount.toNat)
+    (outerBelow : outerArray.toNat + outerCount.toNat * 16 ≤ frame.toNat)
+    (outerBeforeRecord : outerArray.toNat + outerCount.toNat * 16 ≤ record.toNat)
+    (recordFits : record.toNat + 120 < 2^64)
+    (run : evaluateHOLFiniteState state authorizationLastScalar = (none,post)) :
+    RlpSliceInputPrefix post outerArray outerInput outerLength outerCount.toNat := by
+  let callee := txScalarWordCallee array 5 32
+  let entry := callEntryStateHOLFinite state callee
+  have atArray : entry.locals.lookup (ofString "arr") = some (.val (.word array)) := by
+    simp [entry,callee,callEntryStateHOLFinite,txScalarWordCallee,HolFiniteMapExact.lookup_update,FUPDATE,
+      show ofString "maxb" ≠ ofString "arr" by decide,show ofString "i" ≠ ofString "arr" by decide]
+  have atIndex : entry.locals.lookup (ofString "i") = some (.val (.word (5 : BitVec 64))) := by
+    simp [entry,callee,callEntryStateHOLFinite,txScalarWordCallee,HolFiniteMapExact.lookup_update,FUPDATE,
+      show ofString "maxb" ≠ ofString "i" by decide]
+  have atMaximum : entry.locals.lookup (ofString "maxb") = some (.val (.word (32 : BitVec 64))) := by
+    simp [entry,callee,callEntryStateHOLFinite,txScalarWordCallee,HolFiniteMapExact.lookup_update,FUPDATE]
+  have innerPrefix : RlpSliceInputPrefix entry array input inputLength count.toNat := by
+    intro slot inside
+    obtain ⟨p,n,item⟩ := valid slot inside
+    exact ⟨p,n,item.after_frame state entry array slot p n input inputLength rfl rfl rfl⟩
+  have outerPrefix : RlpSliceInputPrefix entry outerArray outerInput outerLength outerCount.toNat := by
+    intro slot inside
+    obtain ⟨p,n,item⟩ := outerValid slot inside
+    exact ⟨p,n,item.after_frame state entry outerArray slot p n outerInput outerLength rfl rfl rfl⟩
+  have bodyBudget : inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92667 ≤ entry.clock := by
+    change inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92667 ≤ state.clock - 1
+    omega
+  have args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a))
+      [.rfield 0 (.var .local (ofString "ent")),.const 5,.const 32] =
+      some [.val (.word array),.val (.word (5 : BitVec 64)),.val (.word (32 : BitVec 64))] := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,entryLocal]
+  have installed := originalRuntimeCode_txScalarU256_lookup
+  rw [← code] at installed
+  have lookup := pan_three_word_shape_lookup state.code.lookup (ofString "tx_scalar_u256")
+    (ofString "arr") (ofString "i") (ofString "maxb") (sourceFunctionBody Guest.guestFn_tx_scalar_u256)
+    (.comb [.one,.one,.one,.one]) array 5 32 (by decide) (by decide) (by decide) installed
+  rw [source_authorization_last_scalar] at run
+  obtain ⟨value,bodyPost,ready,output,bodyRun,checked,locals,memory,globals,clock,domain,endian,readyCode,tail,restored⟩ :=
+    evaluate_decCall_checked_normal_memory_scope state post (ofString "s") (ofString "tx_scalar_u256")
+      (.comb [.one,.one,.one,.one]) (.comb [.one,.one,.one,.one]) _ _
+      (sourceFunctionBody Guest.guestFn_tx_scalar_u256) authorizationLastStore callee args lookup run
+  have retained := txScalarU256_input_returned_independent_outer_prefix entry bodyPost array 5 32 input inputLength scratch frame count
+    ceiling inputLimit atArray atIndex atMaximum innerPrefix (by simpa using inside) inputBound limitBound
+    scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena bodyBudget value bodyRun
+    outerArray outerCount outerInput outerLength outerPrefix outerBelow
+  obtain ⟨first,second,third,fourth,rfl⟩ := value_four_words_of_checked_shape value checked.1
+  let entered := setVarHOLFinite (ofString "s")
+    (.rStruct [.val (.word first),.val (.word second),.val (.word third),.val (.word fourth)]) ready
+  have enteredPrefix : RlpSliceInputPrefix entered outerArray outerInput outerLength outerCount.toNat := by
+    intro slot inside
+    obtain ⟨p,n,item⟩ := retained slot inside
+    exact ⟨p,n,item.after_frame bodyPost entered outerArray slot p n outerInput outerLength domain
+      (congrFun memory _) (congrFun memory _)⟩
+  have atRecord : entered.locals.lookup (ofString "a") = some (.val (.word record)) := by
+    simpa [entered,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,locals,
+      show ofString "s" ≠ ofString "a" by decide] using recordLocal
+  have atValue : entered.locals.lookup (ofString "s") =
+      some (.rStruct [.val (.word first),.val (.word second),.val (.word third),.val (.word fourth)]) := by
+    simp [entered,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  have result := authorization_last_store_input_prefix entered record first second third fourth outerArray outerCount outerInput outerLength
+    atRecord atValue enteredPrefix outerBeforeRecord recordFits
+  change RlpSliceInputPrefix (evaluateHOLFiniteState entered authorizationLastStore).2 outerArray outerInput outerLength outerCount.toNat at result
+  rw [tail] at result
+  rw [restored]
+  intro slot inside
+  obtain ⟨p,n,item⟩ := result slot inside
+  exact ⟨p,n,item.after_frame output _ outerArray slot p n outerInput outerLength rfl rfl rfl⟩
+
+#print axioms authorization_last_scalar_normal_independent_outer_prefix
+end InitECandidate.Runtime
