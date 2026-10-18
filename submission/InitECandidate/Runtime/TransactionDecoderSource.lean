@@ -157,5 +157,26 @@ theorem source_transaction_access_extraction : transactionAccessExtraction =
     authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   rfl
 
+theorem source_transaction_access_branch : transactionAccessBranch =
+    .ite (.cmp .notEqual (.var .local (ofString "t")) (.const 0)) transactionAccessExtraction .skip := by
+  simp only [transactionAccessBranch,transactionAccessExtraction,transactionAt,authorizationNext,sourceFunctionBody,
+    InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
+def transactionAuthorizationExtraction : ProgHOL 64 :=
+  match transactionAuthorizationBranch with | .ite _ yes _ => yes | _ => .skip
+
+theorem source_transaction_authorization_extraction : transactionAuthorizationExtraction =
+    .decCall (ofString "aul") (.comb [.one,.one]) (ofString "tx_list_item")
+      [.var .local (ofString "arr"),.var .local (ofString "k")] transactionAuthorizationDecode := by
+  simp only [transactionAuthorizationExtraction,transactionAuthorizationDecode,transactionAuthorizationBranch,transactionAt,
+    authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
+theorem source_transaction_authorization_branch : transactionAuthorizationBranch =
+    .ite (.cmp .equal (.var .local (ofString "t")) (.const 4)) transactionAuthorizationExtraction .skip := by
+  simp only [transactionAuthorizationBranch,transactionAuthorizationExtraction,transactionAt,authorizationNext,sourceFunctionBody,
+    InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
 #print axioms source_transaction_signature_last
 end InitECandidate.Runtime
