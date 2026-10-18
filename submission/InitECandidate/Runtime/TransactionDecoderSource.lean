@@ -124,5 +124,22 @@ theorem source_transaction_blob_extraction : transactionBlobExtraction =
     authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   rfl
 
+def transactionBlobBody : ProgHOL 64 :=
+  match transactionBlobBranch with | .ite _ yes _ => yes | _ => .skip
+
+def transactionBlobFeeArguments : List (ExpHOL 64) :=
+  [.var .local (ofString "arr"),.var .local (ofString "k"),.const 32]
+def transactionBlobFeeStore : ProgHOL 64 :=
+  .store (.op .add [.var .local (ofString "tx"),.const 224]) (.var .local (ofString "v"))
+def transactionBlobFeeField : ProgHOL 64 :=
+  .seq (.call (some (some (.local,ofString "v"),none)) (ofString "tx_scalar_u256") transactionBlobFeeArguments) transactionBlobFeeStore
+
+theorem source_transaction_blob_body : transactionBlobBody =
+    .seq (.call (some (some (.local,ofString "v"),none)) (ofString "tx_scalar_u256") transactionBlobFeeArguments)
+      (.seq transactionBlobFeeStore transactionBlobExtraction) := by
+  simp only [transactionBlobBody,transactionBlobBranch,transactionBlobFeeArguments,transactionBlobFeeStore,transactionBlobExtraction,
+    transactionAt,authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
 #print axioms source_transaction_signature_last
 end InitECandidate.Runtime
