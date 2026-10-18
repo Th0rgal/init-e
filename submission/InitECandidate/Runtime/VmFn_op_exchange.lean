@@ -1,0 +1,63 @@
+import InitECandidate.Runtime.OriginalRuntimeCode
+import InitECandidate.Runtime.VmSearch
+import InitECandidate.Runtime.AllocationInitializersBound
+import InitECandidate.Runtime.VmFn_charge_gas
+import InitECandidate.Runtime.VmFn_code_imm
+import InitECandidate.Runtime.VmFn_max
+import InitECandidate.Runtime.VmFn_pc_add
+import InitECandidate.Runtime.VmFn_stack_swap_positions
+
+import Init.Data.List.Find
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 1000000
+set_option cbv.maxSteps 1000000000
+set_option cbv.warning false
+namespace InitECandidate.Runtime
+open InitE Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+set_option maxHeartbeats 8000000
+theorem vmLookup_op_exchange :
+    originalRuntimeCode.lookup (ofString "op_exchange") =
+      some ([],sourceFunctionBody Guest.guestFn_op_exchange,.one) := by
+  change (HolFiniteMapExact.empty.updateList (functionsHOL sourceDeclarations)).lookup _ = _
+  calc
+    _ = List.lookup (ofString "op_exchange") (functionsHOL sourceDeclarations).reverse := by
+      rw [HolFiniteMapExact.lookup_updateList]
+      change FUPDATE_LIST FEMPTY (functionsHOL sourceDeclarations) (ofString "op_exchange") = _
+      simpa only [List.reverse_reverse,FLOOKUP] using
+        FLOOKUP_FUPDATE_LIST_reverse_eq_lookup (functionsHOL sourceDeclarations).reverse (ofString "op_exchange")
+    _ = _ := by
+      let declarations := InitECandidate.Proofs.FrontendStages.Declarations.originals
+      have split : declarations = declarations.take 525 ++
+          InitECandidate.Proofs.FrontendStages.Declarations.original525 :: declarations.drop 526 := by kernel_rfl
+      have absent : ((functionsHOL (declarations.drop 526)).reverse).all
+          (fun entry => !((ofString "op_exchange") == entry.1)) = true := by decide_cbv
+      have head : functionsHOL
+          (InitECandidate.Proofs.FrontendStages.Declarations.original525 :: declarations.drop 526) =
+          (ofString "op_exchange",[],sourceFunctionBody Guest.guestFn_op_exchange,ShapeHOL.one) ::
+            functionsHOL (declarations.drop 526) := by
+        rw [InitECandidate.Proofs.FrontendStages.Declarations.original525_eq]
+        simp only [Guest.guestFn_op_exchange,declToHOL,functionsHOL,funDeclToHOL,
+          List.map_cons,List.map_nil,paramToHOL,shapeToHOL,sourceFunctionBody]
+      rw [InitECandidate.Proofs.FrontendStages.Declarations.sourceDeclarations_eq]
+      change List.lookup (ofString "op_exchange") (functionsHOL declarations).reverse = _
+      rw [split,functionsHOL_append,head,List.reverse_append,List.reverse_cons,List.append_assoc]
+      have noLookup : List.lookup (ofString "op_exchange") (functionsHOL (declarations.drop 526)).reverse = none := by
+        apply List.lookup_eq_none_iff.mpr
+        simpa only [bne] using List.all_eq_true.mp absent
+      rw [List.lookup_append,noLookup]
+      change List.lookup (ofString "op_exchange") (_ ++ _) = _
+      simp only [List.singleton_append,List.lookup_cons,beq_self_eq_true]
+
+#print axioms vmLookup_op_exchange
+
+theorem vmBound_op_exchange : FunBounded (ofString "op_exchange") 5 :=
+  ⟨_,_,_,vmLookup_op_exchange,by
+    rw [sourceFunctionBody_eq_structural]
+    apply ProgBounded.weaken
+    · vm_bound [vmBound_charge_gas,vmBound_code_imm,vmBound_max,vmBound_pc_add,vmBound_stack_swap_positions]
+    · decide⟩
+
+#print axioms vmBound_op_exchange
+end InitECandidate.Runtime
