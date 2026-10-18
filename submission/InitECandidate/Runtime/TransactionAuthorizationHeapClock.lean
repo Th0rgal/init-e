@@ -17,7 +17,7 @@ theorem transaction_decode_after_authorization_heap_clock {F : Type} (state post
     (countLimit : inputLimit * 120 < 2^64)
     (arrayAbove : ceiling ≤ array.toNat)
     (headerBefore : tx.toNat + 280 < array.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (futureTicks : Nat)
     (ticks : txListItemAuthorizationCost inputLength.toNat + futureTicks ≤ state.clock)
     (run : evaluateHOLFiniteState state transactionAuthorizationBranch = (none,post)) :

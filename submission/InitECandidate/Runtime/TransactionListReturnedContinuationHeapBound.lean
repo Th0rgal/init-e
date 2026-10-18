@@ -20,7 +20,7 @@ theorem transaction_list_returned_continuation_heap_bounded {F : Type} (state po
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 120 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (budget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) + length.toNat * 12 + 4 ≤ state.clock)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (starts : input.toNat ≤ pointer.toNat)
     (ends : pointer.toNat + length.toNat ≤ input.toNat + inputLength.toNat)
@@ -32,7 +32,7 @@ theorem transaction_list_returned_continuation_heap_bounded {F : Type} (state po
     (inputBound : inputLength.toNat ≤ inputLimit)
     (headerBefore : tx.toNat + 344 < array.toNat)
     (arrayAbove : ceiling ≤ array.toNat)
-    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (futureBudget : transactionChainIdSuffixCost inputLength.toNat ≤ post.clock)
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState (callEntryStateHOLFinite state (transactionListCallee pointer length)) (sourceFunctionBody Guest.guestFn_rlp_list_to_slices) = (some (.returned value),post)) :

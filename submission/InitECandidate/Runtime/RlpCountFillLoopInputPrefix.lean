@@ -14,7 +14,7 @@ theorem rlpCountFill_loop_input_prefix {F : Type}
     (noWrap : pointer.toNat + length.toNat < 2^64) (lengthBound : length.toNat ≤ inputLimit)
     (limitBound : inputLimit + 9 < 2^64) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
     (scratchBelow : scratch.toNat ≤ ceiling)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedFinal uncheckedFinal : PanSemStateFiniteExact 64 F)
     (finalCount : checkedFinal.locals.lookup (ofString "count") = some (.val (.word sliceCount)))

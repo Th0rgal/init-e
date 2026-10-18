@@ -1,11 +1,11 @@
 import InitECandidate.Runtime.RlpSlicesBodyInputPrefix
 import InitECandidate.Runtime.RlpSlicesBodyMemoryBefore
 import InitECandidate.Runtime.TransactionMemzeroLowerFrame
-/-- Successful list construction establishes input-bounded new slices while preserving older input slices below its allocation. -/
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
+/-- Successful list construction establishes input-bounded new slices while preserving older input slices below its allocation. -/
 theorem rlpSlices_body_returned_input_contract {F : Type} (state post : PanSemStateFiniteExact 64 F)
     (pointer length scratch frame array : BitVec 64) (ceiling inputLimit : Nat)
     (atPointer : state.locals.lookup (ofString "p") = some (.val (.word pointer)))
@@ -25,7 +25,7 @@ theorem rlpSlices_body_returned_input_contract {F : Type} (state post : PanSemSt
     (valid : RlpSliceInputPrefix state older input inputLength olderCount.toNat)
     (before : older.toNat + olderCount.toNat * 16 ≤ array.toNat)
     (arrayBeforeFrame : array.toNat ≤ frame.toNat)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_rlp_list_to_slices) = (some (.returned value),post)) :

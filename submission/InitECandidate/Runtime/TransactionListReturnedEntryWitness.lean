@@ -17,7 +17,7 @@ theorem transaction_list_returned_entry_witness {F : Type} (state post : PanSemS
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 16 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (budget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) + length.toNat * 12 + 4 ≤ state.clock)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (starts : input.toNat ≤ pointer.toNat)
     (ends : pointer.toNat + length.toNat ≤ input.toNat + inputLength.toNat)

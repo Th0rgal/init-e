@@ -34,7 +34,7 @@ theorem authorization_initialized_returned_heap_independent_prefix {F : Type} (s
     (arrayFits : array.toNat + count.toNat * 16 ≤ 2^64) (arrayAbove : ceiling ≤ array.toNat)
     (arrayBeforeRecords : array.toNat + count.toNat * 16 ≤ records.toNat)
     (countLimit : inputLimit * 16 < 2^64)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : count.toNat *
       (authorizationStepCost inputLength.toNat inputLength.toNat + 1) ≤ state.clock)
     (watchedArray watchedCount : BitVec 64)

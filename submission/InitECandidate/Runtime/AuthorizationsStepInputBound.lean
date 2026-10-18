@@ -35,7 +35,7 @@ theorem evaluate_authorization_step_input_bounded {F : Type} (state : PanSemStat
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 16 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (inputBeforeArray : input.toNat + inputLength.toNat ≤ array.toNat)
     (arrayBeforeFrame : array.toNat + inputLength.toNat * 16 ≤ frame.toNat)
     (recordBeforeArray : record.toNat + 120 ≤ array.toNat) (recordFits : record.toNat + 120 < 2^64)
@@ -49,7 +49,7 @@ theorem evaluate_authorization_step_input_bounded {F : Type} (state : PanSemStat
   have bounded := evaluate_authorization_step_bounded state record records index pointer length input inputLength scratch frame array
     ceiling inputLimit recordAddress recordsLocal indexLocal args noWrap (Nat.le_trans lengthBound inputBound) inputBound limitBound
     starts ends scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena heap arrayBound countLimit heapArena
-    (Nat.le_trans ends inputBeforeFrame) (Nat.le_trans ends inputBeforeArray) arrayBeforeFrame recordBeforeArray recordFits
+    (by omega) (Nat.le_trans ends inputBeforeArray) arrayBeforeFrame recordBeforeArray recordFits
     (Nat.le_trans cost budget)
   exact ⟨Nat.le_trans bounded.1 (Nat.add_le_add_left cost _),bounded.2⟩
 

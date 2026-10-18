@@ -29,7 +29,7 @@ theorem transaction_allocation_suffix_bounded {F : Type} (state : PanSemStateFin
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word tx)))
     (txBound : tx.toNat + 400 ≤ 33806089496) (countLimit : inputLimit * 120 < 2^64)
     (heapArena : ∀ address : BitVec 64, tx.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (inputBeforeArray : input.toNat + inputLength.toNat ≤ tx.toNat)
     (byteLocal : state.locals.lookup (ofString "b0") = some (.val (.word kind)))
     (reserve : tx.toNat + 400 + inputLength.toNat * 56 + (inputLength.toNat * 48 + 46) * inputLength.toNat + inputLength.toNat * 296 + 14 ≤ frame.toNat)

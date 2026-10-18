@@ -24,7 +24,7 @@ theorem versioned_hashes_uniform_source_step_guarded_heap_growth {F : Type} (sta
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word tx)))
     (heapWithin : tx.toNat ≤ 33806089496) (countLimit : inputLimit * 120 < 2^64)
     (heapArena : ∀ address : BitVec 64, tx.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : wholeInput.toNat + wholeLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : wholeInput.toNat + wholeLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ wholeInput.toNat))
     (inputBeforeArray : wholeInput.toNat + wholeLength.toNat ≤ tx.toNat)
     (txAligned : tx.toNat % 8 = 0)
     (budget : transactionWrapperCallCost wholeLength.toNat ≤ state.clock)

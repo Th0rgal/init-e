@@ -22,7 +22,7 @@ theorem evaluate_access_loop_heap_independent_outer_prefix_bounded {F : Type} (s
     (arrayAbove : ceiling ≤ array.toNat)
     (arrayBeforeRecords : array.toNat + count.toNat * 16 ≤ records.toNat)
     (countLimit : inputLimit * 32 < 2^64)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : (count.toNat - valid.index.toNat) *
       (accessStepCost inputLength.toNat inputLength.toNat + 1) ≤ state.clock) :
     ∃ result post, evaluateHOLFiniteState state accessLoop = (result,post) ∧

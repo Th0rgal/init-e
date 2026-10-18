@@ -34,11 +34,11 @@ theorem evaluate_access_step_heap_bounded {F : Type} (state : PanSemStateFiniteE
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (arrayAbove : ceiling ≤ array.toNat)
     (wholeInputBeforeArray : input.toNat + inputLength.toNat ≤ array.toNat)
-    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : accessStepCost length.toNat inputLength.toNat ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state accessStep
     state.clock ≤ evaluated.2.clock + accessStepCost length.toNat inputLength.toNat ∧
@@ -110,7 +110,7 @@ theorem evaluate_access_step_heap_bounded {F : Type} (state : PanSemStateFiniteE
         input inputLength scratch frame array ceiling inputLimit atItem payloadNoWrap
         (Nat.le_trans payloadBound lengthBound) inputBound limitBound (Nat.le_trans inputStarts starts) (Nat.le_trans ends inputEnds)
         scratchPost framePost (metadata.1.trans code) orderedFrame framePositive scratchBelow resumedArena (heapSame.trans heap)
-        arrayBound countLimit resumedHeapArena (Nat.le_trans ends inputBeforeFrame) (Nat.le_trans ends inputBeforeArray)
+        arrayBound countLimit resumedHeapArena (by omega) (Nat.le_trans ends inputBeforeArray)
         arrayAbove
         wholeInputBeforeArray wholeInputBeforeFrame (Nat.le_trans costBound tailBudget)
       exact ⟨Nat.le_trans next.1 (Nat.add_le_add_left costBound _),next.2⟩

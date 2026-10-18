@@ -29,7 +29,7 @@ theorem evaluate_rlpSlices_returned_declaration_heap_runtime_input_contract {F :
     (valid : RlpSliceInputPrefix state older input inputLength olderCount.toNat)
     (before : older.toNat + olderCount.toNat * 16 ≤ array.toNat)
     (olderAboveScratch : ceiling ≤ older.toNat)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (finalValue : ValueHOL 64)
     (run : evaluateHOLFiniteState state (.decCall name (.comb [.one,.one]) (ofString "rlp_list_to_slices") arguments continuation) = (some (.returned finalValue),post)) :

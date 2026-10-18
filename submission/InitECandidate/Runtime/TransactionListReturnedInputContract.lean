@@ -23,7 +23,7 @@ theorem transaction_list_returned_input_contract {F : Type} (state post : PanSem
     (valid : RlpSliceInputPrefix state older input inputLength olderCount.toNat)
     (before : older.toNat + olderCount.toNat * 16 ≤ array.toNat)
     (arrayBeforeFrame : array.toNat ≤ frame.toNat)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (finalValue : ValueHOL 64)
     (run : evaluateHOLFiniteState state (transactionAt 12) = (some (.returned finalValue),post)) :

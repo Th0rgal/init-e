@@ -56,7 +56,7 @@ theorem evaluate_versioned_hashes_runtime_loop_bounded {F : Type} (state : PanSe
       witness.locals.arrayLocal witness.locals.indexLocal witness.locals.vhLocal witness.locals.cursorLocal pointer length scratch frame witness.heap
       ceiling inputLimit slice inputBound limitBound witness.scratchGlobal witness.frameGlobal witness.locals.code orderedFrame framePositive
       scratchBelow witness.arena witness.heapGlobal (by omega) countLimit witness.heapArena
-      (witness.inputBeforeHeap.trans (by omega)) witness.inputBeforeHeap space witness.heapAligned ticks
+      (Or.inl (witness.inputBeforeHeap.trans (by omega))) witness.inputBeforeHeap space witness.heapAligned ticks
     have control := versioned_hashes_step_no_loop_control current
     cases run : evaluateHOLFiniteState current versionedHashesStep with
     | mk result post =>

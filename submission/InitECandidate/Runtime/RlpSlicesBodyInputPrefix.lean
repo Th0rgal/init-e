@@ -4,6 +4,7 @@ import InitECandidate.Runtime.RlpSlicesAllocationInputPrefix
 import InitECandidate.Runtime.RlpListCountBodyReturnedLoop
 import InitECandidate.Runtime.RlpListCountBodyInputBytes
 import InitECandidate.Runtime.PanDecCallReturnedGlobalMemoryClockScope
+import InitECandidate.Runtime.InputBytesSeparated
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -25,7 +26,7 @@ theorem rlpSlices_body_returned_input_prefix {F : Type} (state post : PanSemStat
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 16 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (budget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) + length.toNat * 12 + 3 ≤ state.clock)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_rlp_list_to_slices) = (some (.returned value),post)) :
@@ -98,8 +99,9 @@ theorem rlpSlices_body_returned_input_prefix {F : Type} (state post : PanSemStat
     have counted := rlpListCount_body_returned_input_bytes entry bodyPost pointer length scratch frame ceiling inputLimit
       pointerLocal lengthLocal noWrap lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena
       countBudget (.val (.word count)) bodyRun inputBeforeFrame byteOffset inside
-    have resumedBytes := input_bytes_of_memory_below bodyPost resumed pointer length frame inputBeforeFrame
-      (by intro address below; change ready.memory address = bodyPost.memory address; rw [readyMemory]) readyDomain readyEndian byteOffset inside
+    have resumedBytes := input_bytes_of_memory_separated bodyPost resumed pointer length frame ceiling inputBeforeFrame noWrap
+      (by intro address below; change ready.memory address = bodyPost.memory address; rw [readyMemory])
+      (by intro address above; change ready.memory address = bodyPost.memory address; rw [readyMemory]) readyDomain readyEndian byteOffset inside
     exact counted.symm.trans resumedBytes.symm
   obtain ⟨returned,filled⟩ := rlpSlices_allocation_return_input_prefix resumed output pointer count array length scratch frame ceiling inputLimit
     (rlpListCountInitialState entry) loopPost valid offsetZero countZero loopCount loopRun noWrap lengthBound limitBound orderedFrame

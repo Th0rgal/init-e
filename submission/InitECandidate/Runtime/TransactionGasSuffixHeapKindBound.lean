@@ -15,7 +15,7 @@ theorem transaction_gas_suffix_heap_bounded_by_kind {F : Type} (state : PanSemSt
     (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat) (scratchBelow : scratch.toNat ≤ ceiling)
     (countLimit : inputLimit * 120 < 2^64)
     (arrayAbove : ceiling ≤ array.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (headerBefore : tx.toNat + 344 < array.toNat)
     (budget : transactionGasSuffixCost inputLength.toNat ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state (transactionAt 23)

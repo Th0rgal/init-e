@@ -13,7 +13,7 @@ theorem transaction_index_entry_heap_bounded {F : Type} (state : PanSemStateFini
     (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat) (scratchBelow : scratch.toNat ≤ ceiling)
     (countLimit : inputLimit * 120 < 2^64)
     (arrayAbove : ceiling ≤ array.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (headerBefore : tx.toNat + 344 < array.toNat)
     (budget : transactionChainIdSuffixCost inputLength.toNat ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state (transactionAt 15)

@@ -18,7 +18,7 @@ theorem transaction_authorization_returned_guarded_heap_contract {F : Type} (sta
     (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat) (scratchBelow : scratch.toNat ≤ ceiling)
     (countLimit : inputLimit * 120 < 2^64)
     (arrayAbove : ceiling ≤ array.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (headerBefore : tx.toNat + 280 < array.toNat)
     (futureTicks : Nat)
     (ticks : txListItemAuthorizationCost inputLength.toNat + futureTicks ≤ state.clock)

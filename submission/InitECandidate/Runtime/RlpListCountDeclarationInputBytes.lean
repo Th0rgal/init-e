@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.RlpListCountDeclarationBelow
-import InitECandidate.Runtime.InputBytesBelowFrame
+import InitECandidate.Runtime.InputBytesSeparated
+import InitECandidate.Runtime.RlpListCountDeclarationAbove
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -18,7 +19,7 @@ theorem rlpListCount_declaration_normal_input_bytes {F : Type} (state post : Pan
     (arena : ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → state.memaddrs address)
     (budget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) + 1 ≤ state.clock)
     (run : evaluateHOLFiniteState state (.decCall name .one (ofString "rlp_list_count") arguments continuation) = (none,post))
-    (before : pointer.toNat + length.toNat ≤ frame.toNat) (offset : Nat) (inside : offset < length.toNat) :
+    (before : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat)) (offset : Nat) (inside : offset < length.toNat) :
     @panMemLoadByteHOL 64 _ post.memory post.memaddrs
       (fun a => Classical.propDecidable (post.memaddrs a)) post.be (pointer + BitVec.ofNat 64 offset) =
     @panMemLoadByteHOL 64 _ state.memory state.memaddrs
@@ -27,11 +28,15 @@ theorem rlpListCount_declaration_normal_input_bytes {F : Type} (state post : Pan
     (.decCall name .one (ofString "rlp_list_count") arguments continuation)
   rw [run] at metadata
   dsimp only at metadata
-  apply input_bytes_of_memory_below state post pointer length frame before
+  apply input_bytes_of_memory_separated state post pointer length frame ceiling before noWrap
   · intro address below
     exact rlpListCount_declaration_normal_below state post name continuation supported arguments
       pointer length scratch frame ceiling inputLimit args noWrap lengthBound limitBound scratchGlobal
       frameGlobal code orderedFrame framePositive scratchBelow arena budget run address below
+  · intro address above
+    exact rlpListCount_declaration_normal_above state post name continuation supported arguments
+      pointer length scratch frame ceiling inputLimit args noWrap lengthBound limitBound scratchGlobal
+      frameGlobal code orderedFrame framePositive scratchBelow arena budget run address above
   · exact metadata.2.1
   · exact metadata.2.2.1
   · exact inside

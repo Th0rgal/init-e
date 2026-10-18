@@ -16,7 +16,7 @@ theorem evaluate_versioned_hashes_guarded_runtime_loop_bounded {F : Type} (state
     (valid : VersionedHashesGuardedRuntimeInvariant state count array vh input inputLength scratch frame ceiling)
     (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
     (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat) (scratchBelow : scratch.toNat ≤ ceiling)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (arrayAbove : ceiling ≤ array.toNat)
     (countLimit : inputLimit * 120 < 2^64)
     (budget : versionedHashesRank count state * (versionedHashesTransactionStepCost inputLength.toNat + 1) ≤ state.clock) :

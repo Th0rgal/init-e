@@ -34,7 +34,7 @@ theorem evaluate_authorization_allocation_bounded {F : Type} (state : PanSemStat
     (heapArena : ∀ address : BitVec 64, records.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (countLimit : inputLimit * 16 < 2^64)
     (inputBeforeRecords : input.toNat + inputLength.toNat ≤ records.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (reserve : records.toNat + count.toNat * 216 + inputLength.toNat * 16 ≤ frame.toNat)
     (budget : count.toNat *
       (authorizationStepCost inputLength.toNat inputLength.toNat + 1) + 2 ≤ state.clock) :

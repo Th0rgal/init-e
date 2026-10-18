@@ -25,7 +25,7 @@ theorem evaluate_blobHashes_declaration_bounded {F : Type} (state : PanSemStateF
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (arrayBeforeFrame : array.toNat + length.toNat * 16 ≤ frame.toNat)
     (budget : blobHashesBodyCost length.toNat + 1 ≤ state.clock) :

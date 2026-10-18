@@ -18,7 +18,7 @@ theorem access_step_input_heap_runtime_contract {F : Type} (state post : PanSemS
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (inputBeforeArray : input.toNat + inputLength.toNat ≤ array.toNat)
     (arrayAbove : ceiling ≤ array.toNat)
     (budget : accessStepCost inputLength.toNat inputLength.toNat ≤ state.clock)
@@ -36,7 +36,7 @@ theorem access_step_input_heap_runtime_contract {F : Type} (state post : PanSemS
   have contract := access_step_heap_runtime_contract state post pointer length input inputLength scratch frame array
     ceiling inputLimit args noWrap (Nat.le_trans lengthBound inputBound) inputBound limitBound
     starts ends scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena heap arrayBound countLimit heapArena
-    (Nat.le_trans ends inputBeforeFrame) (Nat.le_trans ends inputBeforeArray) arrayAbove inputBeforeArray inputBeforeFrame
+    (by omega) (Nat.le_trans ends inputBeforeArray) arrayAbove inputBeforeArray inputBeforeFrame
     (Nat.le_trans cost budget) run
   exact contract
 
@@ -55,7 +55,7 @@ theorem access_step_input_guarded_heap_bounds {F : Type} (state post : PanSemSta
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (inputBeforeArray : input.toNat + inputLength.toNat ≤ array.toNat)
     (arrayAbove : ceiling ≤ array.toNat)
     (budget : accessStepCost inputLength.toNat inputLength.toNat ≤ state.clock)

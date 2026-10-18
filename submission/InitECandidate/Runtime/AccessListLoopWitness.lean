@@ -46,7 +46,7 @@ theorem access_loop_witness_step {F : Type} (state post : PanSemStateFiniteExact
     (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
     (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat) (scratchBelow : scratch.toNat ≤ ceiling)
     (countLimit : inputLimit * 32 < 2^64)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (arrayBeforeFrame : array.toNat + count.toNat * 16 ≤ frame.toNat)
     (arrayBeforeRecords : array.toNat + count.toNat * 16 ≤ records.toNat)
     (budget : accessStepCost inputLength.toNat inputLength.toNat ≤ state.clock)

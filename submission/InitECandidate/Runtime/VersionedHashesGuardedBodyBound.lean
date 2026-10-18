@@ -26,7 +26,7 @@ theorem evaluate_versioned_hashes_guarded_body_bounded {F : Type} (state : PanSe
     (inputBeforeHeap : input.toNat + inputLength.toNat ≤ heap.toNat)
     (arrayBeforeHeap : array.toNat + count.toNat * 16 ≤ heap.toNat)
     (heapAbove : ceiling ≤ heap.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (arrayAbove : ceiling ≤ array.toNat)
     (inputLimit : Nat) (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
     (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat) (scratchBelow : scratch.toNat ≤ ceiling)

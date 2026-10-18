@@ -29,7 +29,8 @@ theorem versioned_hashes_runtime_invariant_step {F : Type} (state post : PanSemS
     dsimp only [transactionHeapWorkspace,transactionHeapGrowth]; omega
   have heapSmall : valid.heap.toNat + 400 ≤ 33806089496 := by omega
   have arrayBelow : array.toNat + count.toNat * 16 ≤ frame.toNat := valid.arrayBeforeHeap.trans (by omega)
-  have inputBelow : input.toNat + inputLength.toNat ≤ frame.toNat := valid.inputBeforeHeap.trans (by omega)
+  have inputBelow : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat) :=
+    Or.inl (valid.inputBeforeHeap.trans (by omega))
   obtain ⟨nextHeap,binding,lower,upper,heapBound,aligned,scratchFinal,frameFinal⟩ := versioned_hashes_uniform_source_step_heap_growth state post
     array valid.locals.index input inputLength vh valid.locals.cursor valid.locals.arrayLocal valid.locals.indexLocal valid.locals.vhLocal
     valid.locals.cursorLocal pointer length scratch frame valid.heap ceiling inputLimit slice inputBound limitBound valid.scratchGlobal valid.frameGlobal

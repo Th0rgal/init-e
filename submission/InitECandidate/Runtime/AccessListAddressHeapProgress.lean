@@ -23,7 +23,7 @@ theorem access_address_heap_progress {F : Type} (state final : PanSemStateFinite
     (heapArena : ∀ address : BitVec 64, heapPointer.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (inputBeforeHeap : input.toNat + inputLength.toNat ≤ heapPointer.toNat)
     (heapAbove : ceiling ≤ heapPointer.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92634) + accessSlotItemCost inputLength.toNat ≤ state.clock)
     (outerIndex : BitVec 64)
     (binding : state.locals.lookup (ofString "i") = some (.val (.word outerIndex)))

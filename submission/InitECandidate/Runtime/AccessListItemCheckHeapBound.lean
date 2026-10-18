@@ -21,11 +21,11 @@ theorem evaluate_access_item_check_heap_bounded {F : Type} (state : PanSemStateF
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (arrayAbove : ceiling ≤ array.toNat)
     (wholeInputBeforeArray : input.toNat + inputLength.toNat ≤ array.toNat)
-    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : accessInnerSlicesCost length.toNat inputLength.toNat ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state accessItemCheck
     state.clock ≤ evaluated.2.clock + accessInnerSlicesCost length.toNat inputLength.toNat ∧

@@ -92,7 +92,7 @@ theorem transaction_body_returned_fields_runtime_contract {F : Type} (state post
       ((fieldsCost_mono payloadBound).trans (Nat.le_trans (Nat.le_add_right _ reserve) available)) array count input inputLength preserved
       (by rw [geometry]; omega) (by rw [geometry]; exact allocationBeforeFrame)
       finalTx typePost beforeTx
-      (by exact ends.trans (inputBeforeTx.trans (Nat.le_trans (Nat.le_add_right _ _) allocationBeforeFrame)))
+      (Or.inl (ends.trans (inputBeforeTx.trans (Nat.le_trans (Nat.le_add_right _ _) allocationBeforeFrame))))
       (by rw [geometry]; exact ends.trans (inputBeforeTx.trans (Nat.le_add_right _ _))) value tail
   have spans : RlpSliceInputPrefix entry (allocationEnd tx 400) pointer length fieldCount.toNat := by
     intro index inside

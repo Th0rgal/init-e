@@ -20,7 +20,7 @@ theorem transaction_list_suffix_heap_bounded {F : Type} (state : PanSemStateFini
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 120 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (starts : input.toNat ≤ pointer.toNat)
     (ends : pointer.toNat + length.toNat ≤ input.toNat + inputLength.toNat)
@@ -32,7 +32,7 @@ theorem transaction_list_suffix_heap_bounded {F : Type} (state : PanSemStateFini
     (inputBound : inputLength.toNat ≤ inputLimit)
     (headerBefore : tx.toNat + 344 < array.toNat)
     (arrayAbove : ceiling ≤ array.toNat)
-    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (topLocal : state.locals.lookup (ofString "top") = some (.rStruct [.val (.word tag),.val (.word pointer),.val (.word length),.val (.word total)]))
     (budget : transactionListSuffixCost length.toNat inputLength.toNat ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state (transactionAt 12)

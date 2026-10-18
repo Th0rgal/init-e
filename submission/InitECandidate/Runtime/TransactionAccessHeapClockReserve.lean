@@ -14,7 +14,7 @@ theorem transaction_decode_after_access_heap_clock_reserve {F : Type} (state pos
     (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat) (scratchBelow : scratch.toNat ≤ ceiling)
     (countLimit : inputLimit * 32 < 2^64)
     (arrayAbove : ceiling ≤ array.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (headerBefore : tx.toNat + 216 < array.toNat)
     (futureTicks : Nat)
     (ticks : txListItemAccessCost inputLength.toNat + futureTicks ≤ state.clock)

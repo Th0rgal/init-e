@@ -9,7 +9,7 @@ theorem versioned_hashes_guarded_runtime_invariant_step {F : Type} (state post :
     (valid : VersionedHashesGuardedRuntimeInvariant state count array vh input inputLength scratch frame ceiling)
     (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
     (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat) (scratchBelow : scratch.toNat ≤ ceiling)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (arrayAbove : ceiling ≤ array.toNat)
     (countLimit : inputLimit * 120 < 2^64)
     (active : 0 < versionedHashesRank count state)

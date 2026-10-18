@@ -16,7 +16,7 @@ theorem evaluate_access_loop_heap_floor_bounded {F : Type} (state : PanSemStateF
     (arrayBeforeFrame : array.toNat + count.toNat * 16 ≤ frame.toNat)
     (arrayBeforeRecords : array.toNat + count.toNat * 16 ≤ records.toNat)
     (countLimit : inputLimit * 32 < 2^64)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (heapFloor : Nat)
     (heapBudget : heapFloor ≤ valid.heap.toNat)
     (budget : (count.toNat - valid.index.toNat) *

@@ -21,7 +21,7 @@ theorem versioned_hashes_source_step_normal_guarded_heap_growth {F : Type} (stat
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word tx)))
     (heapWithin : tx.toNat ≤ 33806089496) (countLimit : inputLimit * 120 < 2^64)
     (heapArena : ∀ address : BitVec 64, tx.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : wholeInput.toNat + wholeLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : wholeInput.toNat + wholeLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ wholeInput.toNat))
     (inputBeforeArray : wholeInput.toNat + wholeLength.toNat ≤ tx.toNat)
     (txAligned : tx.toNat % 8 = 0)
     (budget : transactionWrapperCallCost inputLength.toNat ≤ state.clock)
@@ -45,7 +45,7 @@ theorem versioned_hashes_source_step_normal_guarded_heap_growth {F : Type} (stat
     (transactionSliceArguments (ofString "txs") (ofString "i")) vh cursor vhLocal cursorLocal
     input inputLength scratch frame tx ceiling inputLimit args slice.noWrap (by omega) limitBound
     scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena heap heapWithin countLimit heapArena
-    (by have span := slice.endsWithin; omega) (by have span := slice.endsWithin; omega) txAligned budget
+    (by have span := slice.endsWithin; have start := slice.startsWithin; omega) (by have span := slice.endsWithin; have start := slice.startsWithin; omega) txAligned budget
     outerArray outerCount outerInput outerLength outerValid outerAbove beforeTx run
 
 #print axioms versioned_hashes_source_step_normal_guarded_heap_growth

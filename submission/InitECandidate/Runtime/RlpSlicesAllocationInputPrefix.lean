@@ -2,6 +2,7 @@ import InitECandidate.Runtime.AllocationReturnedGuard
 import InitECandidate.Runtime.RlpSlicesInitializationInputPrefix
 import InitECandidate.Runtime.RlpSlicesAllocationDomain
 import InitECandidate.Runtime.RlpSlicesAllocationBound
+import InitECandidate.Runtime.InputBytesSeparated
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -18,7 +19,7 @@ theorem rlpSlices_allocation_success_input_prefix {F : Type} (state post : PanSe
     (noWrap : pointer.toNat + length.toNat < 2^64) (lengthBound : length.toNat ≤ inputLimit)
     (limitBound : inputLimit + 9 < 2^64) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
     (scratchBelow : scratch.toNat ≤ ceiling)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedBudget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) ≤ checked.clock)
     (reads : ∀ byteOffset : Nat, byteOffset < length.toNat →
@@ -72,8 +73,9 @@ theorem rlpSlices_allocation_success_input_prefix {F : Type} (state post : PanSe
       framePositive scratchBelow inputBeforeFrame inputBeforeArray checkedBudget
       (by
         intro byteOffset inside
-        have kept := input_bytes_of_memory_below state entered pointer length frame inputBeforeFrame
-          (by intro address below; change ready.memory address = state.memory address; rw [memory]) domain endian byteOffset inside
+        have kept := input_bytes_of_memory_separated state entered pointer length frame ceiling inputBeforeFrame noWrap
+          (by intro address below; change ready.memory address = state.memory address; rw [memory])
+          (by intro address above; change ready.memory address = state.memory address; rw [memory]) domain endian byteOffset inside
         exact (reads byteOffset inside).trans kept.symm) atPointer atCount (readyCode.trans code)
       (by change count.toNat * 12 ≤ ready.clock; omega) atArray (by omega) enteredDomain value tail
     refine ⟨shape,?_⟩
@@ -92,7 +94,7 @@ theorem rlpSlices_allocation_return_input_prefix {F : Type} (state post : PanSem
     (noWrap : pointer.toNat + length.toNat < 2^64) (lengthBound : length.toNat ≤ inputLimit)
     (limitBound : inputLimit + 9 < 2^64) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
     (scratchBelow : scratch.toNat ≤ ceiling)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedBudget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) ≤ checked.clock)
     (reads : ∀ byteOffset : Nat, byteOffset < length.toNat →

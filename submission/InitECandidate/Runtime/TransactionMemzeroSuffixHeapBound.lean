@@ -22,7 +22,7 @@ theorem transaction_memzero_suffix_heap_bounded {F : Type} (state : PanSemStateF
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 120 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (inputBeforeArray : input.toNat + inputLength.toNat ≤ array.toNat)
     (txLocal : state.locals.lookup (ofString "tx") = some (.val (.word tx)))
     (byteLocal : state.locals.lookup (ofString "b0") = some (.val (.word kind)))
