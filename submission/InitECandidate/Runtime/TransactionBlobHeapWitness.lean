@@ -16,7 +16,7 @@ theorem transaction_decode_heap_witness_after_blob {F : Type} (state post : PanS
     (countLimit : inputLimit * 32 < 2^64)
     (arrayAbove : ceiling ≤ array.toNat)
     (headerBefore : tx.toNat + 264 < array.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668) + txListItemBlobCost inputLength.toNat ≤ state.clock)
     (run : evaluateHOLFiniteState state transactionBlobBranch = (none,post)) :
     ∃ next : TransactionDecodeWitness post array count tx kind input inputLength scratch frame ceiling,

@@ -13,7 +13,7 @@ theorem evaluate_authorizations_loop_independent_prefix_bounded {F : Type} (stat
     (arrayBeforeFrame : array.toNat + count.toNat * 16 ≤ frame.toNat)
     (arrayBeforeRecords : array.toNat + count.toNat * 16 ≤ records.toNat)
     (countLimit : inputLimit * 16 < 2^64)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (watchedArray watchedCount : BitVec 64)
     (watchedValid : RlpSliceInputPrefix state watchedArray input inputLength watchedCount.toNat)
     (watchedBeforeFrame : watchedArray.toNat + watchedCount.toNat * 16 ≤ frame.toNat)

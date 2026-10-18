@@ -43,7 +43,7 @@ theorem evaluate_authorization_step_heap_bounded {F : Type} (state : PanSemState
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 16 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (arrayAbove : ceiling ≤ array.toNat)
     (recordBeforeArray : record.toNat + 120 ≤ array.toNat) (recordFits : record.toNat + 120 < 2^64)
@@ -124,7 +124,7 @@ theorem evaluate_authorization_step_heap_bounded {F : Type} (state : PanSemState
         input inputLength scratch frame array ceiling inputLimit recordAddress atRecords atIndex atItem payloadNoWrap
         (Nat.le_trans payloadBound lengthBound) inputBound limitBound (Nat.le_trans inputStarts starts) (Nat.le_trans ends inputEnds)
         scratchPost framePost (metadata.1.trans code) orderedFrame framePositive scratchBelow resumedArena (heapSame.trans heap)
-        arrayBound countLimit resumedHeapArena (Nat.le_trans ends inputBeforeFrame) (Nat.le_trans ends inputBeforeArray)
+        arrayBound countLimit resumedHeapArena (by omega) (Nat.le_trans ends inputBeforeArray)
         arrayAbove
         recordBeforeArray recordFits (Nat.le_trans costBound tailBudget)
       exact ⟨Nat.le_trans next.1 (Nat.add_le_add_left costBound _),next.2⟩

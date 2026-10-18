@@ -11,7 +11,7 @@ theorem transaction_decode_after_blob_heap_clock_reserve {F : Type} (state post 
     (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat) (scratchBelow : scratch.toNat ≤ ceiling)
     (countLimit : inputLimit * 32 < 2^64)
     (arrayAbove : ceiling ≤ array.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (headerBefore : tx.toNat + 264 < array.toNat)
     (futureTicks : Nat)
     (ticks : (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668) + txListItemBlobCost inputLength.toNat + futureTicks ≤ state.clock)

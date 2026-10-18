@@ -22,7 +22,7 @@ theorem access_slot_item_heap_runtime_contract {F : Type} (state final : PanSemS
     (heapArena : ∀ address : BitVec 64, heapPointer.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (inputBeforeHeap : input.toNat + inputLength.toNat ≤ heapPointer.toNat)
     (heapAbove : ceiling ≤ heapPointer.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : accessSlotItemCost inputLength.toNat ≤ state.clock)
     (run : evaluateHOLFiniteState state accessSlotItem = (none,final)) :
     ∃ count : BitVec 64, count.toNat ≤ inputLength.toNat ∧

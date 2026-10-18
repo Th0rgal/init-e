@@ -39,7 +39,7 @@ theorem rlpCountFill_step_retains_input_invariant {F : Type}
     (scratchBelow : scratch.toNat ≤ ceiling)
     (arena : ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → checked.memaddrs address)
     (checkedBudget : (2 * length.toNat + 1) * 15 + 18 ≤ checked.clock)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (checkedRun : evaluateHOLFiniteState checked rlpListCountStep = (none,checkedPost))
     (uncheckedRun : evaluateHOLFiniteState unchecked rlpSlicesStep = (none,uncheckedPost)) :

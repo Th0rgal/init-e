@@ -27,7 +27,7 @@ theorem evaluate_txListItem_blob_call_heap_bounded {F : Type} (state : PanSemSta
     (heapBound : heapPointer.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, heapPointer.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (inputBeforeHeap : input.toNat + inputLength.toNat ≤ heapPointer.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (heapAbove : ceiling ≤ heapPointer.toNat)
     (budget : txListItemBlobCost inputLength.toNat ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state (txListItemBlobCall listName blobName arguments tail)

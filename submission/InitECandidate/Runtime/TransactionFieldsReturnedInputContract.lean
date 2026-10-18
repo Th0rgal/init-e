@@ -28,7 +28,7 @@ theorem transaction_fields_returned_input_contract {F : Type} (state post : PanS
     (txLocal : state.locals.lookup (ofString "tx") = some (.val (.word tx)))
     (typeLocal : state.locals.lookup (ofString "t") = some (.val (.word kind)))
     (beforeTx : older.toNat + olderCount.toNat * 16 ≤ tx.toNat)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (finalValue : ValueHOL 64)
     (run : evaluateHOLFiniteState state (transactionAt 10) = (some (.returned finalValue),post)) :

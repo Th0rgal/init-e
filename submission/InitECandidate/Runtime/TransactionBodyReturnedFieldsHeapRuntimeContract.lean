@@ -41,7 +41,7 @@ theorem transaction_body_returned_fields_heap_runtime_contract {F : Type} (state
     (txArena : ∀ address : BitVec 64, tx.toNat ≤ address.toNat → address.toNat < tx.toNat + 400 → state.memaddrs address)
     (countLimit : inputLimit * 16 < 2^64)
     (heapArena : ∀ address : BitVec 64, tx.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (beforeTx : array.toNat + count.toNat * 16 ≤ tx.toNat)
     (inputBeforeTx : pointer.toNat + length.toNat ≤ tx.toNat)
     (value : ValueHOL 64)
@@ -97,7 +97,7 @@ theorem transaction_body_returned_fields_heap_runtime_contract {F : Type} (state
       ((fieldsCost_mono payloadBound).trans (Nat.le_trans (Nat.le_add_right _ reserve) available)) array count input inputLength preserved
       (by rw [geometry]; omega) above
       finalTx typePost beforeTx
-      (ends.trans inputBeforeFrame)
+      (by omega)
       (by rw [geometry]; exact ends.trans (inputBeforeTx.trans (Nat.le_add_right _ _))) value tail
   have spans : RlpSliceInputPrefix entry (allocationEnd tx 400) pointer length fieldCount.toNat := by
     intro index inside

@@ -23,7 +23,7 @@ theorem access_step_input_progress {F : Type} (state post : PanSemStateFiniteExa
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (inputBeforeArray : input.toNat + inputLength.toNat ≤ array.toNat)
     (arrayBeforeFrame : array.toNat + inputLength.toNat * 16 ≤ frame.toNat)
     (reserve : array.toNat + inputLength.toNat * 32 + 7 ≤ frame.toNat)
@@ -39,7 +39,7 @@ theorem access_step_input_progress {F : Type} (state post : PanSemStateFiniteExa
   have progress := access_step_progress state post pointer length input inputLength scratch frame array
     ceiling inputLimit args noWrap (Nat.le_trans lengthBound inputBound) inputBound limitBound
     starts ends scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena heap arrayBound countLimit heapArena
-    (Nat.le_trans ends inputBeforeFrame) (Nat.le_trans ends inputBeforeArray) arrayBeforeFrame inputBeforeArray reserve
+    (by omega) (Nat.le_trans ends inputBeforeArray) arrayBeforeFrame inputBeforeArray reserve
     (Nat.le_trans cost budget) index indexLocal run
   have nextNat : (index + 1).toNat = index.toNat + 1 := by
     rw [BitVec.toNat_add_of_lt (by have limit := count.isLt; change index.toNat + 1 < 2^64; omega)]

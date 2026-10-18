@@ -25,7 +25,7 @@ theorem rlpSlices_body_returned_heap_input_contract {F : Type} (state post : Pan
     (valid : RlpSliceInputPrefix state older input inputLength olderCount.toNat)
     (before : older.toNat + olderCount.toNat * 16 ≤ array.toNat)
     (olderAboveScratch : ceiling ≤ older.toNat)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_rlp_list_to_slices) = (some (.returned value),post)) :

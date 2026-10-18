@@ -16,7 +16,7 @@ theorem evaluate_access_loop_guarded_heap_budget_bounded {F : Type} (state : Pan
     (arrayAbove : ceiling ≤ array.toNat)
     (arrayBeforeRecords : array.toNat + count.toNat * 16 ≤ records.toNat)
     (countLimit : inputLimit * 32 < 2^64)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (heapCeiling : Nat)
     (heapBudget : valid.heap.toNat + (inputLength.toNat * 48 + 46) * (count.toNat - valid.index.toNat) ≤ heapCeiling)
     (budget : (count.toNat - valid.index.toNat) *

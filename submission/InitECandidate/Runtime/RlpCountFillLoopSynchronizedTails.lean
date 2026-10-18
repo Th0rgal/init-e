@@ -39,7 +39,7 @@ theorem rlpCountFill_loop_synchronized_tails {F : Type}
     (counterMatch : count = index)
     (checkedBudget : (length.toNat - offset.toNat) * ((2 * length.toNat + 1) * 15 + 19) ≤ checked.clock)
     (finalCount : checkedPostFinal.locals.lookup (ofString "count") = some (.val (.word sliceCount)))
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (uncheckedCount : unchecked.locals.lookup (ofString "count") = some (.val (.word sliceCount)))
     (checkedRun : evaluateHOLFiniteState checked rlpListCountLoop = (none,checkedPostFinal))

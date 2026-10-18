@@ -26,7 +26,7 @@ theorem access_initialized_returned_independent_outer_prefix {F : Type} (state p
     (arrayBeforeFrame : array.toNat + count.toNat * 16 ≤ frame.toNat)
     (arrayBeforeRecords : array.toNat + count.toNat * 16 ≤ records.toNat)
     (countLimit : inputLimit * 32 < 2^64)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : count.toNat *
       (accessStepCost inputLength.toNat inputLength.toNat + 1) ≤ state.clock)
     (watchedArray watchedCount watchedInput watchedLength : BitVec 64)

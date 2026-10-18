@@ -28,7 +28,7 @@ theorem evaluate_access_slot_item_heap_bounded {F : Type} (state : PanSemStateFi
     (heapArena : ∀ address : BitVec 64, heapPointer.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (inputBeforeHeap : input.toNat + inputLength.toNat ≤ heapPointer.toNat)
     (heapAbove : ceiling ≤ heapPointer.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : accessSlotItemCost inputLength.toNat ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state accessSlotItem
     state.clock ≤ evaluated.2.clock + accessSlotItemCost inputLength.toNat ∧

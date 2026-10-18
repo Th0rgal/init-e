@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.RlpListCountBodyBelow
-import InitECandidate.Runtime.InputBytesBelowFrame
+import InitECandidate.Runtime.InputBytesSeparated
+import InitECandidate.Runtime.RlpListCountBodyAbove
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -18,7 +19,7 @@ theorem rlpListCount_body_returned_input_bytes {F : Type} (state post : PanSemSt
     (budget : length.toNat * ((2 * length.toNat + 1) * 15 + 19) ≤ state.clock)
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_rlp_list_count) = (some (.returned value),post))
-    (before : pointer.toNat + length.toNat ≤ frame.toNat) (offset : Nat) (inside : offset < length.toNat) :
+    (before : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat)) (offset : Nat) (inside : offset < length.toNat) :
     @panMemLoadByteHOL 64 _ post.memory post.memaddrs
       (fun a => Classical.propDecidable (post.memaddrs a)) post.be (pointer + BitVec.ofNat 64 offset) =
     @panMemLoadByteHOL 64 _ state.memory state.memaddrs
@@ -26,11 +27,15 @@ theorem rlpListCount_body_returned_input_bytes {F : Type} (state post : PanSemSt
   have metadata := evaluateHOLFiniteState_metadata state (sourceFunctionBody Guest.guestFn_rlp_list_count)
   rw [run] at metadata
   dsimp only at metadata
-  apply input_bytes_of_memory_below state post pointer length frame before
+  apply input_bytes_of_memory_separated state post pointer length frame ceiling before noWrap
   · intro address below
     exact rlpListCount_body_returned_below state post pointer length scratch frame ceiling inputLimit
       pointerLocal lengthLocal noWrap lengthBound limitBound scratchGlobal frameGlobal code orderedFrame
       framePositive scratchBelow arena budget value run address below
+  · intro address above
+    exact rlpListCount_body_returned_above state post pointer length scratch frame ceiling inputLimit
+      pointerLocal lengthLocal noWrap lengthBound limitBound scratchGlobal frameGlobal code orderedFrame
+      framePositive scratchBelow arena budget value run address above
   · exact metadata.2.1
   · exact metadata.2.2.1
   · exact inside

@@ -47,7 +47,7 @@ theorem authorization_step_normal_heap_fixed_heap {F : Type} (state final : PanS
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 16 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (arrayAbove : ceiling ≤ array.toNat)
     (recordBeforeArray : record.toNat + 120 ≤ array.toNat) (recordFits : record.toNat + 120 < 2^64)
@@ -126,7 +126,7 @@ theorem authorization_step_normal_heap_fixed_heap {F : Type} (state final : PanS
     (by simpa only [resumed,setVarHOLFinite,globals] using scratchPost)
     (by simpa only [resumed,setVarHOLFinite,globals] using framePost)
     (by change ready.code = originalRuntimeCode; exact readyCode.trans (metadata.1.trans code)) orderedFrame framePositive scratchBelow resumedArena (by simpa only [resumed,setVarHOLFinite,globals] using heapSame.trans heap)
-    arrayBound countLimit resumedHeapArena (Nat.le_trans ends inputBeforeFrame) (Nat.le_trans ends inputBeforeArray)
+    arrayBound countLimit resumedHeapArena (by omega) (Nat.le_trans ends inputBeforeArray)
     arrayAbove
     recordBeforeArray recordFits (Nat.le_trans costBound tailBudget)
     tail

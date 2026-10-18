@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.RlpListCountStepBelow
-import InitECandidate.Runtime.InputBytesBelowFrame
+import InitECandidate.Runtime.InputBytesSeparated
+import InitECandidate.Runtime.RlpListCountStepAbove
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -19,7 +20,7 @@ theorem rlpListCount_normal_step_input_bytes {F : Type} (state post : PanSemStat
     (arena : ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → state.memaddrs address)
     (budget : (2 * length.toNat + 1) * 15 + 18 ≤ state.clock)
     (run : evaluateHOLFiniteState state rlpListCountStep = (none,post))
-    (before : pointer.toNat + length.toNat ≤ frame.toNat) (byteOffset : Nat) (inside : byteOffset < length.toNat) :
+    (before : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat)) (byteOffset : Nat) (inside : byteOffset < length.toNat) :
     @panMemLoadByteHOL 64 _ post.memory post.memaddrs
       (fun a => Classical.propDecidable (post.memaddrs a)) post.be (pointer + BitVec.ofNat 64 byteOffset) =
     @panMemLoadByteHOL 64 _ state.memory state.memaddrs
@@ -27,11 +28,15 @@ theorem rlpListCount_normal_step_input_bytes {F : Type} (state post : PanSemStat
   have metadata := evaluateHOLFiniteState_metadata state rlpListCountStep
   rw [run] at metadata
   dsimp only at metadata
-  apply input_bytes_of_memory_below state post pointer length frame before
+  apply input_bytes_of_memory_separated state post pointer length frame ceiling before noWrap
   · intro address below
     exact rlpListCount_normal_step_below state post pointer length offset scratch frame ceiling inputLimit
       pointerLocal lengthLocal offsetLocal offsetBound noWrap lengthBound limitBound scratchGlobal frameGlobal
       code orderedFrame framePositive scratchBelow arena budget run address below
+  · intro address above
+    exact rlpListCount_normal_step_above state post pointer length offset scratch frame ceiling inputLimit
+      pointerLocal lengthLocal offsetLocal offsetBound noWrap lengthBound limitBound scratchGlobal frameGlobal
+      code orderedFrame framePositive scratchBelow arena budget run address above
   · exact metadata.2.1
   · exact metadata.2.2.1
   · exact inside

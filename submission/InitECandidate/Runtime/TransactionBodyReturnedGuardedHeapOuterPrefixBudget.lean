@@ -34,7 +34,7 @@ theorem transaction_body_returned_guarded_heap_outer_prefix_budget {F : Type} (s
     (txArena : ∀ address : BitVec 64, tx.toNat ≤ address.toNat → address.toNat < tx.toNat + 400 → state.memaddrs address)
     (countLimit : inputLimit * 120 < 2^64)
     (heapArena : ∀ address : BitVec 64, tx.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (beforeTx : array.toNat + count.toNat * 16 ≤ tx.toNat)
     (inputBeforeTx : pointer.toNat + length.toNat ≤ tx.toNat)
     (value : ValueHOL 64)

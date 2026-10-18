@@ -24,7 +24,7 @@ theorem access_allocation_returned_heap_growth {F : Type} (state final : PanSemS
     (heapArena : ∀ address : BitVec 64, records.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (countLimit : inputLimit * 32 < 2^64)
     (inputBeforeRecords : input.toNat + inputLength.toNat ≤ records.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (reserve : records.toNat + count.toNat * 24 + (inputLength.toNat * 48 + 46) * count.toNat + inputLength.toNat * 32 + 7 ≤ frame.toNat)
     (budget : count.toNat *
       (accessStepCost inputLength.toNat inputLength.toNat + 1) + 2 ≤ state.clock)

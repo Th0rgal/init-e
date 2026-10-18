@@ -24,11 +24,11 @@ theorem access_inner_slices_heap_runtime_contract {F : Type} (state final : PanS
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word array)))
     (arrayBound : array.toNat ≤ 33806089496) (countLimit : inputLimit * 32 < 2^64)
     (heapArena : ∀ address : BitVec 64, array.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat)
+    (inputBeforeFrame : pointer.toNat + length.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ pointer.toNat))
     (inputBeforeArray : pointer.toNat + length.toNat ≤ array.toNat)
     (arrayAbove : ceiling ≤ array.toNat)
     (wholeInputBeforeArray : input.toNat + inputLength.toNat ≤ array.toNat)
-    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (wholeInputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : accessInnerSlicesCost length.toNat inputLength.toNat ≤ state.clock)
     (run : evaluateHOLFiniteState state accessInnerSlices = (none,final)) :
     ∃ slotCount : BitVec 64, slotCount.toNat ≤ inputLength.toNat ∧

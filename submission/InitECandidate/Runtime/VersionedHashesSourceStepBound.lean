@@ -20,7 +20,7 @@ theorem evaluate_versioned_hashes_source_step_bounded {F : Type} (state : PanSem
     (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word tx)))
     (txBound : tx.toNat + 400 ≤ 33806089496) (countLimit : inputLimit * 120 < 2^64)
     (heapArena : ∀ address : BitVec 64, tx.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
-    (inputBeforeFrame : wholeInput.toNat + wholeLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : wholeInput.toNat + wholeLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ wholeInput.toNat))
     (inputBeforeArray : wholeInput.toNat + wholeLength.toNat ≤ tx.toNat)
     (reserve : tx.toNat + 400 + inputLength.toNat * 56 + (inputLength.toNat * 48 + 46) * inputLength.toNat + inputLength.toNat * 296 + 14 ≤ frame.toNat)
     (txAligned : tx.toNat % 8 = 0)
@@ -36,7 +36,7 @@ theorem evaluate_versioned_hashes_source_step_bounded {F : Type} (state : PanSem
     (transactionSliceArguments (ofString "txs") (ofString "i")) vh cursor vhLocal cursorLocal
     input inputLength scratch frame tx ceiling inputLimit args slice.noWrap (by omega) limitBound
     scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena heap txBound countLimit heapArena
-    (by have span := slice.endsWithin; omega) (by have span := slice.endsWithin; omega) reserve txAligned budget
+    (by have span := slice.endsWithin; have start := slice.startsWithin; omega) (by have span := slice.endsWithin; have start := slice.startsWithin; omega) reserve txAligned budget
 
 /-- Failed original pointer/length argument loads reject before entering the
 transaction decoder, without consuming a source clock tick. -/

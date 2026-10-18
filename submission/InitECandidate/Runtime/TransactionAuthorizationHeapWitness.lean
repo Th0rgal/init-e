@@ -16,7 +16,7 @@ theorem transaction_decode_heap_witness_after_authorization {F : Type} (state po
     (countLimit : inputLimit * 120 < 2^64)
     (arrayAbove : ceiling ≤ array.toNat)
     (headerBefore : tx.toNat + 280 < array.toNat)
-    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat ∨ (ceiling % 8 = 0 ∧ ceiling ≤ input.toNat))
     (budget : txListItemAuthorizationCost inputLength.toNat ≤ state.clock)
     (run : evaluateHOLFiniteState state transactionAuthorizationBranch = (none,post)) :
     ∃ next : TransactionDecodeWitness post array count tx kind input inputLength scratch frame ceiling,
