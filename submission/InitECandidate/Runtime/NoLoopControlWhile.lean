@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.WhileNoLoopControl
-import InitECandidate.Runtime.NoDirectReturn
+import InitECandidate.Runtime.NoDirectReturnWhile
 import InitECandidate.Runtime.PanHandlerFreeCallControl
 import InitECandidate.Runtime.PanDecCallNoLoopControl
 import InitECandidate.Runtime.StoreControlFrame
