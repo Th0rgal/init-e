@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.StatelessHashRequestWitnessReturned
 import InitECandidate.Runtime.PayloadBodyReturnedBelow
+import InitECandidate.Runtime.PayloadBodyReturnedSlicesAbove
 import InitECandidate.Runtime.PayloadBodyReturnedValue
 import InitECandidate.Runtime.StatelessPayloadCallBound
 import InitECandidate.Runtime.StatelessPayloadStoreBound
@@ -25,6 +26,7 @@ theorem ret_payloadDecl {F : Type} (t post : PanSemStateFiniteExact 64 F) (name 
     ∃ (t1 output : PanSemStateFiniteExact 64 F) (nextHeap array count : BitVec 64),
       t1.memory (H + 32) = .word array ∧ t1.memory (H + 40) = .word count ∧
       count.toNat ≤ B.toNat / 4 ∧ array.toNat + count.toNat * 16 ≤ nextHeap.toNat ∧
+      RlpSliceInputPrefix t1 array A B count.toNat ∧ (count = 0 ∨ H.toNat + 136 ≤ array.toNat) ∧
       (∀ k, k ≠ name → t1.locals.lookup k = t.locals.lookup k) ∧
       t1.locals.lookup name = some (.val (.word H)) ∧ t1.code = t.code ∧ t1.memaddrs = t.memaddrs ∧
       540 ≤ B.toNat ∧ t1.memory (H + 0) = .word A ∧ t1.memory (H + 8) = .word B ∧
@@ -59,8 +61,8 @@ theorem ret_payloadDecl {F : Type} (t post : PanSemStateFiniteExact 64 F) (name 
     (by rw [ed]; exact scratchDom.2.2.1) (by rw [ed]; exact scratchDom.2.2.2) (hd 0 (by decide)) (hd 8 (by decide))
     (hd 16 (by decide)) (hd 24 (by decide)) (hd 32 (by decide)) (hd 40 (by decide)) ec bodyRun
   subst hv
-  obtain ⟨long, array, count, nextHeap, _, countBound, read32, read40, nextGlobal, nextBound, nextAligned, growth, arrayBefore⟩ :=
-    payload_body_returned_slices e bodyPost A B offsets H _ ep el (by rw [eg]; exact hg)
+  obtain ⟨long, array, count, nextHeap, slices, countBound, read32, read40, nextGlobal, nextBound, nextAligned, growth, arrayBefore, above⟩ :=
+    payload_body_returned_slices_above e bodyPost A B offsets H _ ep el (by rw [eg]; exact hg)
       (by rw [eg]; exact heap) hb ha inputFits (by rw [ed]; exact scratchDom.1) (by rw [ed]; exact scratchDom.2.1)
       (by rw [ed]; exact scratchDom.2.2.1) (by rw [ed]; exact scratchDom.2.2.2) (hd 0 (by decide)) (hd 8 (by decide))
       (hd 16 (by decide)) (hd 24 (by decide)) (hd 32 (by decide)) (hd 40 (by decide)) ec bodyRun
@@ -71,9 +73,12 @@ theorem ret_payloadDecl {F : Type} (t post : PanSemStateFiniteExact 64 F) (name 
   have mt := evaluateHOLFiniteState_metadata e (sourceFunctionBody Guest.guestFn_decode_payload)
   rw [bodyRun] at mt
   refine ⟨setVarHOLFinite name (.val (.word H)) {bodyPost with locals := t.locals}, output, nextHeap, array, count,
-    read32, read40, countBound, arrayBefore,
+    read32, read40, countBound, arrayBefore, ?_, above,
     fun k hk => ?_, ?_, ?_, ?_, long, h0, h8, nextGlobal, nextBound, nextAligned, growth, fun k hk => ?_,
     fun w below s0 s8 s16 s24 => ?_, tail, by rw [postEq], by rw [postEq], by rw [postEq]⟩
+  · intro index inside
+    obtain ⟨p, n, item⟩ := slices index inside
+    exact ⟨p, n, item.after_frame bodyPost _ array index p n A B rfl rfl rfl⟩
   · simp [setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE, Ne.symm hk]
   · simp [setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE]
   · show bodyPost.code = t.code; rw [mt.1, ec, code]
@@ -114,8 +119,10 @@ theorem stateless_payload_suffix_returned {F : Type} (t post : PanSemStateFinite
       post.memory (H + 8) = .word (OVH - OPL) ∧
       post.memory (S + 8) = .word (NP + OVH) ∧ post.memory (S + 16) = .word ((ORQ - OVH) / 32) ∧
       post.memory (S + 24) = .word (NP + 8) ∧
-      (∃ array count : BitVec 64, post.memory (H + 32) = .word array ∧ post.memory (H + 40) = .word count ∧
-        count.toNat ≤ (OVH - OPL).toNat / 4) ∧
+      (∃ array count nextHeap : BitVec 64, post.memory (H + 32) = .word array ∧ post.memory (H + 40) = .word count ∧
+        count.toNat ≤ (OVH - OPL).toNat / 4 ∧ RlpSliceInputPrefix post array (NP + OPL) (OVH - OPL) count.toNat ∧
+        H.toNat + 136 ≤ nextHeap.toNat ∧ array.toNat + count.toNat * 16 ≤ nextHeap.toNat ∧
+        (count = 0 ∨ H.toNat + 136 ≤ array.toNat)) ∧
       (∀ w : BitVec 64, w.toNat < H.toNat → (∀ k : BitVec 64, k.toNat < 5 → w ≠ offsets + k * 8) →
         w ≠ S + 0 → w ≠ S + 8 → w ≠ S + 16 → w ≠ S + 24 → w ≠ S + 32 →
         (w ≠ S + 40 ∧ w ≠ S + 48 ∧ w ≠ S + 56 ∧ w ≠ S + 64 ∧ w ≠ S + 72 ∧ w ≠ S + 80) →
@@ -127,7 +134,7 @@ theorem stateless_payload_suffix_returned {F : Type} (t post : PanSemStateFinite
   have args : evalListHOLFinite t (h := fun address => Classical.propDecidable (t.memaddrs address))
       statelessPayloadArguments = some [.val (.word (NP + OPL)), .val (.word (OVH - OPL))] := by
     simp [statelessPayloadArguments, evalListHOLFinite, evalListHOLExact, evalHOLExact, hnp, hopl, hovh, wordOpHOL, wordOp, valueIsWord, valueWord]
-  obtain ⟨t1, o1, nH, arr, cnt, m32, m40, cntB, arrB, k1, pl1, c1, d1, long, m0, m8, nh1, nb1, na1, grow1, g1, frame1, r1, pg1, pm1, _⟩ :=
+  obtain ⟨t1, o1, nH, arr, cnt, m32, m40, cntB, arrB, slices1, above1, k1, pl1, c1, d1, long, m0, m8, nh1, nb1, na1, grow1, g1, frame1, r1, pg1, pm1, _⟩ :=
     ret_payloadDecl t post (ofString "pl") _ _ (NP + OPL) (OVH - OPL) offsets H v code args hg heap hb ha heapArena
       scratchDom (by omega) payloadFits run
   have k : ∀ n : String, n ∈ ["np", "nlen", "o_vh", "o_rq", "p", "len", "o_wit", "si"] →
@@ -179,12 +186,37 @@ theorem stateless_payload_suffix_returned {F : Type} (t post : PanSemStateFinite
   have neSH : ∀ c : BitVec 64, c.toNat ≤ 40 → S + 0 ≠ H + c := by
     intro c hc e; have := congrArg BitVec.toNat e; rw [sNat 0 (by decide), hNat c hc] at this; simp at this; omega
   refine ⟨hv, ⟨⟨Hf, by rw [pg1]; exact hf1, hf2, hf3⟩, fun q hq => by rw [pg1, hfo q hq, t2g, g1 q hq]⟩, long, mod,
-    ?_, ?_, ?_, by rw [pm1]; exact c8, by rw [pm1]; exact c16, by rw [pm1]; exact c24, ⟨arr, cnt, ?_, ?_, cntB⟩, ?_⟩
+    ?_, ?_, ?_, by rw [pm1]; exact c8, by rw [pm1]; exact c16, by rw [pm1]; exact c24, ⟨arr, cnt, nH, ?_, ?_, cntB, ?_, grow1, arrB, above1⟩, ?_⟩
   · rw [pm1, keepS0, t2m]; simp [wmem]
   · rw [pm1, keepH 0 (by decide), t2m]; simp only [wmem, if_neg (Ne.symm (neSH 0 (by decide)))]; exact m0
   · rw [pm1, keepH 8 (by decide), t2m]; simp only [wmem, if_neg (Ne.symm (neSH 8 (by decide)))]; exact m8
   · rw [pm1, keepH 32 (by decide), t2m]; simp only [wmem, if_neg (Ne.symm (neSH 32 (by decide)))]; exact m32
   · rw [pm1, keepH 40 (by decide), t2m]; simp only [wmem, if_neg (Ne.symm (neSH 40 (by decide)))]; exact m40
+  · have pd : post.memaddrs = t2.memaddrs := by
+      have mt := evaluateHOLFiniteState_metadata t (statelessAt 22)
+      rw [show statelessAt 22 = _ from source_stateless_payload_call, run] at mt
+      rw [mt.2.1, ← ht2]; exact d1.symm
+    intro index inside
+    obtain ⟨pp, nn, item⟩ := slices1 index inside
+    have nz : cnt ≠ 0 := fun z => by subst z; simp at inside
+    have lo := above1.resolve_left nz
+    have iNat : (index * 16#64).toNat = index.toNat * 16 := by rw [BitVec.toNat_mul]; simp; omega
+    have c0 : (arr + index * 16#64).toNat = arr.toNat + index.toNat * 16 := by
+      rw [BitVec.toNat_add, iNat]; omega
+    have c8 : (arr + index * 16#64 + 8#64).toNat = arr.toNat + index.toNat * 16 + 8 := by
+      rw [BitVec.toNat_add, c0]; simp; omega
+    have keepCell : ∀ x : BitVec 64, H.toNat + 136 ≤ x.toNat → x.toNat < nH.toNat → post.memory x = t1.memory x := by
+      intro x lox hix
+      rw [pm1, frame x (by omega)]
+      · rw [t2m]; simp only [wmem]
+        rw [if_neg (fun e => by have := congrArg BitVec.toNat e; rw [sNat 0 (by decide)] at this; simp at this; omega)]
+      · intro q hq e; have := congrArg BitVec.toNat e; rw [oNat q hq] at this; omega
+      all_goals first
+        | (intro e; have := congrArg BitVec.toNat e; rw [sNat _ (by decide)] at this; simp at this; omega)
+        | (refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+            · intro e; have := congrArg BitVec.toNat e; rw [sNat _ (by decide)] at this; simp at this; omega)
+    exact ⟨pp, nn, item.after_frame t1 post arr index pp nn _ _ (by rw [pd, ← ht2])
+      (keepCell _ (by rw [c0]; omega) (by rw [c0]; omega)) (keepCell _ (by rw [c8]; omega) (by rw [c8]; omega))⟩
   · intro w below scratch s0 s8 s16 s24 s32 headers
     rw [pm1, frame w (by omega) scratch s8 s16 s24 s32 headers, t2m]
     simp only [wmem, if_neg s0]
