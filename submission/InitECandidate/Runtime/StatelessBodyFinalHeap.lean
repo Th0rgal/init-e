@@ -21,8 +21,9 @@ theorem stateless_body_final_heap {F : Type} (s post : PanSemStateFiniteExact 64
     (scratchBelow : offsets.toNat + 40 ≤ H.toNat) (inputFits : P.toNat + L.toNat < 2 ^ 64)
     (run : evaluateHOLFiniteState s (statelessAt 0) = (some (.returned v), post)) :
     ∃ Hf : BitVec 64, post.globals.lookup (ofString "heap_ptr") = some (.val (.word Hf)) ∧
-      ∀ H1 array count : BitVec 64, post.memory (H + 0) = .word H1 → post.memory (H1 + 32) = .word array →
-        post.memory (H1 + 40) = .word count → array.toNat + count.toNat * 16 ≤ Hf.toNat := by
+      ∀ H1 : BitVec 64, post.memory (H + 0) = .word H1 → H1.toNat + 136 ≤ Hf.toNat ∧
+        ∀ array count : BitVec 64, post.memory (H1 + 32) = .word array →
+          post.memory (H1 + 40) = .word count → array.toNat + count.toNat * 16 ≤ Hf.toNat := by
   rcases evaluate_stateless_at22 s P L H offsets code hp hL hg heap hb with ⟨E, full, _, _, sc⟩ | ⟨x, h1, h2, _⟩
   · rw [run] at sc
     obtain ⟨geoONP, geoOW, geoOPL, geoOVH, geoORQ, gl1, gl2, gl3, gl4, gl5, gl6, L2, hONP, hOW1, hOW2, hsub, hOPL,
@@ -63,15 +64,14 @@ theorem stateless_body_final_heap {F : Type} (s post : PanSemStateFiniteExact 64
           (allocationEnd H 96) v (ecode.trans code) lnp lnl gl3 gl4 gl5 lp llen gl2 lsi eOffs eHeap H1b cov.2.2
           (fun a lo hi => by rw [ld]; exact heapArena a (by omega) hi)
           (by rw [ld]; exact scratchDom) scratchBelow cov1 (by rw [npl, vml]; omega) hE
-      obtain ⟨Hg, hg1, _, hfin⟩ :=
+      obtain ⟨Hg, hg1, hend, hfin⟩ :=
         stateless_payload_suffix_final_heap E out NP _ geoOPL geoOVH geoORQ (P + 2) (L - 2) geoOW H offsets
           (allocationEnd H 96) v (ecode.trans code) lnp lnl gl3 gl4 gl5 lp llen gl2 lsi eOffs eHeap H1b cov.2.2
           (fun a lo hi => by rw [ld]; exact heapArena a (by omega) hi)
           (by rw [ld]; exact scratchDom) scratchBelow cov1 (by rw [npl, vml]; omega) hE
-      refine ⟨Hg, by rw [sg]; exact hg1, fun H1 array count h0 h32 h40 => ?_⟩
-      rw [sm] at h0 h32 h40
-      rw [s0] at h0; injection h0 with e; subst e
-      exact hfin array count h32 h40
+      refine ⟨Hg, by rw [sg]; exact hg1, fun H1 h0 => ?_⟩
+      rw [sm, s0] at h0; injection h0 with e; subst e
+      exact ⟨hend, fun array count h32 h40 => by rw [sm] at h32 h40; exact hfin array count h32 h40⟩
   · rw [run] at h1
     exact absurd (Option.some.inj h1).symm (h2 v)
 
@@ -92,8 +92,9 @@ theorem stateless_body_returned_final_heap {F : Type} (s post : PanSemStateFinit
     (run : evaluateHOLFiniteState s (statelessAt 0) = (some (.returned v), post)) :
     StatelessReturned s P L offsets H v post ∧
     ∃ Hf : BitVec 64, post.globals.lookup (ofString "heap_ptr") = some (.val (.word Hf)) ∧
-      ∀ H1 array count : BitVec 64, post.memory (H + 0) = .word H1 → post.memory (H1 + 32) = .word array →
-        post.memory (H1 + 40) = .word count → array.toNat + count.toNat * 16 ≤ Hf.toNat :=
+      ∀ H1 : BitVec 64, post.memory (H + 0) = .word H1 → H1.toNat + 136 ≤ Hf.toNat ∧
+        ∀ array count : BitVec 64, post.memory (H1 + 32) = .word array →
+          post.memory (H1 + 40) = .word count → array.toNat + count.toNat * 16 ≤ Hf.toNat :=
   ⟨stateless_body_returned s post P L offsets H v code hp hL hg heap hb ha heapArena scratchDom scratchBelow inputFits run,
    stateless_body_final_heap s post P L offsets H v code hp hL hg heap hb ha heapArena scratchDom scratchBelow inputFits run⟩
 
