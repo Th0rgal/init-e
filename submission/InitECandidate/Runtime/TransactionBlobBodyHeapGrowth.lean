@@ -34,7 +34,9 @@ theorem transaction_blob_body_normal_heap_growth {F : Type} (state final : PanSe
     ∃ nextHeap : BitVec 64,
       final.globals.lookup (ofString "heap_ptr") = some (.val (.word nextHeap)) ∧
       heapPointer.toNat ≤ nextHeap.toNat ∧ nextHeap.toNat ≤ heapPointer.toNat + inputLength.toNat * 48 ∧
-      nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 := by
+      nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 ∧
+      final.globals.lookup (ofString "scratch_ptr") = some (.val (.word scratch)) ∧
+      final.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)) := by
   let cost := inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668
   have args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) transactionBlobFeeArguments =
       some [.val (.word array),.val (.word index),.val (.word (32 : BitVec 64))] := by

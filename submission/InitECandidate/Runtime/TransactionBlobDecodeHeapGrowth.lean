@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.TransactionBlobDecodeBound
 import InitECandidate.Runtime.BlobHashesBodyHeap
+import InitECandidate.Runtime.BlobHashesBodyGlobals
 import InitECandidate.Runtime.PanDecCallCheckedNormalExactScope
 import InitECandidate.Runtime.NamedGlobalFrame
 namespace InitECandidate.Runtime
@@ -29,7 +30,9 @@ theorem transaction_blob_decode_normal_heap_growth {F : Type} (state final : Pan
     ∃ nextHeap : BitVec 64,
       final.globals.lookup (ofString "heap_ptr") = some (.val (.word nextHeap)) ∧
       array.toNat ≤ nextHeap.toNat ∧ nextHeap.toNat ≤ array.toNat + length.toNat * 48 ∧
-      nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 := by
+      nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 ∧
+      final.globals.lookup (ofString "scratch_ptr") = some (.val (.word scratch)) ∧
+      final.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)) := by
   let callee := rlpHeaderCallee pointer length
   let entry := callEntryStateHOLFinite state callee
   have atPointer : entry.locals.lookup (ofString "p") = some (.val (.word pointer)) := by
@@ -57,6 +60,10 @@ theorem transaction_blob_decode_normal_heap_growth {F : Type} (state final : Pan
     (Nat.le_refl _) (Nat.le_refl _) limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena heap arrayBound
     countLimit heapArena inputBeforeFrame inputBeforeArray arrayBeforeFrame arrayAligned
     (by simpa only [blobHashesBodyCost] using ticks) value bodyRun
+  have globals := blobHashes_body_returned_globals entry bodyPost pointer length pointer length scratch frame array ceiling inputLimit
+    atPointer atLength noWrap lengthBound lengthBound (Nat.le_refl _) (Nat.le_refl _) limitBound scratchGlobal frameGlobal code
+    orderedFrame framePositive scratchBelow arena heap arrayBound countLimit heapArena inputBeforeFrame inputBeforeArray arrayBeforeFrame arrayAligned
+    (by simpa only [blobHashesBodyCost] using ticks) value bodyRun
   let resumed := setVarHOLFinite (ofString "bh") value {bodyPost with locals := state.locals}
   have tailGlobals : ∀ watched, output.globals.lookup watched = bodyPost.globals.lookup watched := by
     intro watched
@@ -65,7 +72,7 @@ theorem transaction_blob_decode_normal_heap_growth {F : Type} (state final : Pan
     rw [tailRun] at retained
     exact retained
   rw [restored]
-  exact ⟨nextHeap,(tailGlobals _).trans binding,by omega,growth,heapLimit,endAligned⟩
+  exact ⟨nextHeap,(tailGlobals _).trans binding,by omega,growth,heapLimit,endAligned,(tailGlobals _).trans globals.1,(tailGlobals _).trans globals.2⟩
 
 #print axioms transaction_blob_decode_normal_heap_growth
 end InitECandidate.Runtime

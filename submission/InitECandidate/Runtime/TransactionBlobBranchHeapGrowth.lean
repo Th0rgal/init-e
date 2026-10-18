@@ -30,14 +30,16 @@ theorem transaction_blob_branch_normal_heap_growth {F : Type} (state final : Pan
     ∃ nextHeap : BitVec 64,
       final.globals.lookup (ofString "heap_ptr") = some (.val (.word nextHeap)) ∧
       heapPointer.toNat ≤ nextHeap.toNat ∧ nextHeap.toNat ≤ heapPointer.toNat + inputLength.toNat * 48 ∧
-      nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 := by
+      nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 ∧
+      final.globals.lookup (ofString "scratch_ptr") = some (.val (.word scratch)) ∧
+      final.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)) := by
   rw [source_transaction_blob_branch,evaluateHOLFiniteState_ite] at run
   split at run
   · split at run
     · rw [evaluateHOLFiniteState_skip] at run
       have equal := (Prod.mk.inj run).2
       subst final
-      exact ⟨heapPointer,heap,Nat.le_refl _,by omega,heapBound,heapAligned⟩
+      exact ⟨heapPointer,heap,Nat.le_refl _,by omega,heapBound,heapAligned,scratchGlobal,frameGlobal⟩
     · exact transaction_blob_body_normal_heap_growth state final array count index tx input inputLength scratch frame heapPointer ceiling inputLimit
         arrayLocal indexLocal valid inside middleInside txLocal before arrayBelow inputBound limitBound scratchGlobal frameGlobal code
         orderedFrame framePositive scratchBelow arena heap heapBound countLimit heapArena inputBeforeHeap heapBeforeFrame budget

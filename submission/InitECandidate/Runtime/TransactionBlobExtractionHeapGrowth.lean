@@ -30,7 +30,9 @@ theorem transaction_blob_extraction_normal_heap_growth {F : Type} (state final :
     ∃ nextHeap : BitVec 64,
       final.globals.lookup (ofString "heap_ptr") = some (.val (.word nextHeap)) ∧
       heapPointer.toNat ≤ nextHeap.toNat ∧ nextHeap.toNat ≤ heapPointer.toNat + inputLength.toNat * 48 ∧
-      nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 := by
+      nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 ∧
+      final.globals.lookup (ofString "scratch_ptr") = some (.val (.word scratch)) ∧
+      final.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)) := by
   have args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a))
       [.var .local (ofString "arr"),.op .add [.var .local (ofString "k"),.const 1]] = some [.val (.word array),.val (.word (index + 1))] := by
     simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,arrayLocal,indexLocal,wordOpHOL,wordOp,valueIsWord,valueWord]
@@ -91,7 +93,7 @@ theorem transaction_blob_extraction_normal_heap_growth {F : Type} (state final :
     simpa only [txListItemBlobCost,← Nat.add_assoc] using budget
   have keptHeap : resumed.globals.lookup (ofString "heap_ptr") = some (.val (.word heapPointer)) := heapFrame.trans heap
   have costBound := blobHashesBodyCost_mono lengthBound
-  obtain ⟨nextHeap,binding,floor,growth,heapLimit,aligned⟩ := transaction_blob_decode_normal_heap_growth resumed output
+  obtain ⟨nextHeap,binding,floor,growth,heapLimit,aligned,scratchFinal,frameFinal⟩ := transaction_blob_decode_normal_heap_growth resumed output
     pointer length scratch frame heapPointer ceiling inputLimit atList noWrap (Nat.le_trans lengthBound inputBound) limitBound globals.1 globals.2
     (metadata.1.trans code) orderedFrame framePositive scratchBelow resumedArena keptHeap heapBound countLimit resumedHeapArena
     (by omega) (Nat.le_trans ends inputBeforeHeap)
@@ -99,7 +101,7 @@ theorem transaction_blob_extraction_normal_heap_growth {F : Type} (state final :
     (Nat.le_trans (Nat.add_le_add_right costBound 1) fullTailBudget) tailRun
   have bytes := Nat.mul_le_mul_right 48 lengthBound
   rw [restored]
-  exact ⟨nextHeap,binding,floor,by omega,heapLimit,aligned⟩
+  exact ⟨nextHeap,binding,floor,by omega,heapLimit,aligned,scratchFinal,frameFinal⟩
 
 #print axioms transaction_blob_extraction_normal_heap_growth
 end InitECandidate.Runtime
