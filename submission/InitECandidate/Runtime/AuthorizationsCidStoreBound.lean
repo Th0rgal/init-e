@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.FourWordStoreBeforeInputPrefix
 import InitECandidate.Runtime.AuthorizationsCidSource
 import InitECandidate.Runtime.AuthorizationsAddressDeclarationBound
 import InitECandidate.Runtime.AuthorizationsRTailSource
@@ -20,7 +21,7 @@ theorem evaluate_authorization_cid_store_bounded {F : Type} (state : PanSemState
     (atRecord : state.locals.lookup (ofString "a") = some (.val (.word record)))
     (atValue : state.locals.lookup (ofString "cid") =
       some (.rStruct [.val (.word first),.val (.word second),.val (.word third),.val (.word fourth)]))
-    (before : array.toNat + count.toNat * 16 ≤ record.toNat) (fits : record.toNat + 120 < 2^64)
+    (before : array.toNat + count.toNat * 16 ≤ record.toNat ∨ record.toNat + 120 ≤ array.toNat) (fits : record.toNat + 120 < 2^64)
     (entryLocal : state.locals.lookup (ofString "ent") = some (.rStruct [.val (.word array),.val (.word count)]))
     (valid : RlpSliceInputPrefix state array input inputLength count.toNat) (inside : 5 < count.toNat)
     (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
@@ -47,8 +48,10 @@ theorem evaluate_authorization_cid_store_bounded {F : Type} (state : PanSemState
   have addressNat : (record + 0#64).toNat = record.toNat + 0 := by
     rw [BitVec.toNat_add_of_lt (by change record.toNat + 0 < 2^64; omega)]
     rfl
-  have retained := fourWordStore_input_prefix state destination value (record + 0#64) first second third fourth
-    array count input inputLength addressEval valueEval valid (by rw [addressNat]; omega) (by rw [addressNat]; omega)
+  have retained : RlpSliceInputPrefix (evaluateHOLFiniteState state store).2 array input inputLength count.toNat := by
+    rcases before with arrayBefore | recordBefore
+    · exact fourWordStore_input_prefix state destination value (record + 0#64) first second third fourth array count input inputLength addressEval valueEval valid (by rw [addressNat]; omega) (by rw [addressNat]; omega)
+    · exact fourWordStore_before_input_prefix state destination value (record + 0#64) first second third fourth array count input inputLength addressEval valueEval valid (by have limit := frame.isLt; omega) (by rw [addressNat]; omega)
   have control := evaluate_store_control_frame state destination value
   have metadata := evaluateHOLFiniteState_metadata state store
   have scratchSame := evaluate_avoidsGlobalAssignment (ofString "scratch_ptr") store (by rfl) state

@@ -29,7 +29,7 @@ theorem evaluate_authorization_record_scope_bounded {F : Type} (state : PanSemSt
     (recordAddress : record = records + index * 120#64)
     (recordsLocal : state.locals.lookup (ofString "recs") = some (.val (.word records)))
     (indexLocal : state.locals.lookup (ofString "i") = some (.val (.word index)))
-    (before : array.toNat + count.toNat * 16 ≤ record.toNat) (fits : record.toNat + 120 < 2^64)
+    (before : array.toNat + count.toNat * 16 ≤ record.toNat ∨ record.toNat + 120 ≤ array.toNat) (fits : record.toNat + 120 < 2^64)
     (entryLocal : state.locals.lookup (ofString "ent") = some (.rStruct [.val (.word array),.val (.word count)]))
     (valid : RlpSliceInputPrefix state array input inputLength count.toNat) (inside : 5 < count.toNat)
     (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)

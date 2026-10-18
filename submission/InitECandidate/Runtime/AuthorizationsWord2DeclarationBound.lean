@@ -39,7 +39,7 @@ declaration, have a finite original-input source-clock bound. -/
 theorem evaluate_authorization_word2_declaration_bounded {F : Type} (state : PanSemStateFiniteExact 64 F)
     (record array count input inputLength scratch frame : BitVec 64) (ceiling inputLimit : Nat)
     (atRecord : state.locals.lookup (ofString "a") = some (.val (.word record)))
-    (before : array.toNat + count.toNat * 16 ≤ record.toNat) (fits : record.toNat + 120 < 2^64)
+    (before : array.toNat + count.toNat * 16 ≤ record.toNat ∨ record.toNat + 120 ≤ array.toNat) (fits : record.toNat + 120 < 2^64)
     (entryLocal : state.locals.lookup (ofString "ent") = some (.rStruct [.val (.word array),.val (.word count)]))
     (valid : RlpSliceInputPrefix state array input inputLength count.toNat) (inside : 5 < count.toNat)
     (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)

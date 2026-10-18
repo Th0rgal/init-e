@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.FourWordStoreBeforeInputPrefix
 import InitECandidate.Runtime.AuthorizationsRTailSource
 import InitECandidate.Runtime.FourWordStoreInputPrefix
 import InitECandidate.Runtime.AuthorizationsLastScalarBound
@@ -19,7 +20,7 @@ theorem evaluate_authorization_r_store_and_last_bounded {F : Type} (state : PanS
     (atRecord : state.locals.lookup (ofString "a") = some (.val (.word record)))
     (atValue : state.locals.lookup (ofString "r") =
       some (.rStruct [.val (.word first),.val (.word second),.val (.word third),.val (.word fourth)]))
-    (before : array.toNat + count.toNat * 16 ≤ record.toNat) (fits : record.toNat + 120 < 2^64)
+    (before : array.toNat + count.toNat * 16 ≤ record.toNat ∨ record.toNat + 120 ≤ array.toNat) (fits : record.toNat + 120 < 2^64)
     (entryLocal : state.locals.lookup (ofString "ent") = some (.rStruct [.val (.word array),.val (.word count)]))
     (valid : RlpSliceInputPrefix state array input inputLength count.toNat) (inside : 5 < count.toNat)
     (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
@@ -28,6 +29,7 @@ theorem evaluate_authorization_r_store_and_last_bounded {F : Type} (state : PanS
     (code : state.code = originalRuntimeCode) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
     (scratchBelow : scratch.toNat ≤ ceiling)
     (arena : ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → state.memaddrs address)
+    (arrayBelowFrame : array.toNat + count.toNat * 16 ≤ frame.toNat)
     (budget : inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668 ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state authorizationRStoreAndLast
     state.clock ≤ evaluated.2.clock + (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668) ∧
@@ -45,8 +47,10 @@ theorem evaluate_authorization_r_store_and_last_bounded {F : Type} (state : PanS
   have addressNat : (record + 56#64).toNat = record.toNat + 56 := by
     rw [BitVec.toNat_add_of_lt (by change record.toNat + 56 < 2^64; omega)]
     rfl
-  have retained := fourWordStore_input_prefix state destination value (record + 56#64) first second third fourth
-    array count input inputLength addressEval valueEval valid (by rw [addressNat]; omega) (by rw [addressNat]; omega)
+  have retained : RlpSliceInputPrefix (evaluateHOLFiniteState state store).2 array input inputLength count.toNat := by
+    rcases before with arrayBefore | recordBefore
+    · exact fourWordStore_input_prefix state destination value (record + 56#64) first second third fourth array count input inputLength addressEval valueEval valid (by rw [addressNat]; omega) (by rw [addressNat]; omega)
+    · exact fourWordStore_before_input_prefix state destination value (record + 56#64) first second third fourth array count input inputLength addressEval valueEval valid (by have limit := frame.isLt; omega) (by rw [addressNat]; omega)
   have control := evaluate_store_control_frame state destination value
   have metadata := evaluateHOLFiniteState_metadata state store
   have scratchSame := evaluate_avoidsGlobalAssignment (ofString "scratch_ptr") store (by rfl) state

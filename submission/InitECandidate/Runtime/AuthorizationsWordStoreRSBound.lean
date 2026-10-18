@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.WordStoreBeforeInputPrefix
 import InitECandidate.Runtime.AuthorizationsRScalarBound
 import InitECandidate.Runtime.AuthorizationsWordTailSource
 import InitECandidate.Runtime.WordStoreInputPrefix
@@ -22,7 +23,7 @@ theorem evaluate_authorization_word_store_and_rs_bounded {F : Type} (state : Pan
     (atRecord : state.locals.lookup (ofString "a") = some (.val (.word record)))
     (atValue : state.locals.lookup (ofString "w") =
       some (.val (.word word)))
-    (before : array.toNat + count.toNat * 16 ≤ record.toNat) (fits : record.toNat + 120 < 2^64)
+    (before : array.toNat + count.toNat * 16 ≤ record.toNat ∨ record.toNat + 120 ≤ array.toNat) (fits : record.toNat + 120 < 2^64)
     (entryLocal : state.locals.lookup (ofString "ent") = some (.rStruct [.val (.word array),.val (.word count)]))
     (valid : RlpSliceInputPrefix state array input inputLength count.toNat) (inside : 5 < count.toNat)
     (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
@@ -49,8 +50,10 @@ theorem evaluate_authorization_word_store_and_rs_bounded {F : Type} (state : Pan
   have addressNat : (record + 48#64).toNat = record.toNat + 48 := by
     rw [BitVec.toNat_add_of_lt (by change record.toNat + 48 < 2^64; omega)]
     rfl
-  have retained := wordStore_input_prefix state destination value (record + 48#64) word
-    array count input inputLength addressEval valueEval valid (by rw [addressNat]; omega)
+  have retained : RlpSliceInputPrefix (evaluateHOLFiniteState state store).2 array input inputLength count.toNat := by
+    rcases before with arrayBefore | recordBefore
+    · exact wordStore_input_prefix state destination value (record + 48#64) word array count input inputLength addressEval valueEval valid (by rw [addressNat]; omega)
+    · exact wordStore_before_input_prefix state destination value (record + 48#64) word array count input inputLength addressEval valueEval valid (by have limit := frame.isLt; omega) (by rw [addressNat]; omega)
   have control := evaluate_store_control_frame state destination value
   have metadata := evaluateHOLFiniteState_metadata state store
   have scratchSame := evaluate_avoidsGlobalAssignment (ofString "scratch_ptr") store (by rfl) state

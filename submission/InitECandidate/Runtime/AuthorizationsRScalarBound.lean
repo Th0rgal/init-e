@@ -31,7 +31,7 @@ increment share a finite polynomial bound in the original input length. -/
 theorem evaluate_authorization_r_scalar_bounded {F : Type} (state : PanSemStateFiniteExact 64 F)
     (record array count input inputLength scratch frame : BitVec 64) (ceiling inputLimit : Nat)
     (atRecord : state.locals.lookup (ofString "a") = some (.val (.word record)))
-    (before : array.toNat + count.toNat * 16 ≤ record.toNat) (fits : record.toNat + 120 < 2^64)
+    (before : array.toNat + count.toNat * 16 ≤ record.toNat ∨ record.toNat + 120 ≤ array.toNat) (fits : record.toNat + 120 < 2^64)
     (entryLocal : state.locals.lookup (ofString "ent") = some (.rStruct [.val (.word array),.val (.word count)]))
     (valid : RlpSliceInputPrefix state array input inputLength count.toNat) (inside : 5 < count.toNat)
     (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
@@ -124,7 +124,7 @@ theorem evaluate_authorization_r_scalar_bounded {F : Type} (state : PanSemStateF
         (by change ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → post.memaddrs address
             intro address lower upper
             rw [metadata.2.1]
-            exact arena address lower upper) tailBudget
+            exact arena address lower upper) arrayBelowFrame tailBudget
 
 #print axioms evaluate_authorization_r_scalar_bounded
 end InitECandidate.Runtime
