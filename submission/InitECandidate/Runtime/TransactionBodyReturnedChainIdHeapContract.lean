@@ -38,6 +38,7 @@ theorem transaction_body_returned_chain_id_heap_contract {F : Type} (state post 
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_decode_transaction_rlp) = (some (.returned value),post)) :
     ∃ (fieldCount kind : BitVec 64) (entry output : PanSemStateFiniteExact 64 F),
       fieldCount.toNat = transactionRequiredFields kind ∧ fieldCount.toNat ≤ length.toNat ∧
+      (allocationEnd tx 400).toNat + fieldCount.toNat * 16 ≤ 33806089496 ∧
       RlpSliceInputPrefix entry (allocationEnd tx 400) pointer length fieldCount.toNat ∧
       RlpSliceInputPrefix entry array input inputLength count.toNat ∧
       entry.locals.lookup (ofString "arr") = some (.val (.word (allocationEnd tx 400))) ∧
@@ -79,7 +80,7 @@ theorem transaction_body_returned_chain_id_heap_contract {F : Type} (state post 
       atArray spans positive lengthBound limitBound scratchPost framePost (readyCode.trans code) orderedFrame framePositive scratchBelow
       (by intro address low high; rw [domain]; exact arena address low high) costBudget arrayFits arrayAbove tx atTx
       array count input inputLength preserved fits above beforeTx (by rw [geometry]; omega) kind atType atIndex value tail
-  refine ⟨fieldCount,kind,entry,output,naturalCount,bounded,newSpans,oldSpans,
+  refine ⟨fieldCount,kind,entry,output,naturalCount,bounded,covered.trans endpoint,newSpans,oldSpans,
     (locals _ (by decide) (by decide)).trans atArray,(locals _ (by decide) (by decide)).trans atTx,supported,
     (locals _ (by decide) (by decide)).trans atType,
     (globals _).trans heapPost,(globals _).trans scratchPost,(globals _).trans framePost,
