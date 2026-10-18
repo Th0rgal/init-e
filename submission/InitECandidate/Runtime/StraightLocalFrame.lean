@@ -9,6 +9,7 @@ def straightLocalFrame (key : MlS) : ProgHOL 64 → Bool
   | .seq first second => straightLocalFrame key first && straightLocalFrame key second
   | .ite _ yes no => straightLocalFrame key yes && straightLocalFrame key no
   | .assign .local name _ => !(name == key)
+  | .store _ _ => true
   | .skip | .break | .continue | .annot _ _ => true
   | _ => false
 
@@ -46,6 +47,11 @@ theorem evaluate_straight_local_frame {F : Type} (key : MlS) (program : ProgHOL 
       · split
         · simp [setKvarHOLFinite,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,different,Ne.symm different]
         · rfl
+  | store destination value =>
+    rw [evaluateHOLFiniteState_store]
+    split <;> try rfl
+    split <;> try rfl
+    split <;> rfl
   | seq first second =>
     have children : straightLocalFrame key first = true ∧ straightLocalFrame key second = true := by
       simpa only [shape,straightLocalFrame,Bool.and_eq_true] using supported
