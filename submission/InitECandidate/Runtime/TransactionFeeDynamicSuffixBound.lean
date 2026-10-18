@@ -11,6 +11,21 @@ def transactionFeeDynamicSuffix : ProgHOL 64 :=
   .seq (transactionU256Field 80 (transactionFeeArguments 0))
     (.seq (transactionU256Field 112 (transactionFeeArguments 1))
       (.seq (transactionFeeAdvance 2) (transactionAt 23)))
+theorem evaluate_transaction_fee_dynamic_suffix {F : Type} (state : PanSemStateFiniteExact 64 F) :
+    evaluateHOLFiniteState state (.seq transactionFeeDynamic (transactionAt 23)) =
+      evaluateHOLFiniteState state transactionFeeDynamicSuffix := by
+  unfold transactionFeeDynamic transactionFeeDynamicSuffix transactionU256Field transactionFeeCall transactionFeeStore
+  rw [evaluate_seq_assoc,evaluate_seq_assoc]
+  apply evaluate_seq_second_congr
+  intro current
+  rw [evaluate_seq_assoc]
+  apply evaluate_seq_second_congr
+  intro next
+  rw [evaluate_seq_assoc,evaluate_seq_assoc]
+  apply evaluate_seq_second_congr
+  intro final
+  exact evaluate_seq_assoc final _ _ _
+
 def transactionFeeDynamicSuffixCost (length : Nat) : Nat :=
   2 * (length * ((2 * length + 1) * 15 + 19) + 92668) + transactionGasSuffixCost length
 
