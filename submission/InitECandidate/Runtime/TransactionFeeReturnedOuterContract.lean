@@ -34,7 +34,8 @@ theorem transaction_fee_returned_outer_contract {F : Type} (state post : PanSemS
       (∀ watched, middle.globals.lookup watched = state.globals.lookup watched) ∧
       (∀ name, name ≠ ofString "k" → name ≠ ofString "v" → middle.locals.lookup name = state.locals.lookup name) ∧
       middle.code = state.code ∧ middle.memaddrs = state.memaddrs ∧ middle.clock ≤ state.clock ∧
-      (advance = 1 ∨ advance = 2) ∧ middle.locals.lookup (ofString "k") = some (.val (.word (index + advance))) := by
+      (advance = 1 ∨ advance = 2) ∧ middle.locals.lookup (ofString "k") = some (.val (.word (index + advance))) ∧
+      state.clock ≤ middle.clock + 2 * (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668) := by
   have noReturn := evaluate_noDirectReturn transactionFeeBranch (by rfl) state value
   have metadata := evaluateHOLFiniteState_metadata state transactionFeeBranch
   have clock := evaluateHOLFiniteState_clock_le state transactionFeeBranch
@@ -45,11 +46,11 @@ theorem transaction_fee_returned_outer_contract {F : Type} (state post : PanSemS
     cases result with
     | some result => exact False.elim (noReturn (Prod.mk.inj run).1)
     | none =>
-      obtain ⟨slices,outer,globals,advance,advanceBound,indexPost⟩ := transaction_fee_branch_normal_outer_frame state middle tx
+      obtain ⟨slices,outer,globals,advance,advanceBound,indexPost,consumed⟩ := transaction_fee_branch_normal_outer_frame state middle tx
         array index input inputLength scratch frame count ceiling inputLimit arrayLocal indexLocal valid inside insideNext
         inputBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena budget arrayBelow txLocal before
         outerArray outerCount outerInput outerLength outerValid outerBelow beforeTx branchRun
-      refine ⟨middle,advance,run,slices,outer,globals,?_,metadata.1,metadata.2.1,clock,advanceBound,indexPost⟩
+      refine ⟨middle,advance,run,slices,outer,globals,?_,metadata.1,metadata.2.1,clock,advanceBound,indexPost,consumed⟩
       intro name notIndex notValue
       exact transaction_fee_branch_other_local state middle name notIndex notValue branchRun
 

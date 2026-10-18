@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.TransactionU256FieldOuterFrame
+import InitECandidate.Runtime.TransactionU256FieldBound
 import InitECandidate.Runtime.TransactionFeeSource
 import InitECandidate.Runtime.TransactionIndexAdvance
 import InitECandidate.Runtime.PanSeqAssoc
@@ -30,7 +31,8 @@ theorem transaction_fee_legacy_normal_outer_frame {F : Type} (state post : PanSe
     RlpSliceInputPrefix post array input inputLength count.toNat ∧
       RlpSliceInputPrefix post outerArray outerInput outerLength outerCount.toNat ∧
       (∀ watched, post.globals.lookup watched = state.globals.lookup watched) ∧
-      post.locals.lookup (ofString "k") = some (.val (.word (index + 1))) := by
+      post.locals.lookup (ofString "k") = some (.val (.word (index + 1))) ∧
+      state.clock ≤ post.clock + (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668) := by
   have args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) (transactionFeeArguments 0) =
       some [.val (.word array),.val (.word index),.val (.word (0 : BitVec 64))] := by
     simp [transactionFeeArguments,evalListHOLFinite,evalListHOLExact,evalHOLExact,arrayLocal,indexLocal]
@@ -46,13 +48,20 @@ theorem transaction_fee_legacy_normal_outer_frame {F : Type} (state post : PanSe
         array index 0 input inputLength scratch frame count ceiling inputLimit args valid inside inputBound limitBound scratchGlobal frameGlobal
         code orderedFrame framePositive scratchBelow arena budget arrayBelow txLocal before
         outerArray outerCount outerInput outerLength outerValid outerBelow beforeTx fieldRun
+      have bounded := evaluate_transaction_u256_field_bounded state (ofString "v")
+        (.op .add [.var .local (ofString "tx"),.const 48]) (transactionFeeArguments 0)
+        array index 0 input inputLength scratch frame count.toNat ceiling inputLimit args valid inside inputBound limitBound
+        scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena budget
+      have literalRun := fieldRun
+      unfold transactionFeeCall transactionFeeStore at literalRun
+      rw [literalRun] at bounded
       have indexMiddle : middle.locals.lookup (ofString "k") = some (.val (.word index)) :=
         (kept.2.2.2 _ (by decide)).trans indexLocal
       change evaluateHOLFiniteState middle transactionIndexAdvance = (none,post) at run
       rw [transaction_index_advance_run middle index indexMiddle] at run
       have updated := (Prod.mk.inj run).2.symm
       rw [updated]
-      refine ⟨?_,?_,kept.2.2.1,?_⟩
+      refine ⟨?_,?_,kept.2.2.1,?_,bounded.1⟩
       · intro slot bounded
         obtain ⟨p,n,item⟩ := kept.1 slot bounded
         exact ⟨p,n,RlpSliceInputEntry.after_frame middle _ _ _ _ _ _ _ item rfl rfl rfl⟩

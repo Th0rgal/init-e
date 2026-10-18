@@ -5,6 +5,8 @@ open Flapjack.Basis.Pure.MlString
 
 private theorem legacy_budget {cost clock : Nat} (h : 2 * cost ≤ clock) : cost ≤ clock := by omega
 
+private theorem double_consumption {a b c : Nat} (h : a ≤ b+c) : a ≤ b+2*c := by omega
+
 theorem transaction_fee_branch_normal_outer_frame {F : Type} (state post : PanSemStateFiniteExact 64 F)
     (tx : BitVec 64)
     (array index input inputLength scratch frame count : BitVec 64) (ceiling inputLimit : Nat)
@@ -31,21 +33,22 @@ theorem transaction_fee_branch_normal_outer_frame {F : Type} (state post : PanSe
       RlpSliceInputPrefix post outerArray outerInput outerLength outerCount.toNat ∧
       (∀ watched, post.globals.lookup watched = state.globals.lookup watched) ∧
       ∃ advance : BitVec 64, (advance = 1 ∨ advance = 2) ∧
-        post.locals.lookup (ofString "k") = some (.val (.word (index + advance))) := by
+        post.locals.lookup (ofString "k") = some (.val (.word (index + advance))) ∧
+        state.clock ≤ post.clock + 2 * (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668) := by
   unfold transactionFeeBranch at run
   rw [evaluateHOLFiniteState_ite] at run
   split at run
   · split at run
-    · obtain ⟨slices,outer,globals,indexPost⟩ := transaction_fee_dynamic_normal_outer_frame state post tx
+    · obtain ⟨slices,outer,globals,indexPost,consumed⟩ := transaction_fee_dynamic_normal_outer_frame state post tx
         array index input inputLength scratch frame count ceiling inputLimit arrayLocal indexLocal valid inside insideNext
         inputBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena budget arrayBelow txLocal before
         outerArray outerCount outerInput outerLength outerValid outerBelow beforeTx run
-      exact ⟨slices,outer,globals,2,Or.inr rfl,indexPost⟩
-    · obtain ⟨slices,outer,globals,indexPost⟩ := transaction_fee_legacy_normal_outer_frame state post tx
+      exact ⟨slices,outer,globals,2,Or.inr rfl,indexPost,consumed⟩
+    · obtain ⟨slices,outer,globals,indexPost,consumed⟩ := transaction_fee_legacy_normal_outer_frame state post tx
         array index input inputLength scratch frame count ceiling inputLimit arrayLocal indexLocal valid inside
         inputBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena (legacy_budget budget) arrayBelow txLocal
         (by omega) outerArray outerCount outerInput outerLength outerValid outerBelow beforeTx run
-      exact ⟨slices,outer,globals,1,Or.inl rfl,indexPost⟩
+      exact ⟨slices,outer,globals,1,Or.inl rfl,indexPost,double_consumption consumed⟩
   · cases run
 
 #print axioms transaction_fee_branch_normal_outer_frame

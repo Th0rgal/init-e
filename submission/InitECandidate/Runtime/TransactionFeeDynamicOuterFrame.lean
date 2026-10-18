@@ -7,6 +7,9 @@ open Flapjack.Basis.Pure.MlString
 private theorem first_budget {cost clock : Nat} (h : 2 * cost ≤ clock) : cost ≤ clock := by omega
 private theorem second_budget {cost clock middle : Nat} (h : 2 * cost ≤ clock) (used : clock ≤ middle + cost) : cost ≤ middle := by omega
 
+private theorem sum_consumption {cost before middle after : Nat}
+    (first : before ≤ middle + cost) (second : middle ≤ after + cost) : before ≤ after + 2 * cost := by omega
+
 theorem transaction_fee_dynamic_normal_outer_frame {F : Type} (state post : PanSemStateFiniteExact 64 F)
     (tx : BitVec 64)
     (array index input inputLength scratch frame count : BitVec 64) (ceiling inputLimit : Nat)
@@ -32,7 +35,8 @@ theorem transaction_fee_dynamic_normal_outer_frame {F : Type} (state post : PanS
     RlpSliceInputPrefix post array input inputLength count.toNat ∧
       RlpSliceInputPrefix post outerArray outerInput outerLength outerCount.toNat ∧
       (∀ watched, post.globals.lookup watched = state.globals.lookup watched) ∧
-      post.locals.lookup (ofString "k") = some (.val (.word (index + 2))) := by
+      post.locals.lookup (ofString "k") = some (.val (.word (index + 2))) ∧
+      state.clock ≤ post.clock + 2 * (inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92668) := by
   have args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) (transactionFeeArguments 0) =
       some [.val (.word array),.val (.word index),.val (.word (0 : BitVec 64))] := by
     simp [transactionFeeArguments,evalListHOLFinite,evalListHOLExact,evalHOLExact,arrayLocal,indexLocal]
@@ -65,7 +69,7 @@ theorem transaction_fee_dynamic_normal_outer_frame {F : Type} (state post : PanS
         | some result => cases run
         | none =>
           dsimp only at run
-          obtain ⟨finalSlices,finalOuter,finalGlobals,finalLocals,_,_,_,_⟩ :=
+          obtain ⟨finalSlices,finalOuter,finalGlobals,finalLocals,_,_,finalConsumed,_⟩ :=
             transaction_u256_field_normal_runtime_frame middle finalState tx 112 (transactionFeeArguments 1)
               array (index + 1) 0 input inputLength scratch frame count ceiling inputLimit nextArgs slices insideNext inputBound limitBound
               ((globals _).trans scratchGlobal) ((globals _).trans frameGlobal) (postCode.trans code) orderedFrame framePositive scratchBelow
@@ -79,7 +83,7 @@ theorem transaction_fee_dynamic_normal_outer_frame {F : Type} (state post : PanS
           rw [advanceRun] at run
           have updated := (Prod.mk.inj run).2.symm
           rw [updated]
-          refine ⟨?_,?_,fun watched => (finalGlobals watched).trans (globals watched),?_⟩
+          refine ⟨?_,?_,fun watched => (finalGlobals watched).trans (globals watched),?_,sum_consumption consumed finalConsumed⟩
           · intro slot bounded
             obtain ⟨p,n,item⟩ := finalSlices slot bounded
             exact ⟨p,n,RlpSliceInputEntry.after_frame finalState _ _ _ _ _ _ _ item rfl rfl rfl⟩
