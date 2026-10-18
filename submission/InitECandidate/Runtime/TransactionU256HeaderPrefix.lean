@@ -25,8 +25,8 @@ theorem transaction_u256_header_input_prefix {F : Type} (state : PanSemStateFini
   · simp [evalHOLExact,evalListHOLExact,txLocal,wordOpHOL,wordOp,valueIsWord,valueWord]
   · simp [evalHOLExact,valueLocal]
   · exact valid
-  · rw [addressNat]; exact before
   · exact fits
+  · rw [addressNat]; exact before
 
 #print axioms transaction_u256_header_input_prefix
 end InitECandidate.Runtime
