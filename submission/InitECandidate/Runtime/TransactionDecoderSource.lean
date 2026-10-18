@@ -141,5 +141,11 @@ theorem source_transaction_blob_body : transactionBlobBody =
     transactionAt,authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   rfl
 
+theorem source_transaction_blob_branch : transactionBlobBranch =
+    .ite (.cmp .equal (.var .local (ofString "t")) (.const 3)) transactionBlobBody .skip := by
+  simp only [transactionBlobBranch,transactionBlobBody,transactionAt,authorizationNext,sourceFunctionBody,
+    InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
 #print axioms source_transaction_signature_last
 end InitECandidate.Runtime
