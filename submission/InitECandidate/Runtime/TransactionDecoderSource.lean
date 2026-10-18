@@ -93,5 +93,36 @@ theorem source_transaction_access_decode : transactionAccessDecode =
     authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   rfl
 
+def transactionBlobBranch : ProgHOL 64 :=
+  match transactionAt 37 with | .seq branch _ => branch | _ => .skip
+def transactionBlobDecode : ProgHOL 64 :=
+  match transactionBlobBranch with
+  | .ite _ (.seq _ (.seq _ (.decCall _ _ _ _ tail))) _ => tail
+  | _ => .skip
+
+def transactionBlobFinish : ProgHOL 64 :=
+  .seq (.store (.op .add [.var .local (ofString "tx"),.const 256]) (.rfield 0 (.var .local (ofString "bh"))))
+    (.seq (.store (.op .add [.var .local (ofString "tx"),.const 264]) (.rfield 1 (.var .local (ofString "bh"))))
+      (.assign .local (ofString "k") (.op .add [.var .local (ofString "k"),.const 2])))
+
+theorem source_transaction_blob_decode : transactionBlobDecode =
+    .decCall (ofString "bh") (.comb [.one,.one]) (ofString "decode_blob_hashes")
+      [.rfield 0 (.var .local (ofString "bl")),.rfield 1 (.var .local (ofString "bl"))] transactionBlobFinish := by
+  simp only [transactionBlobDecode,transactionBlobBranch,transactionBlobFinish,transactionAt,
+    authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
+def transactionBlobExtraction : ProgHOL 64 :=
+  match transactionBlobBranch with
+  | .ite _ (.seq _ (.seq _ tail)) _ => tail
+  | _ => .skip
+
+theorem source_transaction_blob_extraction : transactionBlobExtraction =
+    .decCall (ofString "bl") (.comb [.one,.one]) (ofString "tx_list_item")
+      [.var .local (ofString "arr"),.op .add [.var .local (ofString "k"),.const 1]] transactionBlobDecode := by
+  simp only [transactionBlobExtraction,transactionBlobDecode,transactionBlobBranch,transactionAt,
+    authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
 #print axioms source_transaction_signature_last
 end InitECandidate.Runtime
