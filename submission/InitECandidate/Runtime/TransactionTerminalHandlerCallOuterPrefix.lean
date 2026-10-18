@@ -1,0 +1,76 @@
+import InitECandidate.Runtime.TransactionWrapperSource
+import InitECandidate.Runtime.PanLocalCallTerminalHandlerNormal
+import InitECandidate.Runtime.TrapBodyClock
+import InitECandidate.Runtime.TransactionBodyReturnedOuterPrefixBudget
+import InitECandidate.Runtime.PanLocalCallNormalResult
+set_option maxRecDepth 100000
+set_option maxHeartbeats 1000000
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+theorem transaction_terminal_handler_call_outer_prefix {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (name : MlS) (arguments : List (ExpHOL 64))
+    (input inputLength scratch frame tx : BitVec 64) (ceiling inputLimit : Nat)
+    (args : evalListHOLFinite state (h := fun address => Classical.propDecidable (state.memaddrs address)) arguments =
+      some [.val (.word input),.val (.word inputLength)])
+    (noWrap : input.toNat + inputLength.toNat < 2^64)
+    (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
+    (scratchGlobal : state.globals.lookup (ofString "scratch_ptr") = some (.val (.word scratch)))
+    (frameGlobal : state.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)))
+    (code : state.code = originalRuntimeCode) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
+    (scratchBelow : scratch.toNat ≤ ceiling)
+    (arena : ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → state.memaddrs address)
+    (heap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word tx)))
+    (txBound : tx.toNat + 400 ≤ 33806089496) (countLimit : inputLimit * 120 < 2^64)
+    (heapArena : ∀ address : BitVec 64, tx.toNat ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
+    (inputBeforeFrame : input.toNat + inputLength.toNat ≤ frame.toNat)
+    (inputBeforeArray : input.toNat + inputLength.toNat ≤ tx.toNat)
+    (reserve : tx.toNat + 400 + inputLength.toNat * 56 + (inputLength.toNat * 48 + 46) * inputLength.toNat + inputLength.toNat * 296 + 14 ≤ frame.toNat)
+    (txAligned : tx.toNat % 8 = 0)
+    (budget : transactionCallCost inputLength.toNat ≤ state.clock)
+    (heapSpace : tx.toNat + 400 + inputLength.toNat * 16 ≤ 33806089496)
+    (outerArray outerCount outerInput outerLength : BitVec 64)
+    (outerValid : RlpSliceInputPrefix state outerArray outerInput outerLength outerCount.toNat)
+    (outerBelow : outerArray.toNat + outerCount.toNat * 16 ≤ frame.toNat)
+    (beforeTx : outerArray.toNat + outerCount.toNat * 16 ≤ tx.toNat)
+    (run : evaluateHOLFiniteState state (.call (some (some (.local,name),some (ofString "RlpErr",ofString "rc",transactionWrapperHandler))) (ofString "decode_transaction_rlp") arguments) = (none,post)) :
+    RlpSliceInputPrefix post outerArray outerInput outerLength outerCount.toNat := by
+  let callee := rlpHeaderCallee input inputLength
+  let entry := callEntryStateHOLFinite state callee
+  have atPointer : entry.locals.lookup (ofString "p") = some (.val (.word input)) := by
+    simp [entry,callee,rlpHeaderCallee,callEntryStateHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      show ofString "len" ≠ ofString "p" by decide]
+  have atLength : entry.locals.lookup (ofString "len") = some (.val (.word inputLength)) := by
+    simp [entry,callee,rlpHeaderCallee,callEntryStateHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  have installed : state.code.lookup (ofString "decode_transaction_rlp") =
+      some ([(ofString "p",.one),(ofString "len",.one)],sourceFunctionBody Guest.guestFn_decode_transaction_rlp,.one) := by
+    rw [code]; exact originalRuntimeCode_transactionRlp_lookup
+  have lookup := pan_two_word_lookup_shape state.code.lookup (ofString "decode_transaction_rlp") (ofString "p") (ofString "len")
+    (sourceFunctionBody Guest.guestFn_decode_transaction_rlp) .one input inputLength (by decide) installed
+  have normalRun := evaluate_localCall_terminal_handler_normal_result state post name (ofString "decode_transaction_rlp") .one
+    arguments _ (sourceFunctionBody Guest.guestFn_decode_transaction_rlp) transactionWrapperHandler (ofString "RlpErr") (ofString "rc")
+    callee args lookup
+    (by intro current; exact evaluate_raise_terminal current (ofString "TxErr") (.op .add [.const 100,.var .local (ofString "rc")])) run
+  obtain ⟨value,bodyPost,bodyRun,checked,restored⟩ := evaluate_localCall_normal_result state post name (ofString "decode_transaction_rlp")
+    .one arguments _ (sourceFunctionBody Guest.guestFn_decode_transaction_rlp) callee args lookup normalRun
+  have entryOuter : RlpSliceInputPrefix entry outerArray outerInput outerLength outerCount.toNat := by
+    intro slot within
+    obtain ⟨p,n,item⟩ := outerValid slot within
+    exact ⟨p,n,item.after_frame state entry outerArray slot p n outerInput outerLength rfl rfl rfl⟩
+  have ticks : transactionAllocationSuffixCost inputLength.toNat ≤ entry.clock := by
+    change _ ≤ state.clock - 1
+    have available : 1 + transactionAllocationSuffixCost inputLength.toNat ≤ state.clock := budget
+    omega
+  have retained := transaction_body_returned_outer_prefix_budget entry bodyPost input inputLength scratch frame ceiling inputLimit
+    atPointer atLength noWrap inputBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena ticks
+    outerArray outerCount outerInput outerLength entryOuter outerBelow tx heap txBound txAligned
+    (by intro address lower upper; exact heapArena address lower (Nat.lt_of_lt_of_le upper txBound))
+    (by omega) heapArena (by omega) beforeTx (by omega) inputBeforeArray heapSpace countLimit (by omega) value bodyRun
+  rw [restored]
+  intro slot within
+  obtain ⟨p,n,item⟩ := retained slot within
+  exact ⟨p,n,item.after_frame bodyPost _ outerArray slot p n outerInput outerLength rfl rfl rfl⟩
+
+#print axioms transaction_terminal_handler_call_outer_prefix
+end InitECandidate.Runtime
