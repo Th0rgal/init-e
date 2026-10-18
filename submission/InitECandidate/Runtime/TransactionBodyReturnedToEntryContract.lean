@@ -35,6 +35,7 @@ theorem transaction_body_returned_to_entry_contract {F : Type} (state post : Pan
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_decode_transaction_rlp) = (some (.returned value),post)) :
     ∃ (fieldCount kind advance : BitVec 64) (entry output : PanSemStateFiniteExact 64 F),
+      advance = (if 1#64 < kind then 2 else 1) ∧
       (advance = 1 ∨ advance = 2) ∧
       fieldCount.toNat = transactionRequiredFields kind ∧ fieldCount.toNat ≤ length.toNat ∧
       RlpSliceInputPrefix entry (allocationEnd tx 400) pointer length fieldCount.toNat ∧
@@ -51,7 +52,7 @@ theorem transaction_body_returned_to_entry_contract {F : Type} (state post : Pan
       entry.locals.lookup (ofString "k") = some (.val (.word ((((if kind = 0 then 0 else 1) + 1) + advance) + 1))) ∧
       evaluateHOLFiniteState entry (transactionAt 26) = (some (.returned value),output) ∧
       post.memory = output.memory := by
-  obtain ⟨fieldCount,kind,advance,ready,output,advanceBound,naturalCount,bounded,spans,preserved,atArray,atTx,supported,atType,
+  obtain ⟨fieldCount,kind,advance,ready,output,advanceEqual,advanceBound,naturalCount,bounded,spans,preserved,atArray,atTx,supported,atType,
       heapPost,scratchPost,framePost,readyCode,domain,available,remaining,atIndex,tail,memory⟩ :=
     transaction_body_returned_gas_contract state post pointer length scratch frame ceiling inputLimit
       pointerLocal lengthLocal inputRange lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive
@@ -68,7 +69,7 @@ theorem transaction_body_returned_to_entry_contract {F : Type} (state post : Pan
     intro index inside
     obtain ⟨p,n,item⟩ := preserved index inside
     exact ⟨p,n,RlpSliceInputEntry.after_frame ready entry _ _ _ _ _ _ item rfl rfl rfl⟩
-  refine ⟨fieldCount,kind,advance,entry,output,advanceBound,naturalCount,bounded,newSpans,oldSpans,?_,?_,supported,?_,
+  refine ⟨fieldCount,kind,advance,entry,output,advanceEqual,advanceBound,naturalCount,bounded,newSpans,oldSpans,?_,?_,supported,?_,
     heapPost,scratchPost,framePost,readyCode,domain,available,remaining,?_,tail,memory⟩
   · simpa [entry,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
       show ofString "k" ≠ ofString "arr" by decide] using atArray

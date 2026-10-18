@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.TransactionBodyReturnedFeeEntryContract
-import InitECandidate.Runtime.TransactionFeeReturnedOuterContract
+import InitECandidate.Runtime.TransactionFeeReturnedTypedContract
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
 namespace InitECandidate.Runtime
@@ -38,6 +38,7 @@ theorem transaction_body_returned_gas_entry_contract {F : Type} (state post : Pa
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_decode_transaction_rlp) = (some (.returned value),post)) :
     ∃ (fieldCount kind advance : BitVec 64) (entry output : PanSemStateFiniteExact 64 F),
+      advance = (if 1#64 < kind then 2 else 1) ∧
       (advance = 1 ∨ advance = 2) ∧
       fieldCount.toNat = transactionRequiredFields kind ∧ fieldCount.toNat ≤ length.toNat ∧
       RlpSliceInputPrefix entry (allocationEnd tx 400) pointer length fieldCount.toNat ∧
@@ -72,13 +73,13 @@ theorem transaction_body_returned_gas_entry_contract {F : Type} (state post : Pa
     exact (Nat.add_le_add_left (Nat.mul_le_mul_right 16 bounded) _).trans fieldsBeforeFrame
   have costBudget : 2 * (length.toNat * ((2 * length.toNat + 1) * 15 + 19) + 92668) ≤ ready.clock :=
     (Nat.le_add_right _ reserve).trans available
-  obtain ⟨entry,advance,bodyRun,newSpans,oldSpans,globals,locals,entryCode,entryDomain,entryRemaining,advanceBound,indexPost,consumed⟩ :=
-    transaction_fee_returned_outer_contract ready output tx (allocationEnd tx 400) ((if kind = 0 then 0 else 1) + 1)
+  obtain ⟨entry,advance,bodyRun,newSpans,oldSpans,globals,locals,entryCode,entryDomain,entryRemaining,advanceEqual,advanceBound,indexPost,consumed⟩ :=
+    transaction_fee_returned_typed_contract ready output tx (allocationEnd tx 400) ((if kind = 0 then 0 else 1) + 1)
       pointer length scratch frame fieldCount ceiling inputLimit atArray atIndex spans inside insideNext lengthBound limitBound
       scratchPost framePost (readyCode.trans code) orderedFrame framePositive scratchBelow
       (by intro address low high; rw [domain]; exact arena address low high) costBudget arrayBelow atTx
-      (by rw [geometry]; omega) array count input inputLength preserved before beforeTx value tail
-  exact ⟨fieldCount,kind,advance,entry,output,advanceBound,naturalCount,bounded,newSpans,oldSpans,
+      (by rw [geometry]; omega) array count input inputLength preserved before beforeTx kind atType value tail
+  exact ⟨fieldCount,kind,advance,entry,output,advanceEqual,advanceBound,naturalCount,bounded,newSpans,oldSpans,
     (locals _ (by decide) (by decide)).trans atArray,(locals _ (by decide) (by decide)).trans atTx,supported,
     (locals _ (by decide) (by decide)).trans atType,
     (globals _).trans heapPost,(globals _).trans scratchPost,(globals _).trans framePost,

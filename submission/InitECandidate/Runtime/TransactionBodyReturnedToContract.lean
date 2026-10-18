@@ -38,6 +38,7 @@ theorem transaction_body_returned_to_contract {F : Type} (state post : PanSemSta
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_decode_transaction_rlp) = (some (.returned value),post)) :
     ∃ (fieldCount kind advance : BitVec 64) (entry output : PanSemStateFiniteExact 64 F),
+      advance = (if 1#64 < kind then 2 else 1) ∧
       (advance = 1 ∨ advance = 2) ∧
       fieldCount.toNat = transactionRequiredFields kind ∧ fieldCount.toNat ≤ length.toNat ∧
       RlpSliceInputPrefix entry (allocationEnd tx 400) pointer length fieldCount.toNat ∧
@@ -54,7 +55,7 @@ theorem transaction_body_returned_to_contract {F : Type} (state post : PanSemSta
       entry.locals.lookup (ofString "k") = some (.val (.word ((((if kind = 0 then 0 else 1) + 1) + advance) + 1))) ∧
       evaluateHOLFiniteState entry (transactionAt 28) = (some (.returned value),output) ∧
       post.memory = output.memory := by
-  obtain ⟨fieldCount,kind,advance,ready,output,advanceBound,naturalCount,bounded,spans,preserved,atArray,atTx,supported,atType,
+  obtain ⟨fieldCount,kind,advance,ready,output,advanceEqual,advanceBound,naturalCount,bounded,spans,preserved,atArray,atTx,supported,atType,
       heapPost,scratchPost,framePost,readyCode,domain,available,remaining,atIndex,tail,memory⟩ :=
     transaction_body_returned_to_entry_contract state post pointer length scratch frame ceiling inputLimit
       pointerLocal lengthLocal inputRange lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive
@@ -75,7 +76,7 @@ theorem transaction_body_returned_to_contract {F : Type} (state post : PanSemSta
       scratchPost framePost (readyCode.trans code) orderedFrame framePositive scratchBelow
       (by intro address low high; rw [domain]; exact arena address low high) costBudget arrayBelow tx atTx
       array count input inputLength preserved before beforeTx (by rw [geometry]; omega) value tail
-  exact ⟨fieldCount,kind,advance,entry,output,advanceBound,naturalCount,bounded,newSpans,oldSpans,
+  exact ⟨fieldCount,kind,advance,entry,output,advanceEqual,advanceBound,naturalCount,bounded,newSpans,oldSpans,
     (locals _ (by decide)).trans atArray,(locals _ (by decide)).trans atTx,supported,
     (locals _ (by decide)).trans atType,(globals _).trans heapPost,(globals _).trans scratchPost,(globals _).trans framePost,
     entryCode.trans readyCode,entryDomain.trans domain,to_reserve available consumed,entryRemaining.trans remaining,

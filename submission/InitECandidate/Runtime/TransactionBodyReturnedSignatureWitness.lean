@@ -36,6 +36,7 @@ theorem transaction_body_returned_signature_witness {F : Type} (state post : Pan
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_decode_transaction_rlp) = (some (.returned value),post)) :
     ∃ (fieldCount kind advance : BitVec 64) (entry output : PanSemStateFiniteExact 64 F),
+      advance = (if 1#64 < kind then 2 else 1) ∧
       (advance = 1 ∨ advance = 2) ∧
       (kind = 0 ∨ kind = 1 ∨ kind = 2 ∨ kind = 3 ∨ kind = 4) ∧
       fieldCount.toNat = transactionRequiredFields kind ∧ fieldCount.toNat ≤ length.toNat ∧
@@ -44,8 +45,9 @@ theorem transaction_body_returned_signature_witness {F : Type} (state post : Pan
       evaluateHOLFiniteState entry transactionTypedSignature = (some (.returned value),output) ∧ post.memory = output.memory ∧
       ∃ active : TransactionDecodeWitness entry (allocationEnd tx 400) fieldCount tx kind pointer length scratch frame ceiling,
         active.index = (((((((if kind = 0 then (0 : BitVec 64) else 1) + 1) + advance) + 1) + 1) + 1) + 1) ∧
-        active.heap.toNat = tx.toNat + 400 + fieldCount.toNat * 16 := by
-  obtain ⟨fieldCount,kind,advance,entry,output,advanceBound,naturalCount,bounded,spans,preserved,atArray,atTx,supported,atType,
+        active.heap.toNat = tx.toNat + 400 + fieldCount.toNat * 16 ∧
+        active.index.toNat + (if kind = 0#64 then 0 else 1) + (if kind = 3#64 then 2 else 0) + (if kind = 4#64 then 1 else 0) + 3 ≤ fieldCount.toNat := by
+  obtain ⟨fieldCount,kind,advance,entry,output,advanceEqual,advanceBound,naturalCount,bounded,spans,preserved,atArray,atTx,supported,atType,
       heapPost,scratchPost,framePost,entryCode,domain,available,remaining,atIndex,tail,memory⟩ :=
     transaction_body_returned_data_contract state post pointer length scratch frame ceiling inputLimit
       pointerLocal lengthLocal inputRange lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive
@@ -61,7 +63,10 @@ theorem transaction_body_returned_signature_witness {F : Type} (state post : Pan
     (entryCode.trans code)
     (by intro address low high; rw [domain]; exact arena address low high)
     (by intro address low high; rw [domain]; exact heapArena address low high) fieldSpace aligned inputBeforeTx
-  exact ⟨fieldCount,kind,advance,entry,output,advanceBound,supported,naturalCount,bounded,preserved,available,tail,memory,active,indexEqual,endpoint⟩
+  have fields : active.index.toNat + (if kind = 0#64 then 0 else 1) + (if kind = 3#64 then 2 else 0) + (if kind = 4#64 then 1 else 0) + 3 ≤ fieldCount.toNat := by
+    rw [indexEqual,advanceEqual,naturalCount]
+    rcases supported with rfl | rfl | rfl | rfl | rfl <;> decide
+  exact ⟨fieldCount,kind,advance,entry,output,advanceEqual,advanceBound,supported,naturalCount,bounded,preserved,available,tail,memory,active,indexEqual,endpoint,fields⟩
 
 #print axioms transaction_body_returned_signature_witness
 end InitECandidate.Runtime
