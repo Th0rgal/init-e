@@ -10,9 +10,9 @@ set_option hygiene false in
 macro_rules
   | `(tactic| vm_search [$fs,*]) => `(tactic| repeat first
       | exact ProgBounded.straight _ (by decide)
-      $[| exact ProgBounded.call $fs _ _]*
-      $[| exact ProgBounded.tail $fs _]*
-      $[| apply ProgBounded.decCall $fs]*
+      | (apply ProgBounded.call; (case installed => first $[| with_reducible exact $fs]* | fail))
+      | (apply ProgBounded.tail; (case installed => first $[| with_reducible exact $fs]* | fail))
+      | (apply ProgBounded.decCall; (case installed => first $[| with_reducible exact $fs]* | fail))
       | exact CountedBody.incr
       | (apply CountedBody.seq; (case avoid => decide); (case noCont => decide);
           (case bounded => vm_search [$fs,*]); (case rest => vm_search [$fs,*]))
