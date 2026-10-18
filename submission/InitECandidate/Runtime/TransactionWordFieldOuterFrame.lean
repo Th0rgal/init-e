@@ -1,0 +1,74 @@
+import InitECandidate.Runtime.TxScalarWordLocalCallFrame
+import InitECandidate.Runtime.TxScalarWordLocalCallValue
+import InitECandidate.Runtime.TransactionWordHeaderPrefix
+import InitECandidate.Runtime.LocalCallSuccessOtherLocals
+import InitECandidate.Runtime.NamedGlobalFrame
+import InitECandidate.Runtime.TransactionWordFieldFrame
+import InitECandidate.Runtime.TxScalarWordLocalCallOuterPrefix
+import InitECandidate.Runtime.TransactionHeaderLowerFrame
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+theorem transaction_word_field_normal_outer_frame {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (array index maximum errorCode input inputLength scratch frame count : BitVec 64) (ceiling inputLimit : Nat)
+    (arguments : List (ExpHOL 64))
+    (args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments =
+      some [.val (.word array),.val (.word index),.val (.word maximum),.val (.word errorCode)])
+    (valid : RlpSliceInputPrefix state array input inputLength count.toNat) (inside : index.toNat < count.toNat)
+    (inputBound : inputLength.toNat ≤ inputLimit) (limitBound : inputLimit + 9 < 2^64)
+    (scratchGlobal : state.globals.lookup (ofString "scratch_ptr") = some (.val (.word scratch)))
+    (frameGlobal : state.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)))
+    (code : state.code = originalRuntimeCode) (orderedFrame : frame ≤ scratch) (framePositive : 0 < frame.toNat)
+    (scratchBelow : scratch.toNat ≤ ceiling)
+    (arena : ∀ address : BitVec 64, frame.toNat ≤ address.toNat → address.toNat < ceiling → state.memaddrs address)
+    (budget : inputLength.toNat * ((2 * inputLength.toNat + 1) * 15 + 19) + 92643 ≤ state.clock)
+    (arrayBelow : array.toNat + count.toNat * 16 ≤ frame.toNat)
+    (tx offset : BitVec 64)
+    (txLocal : state.locals.lookup (ofString "tx") = some (.val (.word tx)))
+    (headerBefore : tx.toNat + offset.toNat < array.toNat)
+    (outerArray outerCount outerInput outerLength : BitVec 64)
+    (outerValid : RlpSliceInputPrefix state outerArray outerInput outerLength outerCount.toNat)
+    (outerBelow : outerArray.toNat + outerCount.toNat * 16 ≤ frame.toNat)
+    (beforeTx : outerArray.toNat + outerCount.toNat * 16 ≤ tx.toNat)
+    (run : evaluateHOLFiniteState state (transactionWordField offset arguments) = (none,post)) :
+    (∀ watched, post.globals.lookup watched = state.globals.lookup watched) ∧
+      RlpSliceInputPrefix post array input inputLength count.toNat ∧
+      RlpSliceInputPrefix post outerArray outerInput outerLength outerCount.toNat := by
+  unfold transactionWordField at run
+  rw [evaluateHOLFiniteState_seq_line780] at run
+  cases callRun : evaluateHOLFiniteState state (.call (some (some (.local,ofString "w"),none)) (ofString "tx_scalar_word") arguments) with
+  | mk result middle =>
+    rw [callRun] at run
+    cases result with
+    | some result => cases run
+    | none =>
+      dsimp only at run
+      have kept := txScalarWord_local_call_normal_frame state middle (ofString "w") arguments array index maximum errorCode input inputLength scratch frame count ceiling inputLimit
+        args valid inside inputBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena budget arrayBelow callRun
+      have outerKept := txScalarWord_local_call_outer_prefix state middle (ofString "w") arguments array index maximum errorCode input inputLength scratch frame count ceiling inputLimit
+        args valid inside inputBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena budget
+        outerArray outerCount outerInput outerLength outerValid outerBelow callRun
+      obtain ⟨word,valueLocal⟩ := txScalarWord_local_call_value state middle (ofString "w") arguments array index maximum errorCode args code callRun
+      have same := evaluate_local_call_success_other_locals state (ofString "tx_scalar_word") (ofString "w") arguments (by rw [callRun])
+      have txSame := same (ofString "tx") (by decide)
+      rw [callRun] at txSame
+      have stored := transaction_word_header_prefix middle tx offset array count input inputLength word (ofString "w")
+        (txSame.trans txLocal) valueLocal kept.2 headerBefore (Nat.le_trans arrayBelow (Nat.le_of_lt frame.isLt))
+      have lower := transaction_word_header_lower_frame middle tx offset word (ofString "w")
+        (txSame.trans txLocal) valueLocal (Nat.lt_trans headerBefore array.isLt)
+      have metadata := evaluateHOLFiniteState_metadata middle
+        (.store (.op .add [.var .local (ofString "tx"),.const offset]) (.var .local (ofString "w")))
+      have outerStored := rlp_slice_input_prefix_after_lower_frame middle
+        (evaluateHOLFiniteState middle (.store (.op .add [.var .local (ofString "tx"),.const offset]) (.var .local (ofString "w")))).2
+        outerArray outerCount outerInput outerLength tx outerKept beforeTx metadata.2.1 lower
+      rw [run] at stored outerStored
+      refine ⟨?_,stored,outerStored⟩
+      intro watched
+      have globals := evaluate_avoidsGlobalAssignment watched
+        (.store (.op .add [.var .local (ofString "tx"),.const offset]) (.var .local (ofString "w"))) (by rfl) middle
+      rw [run] at globals
+      exact globals.trans (kept.1 watched)
+
+#print axioms transaction_word_field_normal_outer_frame
+end InitECandidate.Runtime
