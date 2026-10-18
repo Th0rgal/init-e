@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.CanonicalSourceEntryFields
+import InitECandidate.Runtime.CanonicalOriginalSourceFields
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 2000000
 namespace InitECandidate.Runtime
@@ -42,4 +43,14 @@ theorem canonical_unrenamed_aligned_arena (input : Guest.InputBlob)
 
 #print axioms canonical_source_aligned_arena
 #print axioms canonical_unrenamed_aligned_arena
+
+theorem canonical_original_aligned_arena (input : Guest.InputBlob)
+    (address : BitVec 64) (aligned : address.toNat % 8 = 0)
+    (lower : 2713714688 ≤ address.toNat)
+    (upper : address.toNat < 33806089496) :
+    (canonicalOriginalSourceEntry input).memaddrs address := by
+  rw [canonical_original_source_fields]
+  exact canonical_source_aligned_arena input address aligned lower upper
+
+#print axioms canonical_original_aligned_arena
 end InitECandidate.Runtime
