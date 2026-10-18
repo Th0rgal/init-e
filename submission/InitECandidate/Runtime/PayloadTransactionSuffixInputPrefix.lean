@@ -48,6 +48,7 @@ theorem payload_transaction_suffix_input_prefix {F : Type}
       (by
         intro offset member
         have separated := payload_array_cell_separate payload array count index 0 offset above arrayBound inside (by decide) (small offset member)
+        change array + index * 16 + (0#64) ≠ payload + offset at separated
         rw [BitVec.add_zero] at separated
         exact separated)
       code run).1
