@@ -91,9 +91,46 @@ theorem decCall {F : Type} {state : PanSemStateFiniteExact 64 F} {name function 
       unfold RunBounded
       simpa only [Nat.add_assoc] using whole
 
+/-- A one-word declaration whose initializer evaluates to a word keeps the
+clock and outcome of its body. -/
+theorem decWord {F : Type} (state : PanSemStateFiniteExact 64 F) (name : MlS) (initializer : ExpHOL 64)
+    (value : BitVec 64) {body : ProgHOL 64} {cost : Nat}
+    (evaluated : @evalHOLExact 64 F _ state.toExact (fun address => Classical.propDecidable (state.memaddrs address))
+      initializer = some (.val (.word value)))
+    (inner : RunBounded (setVarHOLFinite name (.val (.word value)) state) body cost) :
+    RunBounded state (.dec name .one initializer body) cost := by
+  unfold RunBounded at inner ⊢
+  rw [evaluateHOLFiniteState_dec_total]
+  dsimp only
+  rw [evaluated]
+  dsimp only
+  have shapeOk : shapeEqHOL .one (shapeOfHOLExact (.val (.word value))) = true := by
+    simp [shapeOfHOLExact,shapeEqHOL]
+  rw [if_pos shapeOk]
+  exact inner
+
+/-- Any one-word or struct declaration: the body is only needed after an
+initializer evaluation that succeeds (other outcomes are clock-free errors). -/
+theorem dec {F : Type} (state : PanSemStateFiniteExact 64 F) (name : MlS) (shape : ShapeHOL) (initializer : ExpHOL 64)
+    {body : ProgHOL 64} {cost : Nat}
+    (inner : ∀ value, @evalHOLExact 64 F _ state.toExact (fun address => Classical.propDecidable (state.memaddrs address))
+      initializer = some value → RunBounded (setVarHOLFinite name value state) body cost) :
+    RunBounded state (.dec name shape initializer body) cost := by
+  unfold RunBounded
+  rw [evaluateHOLFiniteState_dec_total]
+  dsimp only
+  split
+  · simp
+  · rename_i value evaluated
+    split
+    · exact inner value evaluated
+    · simp
+
 end RunBounded
 
 #print axioms RunBounded.seq
 #print axioms RunBounded.decConst
 #print axioms RunBounded.decCall
+#print axioms RunBounded.decWord
+#print axioms RunBounded.dec
 end InitECandidate.Runtime
