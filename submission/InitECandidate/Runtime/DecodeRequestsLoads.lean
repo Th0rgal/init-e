@@ -3,7 +3,7 @@ namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
-theorem eval_load_one_word {σ : Type} (st : PanSemStateExact 64 σ) [DecidablePred st.memaddrs] (a : ExpHOL 64)
+theorem req_eval_load_one_word {σ : Type} (st : PanSemStateExact 64 σ) [DecidablePred st.memaddrs] (a : ExpHOL 64)
     (v : ValueHOL 64) (h : evalHOLExact st (.load .one a) = some v) : ∃ w : BitVec 64, v = .val (.word w) := by
   rw [evalHOLExact] at h
   split at h
@@ -42,7 +42,7 @@ def ReqLoadsPre {σ : Type} (t : PanSemStateFiniteExact 64 σ) : Prop :=
 theorem reqLoads_bounded {σ : Type} : ReqBounded (σ := σ) ReqLoadsPre reqLoads 335 := by
   have loadWord : ∀ (a : ExpHOL 64) (t : PanSemStateFiniteExact 64 σ) v,
       @evalHOLExact 64 σ _ t.toExact (fun x => Classical.propDecidable (t.memaddrs x)) (.load .one a) = some v →
-      ∃ w : BitVec 64, v = .val (.word w) := fun a t v h => @eval_load_one_word σ t.toExact (fun x => Classical.propDecidable (t.memaddrs x)) a v h
+      ∃ w : BitVec 64, v = .val (.word w) := fun a t v h => @req_eval_load_one_word σ t.toExact (fun x => Classical.propDecidable (t.memaddrs x)) a v h
   let up (t : PanSemStateFiniteExact 64 σ) (n : String) (w : BitVec 64) (k : MlS) (hk : k ≠ ofString n) :
       (setVarHOLFinite (ofString n) (.val (.word w)) t).locals.lookup k = t.locals.lookup k := by
     simp [setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE, Ne.symm hk]
