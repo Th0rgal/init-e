@@ -112,6 +112,22 @@ theorem evaluate_payload_store_tail_memory_frame {F : Type}
     exact evaluated_binop_word current _ _ parsed evaluated
   exact BoundWordStoreChainFrame.tail _ rfl
 
+/-- Earlier payload header cells, including the input span and transaction
+metadata, remain unchanged throughout this suffix. -/
+theorem evaluate_payload_store_tail_header_cells {F : Type}
+    (state : PanSemStateFiniteExact 64 F) (payload withdrawals offset : BitVec 64)
+    (atPayload : state.locals.lookup (ofString "pl") = some (.val (.word payload)))
+    (atWithdrawals : state.locals.lookup (ofString "nwd") = some (.val (.word withdrawals)))
+    (earlier : offset ∈ ([0,8,16,24,32,40] : List (BitVec 64))) :
+    (evaluateHOLFiniteState state (payloadAt 20)).2.memory (payload + offset) = state.memory (payload + offset) := by
+  apply evaluate_payload_store_tail_memory_frame state payload withdrawals _ atPayload atWithdrawals
+  intro later member
+  simp only [List.mem_cons,List.not_mem_nil,or_false] at earlier member
+  rcases earlier with rfl | rfl | rfl | rfl | rfl | rfl
+  all_goals
+    rcases member with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    all_goals simp
+
 /-- The transaction pointer and count survive the final payload stores. -/
 theorem evaluate_payload_store_tail_transaction_cells {F : Type}
     (state : PanSemStateFiniteExact 64 F) (payload withdrawals : BitVec 64)
@@ -119,14 +135,10 @@ theorem evaluate_payload_store_tail_transaction_cells {F : Type}
     (atWithdrawals : state.locals.lookup (ofString "nwd") = some (.val (.word withdrawals))) :
     (evaluateHOLFiniteState state (payloadAt 20)).2.memory (payload + 32) = state.memory (payload + 32) ∧
     (evaluateHOLFiniteState state (payloadAt 20)).2.memory (payload + 40) = state.memory (payload + 40) := by
-  constructor
-  all_goals
-    apply evaluate_payload_store_tail_memory_frame state payload withdrawals _ atPayload atWithdrawals
-    intro offset member
-    simp only [List.mem_cons,List.not_mem_nil,or_false] at member
-    rcases member with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    all_goals simp
+  exact ⟨evaluate_payload_store_tail_header_cells state payload withdrawals 32 atPayload atWithdrawals (by simp),
+    evaluate_payload_store_tail_header_cells state payload withdrawals 40 atPayload atWithdrawals (by simp)⟩
 
 #print axioms evaluate_payload_store_tail_memory_frame
+#print axioms evaluate_payload_store_tail_header_cells
 #print axioms evaluate_payload_store_tail_transaction_cells
 end InitECandidate.Runtime
