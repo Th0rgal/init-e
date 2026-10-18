@@ -38,5 +38,22 @@ theorem source_transaction_signature_middle : transactionSignatureMiddle =
     transactionAt,authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   rfl
 
+def transactionSignatureFirst := transactionAt 39
+
+def transactionSignatureFirstArguments : List (ExpHOL 64) :=
+  [.var .local (ofString "arr"),.var .local (ofString "k"),.const 32]
+def transactionSignatureFirstStore : ProgHOL 64 :=
+  .store (.op .add [.var .local (ofString "tx"),.const 288]) (.var .local (ofString "v"))
+def transactionSignatureFirstField : ProgHOL 64 :=
+  .seq (.call (some (some (.local,ofString "v"),none)) (ofString "tx_scalar_u256") transactionSignatureFirstArguments)
+    transactionSignatureFirstStore
+
+theorem source_transaction_signature_first : transactionSignatureFirst =
+    .seq (.call (some (some (.local,ofString "v"),none)) (ofString "tx_scalar_u256") transactionSignatureFirstArguments)
+      (.seq transactionSignatureFirstStore transactionSignatureMiddle) := by
+  simp only [transactionSignatureFirst,transactionSignatureFirstArguments,transactionSignatureFirstStore,transactionSignatureMiddle,
+    transactionAt,authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
 #print axioms source_transaction_signature_last
 end InitECandidate.Runtime
