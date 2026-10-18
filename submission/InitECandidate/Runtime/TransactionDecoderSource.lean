@@ -147,5 +147,15 @@ theorem source_transaction_blob_branch : transactionBlobBranch =
     InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   rfl
 
+def transactionAccessExtraction : ProgHOL 64 :=
+  match transactionAccessBranch with | .ite _ yes _ => yes | _ => .skip
+
+theorem source_transaction_access_extraction : transactionAccessExtraction =
+    .decCall (ofString "al") (.comb [.one,.one]) (ofString "tx_list_item")
+      [.var .local (ofString "arr"),.var .local (ofString "k")] transactionAccessDecode := by
+  simp only [transactionAccessExtraction,transactionAccessDecode,transactionAccessBranch,transactionAt,
+    authorizationNext,sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  rfl
+
 #print axioms source_transaction_signature_last
 end InitECandidate.Runtime
