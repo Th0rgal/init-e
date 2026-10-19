@@ -135,4 +135,42 @@ theorem validate_headers_stored_root_separation {F : Type}
   · exact mwin_below (D := hashes + index * 32) (N := 32) (w := prior + 32#64) belowRoot
 
 #print axioms validate_headers_stored_root_separation
+
+/-- The tail's own store target lies above the keccak state and pad windows and below the current
+output slot, so the tail's hash call cannot disturb the cell it has just written. -/
+theorem validate_headers_tail_store_outside (hs hashes index count keccakState keccakPad : BitVec 64)
+    (inside : index.toNat < count.toNat)
+    (bufferBeforeHashes : hs.toNat + count.toNat * 8 ≤ hashes.toNat)
+    (stateBeforeHs : keccakState.toNat + 200 ≤ hs.toNat) (padBeforeHs : keccakPad.toNat + 136 ≤ hs.toNat)
+    (hsBufferBound : hs.toNat + count.toNat * 8 + 8 ≤ 33806089496)
+    (hashAligned : hashes.toNat % 8 = 0)
+    (hashBufferBound : hashes.toNat + count.toNat * 32 + 32 ≤ 33806089496) :
+    ¬ MWin keccakState 200 (hs + index * 8) ∧ ¬ MWin keccakPad 136 (hs + index * 8) ∧
+      ¬ MWin (hashes + index * 32) 32 (hs + index * 8) := by
+  have countWidth8 : count.toNat * 8 < 2^64 := by omega
+  have countWidth32 : count.toNat * 32 < 2^64 := by omega
+  have indexProduct : (index * 8).toNat = index.toNat * 8 := by
+    rw [BitVec.toNat_mul_of_lt (by change index.toNat * 8 < 2^64; omega)]
+    rfl
+  have storeAddr : (hs + index * 8).toNat = hs.toNat + index.toNat * 8 := by
+    rw [BitVec.toNat_add_of_lt (by rw [indexProduct]; omega),indexProduct]
+  have hashProduct : (index * 32).toNat = index.toNat * 32 := by
+    rw [BitVec.toNat_mul_of_lt (by change index.toNat * 32 < 2^64; omega)]
+    rfl
+  have hashNat : (hashes + index * 32).toNat = hashes.toNat + index.toNat * 32 := by
+    rw [BitVec.toNat_add_of_lt (by rw [hashProduct]; omega),hashProduct]
+  have hashWindowAligned : (hashes + index * 32).toNat % 8 = 0 := by
+    obtain ⟨quotient, hquotient⟩ := Nat.dvd_of_mod_eq_zero hashAligned
+    rw [hashNat]
+    exact Nat.mod_eq_zero_of_dvd ⟨quotient + index.toNat * 4, by omega⟩
+  have storeBeforeHash : (hs + index * 8).toNat < (hashes + index * 32).toNat := by
+    rw [storeAddr,hashNat]
+    omega
+  have hashFit : (hashes + index * 32).toNat + 32 < 2^64 := by rw [hashNat]; omega
+  exact ⟨mwin_below (D := keccakState) (N := 200) (w := hs + index * 8) (by rw [storeAddr]; omega),
+    mwin_below (D := keccakPad) (N := 136) (w := hs + index * 8) (by rw [storeAddr]; omega),
+    mwin_above (D := hashes + index * 32) (N := 32) (w := hs + index * 8) storeBeforeHash
+      hashWindowAligned hashFit⟩
+
+#print axioms validate_headers_tail_store_outside
 end InitECandidate.Runtime
