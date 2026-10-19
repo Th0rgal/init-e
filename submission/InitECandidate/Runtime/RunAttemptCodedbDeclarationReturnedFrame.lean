@@ -70,4 +70,40 @@ theorem run_attempt_codedb_declaration_returned_frame {F : Type} (s : PanSemStat
     exact wordFrame w below os op oo
 
 #print axioms run_attempt_codedb_declaration_returned_frame
+theorem run_attempt_codedb_declaration_input_returned_frame {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (si heap total array input inputLength statePad pad output : BitVec 64)
+    (atSi : s.locals.lookup (ofString "si") = some (.val (.word si)))
+    (linked : WitnessArrayLinked s si 56 64 array total input inputLength heap)
+    (code : s.code = originalRuntimeCode)
+    (atHeap : s.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)))
+    (aligned : heap.toNat % 8 = 0) (capped : heap.toNat ≤ 33806089496)
+    (atState : s.globals.lookup (ofString "keccak_st") = some (.val (.word statePad)))
+    (atPad : s.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)))
+    (atOutput : s.globals.lookup (ofString "mpt_hash_scratch") = some (.val (.word output)))
+    (inputSmall : inputLength.toNat ≤ 134217712) (outputAligned : output.toNat % 8 = 0)
+    (windows : total ≠ 0 → statePad.toNat + 200 ≤ array.toNat ∧ pad.toNat + 136 ≤ array.toNat ∧
+      output.toNat + 32 ≤ array.toNat)
+    (arena : ∀ a : BitVec 64, a.toNat % 8 = 0 → heap.toNat ≤ a.toNat → a.toNat < 33806089496 →
+      s.memaddrs a)
+    (inputLimit : Nat) (inputBound : inputLength.toNat ≤ inputLimit) (inputCap : inputLimit ≤ 134217712)
+    (budget : nodedbInputCallCost inputLimit ≤ s.clock) :
+    Reaches s (runAttemptAt 10)
+      (fun ready => ready.locals = s.locals.update (ofString "codedb",.val (.word heap)) ∧
+        ready.memaddrs = s.memaddrs ∧ ready.code = s.code ∧
+        ready.globals.lookup (ofString "keccak_st") = some (.val (.word statePad)) ∧
+        ready.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)) ∧
+        ready.globals.lookup (ofString "mpt_hash_scratch") = some (.val (.word output)) ∧
+        (∃ finalHeap : BitVec 64, ready.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
+          heap.toNat ≤ finalHeap.toNat ∧ finalHeap.toNat % 8 = 0 ∧ finalHeap.toNat ≤ 33806089496 ∧
+          (∀ a : BitVec 64, a.toNat % 8 = 0 → finalHeap.toNat ≤ a.toNat → a.toNat < 33806089496 → ready.memaddrs a)) ∧
+        (∀ w : BitVec 64, w.toNat < heap.toNat → ¬ MWin statePad 200 w →
+          ¬ MWin pad 136 w → ¬ MWin output 32 w → ready.memory w = s.memory w))
+      (nodedbInputCallCost inputLimit) (runAttemptAt 11) := by
+  have cost := nodedb_call_cost_le_input total inputLength inputLimit linked.countBound inputBound inputCap
+  have reached := run_attempt_codedb_declaration_returned_frame s si heap total array input inputLength statePad pad output
+    atSi linked code atHeap aligned capped atState atPad atOutput inputSmall outputAligned windows arena
+    (cost.trans budget)
+  exact reaches_mono s (runAttemptAt 10) (runAttemptAt 11) _ _ _ _ cost (fun _ facts => facts) reached
+
+#print axioms run_attempt_codedb_declaration_input_returned_frame
 end InitECandidate.Runtime
