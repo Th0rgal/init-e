@@ -25,7 +25,7 @@ theorem packBytes_declaration_returned_frame {F : Type} (state post : PanSemStat
       (∀ key, key ≠ name → ready.locals.lookup key = state.locals.lookup key) ∧
       ready.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd heap (packBytesCount n * (32#64))))) ∧
       (allocationEnd heap (packBytesCount n * (32#64))).toNat ≤ 33806089496 ∧
-      HeapGlobalsRel state.globals ready.globals ∧ ready.code = state.code ∧
+      HeapRel state.globals ready.globals ∧ ready.code = state.code ∧
       (∀ watched : BitVec 64, watched.toNat < heap.toNat → ready.memory watched = state.memory watched) ∧
       tailCost ≤ ready.clock := by
   have installed : state.code.lookup (ofString "pack_bytes") =
@@ -50,7 +50,7 @@ theorem packBytes_declaration_returned_frame {F : Type} (state post : PanSemStat
   have memory (watched : BitVec 64) (before : watched.toNat < heap.toNat) :=
     packBytes_body_returned_memory_frame entry bodyPost p n heap watched returned hp hn hh heapBound code small aligned before
       (by change merkleMemoryCallCost + 2 ≤ state.clock - 1; unfold packBytesBodyCost at budget; omega) bodyRun
-  have globals := normalRel_apply packBytes_normal_heapGlobals
+  have globals := normalRel_apply packBytes_normal_heapRel
     (X := entry) (by rw [bodyRun]; exact Or.inr (Or.inr (Or.inr ⟨returned,rfl⟩))) (by exact code)
   have metadata := evaluateHOLFiniteState_metadata entry (sourceFunctionBody Guest.guestFn_pack_bytes)
   have spent := (runBounded_packBytes_body entry p n heap hp hn hh small heapBound code entryBudget).1
@@ -63,7 +63,7 @@ theorem packBytes_declaration_returned_frame {F : Type} (state post : PanSemStat
     simp [ready,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm different,rlocals]
   · change resumed.globals.lookup _ = _
     rw [rglobals]; exact result.2.1
-  · change HeapGlobalsRel state.globals resumed.globals
+  · change HeapRel state.globals resumed.globals
     rw [rglobals]; exact globals
   · change resumed.code = state.code
     exact rcode.trans metadata.1
