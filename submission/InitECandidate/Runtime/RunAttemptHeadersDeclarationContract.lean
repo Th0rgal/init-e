@@ -9,8 +9,10 @@ only records that the caller local `vh` receives the returned value.  Here the
 checked contract of the whole original `validate_headers` body is applied to that
 retained run, so the reached `runAttemptAt 3` state also carries the exact
 `(hs, hashes)` pair, the header count cap, the monotone aligned live allocation
-frontier, the caller workspace pointers, the untouched older memory window and
-the retained original witness prefix.  No new caller assumption is introduced:
+frontier (live both in the returned body state and in the reached caller state,
+whose domain is restored by the scope and by the evaluator domain invariant),
+the caller workspace pointers, the untouched older memory window and the
+retained original witness prefix.  No new caller assumption is introduced:
 the reach is strengthened in place at the same cost.
 -/
 namespace InitECandidate.Runtime
@@ -56,7 +58,9 @@ theorem run_attempt_headers_declaration_contract {F : Type} (s : PanSemStateFini
           ready.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
           heap.toNat ≤ finalHeap.toNat ∧ finalHeap.toNat ≤ 33806089496 ∧ finalHeap.toNat % 8 = 0 ∧
           (∀ address : BitVec 64, finalHeap.toNat ≤ address.toNat → address.toNat < 33806089496 →
-            bodyPost.memaddrs address)) ∧
+            bodyPost.memaddrs address) ∧
+          (∀ address : BitVec 64, finalHeap.toNat ≤ address.toNat → address.toNat < 33806089496 →
+            ready.memaddrs address)) ∧
         ready.globals.lookup (ofString "scratch_ptr") = some (.val (.word scratch)) ∧
         ready.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)) ∧
         ready.globals.lookup (ofString "keccak_st") = some (.val (.word keccakState)) ∧
@@ -83,6 +87,11 @@ theorem run_attempt_headers_declaration_contract {F : Type} (s : PanSemStateFini
     (by change validateHeadersBodyCost inputLimit ≤ s.clock - 1; omega) value bodyRun
   obtain ⟨countCap,⟨finalHeap,atFrontier,frontierLower,frontierBound,frontierAligned,frontierArena⟩,
     scratchPost,framePost,statePost,padPost,windowPost,tablePost,codePost,valueIs⟩ := contract
+  have bodyMetadata := evaluateHOLFiniteState_metadata
+    (callEntryStateHOLFinite s (validateHeadersCallee array count))
+    (sourceFunctionBody Guest.guestFn_validate_headers)
+  rw [bodyRun] at bodyMetadata
+  have readyDomain : ready.memaddrs = bodyPost.memaddrs := domainEq.trans bodyMetadata.2.1.symm
   have vhLocal : ready.locals.lookup (ofString "vh") =
       some (.rStruct [.val (.word heap),.val (.word (allocationEnd heap (validateHeadersHsSize count)))]) := by
     rw [pinLocal,valueIs]
@@ -111,7 +120,7 @@ theorem run_attempt_headers_declaration_contract {F : Type} (s : PanSemStateFini
       exact windowPost _ (by rw [endValue slot inside]; omega) (by rw [endValue slot inside]; omega)
   exact ⟨value,bodyPost,bodyRun,pinLocal,memoryEq,globalsEq,domainEq,codeEq,valueIs,vhLocal,countCap,
     ⟨finalHeap,(by rw [globalsEq]; exact atFrontier),frontierLower,frontierBound,frontierAligned,
-      frontierArena⟩,
+      frontierArena,(by intro address low high; rw [readyDomain]; exact frontierArena address low high)⟩,
     (by rw [globalsEq]; exact scratchPost),(by rw [globalsEq]; exact framePost),
     (by rw [globalsEq]; exact statePost),(by rw [globalsEq]; exact padPost),
     (by intro address low high; rw [memoryEq]; exact windowPost address low high),tablePost,prefixReady⟩
