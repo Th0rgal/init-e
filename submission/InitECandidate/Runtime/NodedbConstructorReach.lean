@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.NodedbConstructorBound
 import InitECandidate.Runtime.BoundedDecCallReach
+import InitECandidate.Runtime.ReachesReturnedContinuation
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -57,4 +58,30 @@ theorem nodedb_constructor_reaches {F : Type} (state : PanSemStateFiniteExact 64
   exact ready
 
 #print axioms nodedb_constructor_reaches
+theorem nodedb_constructor_returned_frame {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (pointer capacity : BitVec 64) (bits : Nat)
+    (code : state.code = originalRuntimeCode)
+    (atCap : state.locals.lookup (ofString "cap") = some (.val (.word capacity)))
+    (atHeap : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (aligned : pointer.toNat % 8 = 0) (capped : pointer.toNat ≤ 33806089496)
+    (arena : ∀ a : BitVec 64, a.toNat % 8 = 0 → pointer.toNat ≤ a.toNat → a.toNat < 33806089496 → state.memaddrs a)
+    (power : capacity.toNat = 2 ^ bits)
+    (budget : capacity.toNat + 40 + 1 ≤ state.clock)
+    (value : ValueHOL 64)
+    (run : evaluateHOLFiniteState state (nodedbAt 2) = (some (.returned value),post)) :
+    ∃ next tailPost : PanSemStateFiniteExact 64 F,
+      NodedbTableReady state pointer capacity bits next ∧
+      state.clock ≤ next.clock + (capacity.toNat + 40 + 1) ∧ next.clock ≤ state.clock ∧
+      evaluateHOLFiniteState next (nodedbAt 3) = (some (.returned value),tailPost) ∧
+      tailPost.clock = post.clock ∧ tailPost.memory = post.memory ∧
+      tailPost.globals = post.globals ∧ tailPost.memaddrs = post.memaddrs := by
+  have reached := nodedb_constructor_reaches state pointer capacity bits code atCap atHeap aligned capped arena power budget
+  obtain ⟨next,ready,spent,remaining,agreement,returned⟩ :=
+    reaches_returned_continuation state (nodedbAt 2) (nodedbAt 3) _ (capacity.toNat + 40 + 1) value
+      reached (by rw [run])
+  rw [run] at agreement
+  exact ⟨next,(evaluateHOLFiniteState next (nodedbAt 3)).2,ready,spent,remaining,Prod.ext returned rfl,
+    agreement.2.1.symm,agreement.2.2.1.symm,agreement.2.2.2.1.symm,agreement.2.2.2.2.symm⟩
+
+#print axioms nodedb_constructor_returned_frame
 end InitECandidate.Runtime
