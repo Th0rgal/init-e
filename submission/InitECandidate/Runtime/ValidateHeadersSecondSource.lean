@@ -73,6 +73,22 @@ theorem source_validate_headers_second_tail :
     validateHeadersSecondAt 5 =
       .seq (.assign .local (ofString "i") (.const 1)) validateHeadersSecondTail := rfl
 
+
+/-- The continuation of the `memeq` declaration call: the `ok` guard, which
+either raises `BlockErr 2` on any mismatch or falls through, then the real
+`i := i + 1` increment. -/
+def validateHeadersSecondContinuation : ProgHOL 64 :=
+  .seq validateHeadersSecondGuard
+    (.assign .local (ofString "i") (.op .add [.var .local (ofString "i"), .const 1]))
+
+/-- The real body is exactly the `memeq` declaration call with the literal
+size `32` followed by that continuation. -/
+theorem source_validate_headers_second_body_split :
+    validateHeadersSecondBody = .decCall (ofString "eq") .one (ofString "memeq")
+      validateHeadersSecondArguments validateHeadersSecondContinuation := rfl
+
+#print axioms source_validate_headers_second_body_split
+
 #print axioms source_validate_headers_second_index_reset
 #print axioms source_validate_headers_second_loop
 #print axioms source_validate_headers_second_body
