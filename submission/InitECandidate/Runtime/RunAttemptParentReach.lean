@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.RunAttemptHeaderCountReach
+import InitECandidate.Runtime.HeaderPointerPrefix
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -40,4 +41,20 @@ theorem run_attempt_parent_reaches {F : Type} (s : PanSemStateFiniteExact 64 F)
 
 #print axioms source_run_attempt_parent
 #print axioms run_attempt_parent_reaches
+
+/-- The initialized buffer invariant discharges both memory premises of the
+actual parent load, yielding an execution-derived typed parent pointer. -/
+theorem run_attempt_parent_prefix_reaches {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (headers hashes count : BitVec 64)
+    (atHeaders : s.locals.lookup (ofString "vh") =
+      some (.rStruct [.val (.word headers),.val (.word hashes)]))
+    (atCount : s.locals.lookup (ofString "nh") = some (.val (.word count)))
+    (initialized : HeaderPointerPrefix s headers count.toNat) (nonzero : count ≠ 0) :
+    ∃ parent : BitVec 64, Reaches s (runAttemptAt 5)
+      (fun ready => ready = setVarHOLFinite (ofString "parent") (.val (.word parent)) s)
+      0 (runAttemptAt 6) := by
+  obtain ⟨domain,parent,word⟩ := initialized.last s headers count nonzero
+  exact ⟨parent,run_attempt_parent_reaches s headers hashes count parent atHeaders atCount domain word⟩
+
+#print axioms run_attempt_parent_prefix_reaches
 end InitECandidate.Runtime

@@ -57,4 +57,37 @@ theorem headerPointerPrefix_store {F : Type} (s post : PanSemStateFiniteExact 64
 
 #print axioms headerPointerPrefix_empty
 #print axioms headerPointerPrefix_store
+
+/-- A frame on initialized pointer cells transports the whole prefix across
+decoder/hash calls and scope restoration. -/
+theorem HeaderPointerPrefix.after_frame {F : Type} (s post : PanSemStateFiniteExact 64 F)
+    (hs : BitVec 64) (count : Nat) (initialized : HeaderPointerPrefix s hs count)
+    (domain : post.memaddrs = s.memaddrs)
+    (memory : ∀ slot : BitVec 64, slot.toNat < count →
+      post.memory (hs + slot * (8#64)) = s.memory (hs + slot * (8#64))) :
+    HeaderPointerPrefix post hs count := by
+  intro slot inside
+  obtain ⟨readable,header,word⟩ := initialized slot inside
+  exact ⟨by rw [domain]; exact readable,header,(memory slot inside).trans word⟩
+
+/-- A nonempty initialized buffer supplies the last pointer cell read by
+the actual `run_attempt` parent declaration. -/
+theorem HeaderPointerPrefix.last {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (hs count : BitVec 64) (initialized : HeaderPointerPrefix s hs count.toNat)
+    (nonzero : count ≠ 0) :
+    s.memaddrs (hs + (count - 1) * 8) ∧ ∃ header : BitVec 64,
+      s.memory (hs + (count - 1) * 8) = .word header := by
+  have positive : 0 < count.toNat := by
+    have nz : count.toNat ≠ 0 := by
+      intro eq
+      apply nonzero
+      exact BitVec.eq_of_toNat_eq eq
+    omega
+  have indexNat : (count - (1#64)).toNat = count.toNat - 1 := by
+    rw [BitVec.toNat_sub_of_le (by change (1#64 : BitVec 64).toNat ≤ count.toNat; exact positive)]
+    rfl
+  exact initialized (count - (1#64)) (by rw [indexNat]; omega)
+
+#print axioms HeaderPointerPrefix.after_frame
+#print axioms HeaderPointerPrefix.last
 end InitECandidate.Runtime
