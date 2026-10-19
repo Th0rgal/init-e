@@ -7,7 +7,7 @@ namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
-theorem progressiveLoop_normal_memory {F : Type} (state post : PanSemStateFiniteExact 64 F)
+theorem progressiveLoop_normal_frame {F : Type} (state post : PanSemStateFiniteExact 64 F)
     (pointer accelerator zeroHashes p n off size roots k heap watched : BitVec 64)
     (atPointer : state.globals.lookup (ofString "sha_st") = some (.val (.word pointer)))
     (atAccel : state.globals.lookup (ofString "sha_accel") = some (.val (.word accelerator)))
@@ -29,7 +29,9 @@ theorem progressiveLoop_normal_memory {F : Type} (state post : PanSemStateFinite
     (pointerOutside : watched.toNat < pointer.toNat ∨ pointer.toNat + 64 ≤ watched.toNat)
     (code : state.code = originalRuntimeCode) (budget : (n.toNat - off.toNat) * (merkleBodyCost + 2) ≤ state.clock)
     (run : evaluateHOLFiniteState state (.while progressiveCondition progressiveStep) = (none,post)) :
-    post.memory watched = state.memory watched := by
+    post.memory watched = state.memory watched ∧ post.globals = state.globals ∧
+      ∃ finalK : BitVec 64, post.locals.lookup (ofString "k") = some (.val (.word finalK)) ∧
+        finalK.toNat ≤ 4 * n.toNat := by
   let Inv := fun current : PanSemStateFiniteExact 64 F =>
     current.memory watched = state.memory watched ∧ current.globals = state.globals ∧
     current.locals.lookup (ofString "p") = some (.val (.word p)) ∧
@@ -98,7 +100,8 @@ theorem progressiveLoop_normal_memory {F : Type} (state post : PanSemStateFinite
     omega)
     (by intro current; exact ⟨evaluate_noTopBreak _ (by decide) current,evaluate_noTopContinue _ (by decide) current⟩)
     state post ⟨rfl,rfl,hp,hn,hr,code,off,size,k,ho,hs,hk,counters,budget⟩ run
-  exact finalInvariant.1
+  obtain ⟨memory,globals,_,_,_,_,finalOff,finalSize,finalK,_,_,atFinalK,valid,_⟩ := finalInvariant
+  exact ⟨memory,globals,finalK,atFinalK,Nat.le_trans valid.1.2.2 valid.1.1⟩
 
-#print axioms progressiveLoop_normal_memory
+#print axioms progressiveLoop_normal_frame
 end InitECandidate.Runtime
