@@ -410,8 +410,8 @@ theorem discard_normal_any {F : Type} (state post : PanSemStateFiniteExact 64 F)
 
 set_option maxHeartbeats 8000000 in
 /-- Normal return of the original `ws_account_leaf`: `heap_release(mark)` restores the heap pointer, so every
-global (including `heap_ptr`) is as at entry. (On `MptErr` or other non-normal exits the heap pointer is not
-restored; only the memory window `wsAccountLeaf_body_window_any` holds.) -/
+global (including `heap_ptr`) is as at entry. (On `MptErr`, `TrapErr` or other non-normal exits there is no
+restoration guarantee for the heap pointer; only the memory window `wsAccountLeaf_body_window_any` holds.) -/
 theorem wsAccountLeaf_returned_globals {F : Type} (s post : PanSemStateFiniteExact 64 F) (v : ValueHOL 64)
     (P0 : BitVec 64) (code : s.code = originalRuntimeCode)
     (heap : s.globals.lookup (ofString "heap_ptr") = some (.val (.word P0)))
