@@ -17,7 +17,7 @@ theorem main_decoder_call_hash_header {F : Type} (state ready post : PanSemState
     (valid : MainDecoderEntry state ready)
     (run : evaluateHOLFiniteState ready mainStatelessCall = (none,post)) :
     ∃ length heap payload blobs count parentRoot record : BitVec 64,
-      length.toNat ≤ 134217712 ∧
+      length.toNat ≤ 134217712 ∧ ready.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)) ∧
       HtrNewPayloadHeader post heap payload blobs count parentRoot record ∧ HtrRequestsDecoded post record ∧
       heap.toNat + 32 < record.toNat := by
   obtain ⟨length,_,_,heap,inp,_,_,small,fits,offsets,atHeap,capped,aligned,lower,installed,domain,_,_⟩ := valid.fields
@@ -47,7 +47,7 @@ theorem main_decoder_call_hash_header {F : Type} (state ready post : PanSemState
       small bodyRun
   have memory : post.memory = bodyPost.memory := by rw [resumed]; rfl
   have addresses : post.memaddrs = bodyPost.memaddrs := by rw [resumed]; rfl
-  exact ⟨length,heap,payload,blobs,count,parentRoot,record,small,
+  exact ⟨length,heap,payload,blobs,count,parentRoot,record,small,atHeap,
     header.after_frame addresses (fun _ _ => congrFun memory _),decoded.after_frame memory addresses,recordAfter⟩
 
 #print axioms main_decoder_call_hash_header

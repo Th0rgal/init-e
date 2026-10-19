@@ -17,7 +17,7 @@ theorem main_decoder_call_hash_decoded {F : Type} (state ready post : PanSemStat
     (valid : MainDecoderEntry state ready)
     (run : evaluateHOLFiniteState ready mainStatelessCall = (none,post)) :
     ∃ length heap payload array count input inputLength withdrawals withdrawalCount requests requestLength blobs blobLength : BitVec 64,
-      length.toNat ≤ 134217712 ∧ heap.toNat + 96 ≤ payload.toNat ∧
+      length.toNat ≤ 134217712 ∧ ready.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)) ∧ heap.toNat + 96 ≤ payload.toNat ∧ post.memory (heap + 0) = .word payload ∧
       HtrPayloadDecoded post payload array count input inputLength input inputLength withdrawals withdrawalCount requests requestLength blobs blobLength := by
   obtain ⟨length,_,_,heap,inp,_,_,small,fits,offsets,atHeap,capped,aligned,lower,installed,domain,_,_⟩ := valid.fields
   obtain ⟨value,bodyPost,bodyRun,_,resumed⟩ :=
@@ -36,7 +36,7 @@ theorem main_decoder_call_hash_decoded {F : Type} (state ready post : PanSemStat
     simp only [List.mem_cons,List.not_mem_nil,or_false] at member
     rcases member with rfl | rfl | rfl | rfl
     all_goals exact arena _ (by decide) (by decide) (by decide)
-  obtain ⟨payload,array,count,input,inputLength,withdrawals,withdrawalCount,requests,requestLength,blobs,blobLength,afterHeap,decoded⟩ :=
+  obtain ⟨payload,array,count,input,inputLength,withdrawals,withdrawalCount,requests,requestLength,blobs,blobLength,afterHeap,payloadCell,decoded⟩ :=
     stateless_body_returned_hash_decoded_cells entry bodyPost 2713731432 length 2713715344 heap value
       (installed.trans code) p len offsets atHeap capped aligned
       (by intro address cellAligned lo hi; change ready.memaddrs address; rw [domain];
@@ -47,7 +47,7 @@ theorem main_decoder_call_hash_decoded {F : Type} (state ready post : PanSemStat
   have memory : post.memory = bodyPost.memory := by rw [resumed]; rfl
   have addresses : post.memaddrs = bodyPost.memaddrs := by rw [resumed]; rfl
   exact ⟨length,heap,payload,array,count,input,inputLength,withdrawals,withdrawalCount,requests,requestLength,blobs,blobLength,
-    small,afterHeap,decoded.after_frame addresses memory⟩
+    small,atHeap,afterHeap,(by rw [memory]; exact payloadCell),decoded.after_frame addresses memory⟩
 
 #print axioms main_decoder_call_hash_decoded
 end InitECandidate.Runtime

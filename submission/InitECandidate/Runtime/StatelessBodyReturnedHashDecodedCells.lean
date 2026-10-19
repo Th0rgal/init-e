@@ -21,7 +21,7 @@ theorem stateless_body_returned_hash_decoded_cells {F : Type} (s post : PanSemSt
     (small : L.toNat ≤ 134217712)
     (run : evaluateHOLFiniteState s (statelessAt 0) = (some (.returned v), post)) :
     ∃ payload array count input inputLength withdrawals withdrawalCount requests requestLength blobs blobLength : BitVec 64,
-      H.toNat + 96 ≤ payload.toNat ∧
+      H.toNat + 96 ≤ payload.toNat ∧ post.memory (H + 0) = .word payload ∧
       HtrPayloadDecoded post payload array count input inputLength input inputLength withdrawals withdrawalCount requests requestLength blobs blobLength := by
   rcases evaluate_stateless_at22 s P L H offsets code hp hL hg heap hb with ⟨E, full, _, _, sc⟩ | ⟨x, h1, h2, _⟩
   · rw [run] at sc
@@ -63,9 +63,13 @@ theorem stateless_body_returned_hash_decoded_cells {F : Type} (s post : PanSemSt
           (allocationEnd H 96) v (ecode.trans code) lnp lnl gl3 gl4 gl5 lp llen gl2 lsi eOffs eHeap H1b cov.2.2
           (fun a cellAligned lo hi => by rw [ld]; exact heapArena a cellAligned (by omega) hi)
           (by rw [ld]; exact scratchDom) scratchBelow cov1 payloadSmall (by rw [npl,vml]; omega) hE
+      obtain ⟨_,_,_,_,payloadCell,_⟩ := stateless_payload_suffix_returned_cells E out NP _ geoOPL geoOVH geoORQ (P + 2) (L - 2) geoOW H offsets
+          (allocationEnd H 96) v (ecode.trans code) lnp lnl gl3 gl4 gl5 lp llen gl2 lsi eOffs eHeap H1b cov.2.2
+          (fun a cellAligned lo hi => by rw [ld]; exact heapArena a cellAligned (by omega) hi)
+          (by rw [ld]; exact scratchDom) scratchBelow cov1 (by rw [npl,vml]; omega) hE
       exact ⟨allocationEnd H 96,array,count,NP + geoOPL,geoOVH - geoOPL,
         NP + geoOPL + withdrawals,(balance - withdrawals) / 44,NP + geoOPL + balance,(geoOVH - geoOPL) - balance,
-        NP + geoOPL + 540,extra - 540,cov1,decoded.after_frame sd sm⟩
+        NP + geoOPL + 540,extra - 540,cov1,(by rw [sm]; exact payloadCell),decoded.after_frame sd sm⟩
   · rw [run] at h1
     exact absurd (Option.some.inj h1).symm (h2 v)
 
