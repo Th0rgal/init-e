@@ -60,7 +60,7 @@ theorem header_count_current {count flag : BitVec 64}
 /-- What the actual decoder prefix delivers at `decodeHeaderAt 11`. -/
 def HeaderPrefixEntry {F : Type} (s post : PanSemStateFiniteExact 64 F)
     (array input inputLength scratch frame : BitVec 64) (ceiling inputLimit : Nat) : Prop :=
-  ∃ count flag record : BitVec 64, 21 ≤ count.toNat ∧
+  ∃ count flag record : BitVec 64, 21 ≤ count.toNat ∧ ((count = 21 ∧ flag = 0#64) ∨ (count = 23 ∧ flag = 1#64)) ∧
     post.locals.lookup (ofString "arr") = some (.val (.word array)) ∧
     post.locals.lookup (ofString "h") = some (.val (.word record)) ∧
     post.locals.lookup (ofString "is_current") = some (.val (.word flag)) ∧
@@ -97,7 +97,7 @@ theorem decode_header_zero_flag {F : Type} (s : PanSemStateFiniteExact 64 F)
       (fun post => HeaderPrefixEntry s post array pointer length scratch frame ceiling inputLimit)
       (headerPrefixCost inputLimit) (decodeHeaderAt 11) := by
   suffices intermediate : Reaches s (decodeHeaderAt 0)
-      (fun post => ∃ count flag record : BitVec 64, 21 ≤ count.toNat ∧
+      (fun post => ∃ count flag record : BitVec 64, 21 ≤ count.toNat ∧ ((count = 21 ∧ flag = 0#64) ∨ (count = 23 ∧ flag = 1#64)) ∧
         post.locals.lookup (ofString "arr") = some (.val (.word array)) ∧
         post.locals.lookup (ofString "h") = some (.val (.word record)) ∧
         post.locals.lookup (ofString "is_current") = some (.val (.word flag)) ∧
@@ -111,7 +111,7 @@ theorem decode_header_zero_flag {F : Type} (s : PanSemStateFiniteExact 64 F)
       (headerPrefixCost inputLimit) (decodeHeaderAt 11) by
     refine reaches_mono s (decodeHeaderAt 0) (decodeHeaderAt 11) _ _ _ _ (le_refl _) ?_ intermediate
     intro post facts
-    obtain ⟨count,flag,record,countTwentyOne,atArray,atRecord,atFlag,table,currentBound,domainPost,codePost,
+    obtain ⟨count,flag,record,countTwentyOne,accepted,atArray,atRecord,atFlag,table,currentBound,domainPost,codePost,
       scratchPost,framePost,geometry,recordFits,heapPost⟩ := facts
     have above : ceiling ≤ array.toNat := by omega
     have fits : array.toNat + count.toNat * 16 ≤ 2^64 := by omega
@@ -120,7 +120,7 @@ theorem decode_header_zero_flag {F : Type} (s : PanSemStateFiniteExact 64 F)
       intro address low high
       rw [domainPost]
       exact arena address low high
-    exact ⟨count,flag,record,countTwentyOne,atArray,atRecord,atFlag,table,
+    exact ⟨count,flag,record,countTwentyOne,accepted,atArray,atRecord,atFlag,table,
       ⟨countTwentyOne,geometry,recordFits,above,fits,lengthBound,limitBound,scratchPost.trans scratchGlobal,
         framePost.trans frameGlobal,codePost.trans code,orderedFrame,framePositive,scratchBelow,arenaPost⟩,
       currentBound,domainPost,codePost,scratchPost,framePost,heapPost⟩
@@ -194,8 +194,9 @@ theorem decode_header_zero_flag {F : Type} (s : PanSemStateFiniteExact 64 F)
     (globalsPost (ofString "scratch_ptr")).trans scratchGuard
   have framePost : post.globals.lookup (ofString "frame_mem_ptr") = (some (.val (.word frame))) :=
     (globalsPost (ofString "frame_mem_ptr")).trans frameGuard
-  refine ⟨count,current,allocationEnd array (count * 16),?_,?_,?_,?_,?_,?_,?_,?_,?_,?_,?_,?_,?_⟩
+  refine ⟨count,current,allocationEnd array (count * 16),?_,?_,?_,?_,?_,?_,?_,?_,?_,?_,?_,?_,?_,?_⟩
   · exact countTwentyOne
+  · exact accepted
   · exact atArrayPost
   · exact atRecordPost
   · exact atFlagPost
@@ -236,7 +237,7 @@ theorem decode_header_returned_root_from_zero {F : Type} (s post : PanSemStateFi
     (value : ValueHOL 64)
     (run : evaluateHOLFiniteState s (decodeHeaderAt 0) = (some (.returned value),post)) :
     ∃ count flag record : BitVec 64, value = .val (.word record) ∧ 21 ≤ count.toNat ∧
-      (flag ≠ 0 → 23 ≤ count.toNat) ∧
+      count.toNat ≤ 23 ∧
       post.globals.lookup (ofString "heap_ptr") =
         some (.val (.word (allocationEnd (allocationEnd array (count * 16)) 248))) ∧
       (∃ word : BitVec 64, post.memory (record + 32#64) = .word word) ∧
@@ -254,28 +255,30 @@ theorem decode_header_returned_root_from_zero {F : Type} (s post : PanSemStateFi
         mid.memaddrs = s.memaddrs ∧ mid.code = s.code ∧
         mid.globals.lookup (ofString "scratch_ptr") = s.globals.lookup (ofString "scratch_ptr") ∧
         mid.globals.lookup (ofString "frame_mem_ptr") = s.globals.lookup (ofString "frame_mem_ptr") ∧
-        21 ≤ count.toNat ∧ (flag ≠ 0 → 23 ≤ count.toNat) ∧
+        21 ≤ count.toNat ∧ ((count = 21 ∧ flag = 0#64) ∨ (count = 23 ∧ flag = 1#64)) ∧
         mid.globals.lookup (ofString "heap_ptr") =
           some (.val (.word (allocationEnd (allocationEnd array (count * 16)) 248))))
       (headerPrefixCost inputLimit + headerWholeBodyCost inputLimit) (decodeHeaderAt 57) := by
     apply reaches_trans_budget s (decodeHeaderAt 0) (decodeHeaderAt 11) (decodeHeaderAt 57) _ _
       (headerPrefixCost inputLimit) (headerWholeBodyCost inputLimit) (by omega) started
     intro mid facts remaining
-    obtain ⟨count,current,record,countTwentyOne,atArray,atRecord,atFlag,table,env,currentBound,domainMid,codeMid,
-      scratchMid,frameMid,heapMid⟩ := facts
+    obtain ⟨count,current,record,countTwentyOne,accepted,atArray,atRecord,atFlag,table,env,currentBound,domainMid,
+      codeMid,scratchMid,frameMid,heapMid⟩ := facts
     refine reaches_mono mid (decodeHeaderAt 11) (decodeHeaderAt 57) _ _ _ _ (le_refl _) ?_
       (decode_header_whole_body_flag mid array count pointer length scratch frame record current ceiling inputLimit env
         atArray atRecord table atFlag currentBound (by omega))
     intro final kept
     obtain ⟨rooted,carried⟩ := kept
     exact ⟨mid,count,current,record,rooted,carried,(by have h := env.before; omega),env.recordFits,domainMid,codeMid,scratchMid,frameMid,
-      countTwentyOne,currentBound,heapMid⟩
+      countTwentyOne,accepted,heapMid⟩
   obtain ⟨ready,facts,_,_,agreement,returnedTail⟩ := reaches_returned_continuation s (decodeHeaderAt 0)
     (decodeHeaderAt 57) _ _ value total (by rw [run])
   obtain ⟨mid,facts⟩ := facts
   obtain ⟨count,current,record,rooted,facts⟩ := facts
-  obtain ⟨carry,geometry,recordFits,domainMid,codeMid,scratchMid,frameMid,countTwentyOne,currentBound,
+  obtain ⟨carry,geometry,recordFits,domainMid,codeMid,scratchMid,frameMid,countTwentyOne,acceptedMid,
     heapMid⟩ := facts
+  have countBound : count.toNat ≤ 23 := by
+    rcases acceptedMid with ⟨eq,_⟩ | ⟨eq,_⟩ <;> rw [eq] <;> decide
   obtain ⟨rootMem,domain,codeEq,globals,_,_,atRecordReady⟩ := carry
   have tailMemory : (evaluateHOLFiniteState ready (decodeHeaderAt 57)).2.memory = ready.memory := by
     rw [source_decode_header_return,evaluateHOLFiniteState_return]
@@ -288,7 +291,7 @@ theorem decode_header_returned_root_from_zero {F : Type} (s post : PanSemStateFi
   rw [run] at sourceMemory sourceGlobals
   have metadata := evaluateHOLFiniteState_metadata s (decodeHeaderAt 0)
   rw [run] at metadata
-  refine ⟨count,current,record,?_,countTwentyOne,currentBound,?_,⟨rooted,?_⟩,metadata.2.1,metadata.1,?_,?_,
+  refine ⟨count,current,record,?_,countTwentyOne,countBound,?_,⟨rooted,?_⟩,metadata.2.1,metadata.1,?_,?_,
     geometry,recordFits⟩
   · rw [source_decode_header_return,evaluateHOLFiniteState_return] at returnedTail
     simpa [evalHOLExact,atRecordReady,shapeOfHOLExact] using returnedTail.symm
