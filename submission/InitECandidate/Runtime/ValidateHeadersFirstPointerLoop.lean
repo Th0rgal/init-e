@@ -72,6 +72,25 @@ theorem validate_headers_first_pointer_loop_ranked (e : ValidateHeadersFirstEnvi
     · intro broken
       exact (controls.2 broken).elim
 
+/-- At rank `0` the invariant's index has reached the header count, so the
+initialized pointer prefix covers the whole header-pointer buffer.  The typed
+index is unique (the invariant's index and the prefix's index are the same
+local), which turns the prefix at `index.toNat` into the prefix at
+`e.count.toNat`. -/
+theorem validate_headers_first_pointer_prefix_exhausted {F : Type}
+    (e : ValidateHeadersFirstEnvironment) (s : PanSemStateFiniteExact 64 F)
+    (exhausted : ValidateHeadersFirstPointerInvariant e s 0) :
+    HeaderPointerPrefix s e.hs e.count.toNat := by
+  obtain ⟨valid,⟨prefixIndex,atPrefixIndex,initialized⟩,_frontier⟩ := exhausted
+  obtain ⟨index,heap,arr,n,i,hs,hashes,within,distance,table,inputBefore,tableBefore,scratch,frame,
+    heapGlobal,state,pad,heapBound,arena,heapArena⟩ := valid
+  have indexEq : prefixIndex = index :=
+    HolWordLab.word.inj (ValueHOL.val.inj (Option.some.inj (atPrefixIndex.symm.trans i)))
+  subst prefixIndex
+  have sameCount : index.toNat = e.count.toNat := by omega
+  rw [← sameCount]
+  exact initialized
+
 /-- The real normal loop exit preserves the full pointer invariant at rank
 `0` together with unchanged code. -/
 theorem validate_headers_first_pointer_loop_normal {F : Type} (e : ValidateHeadersFirstEnvironment)
@@ -118,6 +137,7 @@ theorem validate_headers_first_pointer_loop_reaches {F : Type} (e : ValidateHead
     exact validate_headers_first_pointer_loop_normal e s post rank code hsAbove bufferBeforeHashes valid
       budget normal
 
+#print axioms validate_headers_first_pointer_prefix_exhausted
 #print axioms validate_headers_first_pointer_loop_ranked
 #print axioms validate_headers_first_pointer_loop_normal
 #print axioms validate_headers_first_pointer_loop_reaches
