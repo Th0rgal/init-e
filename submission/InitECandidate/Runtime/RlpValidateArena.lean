@@ -129,7 +129,7 @@ theorem aq_callP {P Pc : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (function
       (evaluateHOLFiniteState s body).2.memory w = s.memory w ∧
       (Continuing (evaluateHOLFiniteState s body).1 → AW SP0 P0 FM G0 (evaluateHOLFiniteState s body).2.globals))
     (hpc : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) values callee rs, AW SP0 P0 FM G0 s.globals → P s.locals →
-      evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments = some values →
+      SL Vn s.locals → evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments = some values →
       lookupCodeHOLFinite originalRuntimeCode.lookup function values = some (body,callee,rs) → Pc callee) :
     AQ SP0 P0 FM G0 w Vn P P (.call (some (none,none)) function arguments) := by
   intro F state code dom aw sl pre
@@ -153,7 +153,7 @@ theorem aq_callP {P Pc : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (function
       split
       · exact aq_of_not_continuing rfl (fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h)
       · have frame := hb F (callEntryStateHOLFinite state callee) code dom aw esl
-          (hpc state values callee foundShape aw pre args lookup')
+          (hpc state values callee foundShape aw pre sl args lookup')
         cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) found with
         | mk rb bodyPost =>
           rw [bodyRun] at frame
@@ -192,7 +192,7 @@ theorem aq_releaseCall {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (x : M
       exact ⟨m,rfl,lo,hi⟩
     have h := hs F s code dom aw sl pc
     exact ⟨h.1,h.2.1⟩
-  · intro F s values callee rs _ pre args lookup
+  · intro F s values callee rs _ pre _ args lookup
     obtain ⟨m,hm,lo,hi⟩ := hx _ pre
     have av : values = [.val (.word m)] := by
       rw [evalListHOLFinite_eq_toExact] at args
