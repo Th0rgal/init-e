@@ -102,13 +102,14 @@ theorem scratch_alloc_body_returned {F : Type} (E post : PanSemStateFiniteExact 
 
 #print axioms scratch_alloc_body_returned
 
-/-- Arena globals: the frame pointer is `FM`, the scratch pointer lies in `[FM, SP0]`, the heap pointer is at or
-above `P0`. -/
+/-- Arena globals: the frame pointer is `FM`, the scratch pointer lies in `[FM, SP0]`, the heap pointer lies in
+`[P0, HEAP_END]`. -/
 def AW (SP0 P0 FM : BitVec 64) (g : HolFiniteMapExact MlS (ValueHOL 64)) : Prop :=
   g.lookup (ofString "frame_mem_ptr") = some (.val (.word FM)) ∧
   (∃ sp : BitVec 64, g.lookup (ofString "scratch_ptr") = some (.val (.word sp)) ∧ FM.toNat ≤ sp.toNat ∧
     sp.toNat ≤ SP0.toNat) ∧
-  (∃ h : BitVec 64, g.lookup (ofString "heap_ptr") = some (.val (.word h)) ∧ P0.toNat ≤ h.toNat)
+  (∃ h : BitVec 64, g.lookup (ofString "heap_ptr") = some (.val (.word h)) ∧ P0.toNat ≤ h.toNat ∧
+    h.toNat ≤ 33806089496)
 
 /-- Arena-safe code keeps the watched word in every outcome and keeps the arena globals on continuing outcomes. -/
 def ASafe (SP0 P0 FM w : BitVec 64) (p : ProgHOL 64) : Prop :=

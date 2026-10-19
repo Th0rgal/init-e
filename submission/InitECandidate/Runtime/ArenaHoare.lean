@@ -107,13 +107,16 @@ theorem lookupCode_callee_scalar (code : MlS → Option (List (MlS × ShapeHOL) 
 noncomputable abbrev EV {F : Type} (s : PanSemStateFiniteExact 64 F) (e : ExpHOL 64) : Option (ValueHOL 64) :=
   @evalHOLExact 64 F _ s.toExact (fun a => Classical.propDecidable (s.memaddrs a)) e
 
+/-- Memory domain bound: every addressable word lies below `2^62` (the actual domain is a bounded word range). -/
+def DomOK (m : BitVec 64 → Prop) : Prop := ∀ a : BitVec 64, m a → a.toNat < 2^62
+
 /-- Arena triple: from an arena state with scalar locals satisfying `P`, the watched word is kept in every outcome,
 the arena globals on continuing outcomes, a normal outcome has scalar locals satisfying `Q`, and no `break` or
 `continue` escapes. -/
 def AQ (SP0 P0 FM w : BitVec 64) (Vn : MlS → Prop) (P Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop)
     (p : ProgHOL 64) : Prop :=
-  ∀ (F : Type) (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode → AW SP0 P0 FM s.globals →
-    SL Vn s.locals → P s.locals →
+  ∀ (F : Type) (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode → DomOK s.memaddrs →
+    AW SP0 P0 FM s.globals → SL Vn s.locals → P s.locals →
     (evaluateHOLFiniteState s p).2.memory w = s.memory w ∧
     (Continuing (evaluateHOLFiniteState s p).1 → AW SP0 P0 FM (evaluateHOLFiniteState s p).2.globals) ∧
     ((evaluateHOLFiniteState s p).1 = none → SL Vn (evaluateHOLFiniteState s p).2.locals ∧
@@ -124,14 +127,14 @@ variable {SP0 P0 FM w : BitVec 64} {Vn : MlS → Prop}
 
 theorem aq_conseq {P P' Q Q' : HolFiniteMapExact MlS (ValueHOL 64) → Prop} {p : ProgHOL 64}
     (h : AQ SP0 P0 FM w Vn P Q p) (hp : ∀ L, P' L → P L) (hq : ∀ L, Q L → Q' L) : AQ SP0 P0 FM w Vn P' Q' p := by
-  intro F s code aw sl pre
-  obtain ⟨m,a,n,c,b⟩ := h F s code aw sl (hp _ pre)
+  intro F s code dom aw sl pre
+  obtain ⟨m,a,n,c,b⟩ := h F s code dom aw sl (hp _ pre)
   exact ⟨m,a,fun e => ⟨(n e).1,hq _ (n e).2⟩,c,b⟩
 
 theorem aq_seq {P Q R : HolFiniteMapExact MlS (ValueHOL 64) → Prop} {p q : ProgHOL 64}
     (hp : AQ SP0 P0 FM w Vn P Q p) (hq : AQ SP0 P0 FM w Vn Q R q) : AQ SP0 P0 FM w Vn P R (.seq p q) := by
-  intro F s code aw sl pre
-  have h1 := hp F s code aw sl pre
+  intro F s code dom aw sl pre
+  have h1 := hp F s code dom aw sl pre
   have meta' := evaluateHOLFiniteState_metadata s p
   rw [evaluateHOLFiniteState_seq_line780]
   cases r : evaluateHOLFiniteState s p with
@@ -142,11 +145,11 @@ theorem aq_seq {P Q R : HolFiniteMapExact MlS (ValueHOL 64) → Prop} {p q : Pro
     | some x => exact ⟨m1,a1,(fun e => by cases e),c1,b1⟩
     | none =>
       obtain ⟨sl1,q1⟩ := n1 rfl
-      obtain ⟨m2,a2,n2,c2,b2⟩ := hq F m (meta'.1.trans code) (a1 (Or.inl rfl)) sl1 q1
+      obtain ⟨m2,a2,n2,c2,b2⟩ := hq F m (meta'.1.trans code) (by rw [meta'.2.1]; exact dom) (a1 (Or.inl rfl)) sl1 q1
       exact ⟨m2.trans m1,a2,n2,c2,b2⟩
 
 theorem aq_skip {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} : AQ SP0 P0 FM w Vn P P .skip := by
-  intro F s code aw sl pre
+  intro F s code dom aw sl pre
   rw [evaluateHOLFiniteState_skip]
   exact ⟨rfl,fun _ => aw,fun _ => ⟨sl,pre⟩,by simp,by simp⟩
 
@@ -155,21 +158,22 @@ theorem aq_ite {P Q CT CF : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (c : E
       SL Vn s.locals → EV s c = some (.val (.word x)) → (x ≠ 0 → CT s.locals) ∧ (x = 0 → CF s.locals))
     (hy : AQ SP0 P0 FM w Vn (fun L => P L ∧ CT L) Q y) (hn : AQ SP0 P0 FM w Vn (fun L => P L ∧ CF L) Q n) :
     AQ SP0 P0 FM w Vn P Q (.ite c y n) := by
-  intro F s code aw sl pre
+  intro F s code dom aw sl pre
   rw [evaluateHOLFiniteState_ite]
   split
   · rename_i x hx
     have cc := hc s x aw pre sl hx
     split
-    · rename_i z; exact hn F s code aw sl ⟨pre,cc.2 z⟩
-    · rename_i z; exact hy F s code aw sl ⟨pre,cc.1 z⟩
+    · rename_i z; exact hn F s code dom aw sl ⟨pre,cc.2 z⟩
+    · rename_i z; exact hy F s code dom aw sl ⟨pre,cc.1 z⟩
   · exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
 
 theorem aq_while_run {I C : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (c : ExpHOL 64) (body : ProgHOL 64)
     (hc : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) (x : BitVec 64), AW SP0 P0 FM s.globals → I s.locals →
       SL Vn s.locals → EV s c = some (.val (.word x)) → x ≠ 0 → C s.locals)
     (hb : AQ SP0 P0 FM w Vn (fun L => I L ∧ C L) I body) {F : Type}
-    (s : PanSemStateFiniteExact 64 F) (code : s.code = originalRuntimeCode) (aw : AW SP0 P0 FM s.globals)
+    (s : PanSemStateFiniteExact 64 F) (code : s.code = originalRuntimeCode) (dom : DomOK s.memaddrs)
+    (aw : AW SP0 P0 FM s.globals)
     (sl : SL Vn s.locals) (pre : I s.locals) :
     (evaluateHOLFiniteState s (.while c body)).2.memory w = s.memory w ∧
     (Continuing (evaluateHOLFiniteState s (.while c body)).1 →
@@ -188,7 +192,7 @@ theorem aq_while_run {I C : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (c : E
       · exact ⟨rfl,(fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h),(fun e => by cases e),by simp,by simp⟩
       · dsimp only
         rw [fixClockHOLFinite_evaluateState]
-        have st := hb F (decClockHOLFinite s) code aw sl ⟨pre,hc s x aw pre sl hx nz⟩
+        have st := hb F (decClockHOLFinite s) code dom aw sl ⟨pre,hc s x aw pre sl hx nz⟩
         have meta' := evaluateHOLFiniteState_metadata (decClockHOLFinite s) body
         have remaining := evaluateHOLFiniteState_clock_le (decClockHOLFinite s) body
         cases run : evaluateHOLFiniteState (decClockHOLFinite s) body with
@@ -201,7 +205,7 @@ theorem aq_while_run {I C : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (c : E
           cases result with
           | none =>
             obtain ⟨sl1,i1⟩ := n1 rfl
-            have again := aq_while_run c body hc hb middle (meta'.1.trans code) (a1 (Or.inl rfl)) sl1 i1
+            have again := aq_while_run c body hc hb middle (meta'.1.trans code) (by rw [meta'.2.1]; exact dom) (a1 (Or.inl rfl)) sl1 i1
             exact ⟨again.1.trans m1,again.2⟩
           | some result =>
             cases result with
@@ -220,7 +224,7 @@ theorem aq_while {I C : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (c : ExpHO
     (hc : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) (x : BitVec 64), AW SP0 P0 FM s.globals → I s.locals →
       SL Vn s.locals → EV s c = some (.val (.word x)) → x ≠ 0 → C s.locals)
     (hb : AQ SP0 P0 FM w Vn (fun L => I L ∧ C L) I body) : AQ SP0 P0 FM w Vn I I (.while c body) :=
-  fun F s code aw sl pre => aq_while_run c body hc hb s code aw sl pre
+  fun F s code dom aw sl pre => aq_while_run c body hc hb s code dom aw sl pre
 
 theorem aq_dec {P Pb Qb Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (name : MlS) (shape : ShapeHOL)
     (init : ExpHOL 64) {body : ProgHOL 64} (hshape : Vn name → shape = .one)
@@ -229,7 +233,7 @@ theorem aq_dec {P Pb Qb Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (name 
     (hb : AQ SP0 P0 FM w Vn Pb Qb body)
     (hq : ∀ L L', P L → Qb L' → Q (L'.resVarEq (name,L.lookup name))) :
     AQ SP0 P0 FM w Vn P Q (.dec name shape init body) := by
-  intro F s code aw sl pre
+  intro F s code dom aw sl pre
   rw [evaluateHOLFiniteState_dec_total]
   dsimp only
   split
@@ -239,7 +243,7 @@ theorem aq_dec {P Pb Qb Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (name 
     · rename_i hs
       have slb : SL Vn (setVarHOLFinite name v s).locals :=
         sl_update sl name v (fun hn => by rw [hshape hn] at hs; exact scalar_of_shape hs)
-      obtain ⟨m1,a1,n1,c1,b1⟩ := hb F (setVarHOLFinite name v s) (by exact code) (by exact aw) slb (hi s v aw pre sl hv hs)
+      obtain ⟨m1,a1,n1,c1,b1⟩ := hb F (setVarHOLFinite name v s) (by exact code) (by exact dom) (by exact aw) slb (hi s v aw pre sl hv hs)
       exact ⟨m1,a1,fun e => ⟨sl_restore (n1 e).1 sl name,hq _ _ pre (n1 e).2⟩,c1,b1⟩
     · exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
 
@@ -247,7 +251,7 @@ theorem aq_assignLocal {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (x :
     (hi : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) v, AW SP0 P0 FM s.globals → P s.locals → SL Vn s.locals →
       EV s e = some v → Q (s.locals.update (x,v))) :
     AQ SP0 P0 FM w Vn P Q (.assign .local x e) := by
-  intro F s code aw sl pre
+  intro F s code dom aw sl pre
   rw [evaluateHOLFiniteState_assign]
   split
   · exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
@@ -271,7 +275,7 @@ theorem aq_store {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (d v : ExpHO
     (hv : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) x, P s.locals → SL Vn s.locals → EV s v = some x →
       ∃ y : BitVec 64, x = .val (.word y)) :
     AQ SP0 P0 FM w Vn P P (.store d v) := by
-  intro F s code aw sl pre
+  intro F s code dom aw sl pre
   obtain ⟨a,ha,ne⟩ := hd s aw pre sl
   obtain ⟨res,_,loc,glob,mem⟩ := evaluate_store_word_frame s d v a ha (hv s · pre sl)
   refine ⟨mem w ne,fun _ => by rw [glob]; exact aw,fun _ => by rw [loc]; exact ⟨sl,pre⟩,?_,?_⟩ <;>
@@ -279,7 +283,7 @@ theorem aq_store {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (d v : ExpHO
 
 theorem aq_return {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (e : ExpHOL 64) :
     AQ SP0 P0 FM w Vn P Q (.return e) := by
-  intro F s code aw sl pre
+  intro F s code dom aw sl pre
   rw [evaluateHOLFiniteState_return]
   split
   · exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
@@ -289,7 +293,7 @@ theorem aq_return {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (e : ExpH
 
 theorem aq_raise {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (eid : MlS) (e : ExpHOL 64) :
     AQ SP0 P0 FM w Vn P Q (.raise eid e) := by
-  intro F s code aw sl pre
+  intro F s code dom aw sl pre
   rw [evaluateHOLFiniteState_raise]
   split
   · dsimp only
@@ -312,18 +316,18 @@ theorem sl_mono {Vn' : MlS → Prop} {L : HolFiniteMapExact MlS (ValueHOL 64)} (
 /-- Callee obligation: from an arena entry state whose locals are all one-word, the watched word is kept in every
 outcome and the arena globals on continuing outcomes. -/
 def ACallee (SP0 P0 FM w : BitVec 64) (body : ProgHOL 64) : Prop :=
-  ∀ (F : Type) (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode → AW SP0 P0 FM s.globals →
-    SL (fun _ => True) s.locals →
+  ∀ (F : Type) (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode → DomOK s.memaddrs →
+    AW SP0 P0 FM s.globals → SL (fun _ => True) s.locals →
     (evaluateHOLFiniteState s body).2.memory w = s.memory w ∧
     (Continuing (evaluateHOLFiniteState s body).1 → AW SP0 P0 FM (evaluateHOLFiniteState s body).2.globals)
 
 theorem acallee_of_asafe {body : ProgHOL 64} (h : ASafe SP0 P0 FM w body) : ACallee SP0 P0 FM w body :=
-  fun _ s code aw _ => h s code aw
+  fun _ s code _ aw _ => h s code aw
 
 theorem acallee_of_aq {Vn' : MlS → Prop} {Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} {body : ProgHOL 64}
     (h : AQ SP0 P0 FM w Vn' (fun _ => True) Q body) : ACallee SP0 P0 FM w body := by
-  intro F s code aw sl
-  obtain ⟨m,a,_⟩ := h F s code aw (sl_mono sl (fun _ _ => trivial)) trivial
+  intro F s code dom aw sl
+  obtain ⟨m,a,_⟩ := h F s code dom aw (sl_mono sl (fun _ _ => trivial)) trivial
   exact ⟨m,a⟩
 
 theorem callee_entry_sl (function : MlS) (values : List (ValueHOL 64)) (parameters : List (MlS × ShapeHOL))
@@ -350,7 +354,7 @@ theorem aq_call {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (function : M
     (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
     (allOne : ∀ p ∈ parameters, p.2 = .one) (hb : ACallee SP0 P0 FM w body) :
     AQ SP0 P0 FM w Vn P P (.call (some (none,none)) function arguments) := by
-  intro F state code aw sl pre
+  intro F state code dom aw sl pre
   rw [evaluateHOLFiniteState_call]
   cases args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments with
   | none => exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
@@ -368,7 +372,7 @@ theorem aq_call {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (function : M
         (by rw [← code]; exact lookup)
       split
       · exact aq_of_not_continuing rfl (fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h)
-      · have frame := hb F (callEntryStateHOLFinite state callee) code aw esl
+      · have frame := hb F (callEntryStateHOLFinite state callee) code dom aw esl
         cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) found with
         | mk rb bodyPost =>
           rw [bodyRun] at frame
@@ -385,7 +389,7 @@ theorem aq_tailCall {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (functi
     (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
     (allOne : ∀ p ∈ parameters, p.2 = .one) (hb : ACallee SP0 P0 FM w body) :
     AQ SP0 P0 FM w Vn P Q (.call none function arguments) := by
-  intro F state code aw sl pre
+  intro F state code dom aw sl pre
   rw [evaluateHOLFiniteState_call]
   cases args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments with
   | none => exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
@@ -403,7 +407,7 @@ theorem aq_tailCall {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (functi
         (by rw [← code]; exact lookup)
       split
       · exact aq_of_not_continuing rfl (fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h)
-      · have frame := hb F (callEntryStateHOLFinite state callee) code aw esl
+      · have frame := hb F (callEntryStateHOLFinite state callee) code dom aw esl
         cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) found with
         | mk rb bodyPost =>
           rw [bodyRun] at frame
@@ -425,7 +429,7 @@ theorem aq_callHandler {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (funct
     (hh : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode →
       (evaluateHOLFiniteState s handler).2.memory w = s.memory w ∧ ¬ Continuing (evaluateHOLFiniteState s handler).1) :
     AQ SP0 P0 FM w Vn P P (.call (some (none,some (eid,ev,handler))) function arguments) := by
-  intro F state code aw sl pre
+  intro F state code dom aw sl pre
   rw [evaluateHOLFiniteState_call]
   cases args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments with
   | none => exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
@@ -443,7 +447,7 @@ theorem aq_callHandler {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (funct
         (by rw [← code]; exact lookup)
       split
       · exact aq_of_not_continuing rfl (fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h)
-      · have frame := hb F (callEntryStateHOLFinite state callee) code aw esl
+      · have frame := hb F (callEntryStateHOLFinite state callee) code dom aw esl
         have meta' := evaluateHOLFiniteState_metadata (callEntryStateHOLFinite state callee) found
         cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) found with
         | mk rb bodyPost =>
@@ -499,7 +503,7 @@ theorem aq_decCall {P Pc Qc Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (n
     (hc : AQ SP0 P0 FM w Vn Pc Qc cont)
     (hq : ∀ L L', P L → Qc L' → Q (L'.resVarEq (name,L.lookup name))) :
     AQ SP0 P0 FM w Vn P Q (.decCall name shape function arguments cont) := by
-  intro F state code aw sl pre
+  intro F state code dom aw sl pre
   rw [evaluateHOLFiniteState_decCall_total]
   cases args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments with
   | none => exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
@@ -523,7 +527,7 @@ theorem aq_decCall {P Pc Qc Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (n
         lookup'
       split
       · exact aq_of_not_continuing rfl (fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h)
-      · have frame := hb F (callEntryStateHOLFinite state callee) code aw esl
+      · have frame := hb F (callEntryStateHOLFinite state callee) code dom aw esl
         have meta' := evaluateHOLFiniteState_metadata (callEntryStateHOLFinite state callee) found
         cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) found with
         | mk rb bodyPost =>
@@ -543,7 +547,7 @@ theorem aq_decCall {P Pc Qc Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (n
                   sl_update sl name v (fun hn => by rw [hshape hn] at ok; exact scalar_of_shape' ok.1)
                 have pc := hret state values callee bodyPost v code aw sl pre args lookup' bodyRun ok.1
                 obtain ⟨m2,a2,n2,c2,b2⟩ := hc F (setVarHOLFinite name v { bodyPost with clock := _, locals := state.locals })
-                  (by exact meta'.1.trans code) (by exact frame.2 (Or.inr (Or.inr (Or.inr ⟨_,rfl⟩)))) cslx pc
+                  (by exact meta'.1.trans code) (by intro a ha; exact dom a (meta'.2.1 ▸ ha)) (by exact frame.2 (Or.inr (Or.inr (Or.inr ⟨_,rfl⟩)))) cslx pc
                 exact ⟨m2.trans frame.1,a2,fun e => ⟨sl_restore (n2 e).1 sl name,hq _ _ pre (n2 e).2⟩,c2,b2⟩
               · exact aq_of_not_continuing frame.1 (fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h)
             | _ => exact aq_of_not_continuing frame.1 (fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h)
@@ -552,7 +556,7 @@ theorem aq_decCall {P Pc Qc Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (n
 /-- A `trap_with(k)` call keeps all memory and never continues. -/
 theorem aq_trapCall {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (k : BitVec 64) :
     AQ SP0 P0 FM w Vn P Q (.call (some (none,none)) (ofString "trap_with") [.const k]) := by
-  intro F s code aw sl pre
+  intro F s code dom aw sl pre
   have args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [.const k] =
       some [.val (.word k)] := by rw [evalListHOLFinite_eq_toExact]; rfl
   have term := evaluate_trap_call_terminal s (.const k) k code args
@@ -575,15 +579,15 @@ theorem aq_assignScratch {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (e :
     (hi : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) v, AW SP0 P0 FM s.globals → P s.locals → SL Vn s.locals →
       EV s e = some v → ∃ q : BitVec 64, v = .val (.word q) ∧ FM.toNat ≤ q.toNat ∧ q.toNat ≤ SP0.toNat) :
     AQ SP0 P0 FM w Vn P P (.assign .global (ofString "scratch_ptr") e) := by
-  intro F s code aw sl pre
+  intro F s code dom aw sl pre
   rw [evaluateHOLFiniteState_assign]
   split
   · exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
   · rename_i v hv
     split
     · obtain ⟨q,rfl,lo,hi'⟩ := hi s v aw pre sl hv
-      obtain ⟨hf,_,⟨h,hh,hle⟩⟩ := aw
-      refine ⟨rfl,fun _ => ⟨?_,⟨q,?_,lo,hi'⟩,⟨h,?_,hle⟩⟩,fun _ => ⟨sl,pre⟩,by simp,by simp⟩
+      obtain ⟨hf,_,⟨h,hh,hle,hend⟩⟩ := aw
+      refine ⟨rfl,fun _ => ⟨?_,⟨q,?_,lo,hi'⟩,⟨h,?_,hle,hend⟩⟩,fun _ => ⟨sl,pre⟩,by simp,by simp⟩
       all_goals simp (config := {decide := true}) [setKvarHOLFinite,setGlobalHOLFinite,
         HolFiniteMapExact.lookup_update,FUPDATE,hf,hh]
     · exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
@@ -631,6 +635,24 @@ theorem aqT_return (e : ExpHOL 64) : AQT SP0 P0 FM w Vn (.return e) := by
   unfold AQT; exact aq_return e
 
 
+
+/-- Assigning `heap_ptr` a word in `[P0, HEAP_END]` keeps the arena globals. -/
+theorem aq_assignHeap {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (e : ExpHOL 64)
+    (hi : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) v, AW SP0 P0 FM s.globals → P s.locals → SL Vn s.locals →
+      EV s e = some v → ∃ q : BitVec 64, v = .val (.word q) ∧ P0.toNat ≤ q.toNat ∧ q.toNat ≤ 33806089496) :
+    AQ SP0 P0 FM w Vn P P (.assign .global (ofString "heap_ptr") e) := by
+  intro F s code dom aw sl pre
+  rw [evaluateHOLFiniteState_assign]
+  split
+  · exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
+  · rename_i v hv
+    split
+    · obtain ⟨q,rfl,lo,hi'⟩ := hi s v aw pre sl hv
+      obtain ⟨hf,⟨sp,hsp,a1,a2⟩,_⟩ := aw
+      refine ⟨rfl,fun _ => ⟨?_,⟨sp,?_,a1,a2⟩,⟨q,?_,lo,hi'⟩⟩,fun _ => ⟨sl,pre⟩,by simp,by simp⟩
+      all_goals simp (config := {decide := true}) [setKvarHOLFinite,setGlobalHOLFinite,
+        HolFiniteMapExact.lookup_update,FUPDATE,hf,hsp]
+    · exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
 
 theorem scratchEnd_bound (sp FM n : BitVec 64) (hfm : FM.toNat ≤ sp.toNat) (hn : n ≤ sp - FM) :
     (scratchAllocationEnd sp n).toNat + n.toNat ≤ sp.toNat := by
