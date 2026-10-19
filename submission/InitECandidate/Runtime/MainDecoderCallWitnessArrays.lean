@@ -16,7 +16,7 @@ theorem main_decoder_call_witness_arrays {F : Type} (state ready post : PanSemSt
     (valid : MainDecoderEntry state ready)
     (run : evaluateHOLFiniteState ready mainStatelessCall = (none,post)) :
     ∃ length heap OW middle last array count codes codeCount headers headerCount finalHeap : BitVec 64,
-      length.toNat ≤ 134217712 ∧ OW.toNat ≤ length.toNat - 2 ∧ 12 ≤ middle.toNat ∧
+      length.toNat ≤ 134217712 ∧ 2 ≤ length.toNat ∧ OW.toNat ≤ length.toNat - 2 ∧ 12 ≤ middle.toNat ∧
       middle.toNat ≤ last.toNat ∧ last.toNat ≤ ((length - 2) - OW).toNat ∧
       post.locals = ready.locals.update (ofString "si",.val (.word heap)) ∧
       WitnessArrayLinked post heap 40 48 array count (((2713731432 : BitVec 64) + 2 + OW) + (12#64)) (middle - (12#64)) finalHeap ∧
@@ -24,7 +24,8 @@ theorem main_decoder_call_witness_arrays {F : Type} (state ready post : PanSemSt
       WitnessArrayLinked post heap 72 80 headers headerCount (((2713731432 : BitVec 64) + 2 + OW) + last) (((length - 2) - OW) - last) finalHeap ∧
       (count = 0 ∨ heap.toNat + 88 ≤ array.toNat) ∧ (codeCount = 0 ∨ heap.toNat + 88 ≤ codes.toNat) ∧
       post.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
-      finalHeap.toNat ≤ 33806089496 ∧ finalHeap.toNat % 8 = 0 ∧ heap.toNat ≤ finalHeap.toNat := by
+      finalHeap.toNat ≤ 33806089496 ∧ finalHeap.toNat % 8 = 0 ∧ heap.toNat ≤ finalHeap.toNat ∧ heap.toNat + 96 ≤ finalHeap.toNat ∧
+      ready.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)) := by
   obtain ⟨length,_,_,heap,inp,_,_,small,fits,offsets,atHeap,capped,aligned,lower,installed,domain,_,_⟩ := valid.fields
   obtain ⟨value,bodyPost,bodyRun,_,resumed⟩ :=
     main_stateless_call_normal_result ready post 2713731432 length inp (installed.trans code) run
@@ -42,8 +43,8 @@ theorem main_decoder_call_witness_arrays {F : Type} (state ready post : PanSemSt
     simp only [List.mem_cons,List.not_mem_nil,or_false] at member
     rcases member with rfl | rfl | rfl | rfl
     all_goals exact arena _ (by decide) (by decide) (by decide)
-  obtain ⟨OW,middle,last,array,count,codes,codeCount,headers,headerCount,finalHeap,owBound,lowerMiddle,ordered,lastBound,
-    valueEq,stateLinked,codesLinked,headersLinked,origin,codesOrigin,binding,cap,al,growth,_⟩ :=
+  obtain ⟨OW,middle,last,array,count,codes,codeCount,headers,headerCount,finalHeap,owBound,lengthLower,lowerMiddle,ordered,lastBound,
+    valueEq,stateLinked,codesLinked,headersLinked,origin,codesOrigin,binding,cap,al,growth,recordExtent,_⟩ :=
     stateless_body_returned_witness_arrays entry bodyPost 2713731432 length 2713715344 heap value
       (installed.trans code) p len offsets atHeap capped aligned
       (by intro address cellAligned lo hi; change ready.memaddrs address; rw [domain];
@@ -55,10 +56,10 @@ theorem main_decoder_call_witness_arrays {F : Type} (state ready post : PanSemSt
   have addresses : post.memaddrs = bodyPost.memaddrs := by rw [resumed]; rfl
   have globals : post.globals = bodyPost.globals := by rw [resumed]; rfl
   refine ⟨length,heap,OW,middle,last,array,count,codes,codeCount,headers,headerCount,finalHeap,
-    small,owBound,lowerMiddle,ordered,lastBound,?_,
+    small,lengthLower,owBound,lowerMiddle,ordered,lastBound,?_,
     stateLinked.after_frame bodyPost post _ _ _ _ _ _ _ _ addresses memory,
     codesLinked.after_frame bodyPost post _ _ _ _ _ _ _ _ addresses memory,
-    headersLinked.after_frame bodyPost post _ _ _ _ _ _ _ _ addresses memory,origin,codesOrigin,?_,cap,al,growth⟩
+    headersLinked.after_frame bodyPost post _ _ _ _ _ _ _ _ addresses memory,origin,codesOrigin,?_,cap,al,growth,recordExtent,atHeap⟩
   · rw [resumed,valueEq]; rfl
   · rw [globals]; exact binding
 

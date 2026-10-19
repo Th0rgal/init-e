@@ -19,14 +19,14 @@ theorem stateless_body_returned_witness_arrays {F : Type} (s post : PanSemStateF
     (scratchBelow : offsets.toNat + 40 ≤ H.toNat) (inputFits : P.toNat + L.toNat < 2 ^ 64)
     (run : evaluateHOLFiniteState s (statelessAt 0) = (some (.returned v), post)) :
     ∃ OW middle last array count codes codeCount headers headerCount finalHeap : BitVec 64,
-      OW.toNat ≤ L.toNat - 2 ∧ 12 ≤ middle.toNat ∧ middle.toNat ≤ last.toNat ∧
+      OW.toNat ≤ L.toNat - 2 ∧ 2 ≤ L.toNat ∧ 12 ≤ middle.toNat ∧ middle.toNat ≤ last.toNat ∧
       last.toNat ≤ ((L - 2) - OW).toNat ∧ v = .val (.word H) ∧
       WitnessArrayLinked post H 40 48 array count (((P + 2) + OW) + (12#64)) (middle - (12#64)) finalHeap ∧
       WitnessArrayLinked post H 56 64 codes codeCount (((P + 2) + OW) + middle) (last - middle) finalHeap ∧
       WitnessArrayLinked post H 72 80 headers headerCount (((P + 2) + OW) + last) (((L - 2) - OW) - last) finalHeap ∧
       (count = 0 ∨ H.toNat + 88 ≤ array.toNat) ∧ (codeCount = 0 ∨ H.toNat + 88 ≤ codes.toNat) ∧
       post.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
-      finalHeap.toNat ≤ 33806089496 ∧ finalHeap.toNat % 8 = 0 ∧ H.toNat ≤ finalHeap.toNat ∧
+      finalHeap.toNat ≤ 33806089496 ∧ finalHeap.toNat % 8 = 0 ∧ H.toNat ≤ finalHeap.toNat ∧ H.toNat + 96 ≤ finalHeap.toNat ∧
       (∀ name : MlS, name ≠ ofString "heap_ptr" → post.globals.lookup name = s.globals.lookup name) := by
   rcases evaluate_stateless_at22 s P L H offsets code hp hL hg heap hb with ⟨E, full, _, _, sc⟩ | ⟨x, h1, h2, _⟩
   · rw [run] at sc
@@ -73,10 +73,10 @@ theorem stateless_body_returned_witness_arrays {F : Type} (s post : PanSemStateF
           H1b cov.2.2 cov1 (by change (P + (2#64)).toNat + (L - (2#64)).toNat < 2^64; rw [pAdd,lenSub]; omega) (by change geoOW.toNat ≤ (L - (2#64)).toNat; rw [lenSub]; exact hOW2) scratchBelow
           (fun a cellAligned lo hi => by rw [ld]; exact heapArena a cellAligned (by omega) hi)
           (by rw [ld]; exact scratchDom) (by rw [npl,vml]; omega) hE
-      refine ⟨geoOW,middle,last,array,count,codes,codeCount,headers,headerCount,finalHeap,hOW2,lower,ordered,bound,valueEq,
+      refine ⟨geoOW,middle,last,array,count,codes,codeCount,headers,headerCount,finalHeap,hOW2,L2,lower,ordered,bound,valueEq,
         stateLinked.after_frame out post _ _ _ _ _ _ _ _ sd sm,
         codesLinked.after_frame out post _ _ _ _ _ _ _ _ sd sm,
-        headersLinked.after_frame out post _ _ _ _ _ _ _ _ sd sm,origin,codesOrigin,?_,finalCap,finalAlign,(by omega),?_⟩
+        headersLinked.after_frame out post _ _ _ _ _ _ _ _ sd sm,origin,codesOrigin,?_,finalCap,finalAlign,(by omega),(by omega),?_⟩
       · rw [sg]; exact finalBinding
       · intro name different
         rw [sg,other name different]; exact eOther name different
