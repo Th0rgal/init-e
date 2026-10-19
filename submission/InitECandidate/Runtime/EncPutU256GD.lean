@@ -244,5 +244,6 @@ theorem putU256_win (hF : Fence D DF) (hDF : DF ≤ 2 ^ 62) (hcap : 33806089496 
     simp [EV,evalHOLExact,hw'] at ev; subst ev
     exact ⟨⟨R,rfl,hb⟩,hH⟩
 
+#print axioms putU256_win
 end pu
 end InitECandidate.Runtime
