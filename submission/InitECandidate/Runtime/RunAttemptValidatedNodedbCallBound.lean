@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.RunAttemptDatabaseContext
 import InitECandidate.Runtime.RunAttemptNodedbCallBound
+import InitECandidate.Runtime.NodedbInputCost
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -47,4 +48,31 @@ theorem runBounded_run_attempt_validated_nodedb_call {F : Type}
     exact arena address lo hi
 
 #print axioms runBounded_run_attempt_validated_nodedb_call
+theorem runBounded_run_attempt_validated_nodedb_input {F : Type}
+    (before ready : PanSemStateFiniteExact 64 F)
+    (si headers headerCount input inputLength scratch frame heap keccakState keccakPad parent : BitVec 64)
+    (ceiling : Nat)
+    (facts : RunAttemptHeaderValidationFacts before ready si headers headerCount input inputLength
+      scratch frame heap keccakState keccakPad ceiling)
+    (array total output : BitVec 64) (destination : Option (VarKind × MlS))
+    (linked : WitnessArrayLinked before si 40 48 array total input inputLength heap)
+    (recordAbove : ceiling ≤ si.toNat) (recordBefore : si.toNat + 88 ≤ heap.toNat)
+    (arrayAbove : total.toNat = 0 ∨ ceiling ≤ array.toNat)
+    (stateBelow : keccakState.toNat + 200 ≤ ceiling) (padBelow : keccakPad.toNat + 136 ≤ ceiling)
+    (outputBelow : output.toNat + 32 ≤ ceiling) (outputAligned : output.toNat % 8 = 0)
+    (atOutput : ready.globals.lookup (ofString "mpt_hash_scratch") = some (.val (.word output)))
+    (inputLimit : Nat) (inputBound : inputLength.toNat ≤ inputLimit) (inputCap : inputLimit ≤ 134217712) (code : before.code = originalRuntimeCode)
+    (budget : nodedbInputCallCost inputLimit ≤ ready.clock) :
+    RunBounded
+      (runAttemptDatabaseState ready headerCount parent (allocationEnd heap (validateHeadersHsSize headerCount)))
+      (.call (some (destination,none)) (ofString "nodedb_build") runAttemptNodedbArguments)
+      (nodedbInputCallCost inputLimit) := by
+  have cost := nodedb_call_cost_le_input total inputLength inputLimit linked.countBound inputBound inputCap
+  have bounded := runBounded_run_attempt_validated_nodedb_call before ready si headers headerCount input inputLength
+    scratch frame heap keccakState keccakPad parent ceiling facts array total output destination linked
+    recordAbove recordBefore arrayAbove stateBelow padBelow outputBelow outputAligned atOutput
+    (inputBound.trans inputCap) code (cost.trans budget)
+  exact bounded.weaken cost
+
+#print axioms runBounded_run_attempt_validated_nodedb_input
 end InitECandidate.Runtime

@@ -5,8 +5,8 @@ import InitECandidate.Runtime.RunAttemptHeadersDeclarationContract
 The caller keeps `mpt_hash_scratch` across the real validation call.
 
 `validate_headers_keeps_mpt_hash_scratch` gives the workspace global at the end
-of the returned validating body; a declaration call only rewrites the caller's
-locals and restores its globals, so the same value is available in the
+of the returned validating body; a declaration call restores the caller's
+local scope and carries the body's globals forward, so the same value is available in the
 declaration's reached state.  Both transfers below consume the retained returned
 body run rather than assuming any call frame.
 -/
