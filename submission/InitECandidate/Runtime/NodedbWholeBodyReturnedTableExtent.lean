@@ -32,7 +32,7 @@ theorem nodedb_whole_body_returned_table_extent {F : Type} (s post : PanSemState
     (run : evaluateHOLFiniteState s (sourceFunctionBody Guest.guestFn_nodedb_build) = (some (.returned value),post)) :
     value = .val (.word pointer) ∧
     ∃ keys stride capacity used values order orderPos count : BitVec 64, ∃ bits : Nat, ∃ finalHeap : BitVec 64,
-      count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧
+      count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧ count.toNat < capacity.toNat ∧
       HtabAligned 32 pointer keys stride capacity used values order orderPos count bits post ∧
       OrderInv post capacity count used order orderPos ∧
       post.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
@@ -83,11 +83,15 @@ theorem nodedb_whole_body_returned_table_extent {F : Type} (s post : PanSemState
     (fun _ _ => congrFun memoryEq _) (fun _ _ => congrFun memoryEq _)
   have order := midInv.ordered.congr room domainEq endianEq
     (fun _ _ => congrFun memoryEq _) (fun _ _ => congrFun memoryEq _) (fun _ _ => congrFun memoryEq _)
-  refine ⟨?_,c.keys,c.stride,c.capacity,c.used,c.values,c.order,c.orderPos,nextCount,c.bits,nextHeap,?_,?_,?_,?_,?_,?_⟩
+  refine ⟨?_,c.keys,c.stride,c.capacity,c.used,c.values,c.order,c.orderPos,nextCount,c.bits,nextHeap,?_,?_,?_,?_,?_,?_,?_⟩
   · simpa only [tableEq] using valueEq
   · have occupied := midInv.occupancy
     simpa only [indexTotal,totalEq] using occupied
   · simpa only [capacityEq] using geometry.capacitySmall
+  · have occupied := midInv.occupancy
+    have margin := geometry.capacityMargin
+    rw [indexTotal] at occupied
+    omega
   · simpa only [tableEq] using inv
   · exact order
   · rw [← finalGlobals]; exact heapGlobal

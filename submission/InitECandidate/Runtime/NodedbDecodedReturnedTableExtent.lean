@@ -29,7 +29,7 @@ theorem nodedb_decoded_returned_table_extent {F : Type} (s post : PanSemStateFin
       (some (.returned value),post)) :
     value = .val (.word pointer) ∧
     ∃ keys stride capacity used values order orderPos count : BitVec 64, ∃ bits : Nat, ∃ finalHeap : BitVec 64,
-      count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧
+      count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧ count.toNat < capacity.toNat ∧
       HtabAligned 32 pointer keys stride capacity used values order orderPos count bits post ∧
       OrderInv post capacity count used order orderPos ∧
       post.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧

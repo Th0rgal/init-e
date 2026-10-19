@@ -26,7 +26,7 @@ theorem nodedb_empty_whole_body_returned_table_extent {F : Type}
       (some (.returned value),post)) :
     value = .val (.word pointer) ∧
     ∃ keys stride capacity used values order orderPos count : BitVec 64, ∃ bits : Nat, ∃ finalHeap : BitVec 64,
-      count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧
+      count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧ count.toNat < capacity.toNat ∧
       HtabAligned 32 pointer keys stride capacity used values order orderPos count bits post ∧
       OrderInv post capacity count used order orderPos ∧
       post.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
@@ -68,10 +68,13 @@ theorem nodedb_empty_whole_body_returned_table_extent {F : Type}
     (fun _ _ => congrFun memoryPost _) (fun _ _ => congrFun memoryPost _)
   have ordered := entry.ordered.congr (by simp) domainPost endianPost
     (fun _ _ => congrFun memoryPost _) (fun _ _ => congrFun memoryPost _) (fun _ _ => congrFun memoryPost _)
-  refine ⟨?_,c.keys,c.stride,c.capacity,c.used,c.values,c.order,c.orderPos,0,c.bits,heap,?_,?_,?_,ordered,?_,initialExtent⟩
+  refine ⟨?_,c.keys,c.stride,c.capacity,c.used,c.values,c.order,c.orderPos,0,c.bits,heap,?_,?_,?_,?_,ordered,?_,initialExtent⟩
   · simpa only [tableAt] using valueEq
   · simp
   · simpa only [capacityAt] using capacitySmall
+  · change 0 < c.capacity.toNat
+    rw [capacityAt]
+    omega
   · simpa only [tableAt] using inv
   · rw [← tailGlobals]; exact heapGlobal
 

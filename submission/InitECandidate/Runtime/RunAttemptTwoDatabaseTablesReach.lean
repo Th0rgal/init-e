@@ -9,7 +9,7 @@ set_option maxRecDepth 100000
 set_option maxHeartbeats 800000
 def NodedbTableAt {F : Type} (s : PanSemStateFiniteExact 64 F) (table heap total : BitVec 64) : Prop :=
   ∃ keys stride capacity used values order orderPos count : BitVec 64, ∃ bits : Nat,
-    count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧
+    count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧ count.toNat < capacity.toNat ∧
     HtabAligned 32 table keys stride capacity used values order orderPos count bits s ∧
     OrderInv s capacity count used order orderPos ∧
     orderPos.toNat + capacity.toNat * 8 ≤ heap.toNat
@@ -61,7 +61,7 @@ theorem run_attempt_two_database_tables_reaches {F : Type} (s : PanSemStateFinit
   refine reaches_trans_budget s (runAttemptAt 9) (runAttemptAt 10) (runAttemptAt 11) _ _ _ _ budget first ?_
   intro ready facts secondBudget
   obtain ⟨locals₁,domain₁,code₁,endian₁,st₁,pad₁,out₁,
-    ⟨k₁,sd₁,c₁,u₁,v₁,o₁,op₁,n₁,b₁,h₂,count₁,capBound₁,inv₁,order₁,atH₂,extent₁,mono₂,al₂,cap₂,live₂⟩,frame₁⟩ := facts
+    ⟨k₁,sd₁,c₁,u₁,v₁,o₁,op₁,n₁,b₁,h₂,count₁,capBound₁,room₁,inv₁,order₁,atH₂,extent₁,mono₂,al₂,cap₂,live₂⟩,frame₁⟩ := facts
   have atSi₁ : ready.locals.lookup (ofString "si") = some (.val (.word si)) := by
     rw [locals₁]
     have different : (ofString "nodedb" == ofString "si") = false := by decide
@@ -96,14 +96,14 @@ theorem run_attempt_two_database_tables_reaches {F : Type} (s : PanSemStateFinit
   refine reaches_mono ready (runAttemptAt 10) (runAttemptAt 11) _ _ _ _ (Nat.le_refl _) ?_ second
   intro final facts₂
   obtain ⟨locals₂,domain₂,code₂,endian₂,st₂,pad₂,out₂,
-    ⟨k₂,sd₂,c₂,u₂,v₂,o₂,op₂,n₂,b₂,h₃,count₂,capBound₂,inv₂,order₂,atH₃,extent₂,mono₃,al₃,cap₃,live₃⟩,frame₂⟩ := facts₂
+    ⟨k₂,sd₂,c₂,u₂,v₂,o₂,op₂,n₂,b₂,h₃,count₂,capBound₂,room₂,inv₂,order₂,atH₃,extent₂,mono₃,al₃,cap₃,live₃⟩,frame₂⟩ := facts₂
   have old := nodedb_old_table_after_protected_frame ready final 32 heap k₁ sd₁ c₁ u₁ v₁ o₁ op₁ n₁ h₂
     statePad pad output b₁ inv₁ order₁ extent₁ (by omega) (by omega) (by omega) domain₂ endian₂ code₂ frame₂
   refine ⟨h₂,h₃,?_,domain₂.trans domain₁,code₂.trans code₁,endian₂.trans endian₁,st₂,pad₂,out₂,atH₃,
     mono₂,mono₃,al₃,cap₃,?_,?_,live₃,?_⟩
   · rw [locals₂,locals₁]
-  · exact ⟨k₁,sd₁,c₁,u₁,v₁,o₁,op₁,n₁,b₁,count₁,capBound₁,old.1,old.2,by omega⟩
-  · exact ⟨k₂,sd₂,c₂,u₂,v₂,o₂,op₂,n₂,b₂,count₂,capBound₂,inv₂,order₂,extent₂⟩
+  · exact ⟨k₁,sd₁,c₁,u₁,v₁,o₁,op₁,n₁,b₁,count₁,capBound₁,room₁,old.1,old.2,by omega⟩
+  · exact ⟨k₂,sd₂,c₂,u₂,v₂,o₂,op₂,n₂,b₂,count₂,capBound₂,room₂,inv₂,order₂,extent₂⟩
   · intro w below os op oo
     exact (frame₂ w (by omega) os op oo).trans (frame₁ w below os op oo)
 

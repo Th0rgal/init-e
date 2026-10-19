@@ -29,7 +29,7 @@ theorem run_attempt_codedb_declaration_complete_reaches {F : Type} (s : PanSemSt
         ready.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)) ∧
         ready.globals.lookup (ofString "mpt_hash_scratch") = some (.val (.word output)) ∧
         (∃ keys stride capacity used values order orderPos count : BitVec 64, ∃ bits : Nat, ∃ finalHeap : BitVec 64,
-          count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧
+          count.toNat ≤ total.toNat ∧ capacity.toNat ≤ 536870912 ∧ count.toNat < capacity.toNat ∧
           HtabAligned 32 heap keys stride capacity used values order orderPos count bits ready ∧
           OrderInv ready capacity count used order orderPos ∧
           ready.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
@@ -90,7 +90,7 @@ theorem run_attempt_codedb_declaration_complete_reaches {F : Type} (s : PanSemSt
     intro j inside
     obtain ⟨p,l,e⟩ := linked.slices j inside
     exact ⟨p,l,e.after_frame s entry array j p l input inputLength rfl rfl rfl⟩
-  obtain ⟨valueEq,keys,stride,capacity,used,values,order,orderPos,count,bits,finalHeap,countBound,capBound,inv,ordered,atFinal,extent⟩ :=
+  obtain ⟨valueEq,keys,stride,capacity,used,values,order,orderPos,count,bits,finalHeap,countBound,capBound,room,inv,ordered,atFinal,extent⟩ :=
     nodedb_decoded_returned_table_extent entry bodyPost value heap total array statePad pad output input inputLength
       entryCode atHeap aligned capped atState atPad atOutput atTotal atArray decoded linked.countBound inputSmall
       outputAligned linked.arrayEnd windows entryArena (by change nodedbBodyCost total ≤ s.clock - 1; omega) bodyRun
@@ -103,7 +103,7 @@ theorem run_attempt_codedb_declaration_complete_reaches {F : Type} (s : PanSemSt
   have metadata := evaluateHOLFiniteState_metadata entry (sourceFunctionBody Guest.guestFn_nodedb_build)
   rw [bodyRun] at metadata
   refine ⟨?_,metadata.2.1,metadata.1,metadata.2.2.1,stateGlobal,padGlobal,outputGlobal,
-    ⟨keys,stride,capacity,used,values,order,orderPos,count,bits,finalHeap,countBound,capBound,?_,?_,
+    ⟨keys,stride,capacity,used,values,order,orderPos,count,bits,finalHeap,countBound,capBound,room,?_,?_,
       atFinal,extent,mono,al,cap,live⟩,?_⟩
   · change s.locals.update (ofString "codedb",value) = _
     rw [valueEq]
