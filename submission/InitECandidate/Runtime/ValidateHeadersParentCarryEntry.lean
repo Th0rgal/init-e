@@ -59,7 +59,7 @@ theorem validate_headers_parent_carry_from_entry {F : Type} (s post : PanSemStat
       (validateHeadersContinuation s post record).locals.lookup (ofString "h") = some (.val (.word record)) ∧
       ∃ rooted : BitVec 64, (validateHeadersContinuation s post record).memory (record + 32#64) = .word rooted := by
   obtain ⟨count,flag,decoded,decodedValue,countTwentyOne,currentBound,heapPost,⟨rooted,rootMem⟩,domainPost,
-    codePost,scratchPost,framePost,beforePost,recordFitsPost⟩ :=
+    codePost,scratchPost,framePost,beforePost,recordFitsPost,_,_⟩ :=
     decode_header_returned_root_from_zero (callEntryStateHOLFinite s callee) post pointer length scratch frame array
       ceiling inputLimit entryPointer entryLength noWrap lengthBound limitBound scratchGlobal frameGlobal
       (code.trans (by rfl)) orderedFrame framePositive scratchBelow arena heap arrayBound countLimit heapArena
