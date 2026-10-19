@@ -21,6 +21,7 @@ record offset 32. -/
 theorem decode_header_timestamp_field_keeps_state_root {F : Type} (s : PanSemStateFiniteExact 64 F)
     (array count input inputLength scratch frame record word : BitVec 64) (ceiling inputLimit : Nat)
     (atArray : s.locals.lookup (ofString "arr") = some (.val (.word array)))
+    (atRecord : s.locals.lookup (ofString "h") = some (.val (.word record)))
     (before : array.toNat + count.toNat * 16 ≤ record.toNat)
     (recordFits : record.toNat + 248 < 2^64)
     (table : RlpSliceInputPrefix s array input inputLength count.toNat)
@@ -38,6 +39,9 @@ theorem decode_header_timestamp_field_keeps_state_root {F : Type} (s : PanSemSta
       (fun ready => ready.memory (record + 32#64) = .word word ∧
         ready.memaddrs = s.memaddrs ∧ ready.code = s.code ∧
         (∀ global : MlS, ready.globals.lookup global = s.globals.lookup global) ∧
+        RlpSliceInputPrefix ready array input inputLength count.toNat ∧
+        ready.locals.lookup (ofString "arr") = some (.val (.word array)) ∧
+        ready.locals.lookup (ofString "h") = some (.val (.word record)) ∧
         (∀ address : BitVec 64, ceiling ≤ address.toNat → ready.memory address = s.memory address))
       (headerRlpFieldCost inputLimit + 1) (decodeHeaderAt 33) := by
   have rootAbove : ceiling ≤ (record + 32#64).toNat :=
@@ -55,7 +59,13 @@ theorem decode_header_timestamp_field_keeps_state_root {F : Type} (s : PanSemSta
   refine reaches_mono parsed _ (decodeHeaderAt 33) _ _ 0 0 (le_refl _) ?_ guard
   intro post kept
   subst kept
-  exact ⟨storedParsed,domain,installed,globals,memory⟩
+  have atArrayReady : post.locals.lookup (ofString "arr") = some (.val (.word array)) := by
+    rw [locals]
+    simpa (config := {decide := true}) [HolFiniteMapExact.lookup_update,FUPDATE] using atArray
+  have atRecordReady : post.locals.lookup (ofString "h") = some (.val (.word record)) := by
+    rw [locals]
+    simpa (config := {decide := true}) [HolFiniteMapExact.lookup_update,FUPDATE] using atRecord
+  exact ⟨storedParsed,domain,installed,globals,tableParsed,atArrayReady,atRecordReady,memory⟩
 
 #print axioms decode_header_timestamp_field_keeps_state_root
 end InitECandidate.Runtime

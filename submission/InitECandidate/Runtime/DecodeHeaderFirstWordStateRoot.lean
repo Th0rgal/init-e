@@ -43,6 +43,9 @@ theorem decode_header_first_word_keeps_state_root {F : Type} (s : PanSemStateFin
       (fun ready => ready.memory (record + 32#64) = .word word ∧
         ready.memaddrs = s.memaddrs ∧ ready.code = s.code ∧
         (∀ global : MlS, ready.globals.lookup global = s.globals.lookup global) ∧
+        RlpSliceInputPrefix ready array input inputLength count.toNat ∧
+        ready.locals.lookup (ofString "arr") = some (.val (.word array)) ∧
+        ready.locals.lookup (ofString "h") = some (.val (.word record)) ∧
         (∀ address : BitVec 64, ceiling ≤ address.toNat →
           address ≠ record + BitVec.ofNat 64 96 → ready.memory address = s.memory address))
       (headerRlpFieldCost inputLimit + 35) (decodeHeaderAt 27) := by
@@ -92,10 +95,19 @@ theorem decode_header_first_word_keeps_state_root {F : Type} (s : PanSemStateFin
   rw [source_decode_header_first_word_store]
   apply reaches_mono parsed _ (decodeHeaderAt 27) _ _ 0 0 (le_refl _) ?_ store
   intro ready kept
-  obtain ⟨_,_,_,_,globalsReady,domainReady,codeReady,memoryReady⟩ := kept
+  obtain ⟨_,_,tableReady,localsReady,globalsReady,domainReady,codeReady,memoryReady⟩ := kept
   have rootKept : ready.memory (record + 32#64) = .word word := by
     rw [memoryReady (record + 32#64) rootApart,memory (record + 32#64) rootAbove,stored]
-  refine ⟨rootKept,domainReady.trans domain,codeReady.trans installed,?_,?_⟩
+  have atArrayParsed : parsed.locals.lookup (ofString "arr") = some (.val (.word array)) := by
+    rw [locals]
+    simpa (config := {decide := true}) [HolFiniteMapExact.lookup_update,FUPDATE] using atArray
+  have atArrayReady : ready.locals.lookup (ofString "arr") = some (.val (.word array)) := by
+    rw [localsReady]
+    exact atArrayParsed
+  have atRecordReady : ready.locals.lookup (ofString "h") = some (.val (.word record)) := by
+    rw [localsReady]
+    exact atRecordParsed
+  refine ⟨rootKept,domainReady.trans domain,codeReady.trans installed,?_,tableReady,atArrayReady,atRecordReady,?_⟩
   · intro global
     exact (congrArg (fun table => table.lookup global) globalsReady).trans (globals global)
   · intro address lo apart
