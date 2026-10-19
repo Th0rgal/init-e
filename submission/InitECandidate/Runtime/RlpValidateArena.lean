@@ -8,7 +8,7 @@ namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
-variable {SP0 P0 FM w : BitVec 64} {Vn : MlS → Prop}
+variable {SP0 P0 FM w : BitVec 64} {G0 : HolFiniteMapExact MlS (ValueHOL 64)} {Vn : MlS → Prop}
 
 /-- The scratch record held in `rec` lies in `[FM, SP0)`. -/
 def RecIn (SP0 FM : BitVec 64) (L : HolFiniteMapExact MlS (ValueHOL 64)) : Prop :=
@@ -26,21 +26,21 @@ theorem scratchEnd24_bound (sp FM : BitVec 64) (hfm : FM.toNat ≤ sp.toNat) (hn
   exact ⟨BitVec.le_def.mp within,by omega⟩
 
 
-theorem aqRec_ofT {p : ProgHOL 64} (h : AQT SP0 P0 FM w Vn p) :
-    AQ SP0 P0 FM w Vn (RecIn SP0 FM) (fun _ => True) p := by
+theorem aqRec_ofT {p : ProgHOL 64} (h : AQT SP0 P0 FM G0 w Vn p) :
+    AQ SP0 P0 FM G0 w Vn (RecIn SP0 FM) (fun _ => True) p := by
   unfold AQT at h; exact aq_conseq h (fun _ _ => trivial) (fun _ h => h)
 
 theorem aqRec_storeSeq (d v : ExpHOL 64) {rest : ProgHOL 64}
-    (hd : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), AW SP0 P0 FM s.globals → RecIn SP0 FM s.locals →
+    (hd : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), AW SP0 P0 FM G0 s.globals → RecIn SP0 FM s.locals →
       SL Vn s.locals → ∃ a : BitVec 64, EV s d = some (.val (.word a)) ∧ w ≠ a)
-    (hv : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) x, RecIn SP0 FM s.locals → SL Vn s.locals → EV s v = some x →
-      ∃ y : BitVec 64, x = .val (.word y))
-    (hr : AQ SP0 P0 FM w Vn (RecIn SP0 FM) (fun _ => True) rest) :
-    AQ SP0 P0 FM w Vn (RecIn SP0 FM) (fun _ => True) (.seq (.store d v) rest) :=
+    (hv : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) x, AW SP0 P0 FM G0 s.globals → RecIn SP0 FM s.locals →
+      SL Vn s.locals → EV s v = some x → ∃ y : BitVec 64, x = .val (.word y))
+    (hr : AQ SP0 P0 FM G0 w Vn (RecIn SP0 FM) (fun _ => True) rest) :
+    AQ SP0 P0 FM G0 w Vn (RecIn SP0 FM) (fun _ => True) (.seq (.store d v) rest) :=
   aq_seq (aq_store d v hd hv) hr
 
 theorem rec_addr (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) (k : BitVec 64) (hk : k.toNat < 24) :
-    ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), AW SP0 P0 FM s.globals → RecIn SP0 FM s.locals →
+    ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), AW SP0 P0 FM G0 s.globals → RecIn SP0 FM s.locals →
       SL Vn s.locals → ∃ a : BitVec 64,
         EV s (.op .add [.var .local (ofString "rec"),.const k]) = some (.val (.word a)) ∧ w ≠ a := by
   intro F s _ ⟨q,hq,lo,hi⟩ _
@@ -52,7 +52,7 @@ theorem rec_addr (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) (k : BitVec
     omega
 
 theorem rec_addr0 (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) :
-    ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), AW SP0 P0 FM s.globals → RecIn SP0 FM s.locals →
+    ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), AW SP0 P0 FM G0 s.globals → RecIn SP0 FM s.locals →
       SL Vn s.locals → ∃ a : BitVec 64, EV s (.var .local (ofString "rec")) = some (.val (.word a)) ∧ w ≠ a := by
   intro F s _ ⟨q,hq,lo,hi⟩ _
   refine ⟨q,?_,?_⟩
@@ -60,16 +60,16 @@ theorem rec_addr0 (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) :
   · intro e; subst e; omega
 
 theorem sl_varV (x : MlS) (hx : Vn x) {R : HolFiniteMapExact MlS (ValueHOL 64) → Prop} :
-    ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) v, R s.locals → SL Vn s.locals → EV s (.var .local x) = some v →
-      ∃ y : BitVec 64, v = .val (.word y) := by
-  intro F s v _ sl ev
+    ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) v, AW SP0 P0 FM G0 s.globals → R s.locals → SL Vn s.locals →
+      EV s (.var .local x) = some v → ∃ y : BitVec 64, v = .val (.word y) := by
+  intro F s v _ _ sl ev
   simp [EV,evalHOLExact] at ev
   exact sl x hx v ev
 
 /-- The `rec = scratch_alloc(24)` declaration: its continuation starts with a record in `[FM, SP0)`. -/
 theorem aqT_scratchRec {cont : ProgHOL 64}
-    (hc : AQ SP0 P0 FM w Vn (RecIn SP0 FM) (fun _ => True) cont) :
-    AQT SP0 P0 FM w Vn (.decCall (ofString "rec") .one (ofString "scratch_alloc") [.const 24] cont) := by
+    (hc : AQ SP0 P0 FM G0 w Vn (RecIn SP0 FM) (fun _ => True) cont) :
+    AQT SP0 P0 FM G0 w Vn (.decCall (ofString "rec") .one (ofString "scratch_alloc") [.const 24] cont) := by
   unfold AQT
   refine aq_decCall _ _ _ _ _ _ _ originalRuntimeCode_scratchAllocation_lookup (by simp)
     scratchAlloc_acallee (fun _ => rfl) ?_ hc (fun _ _ _ _ => trivial)
@@ -92,7 +92,7 @@ theorem aqT_scratchRec {cont : ProgHOL 64}
 /-- `_rlp_validate_items_body` keeps every word outside the scratch arena `[FM, SP0)` in every outcome (including
 `RlpErr` raises and allocator traps), and keeps the arena globals on every continuing outcome. -/
 theorem validateBody_aq (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) :
-    AQT SP0 P0 FM w (fun x => x ≠ ofString "h") (sourceFunctionBody Guest.guestFn__rlp_validate_items_body) := by
+    AQT SP0 P0 FM G0 w (fun x => x ≠ ofString "h") (sourceFunctionBody Guest.guestFn__rlp_validate_items_body) := by
   simp only [sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   repeat first
     | exact fun _ => rfl
@@ -111,8 +111,8 @@ theorem validateBody_aq (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) :
         (acallee_of_asafe (asafe_mf rlpHeader_memoryFrame)) (fun hn => absurd rfl hn) ?_
 
 theorem validateBody_acallee (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) :
-    ACallee SP0 P0 FM w (sourceFunctionBody Guest.guestFn__rlp_validate_items_body) := by
-  have h := validateBody_aq (P0 := P0) hw
+    ACallee SP0 P0 FM G0 w (sourceFunctionBody Guest.guestFn__rlp_validate_items_body) := by
+  have h := validateBody_aq (P0 := P0) (G0 := G0) hw
   unfold AQT at h
   exact acallee_of_aq h
 
@@ -124,14 +124,14 @@ theorem aq_callP {P Pc : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (function
     (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
     (allOne : ∀ p ∈ parameters, p.2 = .one)
     (hb : ∀ (F : Type) (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode → DomOK s.memaddrs →
-      AW SP0 P0 FM s.globals →
+      AW SP0 P0 FM G0 s.globals →
       SL (fun _ => True) s.locals → Pc s.locals →
       (evaluateHOLFiniteState s body).2.memory w = s.memory w ∧
-      (Continuing (evaluateHOLFiniteState s body).1 → AW SP0 P0 FM (evaluateHOLFiniteState s body).2.globals))
-    (hpc : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) values callee rs, AW SP0 P0 FM s.globals → P s.locals →
+      (Continuing (evaluateHOLFiniteState s body).1 → AW SP0 P0 FM G0 (evaluateHOLFiniteState s body).2.globals))
+    (hpc : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) values callee rs, AW SP0 P0 FM G0 s.globals → P s.locals →
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments = some values →
       lookupCodeHOLFinite originalRuntimeCode.lookup function values = some (body,callee,rs) → Pc callee) :
-    AQ SP0 P0 FM w Vn P P (.call (some (none,none)) function arguments) := by
+    AQ SP0 P0 FM G0 w Vn P P (.call (some (none,none)) function arguments) := by
   intro F state code dom aw sl pre
   rw [evaluateHOLFiniteState_call]
   cases args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments with
@@ -157,7 +157,7 @@ theorem aq_callP {P Pc : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (function
         cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) found with
         | mk rb bodyPost =>
           rw [bodyRun] at frame
-          change bodyPost.memory w = state.memory w ∧ (Continuing rb → AW SP0 P0 FM bodyPost.globals) at frame
+          change bodyPost.memory w = state.memory w ∧ (Continuing rb → AW SP0 P0 FM G0 bodyPost.globals) at frame
           rcases rb with _ | (_ | _ | _ | _ | v | _ | _)
           all_goals (dsimp only)
           all_goals (try split)
@@ -178,12 +178,12 @@ theorem source_scratchRelease_body : sourceFunctionBody Guest.guestFn_scratch_re
 /-- `scratch_release(x)` with a mark in `[FM, SP0]` keeps the watched word and the arena globals. -/
 theorem aq_releaseCall {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (x : MlS)
     (hx : ∀ L, P L → MarkIn SP0 FM x L) :
-    AQ SP0 P0 FM w Vn P P (.call (some (none,none)) (ofString "scratch_release") [.var .local x]) := by
+    AQ SP0 P0 FM G0 w Vn P P (.call (some (none,none)) (ofString "scratch_release") [.var .local x]) := by
   refine aq_callP (Pc := MarkIn SP0 FM (ofString "m")) _ _ _ _ _ originalRuntimeCode_scratchRelease_lookup (by simp)
     ?_ ?_
   · intro F s code dom aw sl pc
     rw [source_scratchRelease_body]
-    have hs : AQ SP0 P0 FM w (fun _ => True) (MarkIn SP0 FM (ofString "m")) (fun _ => True)
+    have hs : AQ SP0 P0 FM G0 w (fun _ => True) (MarkIn SP0 FM (ofString "m")) (fun _ => True)
         (.seq (.assign .global (ofString "scratch_ptr") (.var .local (ofString "m"))) (.return (.const 0))) := by
       refine aq_seq (Q := MarkIn SP0 FM (ofString "m")) (aq_assignScratch _ ?_) (aq_return _)
       intro F s v _ ⟨m,hm,lo,hi⟩ _ ev
@@ -244,7 +244,7 @@ theorem releaseRaise_handler (x eid : MlS) (e : ExpHOL 64) {F : Type} (s : PanSe
 /-- `rlp_validate_items` keeps every word outside the scratch arena in every outcome (including `RlpErr` re-raises
 after the handler's scratch release), and keeps the arena globals on every continuing outcome. -/
 theorem rlpValidate_aq (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) :
-    AQ SP0 P0 FM w (fun _ => True) (fun _ => True) (fun _ => True)
+    AQ SP0 P0 FM G0 w (fun _ => True) (fun _ => True) (fun _ => True)
       (sourceFunctionBody Guest.guestFn_rlp_validate_items) := by
   simp only [sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   refine aq_decCall (Pc := MarkIn SP0 FM (ofString "mark")) (Qc := fun _ => True) _ _ _ _ _ _ _
@@ -275,7 +275,7 @@ theorem rlpValidate_aq (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) :
     (aq_seq (aq_releaseCall _ (fun _ h => h)) (aq_return _))
 
 theorem rlpValidate_acallee (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) :
-    ACallee SP0 P0 FM w (sourceFunctionBody Guest.guestFn_rlp_validate_items) :=
+    ACallee SP0 P0 FM G0 w (sourceFunctionBody Guest.guestFn_rlp_validate_items) :=
   acallee_of_aq (rlpValidate_aq hw)
 
 #print axioms validateBody_acallee

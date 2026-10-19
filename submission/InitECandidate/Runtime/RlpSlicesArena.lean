@@ -6,7 +6,7 @@ namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
-variable {SP0 P0 FM w : BitVec 64} {Vn : MlS → Prop}
+variable {SP0 P0 FM w : BitVec 64} {G0 : HolFiniteMapExact MlS (ValueHOL 64)} {Vn : MlS → Prop}
 
 theorem ev_op_word {F : Type} (s : PanSemStateFiniteExact 64 F) (o : BinOp) (es : List (ExpHOL 64)) (x : ValueHOL 64)
     (h : EV s (.op o es) = some x) : ∃ y : BitVec 64, x = .val (.word y) := by
@@ -43,17 +43,17 @@ theorem store_none_dom {F : Type} (s : PanSemStateFiniteExact 64 F) (d v : ExpHO
 
 /-- A word store whose successful completion establishes `Q` from the domain bound of its address. -/
 theorem aq_storeDom {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (d v : ExpHOL 64)
-    (hd : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), AW SP0 P0 FM s.globals → P s.locals → SL Vn s.locals →
+    (hd : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), AW SP0 P0 FM G0 s.globals → P s.locals → SL Vn s.locals →
       ∃ a : BitVec 64, EV s d = some (.val (.word a)) ∧ w ≠ a ∧ (a.toNat < 2^62 → Q s.locals))
-    (hv : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) x, P s.locals → SL Vn s.locals → EV s v = some x →
-      ∃ y : BitVec 64, x = .val (.word y)) :
-    AQ SP0 P0 FM w Vn P Q (.store d v) := by
+    (hv : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) x, AW SP0 P0 FM G0 s.globals → P s.locals → SL Vn s.locals →
+      EV s v = some x → ∃ y : BitVec 64, x = .val (.word y)) :
+    AQ SP0 P0 FM G0 w Vn P Q (.store d v) := by
   intro F s code dom aw sl pre
   obtain ⟨a,ha,ne,hq⟩ := hd s aw pre sl
-  obtain ⟨res,_,loc,glob,mem⟩ := evaluate_store_word_frame s d v a ha (hv s · pre sl)
+  obtain ⟨res,_,loc,glob,mem⟩ := evaluate_store_word_frame s d v a ha (hv s · aw pre sl)
   refine ⟨mem w ne,fun _ => by rw [glob]; exact aw,fun e => ?_,?_,?_⟩
   · rw [loc]
-    exact ⟨sl,hq (dom a (store_none_dom s d v a ha (hv s · pre sl) e))⟩
+    exact ⟨sl,hq (dom a (store_none_dom s d v a ha (hv s · aw pre sl) e))⟩
   all_goals rcases res with h | h <;> rw [h] <;> simp
 
 
@@ -114,7 +114,7 @@ theorem slJ'_update {P0 : BitVec 64} {L : HolFiniteMapExact MlS (ValueHOL 64)} (
 array is a fresh heap block at or above `P0`, and each slice store address is non-wrapping because every earlier
 slice store hit the (bounded) memory domain. -/
 theorem rlpSlices_aq (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) (hp : w.toNat < P0.toNat) :
-    AQ SP0 P0 FM w (fun _ => True) (fun _ => True) (fun _ => True)
+    AQ SP0 P0 FM G0 w (fun _ => True) (fun _ => True) (fun _ => True)
       (sourceFunctionBody Guest.guestFn_rlp_list_to_slices) := by
   unfold sourceFunctionBody
   rw [InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
@@ -130,7 +130,7 @@ theorem rlpSlices_aq (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) (hp : w
   refine aq_decCall (Pc := SlA P0) (Qc := fun _ => True) _ _ _ _ _ _ _ originalRuntimeCode_allocation_lookup
     (by simp) alloc_acallee (fun _ => rfl) ?_ ?_ (fun _ _ _ _ => trivial)
   · intro F s values callee post v code aw sl _ args lookup run _
-    obtain ⟨_,_,⟨hpv,hhp,lo,hi⟩⟩ := aw
+    obtain ⟨_,_,⟨hpv,hhp,lo,hi,_⟩,_⟩ := aw
     obtain ⟨x,rfl,ex⟩ := evalList_single s _ values args
     obtain ⟨n,rfl⟩ : ∃ n : BitVec 64, x = .val (.word n) := by
       simp only [EV,evalHOLExact] at ex
@@ -174,7 +174,7 @@ theorem rlpSlices_aq (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) (hp : w
         omega
       · have := slice_addr0_toNat a i hb
         omega
-    · intro F s x _ _ ev
+    · intro F s x _ _ _ ev
       exact ev_op_word s _ _ x ev
     · intro F s _ ⟨a,i,ha,lo,hi,hb⟩ _
       refine ⟨a + (i * 16#64 + 8#64),?_,?_⟩
@@ -183,7 +183,7 @@ theorem rlpSlices_aq (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) (hp : w
         have := slice_addr8_toNat a i (by omega)
         rw [← e] at this
         omega
-    · intro F s x _ sl ev
+    · intro F s x _ _ sl ev
       simp [EV,evalHOLExact] at ev
       exact sl _ trivial x ev
     · intro F s v _ pre _ _
@@ -202,7 +202,7 @@ theorem rlpSlices_aq (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) (hp : w
       by rw [resVar_lookup_ne _ _ _ _ (by decide)]; exact hi,hb⟩
 
 theorem rlpSlices_acallee (hw : w.toNat < FM.toNat ∨ SP0.toNat ≤ w.toNat) (hp : w.toNat < P0.toNat) :
-    ACallee SP0 P0 FM w (sourceFunctionBody Guest.guestFn_rlp_list_to_slices) :=
+    ACallee SP0 P0 FM G0 w (sourceFunctionBody Guest.guestFn_rlp_list_to_slices) :=
   acallee_of_aq (rlpSlices_aq hw hp)
 
 #print axioms aq_storeDom
