@@ -25,7 +25,9 @@ theorem stateless_last_witness_decoded {F : Type} (s post : PanSemStateFiniteExa
       nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 ∧ H.toNat ≤ nextHeap.toNat ∧
       array.toNat + count.toNat * 16 ≤ nextHeap.toNat ∧
       (∀ name : MlS, name ≠ ofString "heap_ptr" → post.globals.lookup name = s.globals.lookup name) ∧
-      (∀ w : BitVec 64, w.toNat < H.toNat → S.toNat + 88 ≤ w.toNat → post.memory w = s.memory w) := by
+      (∀ w : BitVec 64, w.toNat < H.toNat → S.toNat + 88 ≤ w.toNat → post.memory w = s.memory w) ∧
+      (∀ w : BitVec 64, w.toNat < H.toNat → w ≠ S + (72#64) → w ≠ S + (80#64) →
+        post.memory w = s.memory w) := by
   have metadata := evaluateHOLFiniteState_metadata s (statelessAt 45)
   rw [run] at metadata
   have postDomain : post.memaddrs = s.memaddrs := metadata.2.1
@@ -56,7 +58,7 @@ theorem stateless_last_witness_decoded {F : Type} (s post : PanSemStateFiniteExa
   obtain ⟨rfl,rfl⟩ := finalRun
   have memory : post.memory = returned.memory := postMemory
   have domains : post.memaddrs = returned.memaddrs := postDomain.trans (returnedDomain.trans domain).symm
-  refine ⟨array,count,nextHeap,rfl,?_,?_,?_,?_,?_,countLe,origin,?_,cap,al,growth,extent,?_,?_⟩
+  refine ⟨array,count,nextHeap,rfl,?_,?_,?_,?_,?_,countLe,origin,?_,cap,al,growth,extent,?_,?_,?_⟩
   · rw [domains]; exact dom72
   · rw [domains]; exact dom80
   · rw [memory]; exact cell72
@@ -85,6 +87,10 @@ theorem stateless_last_witness_decoded {F : Type} (s post : PanSemStateFiniteExa
       change S.toNat + 88 ≤ (S + (80#64)).toNat at above
       rw [word_add_toNat S 80 (by omega)] at above
       omega
+
+  · intro w below h72 h80
+    rw [memory]
+    exact (kept w h72 h80).trans (frame w below)
 
 #print axioms stateless_last_witness_decoded
 end InitECandidate.Runtime
