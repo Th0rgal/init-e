@@ -182,7 +182,7 @@ theorem aq_memzeroAcct {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (hP : 
     refine ⟨memzero_body_window s D 32 w hd hn (by decide) out,fun _ => ?_⟩
     rw [memzero_body_globals_frame s code]
     exact aw
-  · intro F s values callee rs _ pre args lookup
+  · intro F s values callee rs _ pre _ args lookup
     obtain ⟨A,hA,fit,hw⟩ := hP _ pre
     rw [evalListHOLFinite_eq_toExact] at args
     simp [evalListHOLExact,evalHOLExact,hA,wordOpHOL,wordOp,valueIsWord,valueWord] at args
