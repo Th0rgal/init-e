@@ -29,13 +29,13 @@ theorem evaluate_storeLE32_call_bounded {F : Type} (state : PanSemStateFiniteExa
   rw [same]
   exact storeLE32_byteStraight
 
-def storeLE64FirstArguments : List (ExpHOL 64) := [.var .local (ofString "p"),.var .local (ofString "v")]
-def storeLE64LastArguments : List (ExpHOL 64) :=
+def storeLE64BoundFirstArguments : List (ExpHOL 64) := [.var .local (ofString "p"),.var .local (ofString "v")]
+def storeLE64BoundLastArguments : List (ExpHOL 64) :=
   [.op .add [.var .local (ofString "p"),.const 4],.shift .lsr (.var .local (ofString "v")) (.const 32)]
 
-theorem source_storeLE64_body : sourceFunctionBody Guest.guestFn_st_le64 =
-    .seq (.call (some (none,none)) (ofString "st_le32") storeLE64FirstArguments)
-      (.seq (.call (some (none,none)) (ofString "st_le32") storeLE64LastArguments) (.return (.const 0))) := by
+theorem source_storeLE64_bound_body : sourceFunctionBody Guest.guestFn_st_le64 =
+    .seq (.call (some (none,none)) (ofString "st_le32") storeLE64BoundFirstArguments)
+      (.seq (.call (some (none,none)) (ofString "st_le32") storeLE64BoundLastArguments) (.return (.const 0))) := by
   simp only [sourceFunctionBody,InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   rfl
 
@@ -44,12 +44,12 @@ theorem evaluate_storeLE64_body_bounded {F : Type} (state : PanSemStateFiniteExa
     (code : state.code = originalRuntimeCode) (budget : 2 ≤ state.clock) :
     let evaluated := evaluateHOLFiniteState state (sourceFunctionBody Guest.guestFn_st_le64)
     state.clock ≤ evaluated.2.clock + 2 ∧ evaluated.2.clock ≤ state.clock ∧ evaluated.1 ≠ some .timeOut := by
-  rw [source_storeLE64_body]
+  rw [source_storeLE64_bound_body]
   apply evaluate_sequence_code_bounded state _ _ 1 1
-    (evaluate_storeLE32_call_bounded state none storeLE64FirstArguments code (by omega)) ?_ budget
+    (evaluate_storeLE32_call_bounded state none storeLE64BoundFirstArguments code (by omega)) ?_ budget
   intro next kept enough
   exact evaluate_sequence_straight_bounded next _ (.return (.const 0)) 1
-    (evaluate_storeLE32_call_bounded next none storeLE64LastArguments (kept.trans code) enough) (by rfl)
+    (evaluate_storeLE32_call_bounded next none storeLE64BoundLastArguments (kept.trans code) enough) (by rfl)
 
 theorem evaluate_storeLE64_call_bounded {F : Type} (state : PanSemStateFiniteExact 64 F)
     (destination : Option (VarKind × MlS)) (arguments : List (ExpHOL 64))
