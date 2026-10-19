@@ -123,7 +123,8 @@ theorem aq_callP {P Pc : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (function
     (parameters : List (MlS × ShapeHOL)) (body : ProgHOL 64) (returnShape : ShapeHOL)
     (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
     (allOne : ∀ p ∈ parameters, p.2 = .one)
-    (hb : ∀ (F : Type) (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode → AW SP0 P0 FM s.globals →
+    (hb : ∀ (F : Type) (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode → DomOK s.memaddrs →
+      AW SP0 P0 FM s.globals →
       SL (fun _ => True) s.locals → Pc s.locals →
       (evaluateHOLFiniteState s body).2.memory w = s.memory w ∧
       (Continuing (evaluateHOLFiniteState s body).1 → AW SP0 P0 FM (evaluateHOLFiniteState s body).2.globals))
@@ -131,7 +132,7 @@ theorem aq_callP {P Pc : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (function
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments = some values →
       lookupCodeHOLFinite originalRuntimeCode.lookup function values = some (body,callee,rs) → Pc callee) :
     AQ SP0 P0 FM w Vn P P (.call (some (none,none)) function arguments) := by
-  intro F state code aw sl pre
+  intro F state code dom aw sl pre
   rw [evaluateHOLFiniteState_call]
   cases args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments with
   | none => exact ⟨rfl,fun _ => aw,(fun e => by cases e),by simp,by simp⟩
@@ -151,7 +152,7 @@ theorem aq_callP {P Pc : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (function
         lookup'
       split
       · exact aq_of_not_continuing rfl (fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h)
-      · have frame := hb F (callEntryStateHOLFinite state callee) code aw esl
+      · have frame := hb F (callEntryStateHOLFinite state callee) code dom aw esl
           (hpc state values callee foundShape aw pre args lookup')
         cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) found with
         | mk rb bodyPost =>
@@ -180,7 +181,7 @@ theorem aq_releaseCall {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (x : M
     AQ SP0 P0 FM w Vn P P (.call (some (none,none)) (ofString "scratch_release") [.var .local x]) := by
   refine aq_callP (Pc := MarkIn SP0 FM (ofString "m")) _ _ _ _ _ originalRuntimeCode_scratchRelease_lookup (by simp)
     ?_ ?_
-  · intro F s code aw sl pc
+  · intro F s code dom aw sl pc
     rw [source_scratchRelease_body]
     have hs : AQ SP0 P0 FM w (fun _ => True) (MarkIn SP0 FM (ofString "m")) (fun _ => True)
         (.seq (.assign .global (ofString "scratch_ptr") (.var .local (ofString "m"))) (.return (.const 0))) := by
@@ -189,7 +190,7 @@ theorem aq_releaseCall {P : HolFiniteMapExact MlS (ValueHOL 64) → Prop} (x : M
       simp [EV,evalHOLExact,hm] at ev
       subst ev
       exact ⟨m,rfl,lo,hi⟩
-    have h := hs F s code aw sl pc
+    have h := hs F s code dom aw sl pc
     exact ⟨h.1,h.2.1⟩
   · intro F s values callee rs _ pre args lookup
     obtain ⟨m,hm,lo,hi⟩ := hx _ pre
