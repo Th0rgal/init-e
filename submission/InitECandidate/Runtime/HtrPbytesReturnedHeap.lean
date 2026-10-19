@@ -1,11 +1,9 @@
-import InitECandidate.Runtime.HtrPbytesCallBound
 import InitECandidate.Runtime.PanDiscardCallNormalResult
-import InitECandidate.Runtime.HtrPbytesBound
+import InitECandidate.Runtime.HtrPbytesCallBound
 import InitECandidate.Runtime.MerkleMarkedHeap
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
-set_option maxRecDepth 100000
 
 theorem htrPbytes_marked_suffix : MarkedHeapReturn (ofString "mark") (htrPbytesAt 1) := by
   rw [source_htrPbytes_pack]
@@ -41,6 +39,8 @@ theorem htrPbytes_body_returned_heap {F : Type} (state post : PanSemStateFiniteE
     rw [globals]
     exact restored
 
+#print axioms htrPbytes_marked_suffix
+#print axioms htrPbytes_body_returned_heap
 theorem htrPbytes_call_normal_heap {F : Type} (state post : PanSemStateFiniteExact 64 F)
     (arguments : List (ExpHOL 64)) (pointer n out heap : BitVec 64)
     (args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments =
@@ -66,6 +66,4 @@ theorem htrPbytes_call_normal_heap {F : Type} (state post : PanSemStateFiniteExa
   exact htrPbytes_body_returned_heap entry bodyPost heap value (by exact code) (by exact atHeap) bodyRun
 
 #print axioms htrPbytes_call_normal_heap
-#print axioms htrPbytes_marked_suffix
-#print axioms htrPbytes_body_returned_heap
 end InitECandidate.Runtime
