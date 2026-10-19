@@ -61,4 +61,58 @@ theorem run_attempt_nonempty_header_guard_reaches {F : Type} (s : PanSemStateFin
 
 #print axioms source_run_attempt_header_count_guard
 #print axioms run_attempt_nonempty_header_guard_reaches
+
+/-- A raise either produces its declared exception or a shape error; both
+are terminal, timeout-free outcomes with no source clock consumption. -/
+theorem raise_constant_stAbort {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (name : MlS) (value : BitVec 64) :
+    StAbort s (evaluateHOLFiniteState s (.raise name (.const value))) 0 := by
+  simp only [evaluateHOLFiniteState_raise,evalHOLExact]
+  split
+  · split
+    · exact ⟨_,rfl,by intro v; simp,by simp [emptyLocalsHOLFinite],by simp [emptyLocalsHOLFinite],by simp⟩
+    · exact stAbort_error s 0
+  · exact stAbort_error s 0
+
+/-- The actual empty-header guard either passes with a nonzero count or
+terminates in the exception/error branch, without clock consumption. -/
+theorem run_attempt_header_guard_reaches {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (count : BitVec 64)
+    (atCount : s.locals.lookup (ofString "nh") = some (.val (.word count))) :
+    Reaches s (runAttemptAt 4) (fun ready => ready = s ∧ count ≠ 0) 0 (runAttemptAt 5) := by
+  by_cases zero : count = 0
+  · subst count
+    right
+    rw [source_run_attempt_header_count_guard]
+    apply stAbort_seq
+    have reduced : evaluateHOLFiniteState s runAttemptHeaderCountGuard =
+        evaluateHOLFiniteState s (.raise (ofString "BlockErr") (.const 3)) := by
+      rw [runAttemptHeaderCountGuard,evaluateHOLFiniteState_ite]
+      simp [evalHOLExact,atCount,Compiler.Encoders.Asm.wordCmpHOL]
+    rw [reduced]
+    exact raise_constant_stAbort s _ _
+  · exact reaches_mono s _ _ _ _ 0 0 (le_refl _) (fun ready same => ⟨same,zero⟩)
+      (run_attempt_nonempty_header_guard_reaches s count atCount zero)
+
+#print axioms raise_constant_stAbort
+#print axioms run_attempt_header_guard_reaches
+
+/-- The actual reload and guard compose into a zero-tick prefix, with an
+execution-derived nonempty count on the branch reaching the parent load. -/
+theorem run_attempt_header_count_and_guard_reaches {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (si count : BitVec 64)
+    (atSi : s.locals.lookup (ofString "si") = some (.val (.word si)))
+    (domain : s.memaddrs (si + (80#64)))
+    (cell : s.memory (si + (80#64)) = .word count) :
+    Reaches s (runAttemptAt 3)
+      (fun ready => ready = setVarHOLFinite (ofString "nh") (.val (.word count)) s ∧ count ≠ 0)
+      0 (runAttemptAt 5) := by
+  have reached := run_attempt_header_count_reaches s si count atSi domain cell
+  have composed := reaches_trans s (runAttemptAt 3) (runAttemptAt 4) (runAttemptAt 5)
+    _ _ 0 0 reached (fun next same => by
+      subst next
+      exact run_attempt_header_guard_reaches _ count (by simp [setVarHOLFinite,FUPDATE]))
+  exact composed
+
+#print axioms run_attempt_header_count_and_guard_reaches
 end InitECandidate.Runtime
