@@ -16,7 +16,7 @@ theorem main_decoder_call_request_heap_extent {F : Type} (state ready post : Pan
       2713714688 ≤ address.toNat → address.toNat < 33806089496 → state.memaddrs address)
     (valid : MainDecoderEntry state ready)
     (run : evaluateHOLFiniteState ready mainStatelessCall = (none,post)) :
-    ∃ length heap record : BitVec 64, length.toNat ≤ 134217712 ∧ heap.toNat + 32 < record.toNat ∧
+    ∃ length heap record : BitVec 64, length.toNat ≤ 134217712 ∧ ready.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)) ∧ heap.toNat + 32 < record.toNat ∧
       post.memaddrs (heap + (32#64)) ∧ post.memory (heap + (32#64)) = .word record ∧ HtrRequestsDecoded post record ∧
       ∃ finalHeap : BitVec 64, post.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧ record.toNat + 80 ≤ finalHeap.toNat := by
   obtain ⟨length,_,_,heap,inp,_,_,small,fits,offsets,atHeap,capped,aligned,lower,installed,domain,_,_⟩ := valid.fields
@@ -46,7 +46,7 @@ theorem main_decoder_call_request_heap_extent {F : Type} (state ready post : Pan
       small bodyRun
   have memory : post.memory = bodyPost.memory := by rw [resumed]; rfl
   have addresses : post.memaddrs = bodyPost.memaddrs := by rw [resumed]; rfl
-  exact ⟨length,heap,record,small,afterHeap,by rw [addresses]; exact pointerDomain,
+  exact ⟨length,heap,record,small,atHeap,afterHeap,by rw [addresses]; exact pointerDomain,
     by rw [memory]; exact pointerCell,decoded.after_frame memory addresses,finalHeap,(by rw [resumed]; exact binding),extent⟩
 
 #print axioms main_decoder_call_request_heap_extent
