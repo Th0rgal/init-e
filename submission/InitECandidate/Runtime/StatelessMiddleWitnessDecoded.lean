@@ -33,7 +33,9 @@ theorem stateless_middle_witness_decoded {F : Type} (s post : PanSemStateFiniteE
       finalHeap.toNat ≤ 33806089496 ∧ finalHeap.toNat % 8 = 0 ∧ H.toNat ≤ finalHeap.toNat ∧
       array.toNat + count.toNat * 16 ≤ finalHeap.toNat ∧ headers.toNat + headerCount.toNat * 16 ≤ finalHeap.toNat ∧
       (∀ name : MlS, name ≠ ofString "heap_ptr" → post.globals.lookup name = s.globals.lookup name) ∧
-      (∀ w : BitVec 64, w.toNat < H.toNat → S.toNat + 88 ≤ w.toNat → post.memory w = s.memory w) := by
+      (∀ w : BitVec 64, w.toNat < H.toNat → S.toNat + 88 ≤ w.toNat → post.memory w = s.memory w) ∧
+      (∀ w : BitVec 64, w.toNat < H.toNat → w ≠ S + (56#64) → w ≠ S + (64#64) →
+        w ≠ S + (72#64) → w ≠ S + (80#64) → post.memory w = s.memory w) := by
   have metadata := evaluateHOLFiniteState_metadata s (statelessAt 42)
   rw [run] at metadata
   have postDomain : post.memaddrs = s.memaddrs := metadata.2.1
@@ -88,7 +90,7 @@ theorem stateless_middle_witness_decoded {F : Type} (s post : PanSemStateFiniteE
   have out64 := lastFullFrame (S + (64#64)) (by rw [word_add_toNat S 64 (by omega)]; omega)
     (by intro e; have := add_left_cancel e; contradiction) (by intro e; have := add_left_cancel e; contradiction)
   refine ⟨array,count,headers,headerCount,finalHeap,valueEq,?_,?_,?_,?_,?_,?_,?_,?_,?_,countLe,origin,?_,lastCount,?_,
-    finalCap,finalAlign,(by omega),(by omega),lastExtent,?_,?_⟩
+    finalCap,finalAlign,(by omega),(by omega),lastExtent,?_,?_,?_⟩
   · rw [postOutputDomain,outputDomain]; exact dom56
   · rw [postOutputDomain,outputDomain]; exact dom64
   · rw [postMemory,out56]; exact cell56
@@ -112,6 +114,10 @@ theorem stateless_middle_witness_decoded {F : Type} (s post : PanSemStateFiniteE
     apply (kept w ?_ ?_).trans (frame w below)
     · intro e; rw [e,word_add_toNat S 56 (by omega)] at above; omega
     · intro e; rw [e,word_add_toNat S 64 (by omega)] at above; omega
+
+  · intro w below h56 h64 h72 h80
+    rw [postMemory,lastFullFrame w (by omega) h72 h80]
+    exact (kept w h56 h64).trans (frame w below)
 
 #print axioms stateless_middle_witness_decoded
 end InitECandidate.Runtime
