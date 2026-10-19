@@ -28,4 +28,33 @@ theorem WitnessArrayLinked.after_memory_between {F : Type}
       linked.slices arrayAbove linked.arrayEnd domain (fun address hi lo => memory address lo hi)
 
 #print axioms WitnessArrayLinked.after_memory_between
+
+/-- Empty witness arrays have no slice cells to protect. The two actual
+record cells still lie in the retained window, but the unused array pointer
+needs no lower-bound assumption. -/
+theorem WitnessArrayLinked.after_memory_between_or_empty {F : Type}
+    (s post : PanSemStateFiniteExact 64 F)
+    (si first second array count input length heap finalHeap : BitVec 64) (lower : Nat)
+    (linked : WitnessArrayLinked s si first second array count input length heap)
+    (pointerAbove : lower ≤ (si + first).toNat)
+    (pointerBefore : (si + first).toNat < heap.toNat)
+    (countAbove : lower ≤ (si + second).toNat)
+    (countBefore : (si + second).toNat < heap.toNat)
+    (arrayAbove : count.toNat = 0 ∨ lower ≤ array.toNat)
+    (monotone : heap.toNat ≤ finalHeap.toNat)
+    (domain : post.memaddrs = s.memaddrs)
+    (memory : ∀ address : BitVec 64, lower ≤ address.toNat → address.toNat < heap.toNat →
+      post.memory address = s.memory address) :
+    WitnessArrayLinked post si first second array count input length finalHeap := by
+  rcases arrayAbove with empty | above
+  · refine ⟨?_,?_,?_,?_,?_,linked.countBound,Nat.le_trans linked.arrayEnd monotone⟩
+    · rw [domain]; exact linked.pointerDomain
+    · rw [domain]; exact linked.countDomain
+    · rw [memory _ pointerAbove pointerBefore]; exact linked.pointerCell
+    · rw [memory _ countAbove countBefore]; exact linked.countCell
+    · intro slot inside; omega
+  · exact linked.after_memory_between s post si first second array count input length heap finalHeap lower
+      pointerAbove pointerBefore countAbove countBefore above monotone domain memory
+
+#print axioms WitnessArrayLinked.after_memory_between_or_empty
 end InitECandidate.Runtime
