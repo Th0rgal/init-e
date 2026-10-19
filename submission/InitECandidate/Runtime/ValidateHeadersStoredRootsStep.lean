@@ -26,8 +26,8 @@ set_option maxHeartbeats 500000
 /-- The actual validation tail keeps every stored parent record below the current index. -/
 theorem validate_headers_first_tail_stored_roots {F : Type} (s post : PanSemStateFiniteExact 64 F)
     (array count index input inputLength hs hashes header keccakState keccakPad : BitVec 64)
-    (inputLimit ceiling filled frontier : Nat)
-    (roots : ValidateHeadersStoredRoots s hs filled frontier)
+    (inputLimit ceiling filled frontier floor : Nat)
+    (roots : ValidateHeadersStoredRoots s hs filled frontier floor)
     (domain : post.memaddrs = s.memaddrs)
     (older : filled ≤ index.toNat)
     (cellSeparated : ∀ slot : BitVec 64, slot.toNat < filled →
@@ -57,7 +57,7 @@ theorem validate_headers_first_tail_stored_roots {F : Type} (s post : PanSemStat
     (tableAbove : ceiling ≤ array.toNat) (hsBeforeHashes : hs.toNat ≤ hashes.toNat)
     (stateBelow : keccakState.toNat + 200 ≤ ceiling) (padBelow : keccakPad.toNat + 136 ≤ ceiling)
     (run : evaluateHOLFiniteState s validateHeadersFirstTail = (none,post)) :
-    ValidateHeadersStoredRoots post hs filled frontier := by
+    ValidateHeadersStoredRoots post hs filled frontier floor := by
   have frame : ∀ watched : BitVec 64, watched ≠ hs + index * 8 →
       ¬ MWin keccakState 200 watched → ¬ MWin keccakPad 136 watched →
       ¬ MWin (hashes + index * 32) 32 watched → post.memory watched = s.memory watched := by
@@ -68,10 +68,10 @@ theorem validate_headers_first_tail_stored_roots {F : Type} (s post : PanSemStat
       limitBound stateGlobal padGlobal code budget tableAbove hsBeforeHashes stateBelow padBelow
       (fun same => separate same.symm) stateOutside padOutside outputOutside run).1
   intro slot within
-  obtain ⟨prior,root,cell,rootCell,rootDomain,extent⟩ := roots slot within
+  obtain ⟨prior,root,cell,rootCell,rootDomain,extent,above⟩ := roots slot within
   obtain ⟨cellSeparate,cellState,cellPad,cellOutput⟩ := cellSeparated slot within
   obtain ⟨separate,stateOutside,padOutside,outputOutside⟩ := separated slot within prior cell
-  refine ⟨prior,root,?_,?_,?_,extent⟩
+  refine ⟨prior,root,?_,?_,?_,extent,above⟩
   · exact (frame _ (fun same => cellSeparate same.symm) cellState cellPad cellOutput).trans cell
   · exact (frame _ (fun same => separate same.symm) stateOutside padOutside outputOutside).trans rootCell
   · rw [domain]; exact rootDomain

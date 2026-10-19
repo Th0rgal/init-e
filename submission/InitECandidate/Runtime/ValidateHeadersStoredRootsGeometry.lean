@@ -1,25 +1,29 @@
 import InitECandidate.Runtime.ValidateHeadersStoredRootsStep
 /-!
-The per-address separation of one iteration comes from the concrete arena, not from a callback.
+The separation of a stored record from the tail's writes comes from the concrete layout.
 
-For a stored parent record the three keccak facts and the store-slot separation all follow from
-the ceiling alone.  Everything the loop already keeps below the ceiling is below every record
-root, and everything a record owns starts at or above it:
+The guest lays the shared buffers out in one order and the keccak workspace in another, and both
+matter.  Below the arena ceiling sit the frame, the scratch area, the keccak state and the pad;
+above the ceiling sit the slice-witness table (`array`), then the header-pointer buffer (`hs`),
+then the hash buffer (`hashes`); the heap the loop allocates from starts above all of them.
 
-* the pointer buffer ends below the ceiling (`hs + count * 8 + 8 ≤ ceiling`);
-* the hash buffer and its last output slot end below the ceiling
-  (`hashes + count * 32 + 32 ≤ ceiling`);
-* the keccak state and the pad end below the ceiling (`keccakState + 200`, `keccakPad + 136`);
-* every stored record starts at or above the ceiling (`ceiling ≤ prior`), which is the arena
-  containment the validation loop already has for its allocations.
+* the pointer buffer ends before the hash buffer (`hs + count * 8 ≤ hashes`);
+* the keccak state and the pad end before the pointer buffer
+  (`keccakState + 200`, `keccakPad + 136 ≤ hs`);
+* the hash buffer, and with it its last output slot, ends at the fixed floor
+  `hashes + count * 32 + 32`, which is where every stored record starts.
 
-Hence `hs + index * 8 ≠ prior + 32`, and the state, the pad and the output slot never intersect
-`prior + 32`; for the pointer buffer's own slot `hs + index * 8 ≠ hs + slot * 8` since both are
-below the ceiling and strictly ordered.  No per-iteration hypothesis remains: these are `∃`-free
-consequences of the state shape plus the two buffer bounds.
+The tail writes exactly three things: the store target `hs + index * 8`, the keccak state and pad
+words, and the output slot `hashes + index * 32`.  For a stored pointer cell
+(`slot < index < count`) the cell is above the state and pad (`mwin_below` from
+`keccakState + 200 ≤ hs`) and below the output slot (`mwin_above` from
+`hs + count * 8 ≤ hashes`).  For a stored record's root word the record starts at the floor, so
+the root word is above the state and pad and above the whole output window (`mwin_below` from
+`hashes + count * 32 + 32 ≤ prior`).
 
-The live frontier is not used here at all: old records are separated by their own lower bound
-(`ceiling ≤ prior`), exactly as the lead asked.
+Nothing here uses the moving live heap frontier: a stored record is separated from the tail's
+writes by its own fixed lower bound (the floor), exactly as the lead asked.  The live frontier is
+used only for the record's extent, which is what the parent declaration needs.
 -/
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -27,18 +31,19 @@ open Flapjack.Basis.Pure.MlString
 set_option maxRecDepth 100000
 set_option maxHeartbeats 500000
 
-/-- The two buffer bounds and the arena containment separate every stored record from the tail's
-write set, per address, at any index below `count`. -/
+/-- A stored pointer cell below the current index is separated from the tail's store target, from
+the keccak state and pad windows and from the current output slot. -/
 theorem validate_headers_stored_roots_separation {F : Type}
     (s : PanSemStateFiniteExact 64 F) (hs hashes index count keccakState keccakPad : BitVec 64)
-    (ceiling filled : Nat)
-    (inside : index.toNat < count.toNat) (ceilingBound : ceiling < 2^64)
-    (slotBufferBelow : hs.toNat + count.toNat * 8 + 8 ≤ ceiling)
-    (hashBufferBelow : hashes.toNat + count.toNat * 32 + 32 ≤ ceiling)
+    (filled : Nat)
+    (inside : index.toNat < count.toNat)
+    (bufferBeforeHashes : hs.toNat + count.toNat * 8 ≤ hashes.toNat)
     (stateBeforeHs : keccakState.toNat + 200 ≤ hs.toNat) (padBeforeHs : keccakPad.toNat + 136 ≤ hs.toNat)
+    (hsBufferBound : hs.toNat + count.toNat * 8 + 8 ≤ 33806089496)
     (hashAligned : hashes.toNat % 8 = 0)
+    (hashBufferBound : hashes.toNat + count.toNat * 32 + 32 ≤ 33806089496)
     (slot : BitVec 64) (within : slot.toNat < filled) (slotBound : filled ≤ count.toNat)
-    (older : filled ≤ index.toNat) (hsBeforeHashes : hs.toNat ≤ hashes.toNat) :
+    (older : filled ≤ index.toNat) :
     (hs + index * 8 ≠ hs + slot * (8#64) ∧ ¬ MWin keccakState 200 (hs + slot * (8#64)) ∧
         ¬ MWin keccakPad 136 (hs + slot * (8#64)) ∧
         ¬ MWin (hashes + index * 32) 32 (hs + slot * (8#64))) := by
@@ -86,24 +91,25 @@ theorem validate_headers_stored_roots_separation {F : Type}
 
 #print axioms validate_headers_stored_roots_separation
 
-/-- A stored record's root word is separated from the tail's write set by the record's own
-lower bound `ceiling ≤ prior`. -/
+/-- A stored record's root word is separated from the tail's store target and write windows: the
+record starts at the fixed floor, so its root word is above the whole pointer and hash buffers and
+above the output slot, while the keccak state and pad sit below the floor as well. -/
 theorem validate_headers_stored_root_separation {F : Type}
-    (s : PanSemStateFiniteExact 64 F) (hs hashes index count keccakState keccakPad prior : BitVec 64)
-    (ceiling : Nat)
-    (inside : index.toNat < count.toNat) (ceilingBound : ceiling < 2^64)
-    (slotBufferBelow : hs.toNat + count.toNat * 8 + 8 ≤ ceiling)
-    (hashBufferBelow : hashes.toNat + count.toNat * 32 + 32 ≤ ceiling)
-    (stateBelow : keccakState.toNat + 200 ≤ ceiling) (padBelow : keccakPad.toNat + 136 ≤ ceiling)
-    (priorAbove : ceiling ≤ prior.toNat) (priorBound : prior.toNat + 248 ≤ 33806089496) :
+    (hs hashes index count keccakState keccakPad prior : BitVec 64) (frontier : Nat)
+    (inside : index.toNat < count.toNat)
+    (aboveFloor : hashes.toNat + count.toNat * 32 + 32 ≤ prior.toNat)
+    (extent : prior.toNat + 248 ≤ frontier) (frontierBound : frontier ≤ 33806089496)
+    (stateBelowFloor : keccakState.toNat + 200 ≤ hashes.toNat + count.toNat * 32 + 32)
+    (padBelowFloor : keccakPad.toNat + 136 ≤ hashes.toNat + count.toNat * 32 + 32)
+    (bufferBeforeHashes : hs.toNat + count.toNat * 8 ≤ hashes.toNat)
+    (hashBufferBound : hashes.toNat + count.toNat * 32 + 32 ≤ 33806089496) :
     (hs + index * 8 ≠ prior + 32#64 ∧ ¬ MWin keccakState 200 (prior + 32#64) ∧
         ¬ MWin keccakPad 136 (prior + 32#64) ∧ ¬ MWin (hashes + index * 32) 32 (prior + 32#64)) := by
   have rootAddr : (prior + 32#64).toNat = prior.toNat + 32 := by
     rw [BitVec.toNat_add_of_lt (by change prior.toNat + 32 < 2^64; omega)]
     rfl
-  have rootAbove : ceiling ≤ (prior + 32#64).toNat := by rw [rootAddr]; omega
-  have stateAtRoot : keccakState.toNat + 200 ≤ (prior + 32#64).toNat := by omega
-  have padAtRoot : keccakPad.toNat + 136 ≤ (prior + 32#64).toNat := by omega
+  have stateAtRoot : keccakState.toNat + 200 ≤ (prior + 32#64).toNat := by rw [rootAddr]; omega
+  have padAtRoot : keccakPad.toNat + 136 ≤ (prior + 32#64).toNat := by rw [rootAddr]; omega
   have countWidth8 : count.toNat * 8 < 2^64 := by omega
   have countWidth32 : count.toNat * 32 < 2^64 := by omega
   have indexProduct : (index * 8).toNat = index.toNat * 8 := by
@@ -114,8 +120,10 @@ theorem validate_headers_stored_root_separation {F : Type}
   have hashProduct : (index * 32).toNat = index.toNat * 32 := by
     rw [BitVec.toNat_mul_of_lt (by change index.toNat * 32 < 2^64; omega)]
     rfl
-  have hashAddr : (hashes + index * 32).toNat + 32 ≤ ceiling := by
+  have hashNat : (hashes + index * 32).toNat = hashes.toNat + index.toNat * 32 := by
     rw [BitVec.toNat_add_of_lt (by rw [hashProduct]; omega),hashProduct]
+  have belowRoot : (hashes + index * 32).toNat + 32 ≤ (prior + 32#64).toNat := by
+    rw [hashNat,rootAddr]
     omega
   refine ⟨?_,?_,?_,?_⟩
   · intro same
@@ -124,8 +132,7 @@ theorem validate_headers_stored_root_separation {F : Type}
     omega
   · exact mwin_below (D := keccakState) (N := 200) (w := prior + 32#64) stateAtRoot
   · exact mwin_below (D := keccakPad) (N := 136) (w := prior + 32#64) padAtRoot
-  · exact mwin_below (D := hashes + index * 32) (N := 32) (w := prior + 32#64)
-      (by rw [rootAddr]; omega)
+  · exact mwin_below (D := hashes + index * 32) (N := 32) (w := prior + 32#64) belowRoot
 
 #print axioms validate_headers_stored_root_separation
 end InitECandidate.Runtime
