@@ -75,4 +75,31 @@ theorem runBounded_run_attempt_validated_nodedb_input {F : Type}
   exact bounded.weaken cost
 
 #print axioms runBounded_run_attempt_validated_nodedb_input
+theorem runBounded_run_attempt_nodedb_entry_workspace {F : Type}
+    (before ready : PanSemStateFiniteExact 64 F)
+    (si headers headerCount input inputLength scratch frame heap keccakState keccakPad parent : BitVec 64)
+    (ceiling : Nat)
+    (facts : RunAttemptHeaderValidationFacts before ready si headers headerCount input inputLength
+      scratch frame heap keccakState keccakPad ceiling)
+    (array total output : BitVec 64) (destination : Option (VarKind × MlS))
+    (linked : WitnessArrayLinked before si 40 48 array total input inputLength heap)
+    (recordAbove : ceiling ≤ si.toNat) (recordBefore : si.toNat + 88 ≤ heap.toNat)
+    (arrayAbove : total.toNat = 0 ∨ ceiling ≤ array.toNat)
+    (stateBelow : keccakState.toNat + 200 ≤ ceiling) (padBelow : keccakPad.toNat + 136 ≤ ceiling)
+    (outputBelow : output.toNat + 32 ≤ ceiling) (outputAligned : output.toNat % 8 = 0)
+    (atOutput : before.globals.lookup (ofString "mpt_hash_scratch") = some (.val (.word output)))
+    (inputLimit : Nat) (inputBound : inputLength.toNat ≤ inputLimit) (inputCap : inputLimit ≤ 134217712) (code : before.code = originalRuntimeCode)
+    (budget : nodedbInputCallCost inputLimit ≤ ready.clock) :
+    RunBounded
+      (runAttemptDatabaseState ready headerCount parent (allocationEnd heap (validateHeadersHsSize headerCount)))
+      (.call (some (destination,none)) (ofString "nodedb_build") runAttemptNodedbArguments)
+      (nodedbInputCallCost inputLimit) := by
+  have outputReady := (facts.mpt_hash_scratch before ready si headers headerCount input inputLength scratch frame
+    heap keccakState keccakPad ceiling code).trans atOutput
+  exact runBounded_run_attempt_validated_nodedb_input before ready si headers headerCount input inputLength
+    scratch frame heap keccakState keccakPad parent ceiling facts array total output destination linked
+    recordAbove recordBefore arrayAbove stateBelow padBelow outputBelow outputAligned outputReady
+    inputLimit inputBound inputCap code budget
+
+#print axioms runBounded_run_attempt_nodedb_entry_workspace
 end InitECandidate.Runtime

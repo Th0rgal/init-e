@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.RunAttemptValidatedWitness
+import InitECandidate.Runtime.MptHashScratchCallerKeep
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -45,4 +46,20 @@ theorem RunAttemptHeaderValidationFacts.database_context {F : Type}
       atSiReady,scratchPost,framePost,statePost,padPost,atHeap]
 
 #print axioms RunAttemptHeaderValidationFacts.database_context
+
+/-- The retained actual returned callee run supplies the missing database
+hash-workspace global, without a post-call preservation assumption. -/
+theorem RunAttemptHeaderValidationFacts.mpt_hash_scratch {F : Type}
+    (s ready : PanSemStateFiniteExact 64 F)
+    (si headers count input inputLength scratch frame heap keccakState keccakPad : BitVec 64)
+    (ceiling : Nat)
+    (facts : RunAttemptHeaderValidationFacts s ready si headers count input inputLength
+      scratch frame heap keccakState keccakPad ceiling)
+    (code : s.code = originalRuntimeCode) :
+    ready.globals.lookup (ofString "mpt_hash_scratch") = s.globals.lookup (ofString "mpt_hash_scratch") := by
+  obtain ⟨value,bodyPost,bodyRun,locals,memoryEq,globalsEq,rest⟩ := facts
+  rw [globalsEq]
+  exact run_attempt_headers_body_keeps_mpt_hash_scratch s bodyPost headers count value code bodyRun
+
+#print axioms RunAttemptHeaderValidationFacts.mpt_hash_scratch
 end InitECandidate.Runtime
