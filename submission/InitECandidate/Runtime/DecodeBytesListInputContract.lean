@@ -35,5 +35,24 @@ theorem decodeBytesList_returned_input_prefix {F : Type}
       (congrFun memory _) (congrFun memory _)⟩
   · rw [globals]; exact heapGlobal
 
+/-- A nonempty returned array is the real allocation at the decoder entry
+heap; the empty list may retain its zero pointer. -/
+theorem decodeBytesList_returned_array_origin {F : Type}
+    (state post : PanSemStateFiniteExact 64 F) (pointer length limit maxBytes heapPointer : BitVec 64)
+    (value : ValueHOL 64)
+    (returned : DecodeBytesListReturned state pointer length limit maxBytes heapPointer value post)
+    (array count : BitVec 64) (shape : value = .rStruct [.val (.word array),.val (.word count)]) :
+    count = 0 ∨ array = heapPointer := by
+  obtain ⟨clock,bodyPost,run,body,slices,memory,globals,domain,items⟩ := returned
+  rcases body with ⟨_,valueEq,_⟩ | ⟨_,first,_,_,valueEq,_⟩
+  · have same := shape.symm.trans valueEq
+    simp only [ValueHOL.rStruct.injEq,List.cons.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq,and_true] at same
+    exact Or.inl same.2
+  · have same := shape.symm.trans valueEq
+    simp only [ValueHOL.rStruct.injEq,List.cons.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq,and_true] at same
+    exact Or.inr same.1
+
+#print axioms decodeBytesList_returned_array_origin
+
 #print axioms decodeBytesList_returned_input_prefix
 end InitECandidate.Runtime
