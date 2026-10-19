@@ -7,26 +7,26 @@ variable {SP0 P0 FM w : BitVec 64} {G0 : HolFiniteMapExact MlS (ValueHOL 64)} {V
   {RR : ValueHOL 64 → Mem → Prop}
 
 /-- Some valid table layout with room for one more entry is in memory, agreeing with `M0` outside the footprint. -/
-def RoomyLay (P0 T E : BitVec 64) (M0 : Mem) (M : Mem) : Prop :=
+def RoomyLay (P0 T : BitVec 64) (E : BitVec 64 → Prop) (M0 : Mem) (M : Mem) : Prop :=
   ∃ (KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat), HLay P0 T E KL SD C N KS VS US OS OPS b ∧
     MI P0 T E M0 KL SD C N KS VS US OS OPS M ∧ N.toNat + 1 < C.toNat
 
-theorem hlay_count {P0 T E KL SD C N KS VS US OS OPS : BitVec 64} {b : Nat}
+theorem hlay_count {P0 T : BitVec 64} {E : BitVec 64 → Prop} {KL SD C N KS VS US OS OPS : BitVec 64} {b : Nat}
     (h : HLay P0 T E KL SD C N KS VS US OS OPS b) (N' : BitVec 64) (c : N'.toNat < C.toNat) :
     HLay P0 T E KL SD C N' KS VS US OS OPS b :=
-  ⟨h.pow,h.fits,h.sdAl,h.ksAl,h.usAl,c,h.hdr,h.hdrP,h.eEnd,h.keysR,h.valsR,h.usedR,h.orderR,h.oposR⟩
+  ⟨h.pow,h.fits,h.sdAl,h.ksAl,h.usAl,c,h.hdr,h.hdrP,h.eEnd,h.fresh,h.keysR,h.valsR,h.usedR,h.orderR,h.oposR⟩
 
 set_option maxHeartbeats 4000000 in
 /-- `htab_set` under the real table layout, exporting the post-call layout: every word outside the footprint is
 kept in every outcome, and a return leaves a valid layout (count below capacity) in memory, agreeing with the entry
 outside the footprint. -/
-theorem set_aqm_lay (T Kk V E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
+theorem set_aqm_lay (T Kk V : BitVec 64) (E : BitVec 64 → Prop) (KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
     (lay : HLay P0 T E KL SD C N KS VS US OS OPS b) (M0 : Mem) (hw : ¬ Foot P0 T E w) :
     AQM SP0 P0 FM G0 w (fun _ => True)
       (fun L M => LK (irP0 T Kk V) L ∧ Hdr M T KL SD C N KS VS US OS OPS ∧ M = M0)
       (fun _ _ => True) (fun _ M' => AnyLay P0 T E M0 M')
       (sourceFunctionBody Guest.guestFn_htab_set) := by
-  have fitT : T.toNat + 72 < 2 ^ 64 := by have := lay.hdr; have := lay.eEnd; omega
+  have fitT : T.toNat + 72 < 2 ^ 64 := by have := lay.eEnd; omega
   unfold sourceFunctionBody
   rw [InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
   simp only [Guest.guestFn_htab_set,InitECandidate.Proofs.FrontendCodecComputation.declToHOLStructural,
