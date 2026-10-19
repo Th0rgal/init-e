@@ -102,30 +102,40 @@ theorem scratch_alloc_body_returned {F : Type} (E post : PanSemStateFiniteExact 
 
 #print axioms scratch_alloc_body_returned
 
-/-- Arena globals: the frame pointer is `FM`, the scratch pointer lies in `[FM, SP0]`, the heap pointer lies in
-`[P0, HEAP_END]`. -/
-def AW (SP0 P0 FM : BitVec 64) (g : HolFiniteMapExact MlS (ValueHOL 64)) : Prop :=
+/-- Globals that the arena-safe code never assigns: buffer pointers, constant hashes and world roots. -/
+def staticGlobalNames : List MlS :=
+  [ofString "keccak_st",ofString "keccak_pad",ofString "mpt_nib_scratch",ofString "empty_trie_root",
+    ofString "empty_code_hash",ofString "ws",ofString "ts",ofString "bs"]
+
+/-- The static globals hold their one-word reference values from `G0`. -/
+def StaticG (G0 g : HolFiniteMapExact MlS (ValueHOL 64)) : Prop :=
+  ∀ n ∈ staticGlobalNames, g.lookup n = G0.lookup n ∧ ∃ y : BitVec 64, G0.lookup n = some (.val (.word y))
+
+/-- Arena globals: the frame pointer is `FM`, the scratch pointer lies in `[FM, SP0]`, the heap pointer is an
+8-aligned word in `[P0, HEAP_END]`, and the static globals keep their one-word reference values from `G0`. -/
+def AW (SP0 P0 FM : BitVec 64) (G0 g : HolFiniteMapExact MlS (ValueHOL 64)) : Prop :=
   g.lookup (ofString "frame_mem_ptr") = some (.val (.word FM)) ∧
   (∃ sp : BitVec 64, g.lookup (ofString "scratch_ptr") = some (.val (.word sp)) ∧ FM.toNat ≤ sp.toNat ∧
     sp.toNat ≤ SP0.toNat) ∧
   (∃ h : BitVec 64, g.lookup (ofString "heap_ptr") = some (.val (.word h)) ∧ P0.toNat ≤ h.toNat ∧
-    h.toNat ≤ 33806089496)
+    h.toNat ≤ 33806089496 ∧ h.toNat % 8 = 0) ∧
+  StaticG G0 g
 
 /-- Arena-safe code keeps the watched word in every outcome and keeps the arena globals on continuing outcomes. -/
-def ASafe (SP0 P0 FM w : BitVec 64) (p : ProgHOL 64) : Prop :=
-  ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode → AW SP0 P0 FM s.globals →
+def ASafe (SP0 P0 FM : BitVec 64) (G0 : HolFiniteMapExact MlS (ValueHOL 64)) (w : BitVec 64) (p : ProgHOL 64) : Prop :=
+  ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode → AW SP0 P0 FM G0 s.globals →
     (evaluateHOLFiniteState s p).2.memory w = s.memory w ∧
-    (Continuing (evaluateHOLFiniteState s p).1 → AW SP0 P0 FM (evaluateHOLFiniteState s p).2.globals)
+    (Continuing (evaluateHOLFiniteState s p).1 → AW SP0 P0 FM G0 (evaluateHOLFiniteState s p).2.globals)
 
-variable {SP0 P0 FM w : BitVec 64}
+variable {SP0 P0 FM w : BitVec 64} {G0 : HolFiniteMapExact MlS (ValueHOL 64)}
 
-theorem asafe_mf {p : ProgHOL 64} (h : MemoryFrame p) : ASafe SP0 P0 FM w p := by
+theorem asafe_mf {p : ProgHOL 64} (h : MemoryFrame p) : ASafe SP0 P0 FM G0 w p := by
   intro F s code aw
   obtain ⟨m,g⟩ := h s code
   exact ⟨by rw [m],fun _ => by rw [g]; exact aw⟩
 
-theorem asafe_seq {p q : ProgHOL 64} (hp : ASafe SP0 P0 FM w p) (hq : ASafe SP0 P0 FM w q) :
-    ASafe SP0 P0 FM w (.seq p q) := by
+theorem asafe_seq {p q : ProgHOL 64} (hp : ASafe SP0 P0 FM G0 w p) (hq : ASafe SP0 P0 FM G0 w q) :
+    ASafe SP0 P0 FM G0 w (.seq p q) := by
   intro F s code aw
   have h1 := hp s code aw
   have meta' := evaluateHOLFiniteState_metadata s p
@@ -140,7 +150,7 @@ theorem asafe_seq {p q : ProgHOL 64} (hp : ASafe SP0 P0 FM w p) (hq : ASafe SP0 
       exact ⟨h2.1.trans h1.1,h2.2⟩
 
 theorem asafe_dec (name : MlS) (shape : ShapeHOL) (init : ExpHOL 64) {body : ProgHOL 64}
-    (hb : ASafe SP0 P0 FM w body) : ASafe SP0 P0 FM w (.dec name shape init body) := by
+    (hb : ASafe SP0 P0 FM G0 w body) : ASafe SP0 P0 FM G0 w (.dec name shape init body) := by
   intro F s code aw
   rw [evaluateHOLFiniteState_dec_total]
   dsimp only
@@ -150,8 +160,8 @@ theorem asafe_dec (name : MlS) (shape : ShapeHOL) (init : ExpHOL 64) {body : Pro
     · exact hb _ (by exact code) (by exact aw)
     · exact ⟨rfl,fun _ => aw⟩
 
-theorem asafe_ite (c : ExpHOL 64) {y n : ProgHOL 64} (hy : ASafe SP0 P0 FM w y) (hn : ASafe SP0 P0 FM w n) :
-    ASafe SP0 P0 FM w (.ite c y n) := by
+theorem asafe_ite (c : ExpHOL 64) {y n : ProgHOL 64} (hy : ASafe SP0 P0 FM G0 w y) (hn : ASafe SP0 P0 FM G0 w n) :
+    ASafe SP0 P0 FM G0 w (.ite c y n) := by
   intro F s code aw
   rw [evaluateHOLFiniteState_ite]
   split
@@ -160,11 +170,11 @@ theorem asafe_ite (c : ExpHOL 64) {y n : ProgHOL 64} (hy : ASafe SP0 P0 FM w y) 
     · exact hy s code aw
   · exact ⟨rfl,fun _ => aw⟩
 
-theorem asafe_while_run (c : ExpHOL 64) (body : ProgHOL 64) (hb : ASafe SP0 P0 FM w body) {F : Type}
-    (s : PanSemStateFiniteExact 64 F) (code : s.code = originalRuntimeCode) (aw : AW SP0 P0 FM s.globals) :
+theorem asafe_while_run (c : ExpHOL 64) (body : ProgHOL 64) (hb : ASafe SP0 P0 FM G0 w body) {F : Type}
+    (s : PanSemStateFiniteExact 64 F) (code : s.code = originalRuntimeCode) (aw : AW SP0 P0 FM G0 s.globals) :
     (evaluateHOLFiniteState s (.while c body)).2.memory w = s.memory w ∧
       (Continuing (evaluateHOLFiniteState s (.while c body)).1 →
-        AW SP0 P0 FM (evaluateHOLFiniteState s (.while c body)).2.globals) := by
+        AW SP0 P0 FM G0 (evaluateHOLFiniteState s (.while c body)).2.globals) := by
   rw [evaluateHOLFiniteState_while_total]
   split
   · split
@@ -200,8 +210,8 @@ theorem asafe_while_run (c : ExpHOL 64) (body : ProgHOL 64) (hb : ASafe SP0 P0 F
   · exact ⟨rfl,fun _ => aw⟩
 termination_by s.clock
 
-theorem asafe_while (c : ExpHOL 64) {body : ProgHOL 64} (hb : ASafe SP0 P0 FM w body) :
-    ASafe SP0 P0 FM w (.while c body) := fun s code aw => asafe_while_run c body hb s code aw
+theorem asafe_while (c : ExpHOL 64) {body : ProgHOL 64} (hb : ASafe SP0 P0 FM G0 w body) :
+    ASafe SP0 P0 FM G0 w (.while c body) := fun s code aw => asafe_while_run c body hb s code aw
 
 #print axioms asafe_seq
 #print axioms asafe_while
@@ -211,7 +221,7 @@ theorem asafe_call (info : Option (Option (VarKind × MlS) × Option (MlS × MlS
     (function : MlS) (arguments : List (ExpHOL 64))
     (parameters : List (MlS × ShapeHOL)) (body : ProgHOL 64) (returnShape : ShapeHOL)
     (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
-    (hb : ASafe SP0 P0 FM w body) : ASafe SP0 P0 FM w (.call info function arguments) := by
+    (hb : ASafe SP0 P0 FM G0 w body) : ASafe SP0 P0 FM G0 w (.call info function arguments) := by
   intro F state code aw
   rw [evaluateHOLFiniteState_call]
   cases args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments with
@@ -232,7 +242,7 @@ theorem asafe_call (info : Option (Option (VarKind × MlS) × Option (MlS × MlS
         cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) found with
         | mk rb bodyPost =>
           rw [bodyRun] at frame
-          change bodyPost.memory w = state.memory w ∧ (Continuing rb → AW SP0 P0 FM bodyPost.globals) at frame
+          change bodyPost.memory w = state.memory w ∧ (Continuing rb → AW SP0 P0 FM G0 bodyPost.globals) at frame
           rcases hinfo with rfl | rfl
           · rcases rb with _ | (_ | _ | _ | _ | v | _ | _)
             all_goals (dsimp only)
@@ -250,8 +260,8 @@ theorem asafe_call (info : Option (Option (VarKind × MlS) × Option (MlS × MlS
 theorem asafe_decCall (name function : MlS) (shape : ShapeHOL) (arguments : List (ExpHOL 64)) {cont : ProgHOL 64}
     (parameters : List (MlS × ShapeHOL)) (body : ProgHOL 64) (returnShape : ShapeHOL)
     (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
-    (hb : ASafe SP0 P0 FM w body) (hc : ASafe SP0 P0 FM w cont) :
-    ASafe SP0 P0 FM w (.decCall name shape function arguments cont) := by
+    (hb : ASafe SP0 P0 FM G0 w body) (hc : ASafe SP0 P0 FM G0 w cont) :
+    ASafe SP0 P0 FM G0 w (.decCall name shape function arguments cont) := by
   intro F state code aw
   rw [evaluateHOLFiniteState_decCall_total]
   cases args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a)) arguments with
@@ -273,7 +283,7 @@ theorem asafe_decCall (name function : MlS) (shape : ShapeHOL) (arguments : List
         cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite state callee) found with
         | mk rb bodyPost =>
           rw [bodyRun] at frame meta'
-          change bodyPost.memory w = state.memory w ∧ (Continuing rb → AW SP0 P0 FM bodyPost.globals) at frame
+          change bodyPost.memory w = state.memory w ∧ (Continuing rb → AW SP0 P0 FM G0 bodyPost.globals) at frame
           dsimp only [fixClockHOLFinite]
           rcases rb with _ | (_ | _ | _ | _ | v | _ | _)
           all_goals (dsimp only)
