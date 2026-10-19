@@ -39,6 +39,8 @@ theorem payload_declaration_returned_hash_decoded {F : Type} (state post : PanSe
       ready.globals.lookup (ofString "heap_ptr") = some (.val (.word nextHeap)) ∧
       nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 ∧
       heapPointer.toNat + 136 ≤ nextHeap.toNat ∧ array.toNat + count.toNat * 16 ≤ nextHeap.toNat ∧
+      (count = 0 ∨ heapPointer.toNat + 136 ≤ array.toNat) ∧
+      GlobalsExceptHeap state ready ∧
       post.memory = output.memory ∧ post.globals = output.globals ∧ post.memaddrs = output.memaddrs := by
   let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
     (HolFiniteMapExact.empty.update (ofString "p",.val (.word pointer))).update (ofString "len",.val (.word length))
@@ -56,7 +58,7 @@ theorem payload_declaration_returned_hash_decoded {F : Type} (state post : PanSe
     (sourceFunctionBody Guest.guestFn_decode_payload) continuation callee finalValue args lookup run
   have returned := payload_body_returned_value entry bodyPost pointer length offsets heapPointer value p len atOffsets heap
     heapBound aligned inputFits domain0 domain8 domain16 domain24 header0 header8 header16 header24 header32 header40 code bodyRun
-  obtain ⟨array,count,nextHeap,withdrawals,balance,extra,decoded,nextGlobal,nextBound,nextAligned,growth,arrayBefore⟩ :=
+  obtain ⟨array,count,nextHeap,withdrawals,balance,extra,decoded,nextGlobal,nextBound,nextAligned,growth,arrayBefore,arrayOrigin,nonHeapGlobals⟩ :=
     payload_body_returned_hash_decoded entry bodyPost pointer length offsets heapPointer value p len atOffsets heap
       heapBound aligned scratchBelow small inputFits domain0 domain8 domain16 domain24 header0 header8 header16 header24 header32 header40 code bodyRun
   rw [returned] at tail
@@ -64,7 +66,7 @@ theorem payload_declaration_returned_hash_decoded {F : Type} (state post : PanSe
   rw [bodyRun] at metadata
   let ready := setVarHOLFinite name (.val (.word heapPointer)) {bodyPost with locals := state.locals}
   refine ⟨array,count,nextHeap,withdrawals,balance,extra,ready,output,tail,rfl,metadata.1,metadata.2.1,
-    decoded.after_frame rfl rfl,nextGlobal,nextBound,nextAligned,growth,arrayBefore,?_,?_,?_⟩
+    decoded.after_frame rfl rfl,nextGlobal,nextBound,nextAligned,growth,arrayBefore,arrayOrigin,nonHeapGlobals,?_,?_,?_⟩
   all_goals rw [restored]
 
 #print axioms payload_declaration_returned_hash_decoded

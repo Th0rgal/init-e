@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.PayloadBodyReturnedSlicesAbove
 import InitECandidate.Runtime.PayloadBodyReturnedEntries
 import InitECandidate.Runtime.PayloadBodyReturnedExtra
 import InitECandidate.Runtime.PayloadBodyReturnedHeader
@@ -31,9 +32,10 @@ theorem payload_body_returned_hash_decoded {F : Type} (state post : PanSemStateF
         (pointer + 540) (extra - 540) ∧
       post.globals.lookup (ofString "heap_ptr") = some (.val (.word nextHeap)) ∧
       nextHeap.toNat ≤ 33806089496 ∧ nextHeap.toNat % 8 = 0 ∧
-      heapPointer.toNat + 136 ≤ nextHeap.toNat ∧ array.toNat + count.toNat * 16 ≤ nextHeap.toNat := by
-  obtain ⟨long,array,count,nextHeap,slices,countLimit,read32,read40,atHeap,cap,alignment,growth,arrayHeap⟩ :=
-    payload_body_returned_slices state post pointer length offsets heapPointer value atPointer atLength atOffsets heap heapBound aligned inputFits domain0 domain8 domain16 domain24 header0 header8 header16 header24 header32 header40 code run
+      heapPointer.toNat + 136 ≤ nextHeap.toNat ∧ array.toNat + count.toNat * 16 ≤ nextHeap.toNat ∧
+      (count = 0 ∨ heapPointer.toNat + 136 ≤ array.toNat) ∧ GlobalsExceptHeap state post := by
+  obtain ⟨long,array,count,nextHeap,slices,countLimit,read32,read40,atHeap,cap,alignment,growth,arrayHeap,arrayOrigin⟩ :=
+    payload_body_returned_slices_above state post pointer length offsets heapPointer value atPointer atLength atOffsets heap heapBound aligned inputFits domain0 domain8 domain16 domain24 header0 header8 header16 header24 header32 header40 code run
   obtain ⟨otherArray,otherCount,withdrawals,balance,ordered,inside,countBound,wdBound,requestBound,transactions,wdEntry,requestEntry⟩ :=
     payload_body_returned_entries state post pointer length offsets heapPointer value atPointer atLength atOffsets heap heapBound aligned small inputFits domain0 domain8 domain16 domain24 header0 header8 header16 header24 header32 header40 code run
   have pointerCell : post.memory (heapPointer + 32) = .word otherArray := transactions.pointerCell
@@ -43,7 +45,7 @@ theorem payload_body_returned_hash_decoded {F : Type} (state post : PanSemStateF
   subst otherArray
   subst otherCount
   obtain ⟨extra,extraBound,extraEntry⟩ := payload_body_returned_extra state post pointer length offsets heapPointer value atPointer atLength atOffsets heap heapBound aligned inputFits domain0 domain8 domain16 domain24 header0 header8 header16 header24 header32 header40 code run
-  obtain ⟨rawPointer,rawLength,_⟩ := payload_body_returned_header state post pointer length offsets heapPointer value atPointer atLength atOffsets heap heapBound aligned scratchBelow
+  obtain ⟨rawPointer,rawLength,nonHeapGlobals⟩ := payload_body_returned_header state post pointer length offsets heapPointer value atPointer atLength atOffsets heap heapBound aligned scratchBelow
     domain0 domain8 domain16 domain24 header0 header8 header16 header24 header32 header40 code run
   have metadata := evaluateHOLFiniteState_metadata state (sourceFunctionBody Guest.guestFn_decode_payload)
   rw [run] at metadata
@@ -55,7 +57,7 @@ theorem payload_body_returned_hash_decoded {F : Type} (state post : PanSemStateF
     · simpa using rawLength
   exact ⟨array,count,nextHeap,withdrawals,balance,extra,
     ⟨small,countBound,transactions,slices,rawEntry,wdEntry,wdBound,requestEntry,requestBound,extraEntry,(by omega)⟩,
-    atHeap,cap,alignment,growth,arrayHeap⟩
+    atHeap,cap,alignment,growth,arrayHeap,arrayOrigin,nonHeapGlobals⟩
 
 #print axioms payload_body_returned_hash_decoded
 end InitECandidate.Runtime
