@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.RunAttemptNodedbCallBound
 import InitECandidate.Runtime.BoundedDecCallReach
+import InitECandidate.Runtime.NodedbInputCost
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -79,4 +80,36 @@ theorem run_attempt_nodedb_declaration_reaches {F : Type} (s : PanSemStateFinite
   exact ⟨value,bodyPost,bodyRun,rfl,rfl,rfl,metadata.2.1,metadata.1⟩
 
 #print axioms run_attempt_nodedb_declaration_reaches
+theorem run_attempt_nodedb_declaration_input_reaches {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (si heap total array input inputLength statePad pad output : BitVec 64)
+    (atSi : s.locals.lookup (ofString "si") = some (.val (.word si)))
+    (linked : WitnessArrayLinked s si 40 48 array total input inputLength heap)
+    (code : s.code = originalRuntimeCode)
+    (atHeap : s.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)))
+    (aligned : heap.toNat % 8 = 0) (capped : heap.toNat ≤ 33806089496)
+    (atState : s.globals.lookup (ofString "keccak_st") = some (.val (.word statePad)))
+    (atPad : s.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)))
+    (atOutput : s.globals.lookup (ofString "mpt_hash_scratch") = some (.val (.word output)))
+    (inputSmall : inputLength.toNat ≤ 134217712) (outputAligned : output.toNat % 8 = 0)
+    (windows : total ≠ 0 → statePad.toNat + 200 ≤ array.toNat ∧ pad.toNat + 136 ≤ array.toNat ∧
+      output.toNat + 32 ≤ array.toNat)
+    (arena : ∀ a : BitVec 64, a.toNat % 8 = 0 → heap.toNat ≤ a.toNat → a.toNat < 33806089496 →
+      s.memaddrs a)
+    (inputLimit : Nat) (inputBound : inputLength.toNat ≤ inputLimit) (inputCap : inputLimit ≤ 134217712)
+    (budget : nodedbInputCallCost inputLimit ≤ s.clock) :
+    Reaches s (runAttemptAt 9)
+      (fun ready => ∃ value : ValueHOL 64, ∃ bodyPost : PanSemStateFiniteExact 64 F,
+        evaluateHOLFiniteState (callEntryStateHOLFinite s (nodedbBuildCallee array total))
+          (sourceFunctionBody Guest.guestFn_nodedb_build) = (some (.returned value),bodyPost) ∧
+        ready.locals = s.locals.update (ofString "nodedb",value) ∧
+        ready.memory = bodyPost.memory ∧ ready.globals = bodyPost.globals ∧
+        ready.memaddrs = s.memaddrs ∧ ready.code = s.code)
+      (nodedbInputCallCost inputLimit) (runAttemptAt 10) := by
+  have cost := nodedb_call_cost_le_input total inputLength inputLimit linked.countBound inputBound inputCap
+  have reached := run_attempt_nodedb_declaration_reaches s si heap total array input inputLength statePad pad output
+    atSi linked code atHeap aligned capped atState atPad atOutput inputSmall outputAligned windows arena
+    (cost.trans budget)
+  exact reaches_mono s (runAttemptAt 9) (runAttemptAt 10) _ _ _ _ cost (fun _ facts => facts) reached
+
+#print axioms run_attempt_nodedb_declaration_input_reaches
 end InitECandidate.Runtime
