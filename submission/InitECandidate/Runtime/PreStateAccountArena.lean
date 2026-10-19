@@ -8,7 +8,7 @@ open Flapjack.Basis.Pure.MlString
 variable {SP0 P0 FM w : BitVec 64} {G0 : HolFiniteMapExact MlS (ValueHOL 64)} {Vn : MlS → Prop}
   {RR : ValueHOL 64 → Mem → Prop}
 
-theorem set_aqm_ex (T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
+theorem set_aqm_ex (T : BitVec 64) (E : BitVec 64 → Prop) (KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
     (lay : HLay P0 T E KL SD C N KS VS US OS OPS b) (M0 : Mem) (hw : ¬ Foot P0 T E w) :
     AQM SP0 P0 FM G0 w (fun _ => True)
       (fun L M => (∃ Kk V : BitVec 64, LK (irP0 T Kk V) L) ∧ Hdr M T KL SD C N KS VS US OS OPS ∧ M = M0)
@@ -20,7 +20,7 @@ theorem set_aqm_ex (T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
 /-- `htab_set(lds (g + off), a2, a3)` on a table whose pointer lives in a static global's record. -/
 theorem aqm_setCall {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Mem → Prop} (g : MlS) (hg : g ∈ staticGlobalNames)
     (Gv off : BitVec 64) (hG0 : G0.lookup g = some (.val (.word Gv))) (a2 a3 : ExpHOL 64)
-    (T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat) (lay : HLay P0 T E KL SD C N KS VS US OS OPS b)
+    (T : BitVec 64) (E : BitVec 64 → Prop) (KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat) (lay : HLay P0 T E KL SD C N KS VS US OS OPS b)
     (hw : ¬ Foot P0 T E w)
     (hP : ∀ L M, P L M → M (Gv + off) = .word T ∧ Hdr M T KL SD C N KS VS US OS OPS)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) x, P s.locals s.memory → SL Vn s.locals →
@@ -81,7 +81,7 @@ theorem source_recordPreRead_body : sourceFunctionBody Guest.guestFn_record_pre_
 
 /-- `record_pre_state_read(addr)`: the pre-state read table is updated through `htab_set` under its real layout. -/
 theorem recordPreRead_aqm (Bv : BitVec 64) (hG0 : G0.lookup (ofString "bs") = some (.val (.word Bv)))
-    (T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat) (lay : HLay P0 T E KL SD C N KS VS US OS OPS b)
+    (T : BitVec 64) (E : BitVec 64 → Prop) (KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat) (lay : HLay P0 T E KL SD C N KS VS US OS OPS b)
     (M0 : Mem) (hw : ¬ Foot P0 T E w) :
     AQM SP0 P0 FM G0 w (fun _ => True)
       (fun _ M => M (Bv + 72) = .word T ∧ Hdr M T KL SD C N KS VS US OS OPS ∧ M = M0)
@@ -121,9 +121,9 @@ footprints, below `P0`, outside the scratch arena and the Keccak/nibble buffers;
 header lie outside the transaction table's footprint. -/
 theorem preState_aqm (Ts Bs : BitVec 64) (hTs : G0.lookup (ofString "ts") = some (.val (.word Ts)))
     (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
-    (Ta Ea KLa SDa Ca Na KSa VSa USa OSa OPSa : BitVec 64) (ba : Nat)
+    (Ta : BitVec 64) (Ea : BitVec 64 → Prop) (KLa SDa Ca Na KSa VSa USa OSa OPSa : BitVec 64) (ba : Nat)
     (layA : HLay P0 Ta Ea KLa SDa Ca Na KSa VSa USa OSa OPSa ba)
-    (Tb Eb KLb SDb Cb Nb KSb VSb USb OSb OPSb : BitVec 64) (bb : Nat)
+    (Tb : BitVec 64) (Eb : BitVec 64 → Prop) (KLb SDb Cb Nb KSb VSb USb OSb OPSb : BitVec 64) (bb : Nat)
     (layB : HLay P0 Tb Eb KLb SDb Cb Nb KSb VSb USb OSb OPSb bb)
     (sepB : ∀ x : BitVec 64, (x = Bs + 72 ∨ (Tb.toNat ≤ x.toNat ∧ x.toNat < Tb.toNat + 72)) → ¬ Foot P0 Ta Ea x)
     (K Pd NB : BitVec 64)
@@ -195,9 +195,9 @@ theorem preState_aqm (Ts Bs : BitVec 64) (hTs : G0.lookup (ofString "ts") = some
 /-- Frame form: `get_pre_state_account_optional` from any arena state whose memory carries both read tables. -/
 theorem preState_frame (Ts Bs : BitVec 64) (hTs : G0.lookup (ofString "ts") = some (.val (.word Ts)))
     (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
-    (Ta Ea KLa SDa Ca Na KSa VSa USa OSa OPSa : BitVec 64) (ba : Nat)
+    (Ta : BitVec 64) (Ea : BitVec 64 → Prop) (KLa SDa Ca Na KSa VSa USa OSa OPSa : BitVec 64) (ba : Nat)
     (layA : HLay P0 Ta Ea KLa SDa Ca Na KSa VSa USa OSa OPSa ba)
-    (Tb Eb KLb SDb Cb Nb KSb VSb USb OSb OPSb : BitVec 64) (bb : Nat)
+    (Tb : BitVec 64) (Eb : BitVec 64 → Prop) (KLb SDb Cb Nb KSb VSb USb OSb OPSb : BitVec 64) (bb : Nat)
     (layB : HLay P0 Tb Eb KLb SDb Cb Nb KSb VSb USb OSb OPSb bb)
     (sepB : ∀ x : BitVec 64, (x = Bs + 72 ∨ (Tb.toNat ≤ x.toNat ∧ x.toNat < Tb.toNat + 72)) → ¬ Foot P0 Ta Ea x)
     (K Pd NB : BitVec 64)

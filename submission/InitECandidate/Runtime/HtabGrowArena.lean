@@ -35,7 +35,7 @@ theorem cells_hdr {M : Mem} {T KL SD C N KS VS US OS OPS : BitVec 64}
     h (40#64,VS) (by simp),h (48#64,US) (by simp),h (56#64,OS) (by simp),h (64#64,OPS) (by simp)⟩
 
 /-- `insert_raw` spec with unspecified key and value arguments. -/
-theorem insertRaw_aqm_ex (T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
+theorem insertRaw_aqm_ex (T : BitVec 64) (E : BitVec 64 → Prop) (KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
     (lay : HLay P0 T E KL SD C N KS VS US OS OPS b) (M0 : Mem) (hw : ¬ Foot P0 T E w) :
     AQM SP0 P0 FM G0 w (fun _ => True)
       (fun L M => (∃ Kk V : BitVec 64, LK (irP0 T Kk V) L) ∧ Hdr M T KL SD C N KS VS US OS OPS ∧ M = M0)
@@ -97,21 +97,22 @@ theorem mwin_ge {D x : BitVec 64} {N : Nat} (hx : MWin D N x) (al : D.toNat % 8 
 
 /-- Header cells being rewritten: the listed cells, the current locals, and agreement with the entry memory
 outside the footprint. -/
-def HW (P0 T E : BitVec 64) (M0 : Mem) (pairs : List (MlS × BitVec 64)) (cs : List (BitVec 64 × BitVec 64))
+def HW (P0 T : BitVec 64) (E : BitVec 64 → Prop) (M0 : Mem) (pairs : List (MlS × BitVec 64)) (cs : List (BitVec 64 × BitVec 64))
     (L : HolFiniteMapExact MlS (ValueHOL 64)) (M : Mem) : Prop :=
   LK pairs L ∧ Cells M T cs ∧ ∀ x, ¬ Foot P0 T E x → M x = M0 x
 
 /-- A header store `st t + off, v` with a known word value. -/
-theorem aqm_cellStore {P0 T E : BitVec 64} {M0 : Mem} {pairs : List (MlS × BitVec 64)}
+theorem aqm_cellStore {P0 T : BitVec 64} {E : BitVec 64 → Prop} {M0 : Mem} {pairs : List (MlS × BitVec 64)}
     {cs : List (BitVec 64 × BitVec 64)} (off val : BitVec 64) (v : ExpHOL 64)
-    (ht : (ofString "t",T) ∈ pairs) (small : off.toNat < 72) (hdr : T.toNat + 72 ≤ E.toNat) (eE : E.toNat < 2 ^ 64)
+    (ht : (ofString "t",T) ∈ pairs) (small : off.toNat < 72)
+    (hdr : ∀ x : BitVec 64, T.toNat ≤ x.toNat → x.toNat < T.toNat + 72 → E x) (eE : T.toNat + 72 < 2 ^ 64)
     (hw : ¬ Foot P0 T E w) (hoff : ∀ p ∈ cs, p.1 ≠ off)
     (hv : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) x, LK pairs s.locals → EV s v = some x →
       x = .val (.word val)) :
     AQM SP0 P0 FM G0 w (fun _ => True) (HW P0 T E M0 pairs cs) (HW P0 T E M0 pairs ((off,val) :: cs)) RR
       (.store (.op .add [.var .local (ofString "t"),.const off]) v) := by
   have fa : Foot P0 T E (T + off) := by
-    left; rw [BitVec.toNat_add_of_lt (by omega)]; omega
+    apply hdr <;> rw [BitVec.toNat_add_of_lt (by omega)] <;> omega
   refine aqm_store' _ _ ?_ ?_
   · intro F s a _ ⟨hl,hc,ag⟩ _ ev
     have htl := lk_get hl _ _ ht
@@ -131,7 +132,7 @@ theorem aqm_cellStore {P0 T E : BitVec 64} {M0 : Mem} {pairs : List (MlS × BitV
     exact ⟨val,hv s x hl ev⟩
 
 /-- The doubled layout after a grow: fresh arrays sized for twice the capacity. -/
-theorem grow_newLay {P0 T E KL SD C N KS VS US OS OPS NKS NVS NUS NOS NOPS K : BitVec 64} {b : Nat}
+theorem grow_newLay {P0 T : BitVec 64} {E : BitVec 64 → Prop} {KL SD C N KS VS US OS OPS NKS NVS NUS NOS NOPS K : BitVec 64} {b : Nat}
     (lay : HLay P0 T E KL SD C N KS VS US OS OPS b)
     (fk : Fresh P0 NKS (C * 2#64 * SD).toNat) (fv : Fresh P0 NVS (C * 2#64 * 8#64).toNat)
     (fu : Fresh P0 NUS (C * 2#64).toNat) (fo : Fresh P0 NOS (C * 2#64 * 8#64).toNat)
@@ -160,11 +161,12 @@ theorem grow_newLay {P0 T E KL SD C N KS VS US OS OPS NKS NVS NUS NOS NOPS K : B
           hdr := lay.hdr
           hdrP := lay.hdrP
           eEnd := lay.eEnd
-          keysR := Or.inr ⟨k1,by rw [c2]; omega⟩
-          valsR := Or.inr ⟨v1,by rw [c2]; omega⟩
-          usedR := Or.inr ⟨u1,by rw [c2]; omega⟩
-          orderR := Or.inr ⟨o1,by rw [c2]; omega⟩
-          oposR := Or.inr ⟨p1,by rw [c2]; omega⟩ }
+          fresh := lay.fresh
+          keysR := ⟨by have := lay.hdrP; omega,by rw [c2]; omega,fun x lo _ => lay.fresh x (by omega)⟩
+          valsR := ⟨by have := lay.hdrP; omega,by rw [c2]; omega,fun x lo _ => lay.fresh x (by omega)⟩
+          usedR := ⟨by have := lay.hdrP; omega,by rw [c2]; omega,fun x lo _ => lay.fresh x (by omega)⟩
+          orderR := ⟨by have := lay.hdrP; omega,by rw [c2]; omega,fun x lo _ => lay.fresh x (by omega)⟩
+          oposR := ⟨by have := lay.hdrP; omega,by rw [c2]; omega,fun x lo _ => lay.fresh x (by omega)⟩ }
 
 /-- `htab_grow` locals after the header loads and `ncap`. -/
 def grP (T C SD KS VS OS N : BitVec 64) : List (MlS × BitVec 64) :=
@@ -175,7 +177,7 @@ set_option maxHeartbeats 4000000 in
 /-- `htab_grow` under the real table layout: every word outside the footprint is kept in every outcome; a return
 leaves a new layout (doubled capacity, fresh arrays, count at most the old count) whose header is in memory, with
 memory agreeing with the entry outside the footprint. -/
-theorem grow_aqm (T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
+theorem grow_aqm (T : BitVec 64) (E : BitVec 64 → Prop) (KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
     (lay : HLay P0 T E KL SD C N KS VS US OS OPS b) (M0 : Mem) (hw : ¬ Foot P0 T E w) :
     AQM SP0 P0 FM G0 w (fun _ => True)
       (fun L M => LK [(ofString "t",T)] L ∧ Hdr M T KL SD C N KS VS US OS OPS ∧ M = M0)
@@ -184,7 +186,7 @@ theorem grow_aqm (T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
         HLay P0 T E KL SD (C * 2#64) K NKS NVS NUS NOS NOPS (b + 1) ∧
         MI P0 T E M0 KL SD (C * 2#64) K NKS NVS NUS NOS NOPS M')
       (sourceFunctionBody Guest.guestFn_htab_grow) := by
-  have fitT : T.toNat + 72 < 2 ^ 64 := by have := lay.hdr; have := lay.eEnd; omega
+  have fitT : T.toNat + 72 < 2 ^ 64 := by have := lay.eEnd; omega
   have cHE : C.toNat ≤ 33806089496 := by have := arr_end lay.usedR lay.eEnd; omega
   have c2 : (C * 2#64).toNat = C.toNat * 2 := by
     rw [BitVec.toNat_mul]; exact Nat.mod_eq_of_lt (by simp; omega)
@@ -238,7 +240,7 @@ theorem grow_aqm (T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
     have h0 := lk_get hl (ofString "ncap") (C * 2#64) (by simp [grP])
     simp [EV,evalHOLExact,evalListHOLExact,h0,panOpHOL,valueIsWord,valueWord] at ev
     exact ev.symm
-  have hwP : w.toNat < P0.toNat := by unfold Foot at hw; omega
+  have hwP : w.toNat < P0.toNat := by by_contra h; exact hw (lay.fresh w (by omega))
   have nC := lay.cnt
   refine aqm_seq (Q := HW P0 T E M0 ((ofString "norder_pos",NOPS) :: (ofString "norder",NOS) :: (ofString "nused",NUS) :: (ofString "nvals",NVS) :: (ofString "nkeys",NKS) :: grP T C SD KS VS OS N) [(8#64,SD),(0#64,KL)]) (aqm_callSpec (Vn' := fun _ => False)
     (Pe := fun _ M0' L M => L.lookup (ofString "dst") = some (.val (.word NUS)) ∧
@@ -262,37 +264,37 @@ theorem grow_aqm (T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
     have hm' := mi_frame hm fitT (MWin NUS (C * 2#64).toNat) (fun x hx => by
       obtain ⟨lo,_⟩ := mwin_ge hx fnused.2.2 (by have := fnused.2.1; omega)
       have := fnused.1; have := lay.hdrP
-      exact ⟨Or.inr (by omega),by omega⟩) h
+      exact ⟨lay.fresh x (by omega),by omega⟩) h
     refine ⟨hl,fun p hp => ?_,hm'.2⟩
     simp only [List.mem_cons,List.mem_nil_iff,or_false] at hp
     rcases hp with rfl | rfl
     · exact hm'.1.2.1
     · exact hm'.1.1
-  refine aqm_seq (aqm_cellStore 16#64 (C * 2#64) _ (by simp [grP]) (by decide) lay.hdr (by have := lay.eEnd; omega) hw
+  refine aqm_seq (aqm_cellStore 16#64 (C * 2#64) _ (by simp [grP]) (by decide) lay.hdr fitT hw
     (by simp) (fun s x hl ev => by
       have h := lk_get hl (ofString "ncap") (C * 2#64) (by simp [grP])
       simp [EV,evalHOLExact,h] at ev; exact ev.symm)) ?_
-  refine aqm_seq (aqm_cellStore 32#64 (NKS) _ (by simp [grP]) (by decide) lay.hdr (by have := lay.eEnd; omega) hw
+  refine aqm_seq (aqm_cellStore 32#64 (NKS) _ (by simp [grP]) (by decide) lay.hdr fitT hw
     (by simp) (fun s x hl ev => by
       have h := lk_get hl (ofString "nkeys") (NKS) (by simp [grP])
       simp [EV,evalHOLExact,h] at ev; exact ev.symm)) ?_
-  refine aqm_seq (aqm_cellStore 40#64 (NVS) _ (by simp [grP]) (by decide) lay.hdr (by have := lay.eEnd; omega) hw
+  refine aqm_seq (aqm_cellStore 40#64 (NVS) _ (by simp [grP]) (by decide) lay.hdr fitT hw
     (by simp) (fun s x hl ev => by
       have h := lk_get hl (ofString "nvals") (NVS) (by simp [grP])
       simp [EV,evalHOLExact,h] at ev; exact ev.symm)) ?_
-  refine aqm_seq (aqm_cellStore 48#64 (NUS) _ (by simp [grP]) (by decide) lay.hdr (by have := lay.eEnd; omega) hw
+  refine aqm_seq (aqm_cellStore 48#64 (NUS) _ (by simp [grP]) (by decide) lay.hdr fitT hw
     (by simp) (fun s x hl ev => by
       have h := lk_get hl (ofString "nused") (NUS) (by simp [grP])
       simp [EV,evalHOLExact,h] at ev; exact ev.symm)) ?_
-  refine aqm_seq (aqm_cellStore 56#64 (NOS) _ (by simp [grP]) (by decide) lay.hdr (by have := lay.eEnd; omega) hw
+  refine aqm_seq (aqm_cellStore 56#64 (NOS) _ (by simp [grP]) (by decide) lay.hdr fitT hw
     (by simp) (fun s x hl ev => by
       have h := lk_get hl (ofString "norder") (NOS) (by simp [grP])
       simp [EV,evalHOLExact,h] at ev; exact ev.symm)) ?_
-  refine aqm_seq (aqm_cellStore 64#64 (NOPS) _ (by simp [grP]) (by decide) lay.hdr (by have := lay.eEnd; omega) hw
+  refine aqm_seq (aqm_cellStore 64#64 (NOPS) _ (by simp [grP]) (by decide) lay.hdr fitT hw
     (by simp) (fun s x hl ev => by
       have h := lk_get hl (ofString "norder_pos") (NOPS) (by simp [grP])
       simp [EV,evalHOLExact,h] at ev; exact ev.symm)) ?_
-  refine aqm_seq (aqm_cellStore 24#64 (0#64) _ (by simp [grP]) (by decide) lay.hdr (by have := lay.eEnd; omega) hw
+  refine aqm_seq (aqm_cellStore 24#64 (0#64) _ (by simp [grP]) (by decide) lay.hdr fitT hw
     (by simp) (fun s x hl ev => by simp [EV,evalHOLExact] at ev; exact ev.symm)) ?_
   refine aqm_dec (Pb := fun L M => ∃ K : BitVec 64, LK ((ofString "k",K) :: ((ofString "norder_pos",NOPS) :: (ofString "norder",NOS) :: (ofString "nused",NUS) :: (ofString "nvals",NVS) :: (ofString "nkeys",NKS) :: grP T C SD KS VS OS N)) L ∧ K.toNat ≤ N.toNat ∧
       Hdr M T KL SD (C * 2#64) K NKS NVS NUS NOS NOPS ∧ ∀ x, ¬ Foot P0 T E x → M x = M0 x) (Qb := fun _ _ => True) _ _ _ (fun _ => rfl) ?_ ?_ (fun _ _ _ _ _ _ => trivial)

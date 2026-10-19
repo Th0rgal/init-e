@@ -36,44 +36,42 @@ def Hdr (M : Mem) (T KL SD C N KS VS US OS OPS : BitVec 64) : Prop :=
     M (T + 32#64) = .word KS ∧ M (T + 40#64) = .word VS ∧ M (T + 48#64) = .word US ∧ M (T + 56#64) = .word OS ∧
     M (T + 64#64) = .word OPS
 
-/-- An array of `len` bytes lies in the table body `[T + 72, E)` or in fresh heap `[P0, HEAP_END]`. -/
-def Arr (P0 T E a : BitVec 64) (len : Nat) : Prop :=
-  (T.toNat + 72 ≤ a.toNat ∧ a.toNat + len ≤ E.toNat) ∨ (P0.toNat ≤ a.toNat ∧ a.toNat + len ≤ 33806089496)
+/-- An array of `len` bytes lies after the header, below `HEAP_END`, inside the footprint `E`. -/
+def Arr (P0 T : BitVec 64) (E : BitVec 64 → Prop) (a : BitVec 64) (len : Nat) : Prop :=
+  T.toNat + 72 ≤ a.toNat ∧ a.toNat + len ≤ 33806089496 ∧
+    ∀ x : BitVec 64, a.toNat ≤ x.toNat → x.toNat < a.toNat + len → E x
 
-/-- Table footprint: the table region `[T, E)` or fresh heap. -/
-def Foot (P0 T E x : BitVec 64) : Prop := (T.toNat ≤ x.toNat ∧ x.toNat < E.toNat) ∨ P0.toNat ≤ x.toNat
+/-- Table footprint: an address predicate containing the header, the arrays and fresh heap (see `HLay`). -/
+def Foot (P0 T : BitVec 64) (E : BitVec 64 → Prop) (x : BitVec 64) : Prop := E x
 
-/-- The header layout: power-of-two capacity, aligned keys/stride/used, `count < cap`, arrays inside the table
-region or fresh heap, header below the arrays and below fresh heap. -/
-structure HLay (P0 T E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat) : Prop where
+/-- The header layout: power-of-two capacity, aligned keys/stride/used, `count < cap`, header and arrays inside the
+footprint `E` (which also contains fresh heap `[P0, ..)`), header below the arrays and below fresh heap. -/
+structure HLay (P0 T : BitVec 64) (E : BitVec 64 → Prop) (KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat) : Prop where
   pow : C.toNat = 2 ^ b
   fits : KL.toNat ≤ SD.toNat
   sdAl : SD.toNat % 8 = 0
   ksAl : KS.toNat % 8 = 0
   usAl : US.toNat % 8 = 0
   cnt : N.toNat < C.toNat
-  hdr : T.toNat + 72 ≤ E.toNat
+  hdr : ∀ x : BitVec 64, T.toNat ≤ x.toNat → x.toNat < T.toNat + 72 → E x
   hdrP : T.toNat + 72 ≤ P0.toNat
-  eEnd : E.toNat ≤ 33806089496
+  eEnd : T.toNat + 72 ≤ 33806089496
+  fresh : ∀ x : BitVec 64, P0.toNat ≤ x.toNat → E x
   keysR : Arr P0 T E KS (C.toNat * SD.toNat)
   valsR : Arr P0 T E VS (C.toNat * 8)
   usedR : Arr P0 T E US C.toNat
   orderR : Arr P0 T E OS (C.toNat * 8)
   oposR : Arr P0 T E OPS (C.toNat * 8)
 
-theorem arr_foot {P0 T E a : BitVec 64} {len : Nat} (h : Arr P0 T E a len) (x : BitVec 64)
-    (lo : a.toNat ≤ x.toNat) (hi : x.toNat < a.toNat + len) : Foot P0 T E x := by
-  rcases h with ⟨h1,h2⟩ | ⟨h1,_⟩
-  · exact Or.inl ⟨by omega,by omega⟩
-  · exact Or.inr (by omega)
+theorem arr_foot {P0 T : BitVec 64} {E : BitVec 64 → Prop} {a : BitVec 64} {len : Nat} (h : Arr P0 T E a len) (x : BitVec 64)
+    (lo : a.toNat ≤ x.toNat) (hi : x.toNat < a.toNat + len) : Foot P0 T E x :=
+  h.2.2 x lo hi
 
-theorem arr_end {P0 T E a : BitVec 64} {len : Nat} (h : Arr P0 T E a len) (eE : E.toNat ≤ 33806089496) :
-    a.toNat + len ≤ 33806089496 := by
-  rcases h with ⟨_,h2⟩ | ⟨_,h2⟩ <;> omega
+theorem arr_end {P0 T : BitVec 64} {E : BitVec 64 → Prop} {a : BitVec 64} {len : Nat} (h : Arr P0 T E a len) (eE : T.toNat + 72 ≤ 33806089496) :
+    a.toNat + len ≤ 33806089496 := h.2.1
 
-theorem arr_hdr {P0 T E a : BitVec 64} {len : Nat} (h : Arr P0 T E a len) (hP : T.toNat + 72 ≤ P0.toNat) :
-    T.toNat + 72 ≤ a.toNat := by
-  rcases h with ⟨h1,_⟩ | ⟨h1,_⟩ <;> omega
+theorem arr_hdr {P0 T : BitVec 64} {E : BitVec 64 → Prop} {a : BitVec 64} {len : Nat} (h : Arr P0 T E a len) (hP : T.toNat + 72 ≤ P0.toNat) :
+    T.toNat + 72 ≤ a.toNat := h.1
 
 theorem ev_load_off {F : Type} (s : PanSemStateFiniteExact 64 F) (x : MlS) (X off : BitVec 64) (v : ValueHOL 64)
     (hx : s.locals.lookup x = some (.val (.word X)))
@@ -198,10 +196,10 @@ theorem aqm_storeByte' {P Q : HolFiniteMapExact MlS (ValueHOL 64) → Mem → Pr
       rw [e]; exact aqm_of_nc rfl (fun h => by rcases h with h | h | h | ⟨_,h⟩ <;> cases h)
 
 /-- Table memory invariant: header cells and agreement with the entry memory outside the footprint. -/
-def MI (P0 T E : BitVec 64) (M0 : Mem) (KL SD C N KS VS US OS OPS : BitVec 64) (M : Mem) : Prop :=
+def MI (P0 T : BitVec 64) (E : BitVec 64 → Prop) (M0 : Mem) (KL SD C N KS VS US OS OPS : BitVec 64) (M : Mem) : Prop :=
   Hdr M T KL SD C N KS VS US OS OPS ∧ ∀ x, ¬ Foot P0 T E x → M x = M0 x
 
-theorem mi_write {P0 T E : BitVec 64} {M0 M M' : Mem} {KL SD C N KS VS US OS OPS : BitVec 64}
+theorem mi_write {P0 T : BitVec 64} {E : BitVec 64 → Prop} {M0 M M' : Mem} {KL SD C N KS VS US OS OPS : BitVec 64}
     (h : MI P0 T E M0 KL SD C N KS VS US OS OPS M) (fit : T.toNat + 72 < 2 ^ 64) (a : BitVec 64)
     (ha : Foot P0 T E a) (hout : T.toNat + 72 ≤ a.toNat) (hM' : ∀ x, x ≠ a → M' x = M x) :
     MI P0 T E M0 KL SD C N KS VS US OS OPS M' := by
@@ -209,8 +207,9 @@ theorem mi_write {P0 T E : BitVec 64} {M0 M M' : Mem} {KL SD C N KS VS US OS OPS
   rw [hM' x (fun e => by subst e; exact hx ha)]
   exact h.2 x hx
 
-theorem mi_count {P0 T E : BitVec 64} {M0 M : Mem} {KL SD C N KS VS US OS OPS : BitVec 64}
-    (h : MI P0 T E M0 KL SD C N KS VS US OS OPS M) (fit : T.toNat + 72 ≤ E.toNat) (hE : E.toNat < 2 ^ 64) :
+theorem mi_count {P0 T : BitVec 64} {E : BitVec 64 → Prop} {M0 M : Mem} {KL SD C N KS VS US OS OPS : BitVec 64}
+    (h : MI P0 T E M0 KL SD C N KS VS US OS OPS M) (fit : T.toNat + 72 < 2 ^ 64)
+    (hE : ∀ x : BitVec 64, T.toNat ≤ x.toNat → x.toNat < T.toNat + 72 → E x) :
     MI P0 T E M0 KL SD C (N + 1#64) KS VS US OS OPS
       (fun x => if x = T + 24#64 then .word (N + 1#64) else M x) := by
   obtain ⟨⟨h0,h8,h16,h24,h32,h40,h48,h56,h64⟩,ag⟩ := h
@@ -239,11 +238,10 @@ theorem mi_count {P0 T E : BitVec 64} {M0 M : Mem} {KL SD C N KS VS US OS OPS : 
   · intro x hx
     dsimp only
     have : x ≠ T + 24#64 := by
-      intro e; subst e; apply hx; left
-      rw [BitVec.toNat_add_of_lt (by simp; omega)]; simp; omega
+      intro e; subst e; apply hx; apply hE <;> rw [BitVec.toNat_add_of_lt (by simp; omega)] <;> simp <;> omega
     rw [if_neg this]; exact ag x hx
 
-theorem mi_frame {P0 T E : BitVec 64} {M0 M M' : Mem} {KL SD C N KS VS US OS OPS : BitVec 64}
+theorem mi_frame {P0 T : BitVec 64} {E : BitVec 64 → Prop} {M0 M M' : Mem} {KL SD C N KS VS US OS OPS : BitVec 64}
     (h : MI P0 T E M0 KL SD C N KS VS US OS OPS M) (fit : T.toNat + 72 < 2 ^ 64) (Win : BitVec 64 → Prop)
     (hwin : ∀ x, Win x → Foot P0 T E x ∧ T.toNat + 72 ≤ x.toNat) (hM' : ∀ x, ¬ Win x → M' x = M x) :
     MI P0 T E M0 KL SD C N KS VS US OS OPS M' := by
@@ -252,7 +250,7 @@ theorem mi_frame {P0 T E : BitVec 64} {M0 M M' : Mem} {KL SD C N KS VS US OS OPS
   exact h.2 x hx
 
 /-- The `memcpy` byte window of slot `I`'s key lies in the keys array. -/
-theorem keys_window {P0 T E KL SD C N KS VS US OS OPS : BitVec 64} {b : Nat}
+theorem keys_window {P0 T : BitVec 64} {E : BitVec 64 → Prop} {KL SD C N KS VS US OS OPS : BitVec 64} {b : Nat}
     (lay : HLay P0 T E KL SD C N KS VS US OS OPS b) (I : BitVec 64) (hI : I.toNat < C.toNat) (x : BitVec 64)
     (hx : MWin (KS + I * SD) KL.toNat x) : Foot P0 T E x ∧ T.toNat + 72 ≤ x.toNat := by
   obtain ⟨j,hj,h | h⟩ := hx
@@ -281,7 +279,7 @@ theorem keys_window {P0 T E KL SD C N KS VS US OS OPS : BitVec 64} {b : Nat}
     exact ⟨arr_foot lay.keysR _ (by omega) (by omega),by omega⟩
 
 /-- Word slot `I < C` of an 8-byte array lies in the footprint, after the header. -/
-theorem arr_slot8 {P0 T E A C I : BitVec 64} (h : Arr P0 T E A (C.toNat * 8)) (eE : E.toNat ≤ 33806089496)
+theorem arr_slot8 {P0 T : BitVec 64} {E : BitVec 64 → Prop} {A C I : BitVec 64} (h : Arr P0 T E A (C.toNat * 8)) (eE : T.toNat + 72 ≤ 33806089496)
     (hP : T.toNat + 72 ≤ P0.toNat) (hI : I.toNat < C.toNat) :
     Foot P0 T E (A + I * 8#64) ∧ T.toNat + 72 ≤ (A + I * 8#64).toNat := by
   have ae := arr_end h eE
@@ -290,7 +288,7 @@ theorem arr_slot8 {P0 T E A C I : BitVec 64} (h : Arr P0 T E A (C.toNat * 8)) (e
   exact ⟨arr_foot h _ (by omega) (by omega),by omega⟩
 
 /-- The aligned word of byte `I < C` of an 8-aligned byte array lies in the footprint, after the header. -/
-theorem arr_byte {P0 T E A C I : BitVec 64} (h : Arr P0 T E A C.toNat) (eE : E.toNat ≤ 33806089496)
+theorem arr_byte {P0 T : BitVec 64} {E : BitVec 64 → Prop} {A C I : BitVec 64} (h : Arr P0 T E A C.toNat) (eE : T.toNat + 72 ≤ 33806089496)
     (hP : T.toNat + 72 ≤ P0.toNat) (al : A.toNat % 8 = 0) (hI : I.toNat < C.toNat) :
     Foot P0 T E (panByteAlignHOL (A + I)) ∧ T.toNat + 72 ≤ (panByteAlignHOL (A + I)).toNat := by
   have ae := arr_end h eE
@@ -334,13 +332,13 @@ set_option maxHeartbeats 4000000 in
 /-- `htab_insert_raw` under the real table layout: the watched word outside the table footprint is kept in every
 outcome, and a return leaves the header (count incremented) with memory agreeing with the entry outside the
 footprint. -/
-theorem insertRaw_aqm (T Kk V E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
+theorem insertRaw_aqm (T Kk V : BitVec 64) (E : BitVec 64 → Prop) (KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
     (lay : HLay P0 T E KL SD C N KS VS US OS OPS b) (M0 : Mem) (hw : ¬ Foot P0 T E w) :
     AQM SP0 P0 FM G0 w (fun _ => True)
       (fun L M => LK (irP0 T Kk V) L ∧ Hdr M T KL SD C N KS VS US OS OPS ∧ M = M0)
       (fun _ _ => True) (fun _ M' => MI P0 T E M0 KL SD C (N + 1#64) KS VS US OS OPS M')
       (sourceFunctionBody Guest.guestFn_htab_insert_raw) := by
-  have fitT : T.toNat + 72 < 2 ^ 64 := by have := lay.hdr; have := lay.eEnd; omega
+  have fitT : T.toNat + 72 < 2 ^ 64 := by have := lay.eEnd; omega
   have cHE : C.toNat ≤ 33806089496 := by have := arr_end lay.usedR lay.eEnd; omega
   unfold sourceFunctionBody
   rw [InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
@@ -499,12 +497,12 @@ theorem insertRaw_aqm (T Kk V E KL SD C N KS VS US OS OPS : BitVec 64) (b : Nat)
     simp [EV,evalHOLExact,evalListHOLExact,ht,wordOpHOL,wordOp,valueIsWord,valueWord] at ev
     subst ev
     have fa : Foot P0 T E (T + 24#64) := by
-      left; rw [BitVec.toNat_add_of_lt (by simp; omega)]; have := lay.hdr; simp; omega
+      apply lay.hdr <;> rw [BitVec.toNat_add_of_lt (by simp; omega)] <;> simp <;> omega
     refine ⟨fun e => hw (e ▸ fa),fun y ey => ?_⟩
     have hn := lk_get hl (ofString "n") N (by simp)
     simp [EV,evalHOLExact,evalListHOLExact,hn,wordOpHOL,wordOp,valueIsWord,valueWord] at ey
     subst ey
-    exact ⟨I,hl,mi_count hm lay.hdr (by have := lay.eEnd; omega)⟩
+    exact ⟨I,hl,mi_count hm fitT lay.hdr⟩
   · intro F s x _ ⟨I,hl,_,_⟩ _ ev
     exact ev_op_word s _ _ x ev
   · intro F s v _ ⟨I,_,hm⟩ _ _

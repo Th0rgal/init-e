@@ -34,13 +34,13 @@ theorem freshTx_preState_entry {F : Type} (s : PanSemStateFiniteExact 64 F)
         post.globals.lookup (ofString "ts") = some (.val (.word pointer)) ∧
         post.globals.lookup (ofString "bs") = some (.val (.word B)) ∧
         post.memory (pointer + 8) = .word Ta ∧
-        HLay P Ta (OPSa + 64#64 * 8#64) 20 SDa 64 0 KSa VSa USa OSa OPSa 6 ∧
+        HLay P Ta (tabFoot P Ta OPSa 64) 20 SDa 64 0 KSa VSa USa OSa OPSa 6 ∧
         Hdr post.memory Ta 20 SDa 64 0 KSa VSa USa OSa OPSa ∧
         post.memory (B + 72) = .word Tb ∧
-        HLay P Tb (OPSb + Cb * 8#64) KLb SDb Cb Nb KSb VSb USb OSb OPSb bb ∧
+        HLay P Tb (tabFoot P Tb OPSb Cb) KLb SDb Cb Nb KSb VSb USb OSb OPSb bb ∧
         Hdr post.memory Tb KLb SDb Cb Nb KSb VSb USb OSb OPSb ∧
         (∀ x : BitVec 64, (x = B + 72 ∨ (Tb.toNat ≤ x.toNat ∧ x.toNat < Tb.toNat + 72)) →
-          ¬ Foot P Ta (OPSa + 64#64 * 8#64) x) := by
+          ¬ Foot P Ta (tabFoot P Ta OPSa 64) x) := by
   obtain ⟨post,run,mem,loc,ma,mb,mc,⟨P,hP,leP,alP,inP⟩,hts,glob,_,_,Ta,KSa,SDa,USa,VSa,OSa,OPSa,taLo,taCell,taInv,
     taTab,⟨P',hP',taHi⟩⟩ :=
     stateFreshTx_call_tables s pointer oldTs B oldCount code heap tsGlobal bsGlobal counterGlobal reservation domain ticks
@@ -54,11 +54,13 @@ theorem freshTx_preState_entry {F : Type} (s : PanSemStateFiniteExact 64 F)
   obtain ⟨invB',tabB'⟩ := invB.keep_block tablesB ma mb mc (fun a lo hi => mem a (by omega))
   have b72 : (B + 72).toNat = B.toNat + 72 := by rw [BitVec.toNat_add_of_lt (by simp; omega)]; rfl
   have cellB' : post.memory (B + 72) = .word Tb := by rw [mem _ (by rw [b72]; omega)]; exact cellB
-  obtain ⟨layA,hdrA,eA⟩ := hlay_of_aligned taInv P (by decide) (by
+  have c64 : (64 : BitVec 64).toNat = 64 := rfl
+  obtain ⟨layA,hdrA⟩ := hlay_of_aligned taInv P (tabFoot P Ta OPSa 64) (fun x lo hi => Or.inl ⟨lo,hi⟩)
+    (fun x h => Or.inr h) (by decide) (by
     have := taInv.headerKeys; have := taInv.keysBefore; have := taInv.usedBefore; have := taInv.orderBefore
-    have c64 : (64 : BitVec 64).toNat = 64 := rfl
     rw [c64] at *; omega)
-  obtain ⟨layB,hdrB,_⟩ := hlay_of_aligned invB' P cntB (by omega)
+  obtain ⟨layB,hdrB⟩ := hlay_of_aligned invB' P (tabFoot P Tb OPSb Cb) (fun x lo hi => Or.inl ⟨lo,hi⟩)
+    (fun x h => Or.inr h) cntB (by omega)
   refine ⟨post,run,loc,mc,ma,P,Ta,KSa,SDa,USa,VSa,OSa,OPSa,⟨?_,?_,⟨P,hP,le_refl _,inP,alP⟩,?_⟩,hts,hbs,taCell,
     layA,hdrA,cellB',layB,hdrB,?_⟩
   · rw [glob _ (by decide) (by decide) (by decide)]; exact hFM
@@ -78,6 +80,8 @@ theorem freshTx_preState_entry {F : Type} (s : PanSemStateFiniteExact 64 F)
       rcases hx with rfl | ⟨_,h2⟩
       · rw [b72]; omega
       · omega
+    unfold Foot tabFoot at hf
+    have := taInv.headerKeys
     rcases hf with ⟨h1,_⟩ | h1 <;> omega
 
 #print axioms freshTx_preState_entry
