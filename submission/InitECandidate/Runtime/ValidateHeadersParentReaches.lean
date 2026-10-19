@@ -2,6 +2,7 @@ import InitECandidate.Runtime.ValidateHeadersParentCarry
 import InitECandidate.Runtime.HeaderDecoderBodyBound
 import InitECandidate.Runtime.BoundedDecCallReach
 import InitECandidate.Runtime.PanTwoWordShapeLookup
+import InitECandidate.Runtime.HeaderDecoderBodyOuterTable
 /-!
 The validation loop's decode call reaches its own tail with the decoded parent record.
 
@@ -24,6 +25,10 @@ arena the caller already justifies.
 The room premise `heapCapped` is an explicit interim invariant: the heap at the call has room
 for the largest header record.  It is stated on `heapStart` only, so it says nothing about the
 caller's slice table.
+
+The reached state also keeps everything the loop's own invariant reads back: every memory word
+in `[ceiling, heapStart)` - the slice-witness table and the header-pointer buffer - is
+unchanged, and the outer input witness prefix at `older` is retained.
 -/
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -51,7 +56,7 @@ callee's execution is assumed: the body run, its bound and the installed lookup 
 derived from the entry invariants. -/
 theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 64 F)
     (array heapStart index pointer length input inputLength scratch frame : BitVec 64)
-    (ceiling inputLimit : Nat)
+    (older olderCount outerInput outerLength : BitVec 64) (ceiling inputLimit : Nat)
     (atArray : s.locals.lookup (ofString "arr") = some (.val (.word array)))
     (atIndex : s.locals.lookup (ofString "i") = some (.val (.word index)))
     (entry : RlpSliceInputEntry s array index pointer length input inputLength)
@@ -69,6 +74,9 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
       s.memaddrs address)
     (ceilingAligned : ceiling % 8 = 0) (inputAfter : ceiling ≤ pointer.toNat)
     (inputBeforeHeap : pointer.toNat + length.toNat ≤ heapStart.toNat)
+    (olderTable : RlpSliceInputPrefix s older outerInput outerLength olderCount.toNat)
+    (olderAbove : ceiling ≤ older.toNat)
+    (olderBefore : older.toNat + olderCount.toNat * 16 ≤ heapStart.toNat)
     (budget : headerDecoderBodyCost inputLimit + 2 ≤ s.clock) :
     Reaches s validateHeadersFirstBody
       (fun next => ∃ value : ValueHOL 64, ∃ post : PanSemStateFiniteExact 64 F,
@@ -87,7 +95,10 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
           some (.val (.word (allocationEnd (allocationEnd heapStart (count * 16)) 248))) ∧
         next.globals.lookup (ofString "scratch_ptr") = s.globals.lookup (ofString "scratch_ptr") ∧
         next.globals.lookup (ofString "frame_mem_ptr") = s.globals.lookup (ofString "frame_mem_ptr") ∧
-        heapStart.toNat + 21 * 16 ≤ record.toNat ∧ record.toNat + 248 ≤ 33806089496)
+        heapStart.toNat + 21 * 16 ≤ record.toNat ∧ record.toNat + 248 ≤ 33806089496 ∧
+        (∀ address : BitVec 64, ceiling ≤ address.toNat → address.toNat < heapStart.toNat →
+          next.memory address = s.memory address) ∧
+        RlpSliceInputPrefix post older outerInput outerLength olderCount.toNat)
       (headerDecoderBodyCost inputLimit + 1) validateHeadersFirstTail := by
   let entryState := callEntryStateHOLFinite s (rlpHeaderCallee pointer length)
   have args := eval_validate_headers_decode_arguments s array index pointer length input inputLength atArray
@@ -124,6 +135,15 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
     orderedFrame framePositive scratchBelow arena heapGlobal (by omega)
     countLimit heapArena ceilingAligned inputAfter inputBeforeHeap contractBudget value
     (by simpa only [source_decode_header_body] using run)
+  have olderEntry : RlpSliceInputPrefix entryState older outerInput outerLength olderCount.toNat :=
+    olderTable.after_memory_below s entryState older olderCount outerInput outerLength heapStart olderBefore rfl
+      (fun _ _ => rfl)
+  have retained := header_decoder_body_returned_outer_table entryState post pointer length scratch frame
+    heapStart ceiling inputLimit p len noWrap lengthBound limitBound scratchGlobal frameGlobal (code.trans (by rfl))
+    orderedFrame framePositive scratchBelow arena heapGlobal (by omega) countLimit heapArena ceilingAligned
+    inputAfter inputBeforeHeap bodyBudget older olderCount outerInput outerLength olderEntry olderAbove
+    olderBefore value run
+  obtain ⟨_,_,_,_,_,_,_,_,_,_,_,_,_,window,outerRetained⟩ := retained
   obtain ⟨count,flag,record,valueEq,countTwentyOne,countBound,heapPost,⟨rooted,rootMem⟩,domainPost,codePost,
     scratchPost,framePost,beforePost,_,recordEq,startCap⟩ := contract
   have sizeNat : (count * 16).toNat = count.toNat * 16 := by
@@ -150,7 +170,7 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
   have hLocal : continuation.locals.lookup (ofString "h") = some (.val (.word record)) := by
     simp [continuation,validateHeadersContinuation,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
   refine ⟨value,post,count,record,rooted,(by simpa only [source_decode_header_body] using run),checked.1,
-    valueEq,recordEq,?_,?_,?_,?_,?_,?_,?_,?_,?_,beforePost,recordInside⟩
+    valueEq,recordEq,?_,?_,?_,?_,?_,?_,?_,?_,?_,beforePost,recordInside,?_,?_⟩
   · rw [valueEq]
     rfl
   · rw [valueEq]
@@ -178,6 +198,11 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
   · rw [valueEq]
     change post.globals.lookup (ofString "frame_mem_ptr") = s.globals.lookup (ofString "frame_mem_ptr")
     exact framePost
+  · intro address above below
+    rw [valueEq]
+    change post.memory address = s.memory address
+    exact window address above below
+  · exact outerRetained
 
 #print axioms validate_headers_parent_reaches
 end InitECandidate.Runtime
