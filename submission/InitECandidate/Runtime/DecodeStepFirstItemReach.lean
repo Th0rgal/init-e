@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.DecodeStepArityDispatch
 import InitECandidate.Runtime.RlpItemBodyRuntimeContract
 import InitECandidate.Runtime.OriginalRlpItemCode
+import InitECandidate.Runtime.RlpItemBodyAbove
 import InitECandidate.Runtime.RlpItemBodyBound
 import InitECandidate.Runtime.DecodeStepCompactCall
 import InitECandidate.Runtime.MptFailCallTerminal
@@ -48,7 +49,8 @@ theorem decode_step_first_item_reaches {F : Type} (s : PanSemStateFiniteExact 64
         next.globals.lookup (ofString "heap_ptr") = s.globals.lookup (ofString "heap_ptr") ∧
         next.code = s.code ∧ next.memaddrs = s.memaddrs ∧
         next.locals = s.locals.update (ofString "pi",
-          .rStruct [.val (.word kind),.val (.word payloadPointer),.val (.word payload),.val (.word consumed)]))
+          .rStruct [.val (.word kind),.val (.word payloadPointer),.val (.word payload),.val (.word consumed)]) ∧
+        (∀ address : BitVec 64, ceiling ≤ address.toNat → next.memory address = s.memory address))
       (length.toNat*((2*length.toNat+1)*15+19)+92633) decodeStepFirstItemTail := by
   let entry := callEntryStateHOLFinite s (rlpHeaderCallee pointer length)
   have p : entry.locals.lookup (ofString "p") = some (.val (.word pointer)) := by
@@ -80,8 +82,12 @@ theorem decode_step_first_item_reaches {F : Type} (s : PanSemStateFiniteExact 64
       (by change _ ≤ s.clock - 1; omega) value run
   have metadata := evaluateHOLFiniteState_metadata entry (sourceFunctionBody Guest.guestFn_rlp_item)
   rw [run] at metadata
-  exact ⟨kind,pp,payload,consumed,by simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE],
-    starts,ends,span,small,scratchPost,framePost,heapPost,metadata.1,metadata.2.1,rfl⟩
+  refine ⟨kind,pp,payload,consumed,by simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE],
+    starts,ends,span,small,scratchPost,framePost,heapPost,metadata.1,metadata.2.1,rfl,?_⟩
+  intro address above
+  exact rlpItem_body_returned_above entry post pointer length scratch frame ceiling inputLimit p n
+    noWrap lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena
+    (by change _ ≤ s.clock - 1; omega) _ run address above
 
 theorem source_decode_step_first_item_guard : decodeStepFirstItemTail =
     .seq (.ite (.cmp .notEqual (.rfield 0 (.var .local (ofString "pi"))) (.const 0))
