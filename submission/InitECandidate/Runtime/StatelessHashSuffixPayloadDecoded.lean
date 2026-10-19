@@ -23,7 +23,7 @@ theorem stateless_hash_suffix_payload_decoded {F : Type} (t post : PanSemStateFi
     (decoded : HtrPayloadDecoded t payload array count input inputLength raw rawLength withdrawals withdrawalCount requests requestLength blobs blobLength)
     (scratchBelow : offsets.toNat + 40 ≤ S.toNat) (siBefore : S.toNat + 96 ≤ payload.toNat)
     (payloadHeap : payload.toNat + 72 < H.toNat)
-    (arrayAfter : payload.toNat ≤ array.toNat) (arrayHeap : array.toNat + count.toNat * 16 ≤ H.toNat)
+    (arrayAfter : count = 0 ∨ payload.toNat ≤ array.toNat) (arrayHeap : array.toNat + count.toNat * 16 ≤ H.toNat)
     (run : evaluateHOLFiniteState t (statelessAt 24) = (some (.returned v), post)) :
     HtrPayloadDecoded post payload array count input inputLength raw rawLength withdrawals withdrawalCount requests requestLength blobs blobLength := by
   obtain ⟨_,_,_,frame,_⟩ := stateless_hash_request_witness_returned t post NP NL OVH ORQ P L OW S offsets H v code
@@ -51,7 +51,10 @@ theorem stateless_hash_suffix_payload_decoded {F : Type} (t post : PanSemStateFi
     · exact neS 32 (by decide)
     · exact ⟨neS 40 (by decide),neS 48 (by decide),neS 56 (by decide),neS 64 (by decide),neS 72 (by decide),neS 80 (by decide)⟩
   exact decoded.after_interval_frame (by omega) (by omega) metadata.2.1
-    (fun w lo hi => keep w lo (by omega)) (fun w lo hi => keep w (by omega) (by omega))
+    (fun w lo hi => keep w lo (by omega)) (fun w lo hi => by
+      rcases arrayAfter with zero | lower
+      · subst count; simp at hi; omega
+      · exact keep w (by omega) (by omega))
 
 #print axioms stateless_hash_suffix_payload_decoded
 end InitECandidate.Runtime
