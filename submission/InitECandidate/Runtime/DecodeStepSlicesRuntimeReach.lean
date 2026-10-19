@@ -30,7 +30,8 @@ theorem decode_step_slices_runtime_reaches {F : Type} (s : PanSemStateFiniteExac
         next.globals.lookup (ofString "frame_mem_ptr") = some (.val (.word frame)) ∧
         array.toNat + count.toNat * 16 ≤ 33806089496 ∧
         (allocationEnd array (count * 16)).toNat ≤ 33806089496 ∧
-        (allocationEnd array (count * 16)).toNat % 8 = 0)
+        (allocationEnd array (count * 16)).toNat % 8 = 0 ∧
+        next.code = s.code ∧ next.memaddrs = s.memaddrs)
       (decodeStepSlicesCost length.toNat) (decodeStepAt 5) := by
   have reached := decode_step_slices_reaches s pointer length consumed scratch frame ceiling inputLimit atItem
     noWrap lengthBound limitBound scratchGlobal frameGlobal code orderedFrame framePositive scratchBelow arena budget
@@ -48,7 +49,9 @@ theorem decode_step_slices_runtime_reaches {F : Type} (s : PanSemStateFiniteExac
       heap arrayBound countLimit heapArena
       (by change _ ≤ s.clock - 1; unfold decodeStepSlicesCost at budget; omega)
       inputBeforeFrame inputBeforeArray value run
-  refine ⟨count,?_,bound,?_,heapPost,scratchPost,framePost,interval,endpoint,aligned⟩
+  have metadata := evaluateHOLFiniteState_metadata entry (sourceFunctionBody Guest.guestFn_rlp_list_to_slices)
+  rw [run] at metadata
+  refine ⟨count,?_,bound,?_,heapPost,scratchPost,framePost,interval,endpoint,aligned,metadata.1,metadata.2.1⟩
   · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
   · intro slot inside
     obtain ⟨p,n,entry⟩ := slicePrefix slot inside
