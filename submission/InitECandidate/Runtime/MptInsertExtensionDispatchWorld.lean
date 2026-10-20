@@ -1,6 +1,6 @@
 import InitECandidate.Runtime.MptInsertExtensionComparisonWorld
 import InitECandidate.Runtime.MptInsertExtensionDispatchBound
-import InitECandidate.Runtime.MptInsertNodeLoad
+import InitECandidate.Runtime.MptInsertExtensionLoadScope
 import InitECandidate.Runtime.PanDecNormalScope
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -38,27 +38,18 @@ theorem mpt_insert_extension_dispatch_world {F : Type} (s post : PanSemStateFini
  level.toNat<(level+segment).toNat ∧(level+segment).toNat≤length.toNat ∧
  post.locals.lookup (ofString "go")=some (.val (.word (1#64))) ∧
  post.memory=s.memory ∧post.globals=s.globals := by
- rw [source_mptInsert_extension_dispatch] at run
- obtain ⟨segValue,firstOutput,segEval,firstRun,firstScope⟩:=evaluate_dec_normal_scope s post (ofString "seg") .one _ _ run
- obtain ⟨segmentPointer,segEq,_,_⟩:=mpt_insert_node_load_word s node 32 segValue atNode segEval
- subst segValue
+ obtain ⟨segmentPointer,segment,output,_,lengthField,_,_,comparisonRun,scope⟩:=
+  mpt_insert_extension_loads_normal_scope s post node atNode run
  let first:=setVarHOLFinite (ofString "seg") (.val (.word segmentPointer)) s
- change evaluateHOLFiniteState first _=(none,firstOutput) at firstRun
- have firstNode : first.locals.lookup (ofString "node")=some (.val (.word node)) := by
-  simpa (config:={decide:=true}) [first,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE] using atNode
- obtain ⟨slValue,output,slEval,comparisonRun,secondScope⟩:=evaluate_dec_normal_scope first firstOutput (ofString "sl") .one _ _ firstRun
- obtain ⟨segment,slEq,lengthField,_⟩:=mpt_insert_node_load_word first node 40 slValue firstNode slEval
- subst slValue
  let entered:=setVarHOLFinite (ofString "sl") (.val (.word segment)) first
  change evaluateHOLFiniteState entered mptInsertExtensionComparison=(none,output) at comparisonRun
  have kept (name : MlS) (notSegment : name≠ofString "seg") (notLength : name≠ofString "sl") :
-  entered.locals.lookup name=s.locals.lookup name := by
-  simp [entered,first,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,notSegment,notLength,Ne.symm notSegment,Ne.symm notLength]
+  entered.locals.lookup name=s.locals.lookup name :=
+  mpt_insert_extension_loaded_local s segmentPointer segment name notSegment notLength
  have restored (name : MlS) (notSegment : name≠ofString "seg") (notLength : name≠ofString "sl") :
   post.locals.lookup name=output.locals.lookup name := by
-  rw [firstScope]
-  rw [saved_local_lookup_other firstOutput.locals (ofString "seg") name _ notSegment]
-  rw [secondScope]
+  rw [scope]
+  rw [saved_local_lookup_other _ (ofString "seg") name _ notSegment]
   exact saved_local_lookup_other output.locals (ofString "sl") name _ notLength
  have outputRunning : output.locals.lookup (ofString "go")≠some (.val (.word (0#64))) := by
   intro stopped;apply running;rw [restored _ (by decide) (by decide)];exact stopped
@@ -78,8 +69,8 @@ theorem mpt_insert_extension_dispatch_world {F : Type} (s post : PanSemStateFini
     ((kept _ (by decide) (by decide)).trans atNextNode) ((kept _ (by decide) (by decide)).trans atNextSlot)
     ((kept _ (by decide) (by decide)).trans atNextLevel) ((kept _ (by decide) (by decide)).trans zero)
     lengthField childField inside short code budget outputRunning comparisonRun
-  have fullMemory : post.memory=s.memory := by rw [firstScope,secondScope];exact memory
-  have fullGlobals : post.globals=s.globals := by rw [firstScope,secondScope];exact globals
+  have fullMemory : post.memory=s.memory := by rw [scope];exact memory
+  have fullGlobals : post.globals=s.globals := by rw [scope];exact globals
   have typed : TrieChildSlot post extensions branches (node+BitVec.ofNat 64 48) := by
    obtain ⟨actualLength,loaded,positive⟩:=world.positive node registered
    exact Or.inr ⟨node,registered,actualLength,rfl,(by rw [fullMemory];exact loaded),positive⟩
