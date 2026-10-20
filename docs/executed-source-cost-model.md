@@ -716,3 +716,25 @@ Completeness for successful compiled guest executions, compiled-program/return
 label eligibility, and concrete local price instantiation are NOT yet proved.
 The fine Word pipeline and whole-guest gas/input bound are also unfinished, so
 this is not yet a source-to-RISC-V finite certificate.
+
+### Scope and code preservation for derivation completeness
+
+`StackExecutionLabelScope` uses the original `getLabelsExact` and
+`locCheckExact`. A stored function automatically supplies scope for all its
+labels; scope passes to sequence/conditional/loop bodies and call
+continuations. In particular, return and handler label literals in a scoped
+call are valid without a new per-call artifact computation. The initial tail
+entry has no locally introduced labels. All eleven lemmas checked in
+`stack-execution-label-scope3` with standard axioms.
+
+`StackExecutionCodePreservation` proves that every eligible leaf preserves the
+actual source code map, including normal/final host responses. It then proves
+code-map preservation for every semantic derivation by induction, so global
+code eligibility and label scope can move to actual successor states. Both
+results checked in `stack-execution-code2` with standard axioms.
+
+The remaining completeness proof must construct ExecutionTrace from actual
+successful evaluation, using supported post-removal grammar, stored-code
+eligibility, label scope, and validity of the final returned/raised location.
+These facts are not an assumed trace or native budget. Completeness and the
+full finite certificate remain unfinished.
