@@ -1,0 +1,35 @@
+# hkoWs repair manifest (finite-auth) — commit base 5f4018d7bf26026e0bbfdc394929737d96428009
+# Topological order; columns: module  git-blob-sha1
+## counterexample + affected old chain (held)
+PtHkoVacGD d8407676f75f2011012c64f1d5bc5c504bc6106f
+## repair base + applicability
+PtKoWsLGD 24a95ab03b6bbd026f2c6e782fa22dca76e5b0bc
+PtWsFloorGD 5d6affce67fb1b308e38996d842e7ddcfa12189a
+PtWsFloorInitGD 16ba92074f7a51ba00dacbfdce8bed74cce7ff1a
+PtTabFloorGD e09f80aaabd99cf9c9308b74918e018497cc86d5
+## L-variants (each imports its old module + PtKoWsLGD + earlier L modules)
+ProcessTxWritersGDL 64942b6a1c37029c72ad5c2b545468a2b9cea53d
+CheckTransactionUGDL ec348da1ac8d196a6c94c98dfb08a4ebe174aa0f
+RecFrameGDL e3258a030ae1dc4fb81be4e7b53460cb854e7ae8
+ProcessTxSGDL bd7688a8b865f8378dcdfae1380033f5debd40e5
+PtSegBaseGDL 74dbed0aa82220bf61658bf0c0e3f9f5e3343b7c
+PtSegTxhGDL fc39b2fd2fe1d037dfcb1c06d4dd416beaec43bf
+PtPGGDL 88dfcdde8b6b9d09920ed441949aba574a00899b
+PtGaPGGDL 2417cb32ee1e0d4792908c75bb6d3dc20ee97359
+PtCcaPGGDL c5f05551b00d393daa221cc8968d44fb6e2b76eb
+PtSegFinGDL fe7032ac66db1c585c44d400a9d601ff41bf7782
+PtSegAllGDL b7293e5e88d68760f9624ae6cd1bdcd9aca117ea
+PtCreateEtherGDL 18d223499aa11b843f7c38dc5415005aee7edade
+PtClearGDL 84b4501565590f89f6c166ef414cafdc195618b2
+PtAwClearGDL cd479e6d9572e5ab56f3f790e0bfe600e2800983
+PtRestGDL f4b4015f31965f0ce2839968544b239ca5cfc02c
+PtSufAO2GDL 236ff0656db18ea494242beb42c291e91449b8b2
+PtSufBO2GDL 77db18a1e0a2be424fd9cdf21eb1057cd4abf034
+PtRest2GDL ac66816a3ae4eb0f21ef5cd3234f2a2fecd4a73d
+PtSufAO3GDL b9b1d822875713e112eb6ed46b98905c8b9e7bde
+PtTxO3GDL 27d4081adbe3ef7a840b4d80a7be9e3494abe7b4
+## initializer sources located
+SP0 / scratch top: FirstSixInitializerLayout.firstSixInitializerGlobals_layout (scratch_ptr = 2713714688, frame_mem_ptr = 2701135872); AW (ArenaFrame) takes SP0 as the arena parameter bounding scratch_ptr
+NB: PtWsFloorGD.firstSixInitializerGlobals_nib (2713717520), PtWsFloorInitGD.allInitializerGlobals_nib; source list MptInitSource.mptInitAllocations
+K/Pd: FirstSixInitializerLayout / PtWsFloorInitGD.allInitializerGlobals_keccak_st/_keccak_pad
+Sc: FirstSixInitializerLayout.firstSixInitializerGlobals_secp_scratch (2713718280)
