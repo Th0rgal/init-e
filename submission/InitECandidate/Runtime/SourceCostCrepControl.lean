@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SourceCostCrepHandler
+import InitECandidate.Runtime.SourceCostCrepDecCall
 import Flapjack.Pancake.Proofs.PanGlobals.SemanticsInitCall
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -13,6 +13,7 @@ def sourceControlProg : ProgHOL 64 → Bool
   | .dec _ _ _ body => sourceControlProg body
   | .call none _ _ | .call (some (_, none)) _ _ => true
   | .call (some (_, some (_, _, handler))) _ _ => sourceControlProg handler
+  | .decCall _ _ _ _ continuation => sourceControlProg continuation
   | _ => false
 
 /-- Static premise on every source function body reachable through calls. -/
@@ -448,6 +449,42 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
         ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
       (fun t' c' rel' loc' =>
         ihHandler t' c' resultOk rel' loc' checked.2 control handlerCode)
+  | @declareCallReturn s name shape function arguments continuation values body callee returnShape
+      value bodyPost bodyEvents continuationEvents result post args lookup clock bodyRun shapeMatch
+      continuationRun ihBody ihContinuation =>
+    intro t context resultOk rel localised checked control codeOk
+    simp only [bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true] at checked control
+    obtain ⟨vshapes, hsrc, _, _, _⟩ :=
+      lookupCodeHOLFinite_some_inv s.code.lookup function values body callee returnShape lookup
+    have bodyStatic := codeOk function vshapes body returnShape hsrc
+    have localisedCont : localisedProgHOL continuation = true := by
+      simp only [localisedProgHOL, Bool.and_eq_true] at localised; exact localised.2
+    have contCode : CodeCovered (setVarHOLFinite name value
+        { bodyPost with locals := s.locals }).code := by
+      show CodeCovered bodyPost.code
+      rw [run_code bodyRun]
+      exact codeOk
+    exact decCall_return_transfer args lookup clock bodyRun shapeMatch rel localised checked.1
+      (fun t' c' rel' loc' => ihBody t' c' (by simp) rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
+      (fun t' c' rel' => ihContinuation t' c' resultOk rel' localisedCont checked.2 control
+        contCode)
+  | @declareCallTimeout s name shape function arguments continuation values body callee
+      returnShape args lookup clock =>
+    intro t context resultOk rel localised checked control codeOk
+    simp only [bulkLoadSitesProg, Bool.and_eq_true] at checked
+    exact decCall_timeout_transfer args lookup clock rel localised checked.1
+  | @declareCallStopped s name shape function arguments continuation values body callee
+      returnShape bodyResult bodyPost bodyEvents args lookup clock bodyRun terminal ihBody =>
+    intro t context resultOk rel localised checked control codeOk
+    simp only [bulkLoadSitesProg, Bool.and_eq_true] at checked
+    obtain ⟨vshapes, hsrc, _, _, _⟩ :=
+      lookupCodeHOLFinite_some_inv s.code.lookup function values body callee returnShape lookup
+    have bodyStatic := codeOk function vshapes body returnShape hsrc
+    have stop := decCall_stop_cases terminal resultOk
+    have bodyOk : bodyResult ≠ some .error := by
+      rcases stop with h | ⟨f, h⟩ | ⟨eid, v, h⟩ <;> rw [h] <;> simp
+    exact decCall_stopped_transfer args lookup clock bodyRun stop rel localised checked.1
+      (fun t' c' rel' loc' => ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
   | _ =>
     intro t context result rel localised checked control codeOk
     first
