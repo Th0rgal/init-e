@@ -376,6 +376,15 @@ named contract `SourceCostLoopCallBase.LoopOptimiseWork`. The contract says
 that the per-function `optimiseHOL` pass does not increase executed work for
 non-error, non-break and non-continue results. Root is proving it separately.
 `SourceCostLoopSource.source_loop_executed_work` composes the two transfers
-for one statement. It does not yet cover the preprocessing passes
-(`pan_simp`, `pan_structs`, `pan_globals`, `crep_arith` `simp_prog`) or
-whole-program entry composition.
+for one statement.
+
+`SourceCostCrepSimp.crep_simp_work` transfers `CrepWork` across
+`crep_arith$simp_prog`. The transfer never increases work, needs no clock
+extension, and holds for every non-error run. It uses the pinned lockstep
+`crepArithSimpProgCorrect` and the fact that `simp_exp` never increases node
+work (`crepSimp_node_work`). `source_simp_loop_executed_work` composes all
+three passes for one statement: source → `pan_to_crep` → `simp_prog` →
+`crep_to_loop` compile. It runs against the `simp_prog`-mapped Crep state,
+which is how `compile_prog` installs function bodies. Still remaining: the
+source preprocessing passes (`pan_simp`, `pan_structs`, `pan_globals`),
+whole-program entry composition, and the `LoopOptimiseWork` contract (root).

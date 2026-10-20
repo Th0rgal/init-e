@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.SourceCostCrepControl
 import InitECandidate.Runtime.SourceCostLoopControl
+import InitECandidate.Runtime.SourceCostCrepSimp
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect
 
@@ -58,6 +59,48 @@ theorem source_loop_executed_work {F : Type} (opt : LoopOptimiseWork)
     crep_loop_executed_work opt crepWork u loopContext live ok loopRel
   exact ⟨extra, wl, work, by omega, runRel⟩
 
+/-- As `source_loop_executed_work`, but through the `crep_arith$simp_prog`
+pass that `crep_to_loop$compile_prog` applies first: the Loop code is
+`compile (simp_prog (pan_to_crep p))`, run against the `simp_prog`-mapped Crep
+state, as in the installed per-function code. Still conditional on the named
+`LoopOptimiseWork` contract. -/
+theorem source_simp_loop_executed_work {F : Type} (opt : LoopOptimiseWork)
+    {s post : PanSemStateFiniteExact 64 F}
+    {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
+    (run : StatementRun s p r post events) (t : CrepSemHOLState 64 F)
+    (context : PanToCrepContextExact 64) (resultOk : r ≠ some .error)
+    (rel : SourceCrepRel context s t) (localised : localisedProgHOL p = true)
+    (checked : bulkLoadSitesProg p = true)
+    (codeChecked : ∀ function shapes body returnShape,
+      s.code.lookup function = some (shapes, body, returnShape) → bulkLoadSitesProg body = true)
+    (u : LoopSemStateFiniteExact 64 F) (loopContext : CrepToLoopContextExact) (live : NumSet)
+    (loopRel : CrepLoopRel loopContext live (crepSimpMapcsHOL t) u) :
+    ∃ extra wl,
+      LoopWork { u with clock := u.clock + extra }
+        (compileHOLExact loopContext live (crepSimpProgHOL (compileProgExactHOLW context p)))
+        (evaluate (compileHOLExact loopContext live (crepSimpProgHOL (compileProgExactHOLW context p)))
+          { u with clock := u.clock + extra }) wl ∧
+      wl ≤ 7 * sourceCrepWeights.score (executionWork events) ∧
+      LoopRunRel loopContext live
+        (evalCrepSemHOLProgExact (crepSimpMapcsHOL t) (crepSimpProgHOL (compileProgExactHOLW context p)))
+        (evaluate (compileHOLExact loopContext live (crepSimpProgHOL (compileProgExactHOLW context p)))
+          { u with clock := u.clock + extra }) := by
+  obtain ⟨w, crepWork, crepBound⟩ := source_crep_executed_work run t context resultOk rel
+    localised checked codeChecked
+  obtain ⟨r1, t1, crepRun, _, _, _, resultRel⟩ := compiled_source_run t context run.sound
+    resultOk rel.state rel.code rel.exceptions rel.locals localised
+  have ok : (evalCrepSemHOLProgExact t (compileProgExactHOLW context p)).1 ≠ some .error := by
+    rw [crepRun]; exact resultRel_not_error resultRel
+  obtain ⟨ws, simpWork, simpBound⟩ := crep_simp_work crepWork ok
+  have simpOk : (evalCrepSemHOLProgExact (crepSimpMapcsHOL t)
+      (crepSimpProgHOL (compileProgExactHOLW context p))).1 ≠ some .error := by
+    rw [crepArithSimpProgCorrect _ t r1 t1 crepRun (resultRel_not_error resultRel)]
+    exact resultRel_not_error resultRel
+  obtain ⟨extra, wl, work, bound, runRel⟩ :=
+    crep_loop_executed_work opt simpWork u loopContext live simpOk loopRel
+  exact ⟨extra, wl, work, by omega, runRel⟩
+
 #print axioms resultRel_not_error
+#print axioms source_simp_loop_executed_work
 #print axioms source_loop_executed_work
 end InitECandidate.Runtime.FineCost
