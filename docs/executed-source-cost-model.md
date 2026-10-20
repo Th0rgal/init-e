@@ -451,5 +451,25 @@ cases under the sharp score:
 In every case the address `Op Sub [TopAddr, Const a]` has Loop price 10,
 which is within the replay certificate of 40.
 
-Still remaining: the `pan_globals` run transfer itself, and whole-program
-entry composition.
+`SourceCostGlobalsRun.globals_compile_run` is the `pan_globals` run transfer.
+It holds for every replay bound `B`. Given a non-error source run and the
+original `compile_correct` relation, the compiled program has a canonical run
+that:
+
+- has the same result;
+- ends in a state related by `compile_correct`;
+- has `sharpSourceScore B` at most the source run's.
+
+It assumes the following of the program and the state:
+
+- `globalsReadyProg` holds of the program.
+- `GlobalsCodeReady` holds of the code map: every installed body is ready, and
+  no parameter is named like the temporary.
+- The start state has no local named like the call temporary `""`.
+- `GlobalsCovered` holds: every laid-out global is present in the source state.
+
+The run invariants `StatementRun.code_eq`, `StatementRun.noTemp` and
+`StatementRun.globals_present` keep these assumptions true along the run.
+
+Still remaining: whole-program entry composition, and the sharp address
+grammar for record-field addresses.
