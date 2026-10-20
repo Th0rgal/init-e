@@ -120,6 +120,19 @@ taken branches by3. Fallthrough branches and location values use their local
 base cost plus the visited line-word allowance; no ROM-size factor remains
 in the weighted trace.
 
+## Checked guest amortization
+
+`GuestCostGasBudget` proves the executed-work budget for an exact loop trace
+under an explicit reachable invariant `I`. Each continuing body run must
+preserve `I` and increase the funding measure by at least one; every body run
+costs at most `C * consumed + B`, and a statement/guard evaluation costs at most
+`D`. The loop bound is `(C+B+D) * consumed + (B+D)`, including terminal,
+rejecting, malformed-guard and timeout prefixes. No gas progress is required on
+terminal paths. `GuestCostFundingMeasure` identifies the actual frame's used-gas
+cell at offset184 and obtains positive progress from installed `charge_gas`
+evaluation under funding/layout premises. These are checked reusable contracts;
+the actual interpreter body cost and reachable invariant remain to be proved.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through source preprocessing and Crep-to-Loop. The
