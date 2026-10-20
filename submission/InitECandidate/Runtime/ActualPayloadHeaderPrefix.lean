@@ -699,4 +699,213 @@ theorem actual_payload_header_keccak_call_bounded {F : Type} (state : PanSemStat
     words bytes sourceWords sourceBytes
 #print axioms actual_payload_header_keccak_call_bounded
 
+/-- A word local evaluates to its word. -/
+theorem actual_payload_header_eval_local {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (name : MlS) (value : BitVec 64)
+    (entryLocal : state.locals.lookup name = some (.val (.word value))) :
+    @evalHOLExact 64 F _ state.toExact (fun a => Classical.propDecidable (state.memaddrs a))
+      (.var .local name) = (some (ValueHOL.val (HolWordLab.word value)) : Option (ValueHOL 64)) := by
+  simp [evalHOLExact,entryLocal]
+
+/-- A one-word load from a typed local with a readable cell. -/
+theorem actual_payload_header_eval_load {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (name : MlS) (base offset value : BitVec 64)
+    (entryLocal : state.locals.lookup name = some (.val (.word base)))
+    (domain : state.memaddrs (base + offset)) (cell : state.memory (base + offset) = .word value) :
+    @evalHOLExact 64 F _ state.toExact (fun a => Classical.propDecidable (state.memaddrs a))
+      (.load .one (.op .add [.var .local name, .const offset])) =
+      (some (ValueHOL.val (HolWordLab.word value)) : Option (ValueHOL 64)) := by
+  simp [evalHOLExact,evalListHOLExact,wordOpHOL,wordOp,valueIsWord,valueWord,isWfShapeExactHOL,
+    memLoadHOLExact,entryLocal,domain,cell]
+
+/-- One actual word store with both operands given by their evaluations. -/
+theorem actual_payload_header_store_any {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (destination value : ExpHOL 64) (address stored : BitVec 64)
+    (hDestination : @evalHOLExact 64 F _ state.toExact
+      (fun a => Classical.propDecidable (state.memaddrs a)) destination = some (.val (.word address)))
+    (hValue : @evalHOLExact 64 F _ state.toExact
+      (fun a => Classical.propDecidable (state.memaddrs a)) value = some (.val (.word stored)))
+    (domain : state.memaddrs address) :
+    evaluateHOLFiniteState state (.store destination value) =
+      (none, sourceWriteWord state address stored) :=
+  evaluate_store_word state address stored destination value hDestination hValue domain
+
+#print axioms actual_payload_header_eval_local
+#print axioms actual_payload_header_eval_load
+#print axioms actual_payload_header_store_any
+
+/-- One actual store step of the header construction: a store changes only memory, so the
+construction facts persist. -/
+theorem actual_payload_header_store_stage {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap address stored : BitVec 64) (destination value : ExpHOL 64) (tail : ProgHOL 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (hDestination : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a)) destination = some (.val (.word address)))
+    (hValue : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a)) value = some (.val (.word stored)))
+    (domain : mid.memaddrs address) :
+    Reaches mid (.seq (.store destination value) tail) (ActualPayloadHeaderPrefix state · pl raw pointer heap)
+      0 tail := by
+  refine reaches_seq mid (.store destination value) tail 0 _ ?_
+  refine Or.inl ⟨sourceWriteWord mid address stored,ActualPayloadHeaderPrefix.write facts,
+    by simp [sourceWriteWord],by simp [sourceWriteWord],?_⟩
+  exact actual_payload_header_store_any mid destination value address stored hDestination hValue domain
+
+#print axioms actual_payload_header_store_stage
+
+/-- Statement 10 is the actual store `h[16] := oh`. -/
+theorem source_actual_payload_header_store_oh :
+    actualPayloadHeaderAt 10 = .seq (.store (.op .add [.var .local (ofString "h"), .const (16#64)])
+      (.var .local (ofString "oh"))) (actualPayloadHeaderAt 11) := by
+  unfold actualPayloadHeaderAt
+  rfl
+
+/-- Statement 11 is the actual store `h[24] := raw + 32`. -/
+theorem source_actual_payload_header_store_32 :
+    actualPayloadHeaderAt 11 = .seq (.store (.op .add [.var .local (ofString "h"), .const (24#64)])
+      (.op .add [.var .local (ofString "raw"), .const (32#64)])) (actualPayloadHeaderAt 12) := by
+  unfold actualPayloadHeaderAt
+  rfl
+
+/-- Statement 12 is the actual store `h[32] := raw + 52`. -/
+theorem source_actual_payload_header_store_52 :
+    actualPayloadHeaderAt 12 = .seq (.store (.op .add [.var .local (ofString "h"), .const (32#64)])
+      (.op .add [.var .local (ofString "raw"), .const (52#64)])) (actualPayloadHeaderAt 13) := by
+  unfold actualPayloadHeaderAt
+  rfl
+
+/-- Statement 13 is the actual `alloc 32` that produces `txr`. -/
+theorem source_actual_payload_header_alloc_txr :
+    actualPayloadHeaderAt 13 = .decCall (ofString "txr") .one (ofString "alloc") [(.const (32#64))]
+      (actualPayloadHeaderAt 14) := by
+  unfold actualPayloadHeaderAt
+  rfl
+
+/-- The construction facts including the typed `oh` and `tmp` locals produced before the actual
+`keccak256(tmp, 1, oh)` call. -/
+def ActualPayloadHeaderCommit {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp : BitVec 64) : Prop :=
+  ActualPayloadHeaderPrefix state post pl raw pointer heap ∧
+  post.locals.lookup (ofString "oh") = some (.val (.word oh)) ∧
+  post.locals.lookup (ofString "tmp") = some (.val (.word tmp))
+
+theorem ActualPayloadHeaderCommit.write {F : Type} {state mid : PanSemStateFiniteExact 64 F}
+    {pl raw pointer heap oh tmp address value : BitVec 64}
+    (facts : ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp) :
+    ActualPayloadHeaderCommit state (sourceWriteWord mid address value) pl raw pointer heap oh tmp := by
+  obtain ⟨prefixFacts,ohLocal,tmpLocal⟩ := facts
+  refine ⟨ActualPayloadHeaderPrefix.write prefixFacts,?_,?_⟩
+  · simpa [sourceWriteWord] using ohLocal
+  · simpa [sourceWriteWord] using tmpLocal
+
+#print axioms ActualPayloadHeaderCommit.write
+
+/-- One actual store step of the header construction, keeping the typed `oh` and `tmp` locals. -/
+theorem actual_payload_header_store_stage_commit {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp address stored : BitVec 64) (destination value : ExpHOL 64)
+    (tail : ProgHOL 64)
+    (facts : ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp)
+    (hDestination : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a)) destination = some (.val (.word address)))
+    (hValue : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a)) value = some (.val (.word stored)))
+    (domain : mid.memaddrs address) :
+    Reaches mid (.seq (.store destination value) tail)
+      (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp) 0 tail := by
+  refine reaches_seq mid (.store destination value) tail 0 _ ?_
+  refine Or.inl ⟨sourceWriteWord mid address stored,ActualPayloadHeaderCommit.write facts,
+    by simp [sourceWriteWord],by simp [sourceWriteWord],?_⟩
+  exact actual_payload_header_store_any mid destination value address stored hDestination hValue domain
+
+#print axioms actual_payload_header_store_stage_commit
+
+/-- **The actual header construction right after the keccak256 return.**  From any state carrying the
+pre-keccak construction facts (typed `h`, `pl`, `raw`, `oh`, `tmp`, heap at `heap`, preserved domain
+and code) -- in particular the normal returned state of the actual `keccak256(tmp, 1, oh)` callee,
+which preserves exactly those bindings -- the actual stores `h[16] := oh`, `h[24] := raw + 32`,
+`h[32] := raw + 52` and the actual `alloc 32` for `txr` run in two ticks, ending immediately at the
+actual store `h[40] := txr`. -/
+theorem actual_payload_header_construction_after_keccak {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F) (pl raw pointer heap oh tmp : BitVec 64)
+    (facts : ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp)
+    (code : state.code = originalRuntimeCode)
+    (wordDomain : ∀ offset : Nat, offset < 256 → state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (budget : 2 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 10)
+      (fun post => ActualPayloadHeaderCommit state post pl raw pointer (allocationEnd heap (32#64)) oh tmp ∧
+        post.locals.lookup (ofString "txr") = some (.val (.word heap))) 2 (actualPayloadHeaderAt 14) := by
+  have storeOh (E : PanSemStateFiniteExact 64 F)
+      (pE : ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp) :
+      Reaches E (actualPayloadHeaderAt 10) (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp)
+        0 (actualPayloadHeaderAt 11) := by
+    rw [source_actual_payload_header_store_oh]
+    exact actual_payload_header_store_stage_commit state E pl raw pointer heap oh tmp (pointer + (16#64)) oh
+      (.op .add [.var .local (ofString "h"), .const (16#64)]) (.var .local (ofString "oh"))
+      (actualPayloadHeaderAt 11) pE
+      (actual_payload_header_eval_word_add E (ofString "h") pointer (16#64) pE.1.2.2.1)
+      (actual_payload_header_eval_local E (ofString "oh") oh pE.2.1)
+      (by rw [pE.1.2.2.2.2.1]; exact wordDomain 16 (by omega))
+  have store32 (E : PanSemStateFiniteExact 64 F)
+      (pE : ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp) :
+      Reaches E (actualPayloadHeaderAt 11) (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp)
+        0 (actualPayloadHeaderAt 12) := by
+    rw [source_actual_payload_header_store_32]
+    exact actual_payload_header_store_stage_commit state E pl raw pointer heap oh tmp (pointer + (24#64))
+      (raw + (32#64)) (.op .add [.var .local (ofString "h"), .const (24#64)])
+      (.op .add [.var .local (ofString "raw"), .const (32#64)]) (actualPayloadHeaderAt 12) pE
+      (actual_payload_header_eval_word_add E (ofString "h") pointer (24#64) pE.1.2.2.1)
+      (actual_payload_header_eval_word_add E (ofString "raw") raw (32#64) pE.1.2.1)
+      (by rw [pE.1.2.2.2.2.1]; exact wordDomain 24 (by omega))
+  have store52 (E : PanSemStateFiniteExact 64 F)
+      (pE : ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp) :
+      Reaches E (actualPayloadHeaderAt 12) (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp)
+        0 (actualPayloadHeaderAt 13) := by
+    rw [source_actual_payload_header_store_52]
+    exact actual_payload_header_store_stage_commit state E pl raw pointer heap oh tmp (pointer + (32#64))
+      (raw + (52#64)) (.op .add [.var .local (ofString "h"), .const (32#64)])
+      (.op .add [.var .local (ofString "raw"), .const (52#64)]) (actualPayloadHeaderAt 13) pE
+      (actual_payload_header_eval_word_add E (ofString "h") pointer (32#64) pE.1.2.2.1)
+      (actual_payload_header_eval_word_add E (ofString "raw") raw (52#64) pE.1.2.1)
+      (by rw [pE.1.2.2.2.2.1]; exact wordDomain 32 (by omega))
+  have stores : Reaches mid (actualPayloadHeaderAt 10)
+      (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp) 0 (actualPayloadHeaderAt 13) :=
+    reaches_trans mid (actualPayloadHeaderAt 10) (actualPayloadHeaderAt 11) (actualPayloadHeaderAt 13)
+      _ _ 0 0 (storeOh mid facts) (fun E pE =>
+        reaches_trans E (actualPayloadHeaderAt 11) (actualPayloadHeaderAt 12) (actualPayloadHeaderAt 13)
+          _ _ 0 0 (store32 E pE) (fun F pF => store52 F pF))
+  have allocation : ∀ E : PanSemStateFiniteExact 64 F,
+      ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp → 2 ≤ E.clock →
+      Reaches E (actualPayloadHeaderAt 13)
+        (fun post => ActualPayloadHeaderCommit state post pl raw pointer (allocationEnd heap (32#64)) oh tmp ∧
+          post.locals.lookup (ofString "txr") = some (.val (.word heap))) 2 (actualPayloadHeaderAt 14) := by
+    intro E pE clockBound
+    rw [source_actual_payload_header_alloc_txr]
+    refine actual_payload_header_alloc_step E (ofString "txr") (32#64) heap (actualPayloadHeaderAt 14) _
+      pE.1.2.2.2.1 (by rw [pE.1.2.2.2.2.2]; exact code) clockBound ?_
+    intro post memory domain postCode globals
+    refine ⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_,?_⟩,?_⟩
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.1.1]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.1.2.1]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.1.2.2.1]
+    · simp only [setVarHOLFinite]
+      rw [globals]
+      simp (config := {decide := true}) [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    · simp only [setVarHOLFinite]
+      rw [domain]
+      exact pE.1.2.2.2.2.1
+    · simp only [setVarHOLFinite]
+      rw [postCode]
+      exact pE.1.2.2.2.2.2
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.2.1]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.2.2]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  rcases stores with ⟨E, pE, c1, c2, sc⟩ | ab
+  · rcases allocation E pE (by omega) with ⟨post, pP, a1, a2, asc⟩ | ab2
+    · exact Or.inl ⟨post, pP, by omega, by omega, scoped_trans sc asc⟩
+    · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
+  · exact Or.inr (stAbort_mono mid _ 0 2 (by omega) ab)
+#print axioms actual_payload_header_construction_after_keccak
+
 end InitECandidate.Runtime
