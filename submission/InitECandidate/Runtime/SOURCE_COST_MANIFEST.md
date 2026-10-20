@@ -275,3 +275,21 @@ Remaining plumbing (mechanical, not a blocker): thread that postcondition throug
 state `payloadHeader43_reaches` with `Q := WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl slices read X
 (wdHeapWord loopHeap)` — the only extra work is the `m`-transport from the loop entry's `memaddrs` to
 `s.memaddrs` (available as `ready'.memaddrs = s.memaddrs`) at the last leg of the composition.
+
+## LANDED: 43 → 47 `Reaches` with the concrete builder-entry postcondition (`a9e9b50a7`)
+
+- `payloadHeader43_reaches_exit` — the whole statement-43 prefix now ends at `actualPayloadHeaderAt 47`
+  with the **concrete exit invariant** as postcondition, not `True`:
+
+  `Reaches s (actualPayloadHeaderAt 43)
+     (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size)))
+     (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47)`
+
+  so a builder proof at statement 47 gets `pl`/`nwd` bindings, `e` freshness, the `wd_rlp_slices`
+  pointer, `code`, the memory domain, the watched `pl + 48` cell, and a final heap frontier
+  `wdHeapWord (allocationEnd loopHeap size) k` with `k ≤ nwd.toNat`, with no `normalInv` oracle: the exit
+  invariant is produced by `wdSliceLoopInv_exit` from the real normal loop evaluation.
+- `payloadHeader43_reaches_exit_heap` — the same endpoint with the frontier word exposed directly
+  (`∃ heap, heap_ptr = heap ∧ heap.toNat ≤ 33806089496`) via `wdLoopInv_heapOf`.
+- The earlier `payloadHeader43_reaches` (postcondition `True`) is preserved unchanged for the bounded
+  clock-only statement.
