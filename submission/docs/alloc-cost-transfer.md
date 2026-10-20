@@ -208,7 +208,14 @@ Compile order and module stems (checker role `allocation`):
      two actual child outputs and `seq`.
    - `ssaBody_seq_executed_le`: composes the two child executed-work transfers
      through the actual compiler `Seq` output.  This is the first quantitative
-     control constructor; branches/loops/calls remain.
+     control constructor.
+   - `bodyWork_ite_true` / `bodyWork_ite_false`: selected-branch executed work.
+     The true branch pays the actual child transfer plus its inserted
+     `fixInconsistencies` reconciliation at the fixed-clock intermediate state;
+     the false branch pays only the child transfer.
+   - `ssaCcTrans_ite_output`: the literal SSA `Ite` clause, exposing both child
+     outputs and both actual reconciliation programs.
+     Loops/calls remain.
 
    The remaining semantic obligation is now narrower: extend the quantitative
    `bodySimulationRun` from these base instructions through the control

@@ -345,6 +345,95 @@ theorem ssaBody_seq_executed_le {C F : Type}
     firstSource firstTarget firstBudget secondBudget sourceRun targetRun
     firstWork secondWork
 
+/-- Executed `Ite` work when the actual condition selects the true branch.
+The target branch is the SSA child followed by its actual reconciliation
+program; both the child transfer and the inserted reconciliation charge are
+paid on this execution. -/
+theorem bodyWork_ite_true {C F : Type}
+    (cmp : Cmp) (reg : Nat) (operand : WordRegImm (BitVec 64))
+    (branch elseBranch targetBranch targetElse cons : WordLangProgHOL (BitVec 64))
+    (source target sourceAfter targetAfter : WordSemStateFiniteExact 64 C F)
+    (x y : WordLocW 64) (branchBudget consBudget : Nat)
+    (sourceReg : getVar reg source = some x)
+    (sourceImm : getVarImm operand source = some y)
+    (targetReg : getVar reg target = some x)
+    (targetImm : getVarImm operand target = some y)
+    (cmpTrue : wordSemWordCmp cmp x y = some true)
+    (sourceRun : evaluate branch source = (none, sourceAfter))
+    (targetRun : evaluate targetBranch target = (none, targetAfter))
+    (branchWork : wordPathWork targetBranch target ≤
+      wordPathWork branch source + branchBudget)
+    (consWork : wordPathWork cons
+      (WordSemStateFiniteExact.fixClock target ((none : Option (WordSemResult 64)), targetAfter)).2 ≤ consBudget) :
+    wordPathWork (.ite cmp reg operand (.seq targetBranch cons) targetElse) target ≤
+      wordPathWork (.ite cmp reg operand branch elseBranch) source +
+        (branchBudget + consBudget + 1) := by
+  simp only [wordPathWork]
+  simp only [sourceReg, sourceImm, targetReg, targetImm, cmpTrue, targetRun]
+  have hfst : (WordSemStateFiniteExact.fixClock target
+      ((none : Option (WordSemResult 64)), targetAfter)).1 = none := rfl
+  rw [hfst]
+  simp only
+  have hsum := Nat.add_le_add branchWork consWork
+  rw [Nat.add_assoc] at hsum
+  calc
+    1 + (1 + wordPathWork targetBranch target +
+        wordPathWork cons
+          (WordSemStateFiniteExact.fixClock target
+            ((none : Option (WordSemResult 64)), targetAfter)).2) ≤
+        1 + (1 + wordPathWork branch source +
+          (branchBudget + consBudget)) := by
+      simpa only [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using
+        Nat.add_le_add_left (Nat.add_le_add_left hsum 1) 1
+    _ = 1 + wordPathWork branch source +
+        (branchBudget + consBudget + 1) := by
+      ac_rfl
+
+/-- Executed `Ite` work when the actual condition selects the false branch.
+The false SSA branch does not receive reconciliation moves in this case. -/
+theorem bodyWork_ite_false {C F : Type}
+    (cmp : Cmp) (reg : Nat) (operand : WordRegImm (BitVec 64))
+    (branch elseBranch targetBranch targetElse : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (x y : WordLocW 64) (elseBudget : Nat)
+    (sourceReg : getVar reg source = some x)
+    (sourceImm : getVarImm operand source = some y)
+    (targetReg : getVar reg target = some x)
+    (targetImm : getVarImm operand target = some y)
+    (cmpFalse : wordSemWordCmp cmp x y = some false)
+    (elseWork : wordPathWork targetElse target ≤
+      wordPathWork elseBranch source + elseBudget) :
+    wordPathWork (.ite cmp reg operand targetBranch targetElse) target ≤
+      wordPathWork (.ite cmp reg operand branch elseBranch) source + elseBudget := by
+  simp only [wordPathWork]
+  simp only [sourceReg, sourceImm, targetReg, targetImm, cmpFalse]
+  omega
+
+/-- The literal SSA `Ite` clause.  Both branch outputs and their actual
+`fixInconsistencies` reconciliation programs are exposed; this is the output
+shape consumed by the selected-branch executed-work cases. -/
+theorem ssaCcTrans_ite_output
+    (cmp : Cmp) (r : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 e2Out e3Out e2Cons e3Cons : WordLangProgHOL (BitVec 64))
+    (ssa ssa2 ssa3 ssaFin : Spt Nat)
+    (next nextFirst nextSecond nextFin : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (ri' : WordRegImm (BitVec 64))
+    (riEq : ri' = match ri with
+      | .reg reg => .reg (optionLookup ssa reg)
+      | .imm value => .imm value)
+    (e2Eq : ssaCcTrans (width := 64) e2 ssa next tables =
+      (e2Out, ssa2, nextFirst))
+    (e3Eq : ssaCcTrans (width := 64) e3 ssa nextFirst tables =
+      (e3Out, ssa3, nextSecond))
+    (fixEq : fixInconsistencies (width := 64) (mkPrio e2Out e3Out)
+      ssa2 ssa3 nextSecond = (e2Cons, e3Cons, nextFin, ssaFin)) :
+    ssaCcTrans (width := 64) (.ite cmp r ri e2 e3) ssa next tables =
+      (.ite cmp (optionLookup ssa r) ri' (.seq e2Out e2Cons)
+        (.seq e3Out e3Cons), ssaFin, nextFin) := by
+  simp only [ssaCcTrans, e2Eq, e3Eq, fixEq, riEq]
+  cases ri <;> rfl
+
 #print axioms wordControlCost
 #print axioms wordPathWork_le_controlCost_straight
 #print axioms ssaBody_skip_executed_le
@@ -358,4 +447,7 @@ theorem ssaBody_seq_executed_le {C F : Type}
 #print axioms bodyWork_seq
 #print axioms ssaCcTrans_seq_output
 #print axioms ssaBody_seq_executed_le
+#print axioms bodyWork_ite_true
+#print axioms bodyWork_ite_false
+#print axioms ssaCcTrans_ite_output
 end InitECandidate.Runtime.FineCost
