@@ -160,3 +160,14 @@ ticks, annotations and all primitive operation outcomes are also covered by
 the checked soundness theorem. This expands constructor/outcome coverage; it
 does not yet establish whole-statement completeness. External/shared-memory
 operations and that completeness proof are still outstanding.
+
+`PanExternalCost` supplies canonical external/shared-memory event lists.
+External input attempts charge requested bytes; successful reads permit a native
+event, and returning calls charge actual returned bytes. Shared operations use
+a conservative one-event allowance after operand checks, even if a subsequent
+domain/oracle guard rejects them. Native width-specific expansion bounds are
+still required. Statement rules expose these three nonrecursive atomic semantic
+boundaries with exact evaluator results; no callee/loop/handler body can use
+these rules. The statement relation now has rules for every source constructor,
+but its global completeness theorem remains to be proved, followed by the
+compiler cost relation, guest cost bound and end-to-end score verification.

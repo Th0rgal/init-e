@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.PanCallCostPlan
+import InitECandidate.Runtime.PanExternalCost
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -374,6 +375,22 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
         sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32)) :
       StatementRun s (.raise exceptionId expression) (some .error) s (.statement :: events)
 
+  /-- Atomic semantic boundary: external effects have no recursive source body.
+  Expression and transfer work is fixed by the canonical source cost functions. -/
+  | external {s function configuration configurationLength array arrayLength result post}
+      (run : evaluateHOLFiniteState s
+        (.extCall function configuration configurationLength array arrayLength) = (result, post)) :
+      StatementRun s (.extCall function configuration configurationLength array arrayLength)
+        result post (externalEvents s function configuration configurationLength array arrayLength)
+  | sharedLoad {s operator kind name address result post}
+      (run : evaluateHOLFiniteState s (.shMemLoad operator kind name address) = (result, post)) :
+      StatementRun s (.shMemLoad operator kind name address) result post
+        (sharedLoadEvents s kind name address)
+  | sharedStore {s operator address value result post}
+      (run : evaluateHOLFiniteState s (.shMemStore operator address value) = (result, post)) :
+      StatementRun s (.shMemStore operator address value) result post
+        (sharedStoreEvents s address value)
+
 theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
     (run : StatementRun s p r post events) : evaluateHOLFiniteState s p = (r, post) := by
@@ -706,6 +723,10 @@ theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     unfold expressionValue at he
     rw [evaluateHOLFiniteState_raise]
     simp only [he, declared, invalid, ↓reduceIte]
+
+  | external run => exact run
+  | sharedLoad run => exact run
+  | sharedStore run => exact run
 
 #print axioms StatementRun.sound
 end InitECandidate.Runtime.FineCost
