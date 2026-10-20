@@ -27,7 +27,7 @@ theorem simpOk_while_runs {F : Type} {condition : ExpHOL 64} {body body' : ProgH
     obtain ⟨e2, r2, l2⟩ := ihRest ok rfl
     refine ⟨_, .whileNext guard nonzero clock r1 r2, fun c => ?_⟩
     have := l1 c; have := l2 c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileContinue guard nonzero clock one rest ihOne ihRest =>
     cases hq
@@ -35,14 +35,14 @@ theorem simpOk_while_runs {F : Type} {condition : ExpHOL 64} {body body' : ProgH
     obtain ⟨e2, r2, l2⟩ := ihRest ok rfl
     refine ⟨_, .whileContinue guard nonzero clock r1 r2, fun c => ?_⟩
     have := l1 c; have := l2 c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileBreak guard nonzero clock one ihOne =>
     cases hq
     obtain ⟨e1, r1, l1⟩ := hb one (by simp)
     refine ⟨_, .whileBreak guard nonzero clock r1, fun c => ?_⟩
     have := l1 c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileTimeout guard nonzero clock =>
     cases hq; exact ⟨_, .whileTimeout guard nonzero clock, SimpWorkLe.refl _⟩
@@ -53,7 +53,7 @@ theorem simpOk_while_runs {F : Type} {condition : ExpHOL 64} {body body' : ProgH
     obtain ⟨e1, r1, l1⟩ := hb one ok
     refine ⟨_, .whilePropagate guard nonzero clock notBreak notContinue r1, fun c => ?_⟩
     have := l1 c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileInvalidGuard guard invalid =>
     cases hq; exact ⟨_, .whileInvalidGuard guard invalid, SimpWorkLe.refl _⟩
@@ -74,7 +74,7 @@ theorem simpOk_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info functi
     obtain ⟨e, r', le⟩ := hh returns exception handlerVar _ hinfo handlerRun ok
     refine ⟨_, .callHandler args lookup clock bodyRun plan' r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | callArgumentsFailure args => exact ⟨_, .callArgumentsFailure args, SimpWorkLe.refl _⟩
   | callLookupFailure args lookup => exact ⟨_, .callLookupFailure args lookup, SimpWorkLe.refl _⟩
@@ -90,7 +90,7 @@ theorem simpOk_decCall_runs {F : Type} {name shape function arguments} {cont con
     obtain ⟨e, r', le⟩ := hc continuationRun ok
     refine ⟨_, .declareCallReturn args lookup clock bodyRun shapeMatch r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | declareCallArgumentsFailure args => exact ⟨_, .declareCallArgumentsFailure args, SimpWorkLe.refl _⟩
   | declareCallLookupFailure args lookup =>
@@ -111,7 +111,7 @@ theorem simpOk_dec_runs {F : Type} {name shape value} {body body' : ProgHOL 64}
     obtain ⟨e, r', le⟩ := hb bodyRun ok
     refine ⟨_, .declareValue init shapeMatch r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | declareMismatch init mismatch => exact ⟨_, .declareMismatch init mismatch, SimpWorkLe.refl _⟩
   | declareFailure init => exact ⟨_, .declareFailure init, SimpWorkLe.refl _⟩
@@ -125,13 +125,13 @@ theorem simpOk_ite_runs {F : Type} {condition} {yes yes' no no' : ProgHOL 64}
     obtain ⟨e, r', le⟩ := hy body ok
     refine ⟨_, .iteYes guard nonzero r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | iteNo guard body =>
     obtain ⟨e, r', le⟩ := hn body ok
     refine ⟨_, .iteNo guard r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | iteInvalidGuard guard invalid => exact ⟨_, .iteInvalidGuard guard invalid, SimpWorkLe.refl _⟩
 
@@ -145,13 +145,13 @@ theorem simpOk_seq_runs {F : Type} {a a' b b' : ProgHOL 64}
     obtain ⟨e2, r2, l2⟩ := hb two ok
     refine ⟨_, .seqNext r1 r2, fun c => ?_⟩
     have := l1 c; have := l2 c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | seqStop terminal one =>
     obtain ⟨e1, r1, l1⟩ := ha one ok
     refine ⟨_, .seqStop terminal r1, fun c => ?_⟩
     have := l1 c
-    try simp only [executionWork_score_cons] at *
+    try simp only [eventSum_cons] at *
     omega
 
 /-- A call without handler has a `done` plan. -/
@@ -186,10 +186,10 @@ theorem simp_tail_run {F : Type} (returnName : MlStringHOL) (function : MlString
     cases run with
     | seqNext one two =>
       refine ⟨_, _, _, one, by simp, fun c => ?_⟩
-      simp only [executionWork_score_append]; omega
+      simp only [eventSum_append]; omega
     | seqStop terminal one =>
       refine ⟨_, _, _, one, ok, fun c => ?_⟩
-      try simp only [executionWork_score_cons]
+      try simp only [eventSum_cons]
       omega
   obtain ⟨r1, post1, left, one, ok1, le⟩ := callPart
   cases one with

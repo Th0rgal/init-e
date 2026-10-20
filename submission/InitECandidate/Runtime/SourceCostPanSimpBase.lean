@@ -5,9 +5,36 @@ open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 /-! Shared infrastructure for the `pan_simp` executed-work transfer. -/
 
-/-- Event list `a` costs no more than `b` under every coefficient vector. -/
+/-- Additive per-event price of an event list. -/
+def eventSum (f : WorkEvent → Nat) : List WorkEvent → Nat
+  | [] => 0
+  | e :: rest => f e + eventSum f rest
+
+@[simp] theorem eventSum_nil (f : WorkEvent → Nat) : eventSum f [] = 0 := rfl
+
+theorem eventSum_cons (f : WorkEvent → Nat) (e : WorkEvent) (rest : List WorkEvent) :
+    eventSum f (e :: rest) = f e + eventSum f rest := rfl
+
+theorem eventSum_append (f : WorkEvent → Nat) (a b : List WorkEvent) :
+    eventSum f (a ++ b) = eventSum f a + eventSum f b := by
+  induction a with
+  | nil => simp [eventSum]
+  | cons head tail ih => simp only [List.cons_append, eventSum, ih]; omega
+
+/-- Event list `a` costs no more than `b` under every additive per-event price:
+every coefficient vector and the load-replay count included. -/
 def SimpWorkLe (a b : List WorkEvent) : Prop :=
-  ∀ coeff : Work, coeff.score (executionWork a) ≤ coeff.score (executionWork b)
+  ∀ f : WorkEvent → Nat, eventSum f a ≤ eventSum f b
+
+theorem executionWork_score_eventSum (coeff : Work) (ev : List WorkEvent) :
+    coeff.score (executionWork ev) = eventSum (fun e => coeff.score e.units) ev := by
+  induction ev with
+  | nil => simp [executionWork, Work.score, eventSum]
+  | cons head tail ih => rw [executionWork_score_cons, ih]; rfl
+
+theorem SimpWorkLe.score {a b : List WorkEvent} (le : SimpWorkLe a b) (coeff : Work) :
+    coeff.score (executionWork a) ≤ coeff.score (executionWork b) := by
+  rw [executionWork_score_eventSum, executionWork_score_eventSum]; exact le _
 
 theorem SimpWorkLe.refl (a : List WorkEvent) : SimpWorkLe a a := fun _ => Nat.le_refl _
 
@@ -40,7 +67,7 @@ theorem simp_smartSeq_congr {F : Type} {pre q q' : ProgHOL 64} (h : SimpRunLe (F
       obtain ⟨e, r2, le⟩ := h two
       refine ⟨_, .seqNext one r2, fun c => ?_⟩
       have := le c
-      simp only [executionWork_score_cons, executionWork_score_append] at *
+      simp only [eventSum_cons, eventSum_append] at *
       omega
     | seqStop terminal one => exact ⟨_, .seqStop terminal one, SimpWorkLe.refl _⟩
 
@@ -59,7 +86,7 @@ theorem simp_while_runs {F : Type} {condition : ExpHOL 64} {body body' : ProgHOL
     obtain ⟨e2, r2, l2⟩ := ihRest rfl
     refine ⟨_, .whileNext guard nonzero clock r1 r2, fun c => ?_⟩
     have := l1 c; have := l2 c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileContinue guard nonzero clock one rest ihOne ihRest =>
     cases hq
@@ -67,14 +94,14 @@ theorem simp_while_runs {F : Type} {condition : ExpHOL 64} {body body' : ProgHOL
     obtain ⟨e2, r2, l2⟩ := ihRest rfl
     refine ⟨_, .whileContinue guard nonzero clock r1 r2, fun c => ?_⟩
     have := l1 c; have := l2 c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileBreak guard nonzero clock one ihOne =>
     cases hq
     obtain ⟨e1, r1, l1⟩ := hb one
     refine ⟨_, .whileBreak guard nonzero clock r1, fun c => ?_⟩
     have := l1 c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileTimeout guard nonzero clock =>
     cases hq; exact ⟨_, .whileTimeout guard nonzero clock, SimpWorkLe.refl _⟩
@@ -85,7 +112,7 @@ theorem simp_while_runs {F : Type} {condition : ExpHOL 64} {body body' : ProgHOL
     obtain ⟨e1, r1, l1⟩ := hb one
     refine ⟨_, .whilePropagate guard nonzero clock notBreak notContinue r1, fun c => ?_⟩
     have := l1 c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileInvalidGuard guard invalid =>
     cases hq; exact ⟨_, .whileInvalidGuard guard invalid, SimpWorkLe.refl _⟩
@@ -147,7 +174,7 @@ theorem simp_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info function
     obtain ⟨e, r', le⟩ := hh returns exception handlerVar _ hinfo handlerRun
     refine ⟨_, .callHandler args lookup clock bodyRun plan' r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | callArgumentsFailure args => exact ⟨_, .callArgumentsFailure args, SimpWorkLe.refl _⟩
   | callLookupFailure args lookup => exact ⟨_, .callLookupFailure args lookup, SimpWorkLe.refl _⟩
@@ -163,7 +190,7 @@ theorem simp_decCall_runs {F : Type} {name shape function arguments} {cont cont'
     obtain ⟨e, r', le⟩ := hc continuationRun
     refine ⟨_, .declareCallReturn args lookup clock bodyRun shapeMatch r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | declareCallArgumentsFailure args => exact ⟨_, .declareCallArgumentsFailure args, SimpWorkLe.refl _⟩
   | declareCallLookupFailure args lookup =>
@@ -184,7 +211,7 @@ theorem simp_dec_runs {F : Type} {name shape value} {body body' : ProgHOL 64}
     obtain ⟨e, r', le⟩ := hb bodyRun
     refine ⟨_, .declareValue init shapeMatch r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | declareMismatch init mismatch => exact ⟨_, .declareMismatch init mismatch, SimpWorkLe.refl _⟩
   | declareFailure init => exact ⟨_, .declareFailure init, SimpWorkLe.refl _⟩
@@ -198,13 +225,13 @@ theorem simp_ite_runs {F : Type} {condition} {yes yes' no no' : ProgHOL 64}
     obtain ⟨e, r', le⟩ := hy body
     refine ⟨_, .iteYes guard nonzero r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | iteNo guard body =>
     obtain ⟨e, r', le⟩ := hn body
     refine ⟨_, .iteNo guard r', fun c => ?_⟩
     have := le c
-    simp only [executionWork_score_cons, executionWork_score_append] at *
+    simp only [eventSum_cons, eventSum_append] at *
     omega
   | iteInvalidGuard guard invalid => exact ⟨_, .iteInvalidGuard guard invalid, SimpWorkLe.refl _⟩
 
