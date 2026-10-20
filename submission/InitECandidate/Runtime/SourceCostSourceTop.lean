@@ -52,7 +52,7 @@ theorem source_top_entry {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
         (compileTopExactHOL (Flapjack.Pancake.PanStructs.CompileShapeExact.compileTopExact (panSimpDeclsHOL decls))
           start) = some T ∧
       ∃ r' post' ev', StatementRun { T with clock := T.clock + 1 } (.call none start []) r' post' ev' ∧
-        r' ≠ some .error ∧ sharpScore ev' ≤ sharpScore ev +
+        r' = r ∧ sharpScore ev' ≤ sharpScore ev +
           globalsTopInit rshape ((panSimpDeclsHOL decls).filter isDeclHOL).length (callPayloadWords r) := by
   obtain ⟨s1', hs1', post', ev1, run1, le1⟩ :=
     simp_top_entry decls s0 h.2.2.1 hs1 start clock run ok

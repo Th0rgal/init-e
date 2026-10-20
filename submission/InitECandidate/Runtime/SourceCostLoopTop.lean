@@ -118,7 +118,7 @@ theorem source_loop_top {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
     (compileTopExactHOL (panSimpDeclsHOL decls) start) start startProgram T tc u (T.clock + 1)
     p.state p.distinct p.sourceCode p.noInline p.emptyLocals p.localised p.eidsSize p.eidsDomain
     p.memaddrs p.be p.shMemaddrs p.ffi p.baseAddr p.topAddr p.memory p.globals p.crepDistinct
-    p.crepCode p.loopCode p.crepLocals p.startLookup p.sites run' ok'
+    p.crepCode p.loopCode p.crepLocals p.startLookup p.sites run' (by rw [ok']; exact ok)
   exact ⟨T, hT, extra, wl, work, by omega, runRel⟩
 
 #print axioms source_loop_top
