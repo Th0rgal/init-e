@@ -1,10 +1,15 @@
 import InitECandidate.Runtime.RlpEncodeBytesReturns
 import InitECandidate.Runtime.RlpFinishList
+import InitECandidate.Runtime.OriginalRlpWriterCode
+import InitECandidate.Proofs.FrontendStages.Declarations.Agreement877
 namespace InitECandidate.Runtime
-open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open InitE Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
-set_option maxRecDepth 100000
+open InitECandidate.Proofs.FrontendStages.Declarations
+set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
+set_option cbv.maxSteps 1000000000
+set_option cbv.warning false
 
 /-- The first eight bytes of the withdrawal record as a word: bytes 0-3 little endian, then bytes
 4-7 shifted up by 32. -/
@@ -76,5 +81,63 @@ theorem source_rlpEncodeWithdrawal_body :
   rfl
 
 #print axioms source_rlpEncodeWithdrawal_body
+
+
+/-- The installed code entry of `encode_withdrawal_rlp` with its one word parameter. -/
+theorem originalRuntimeCode_encode_withdrawal_rlp_lookup :
+    originalRuntimeCode.lookup (ofString "encode_withdrawal_rlp") =
+      some ([(ofString "wd",.one)],
+        sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp,.comb [.one,.one]) := by
+  refine originalRuntimeCode_lookup_split (ofString "encode_withdrawal_rlp")
+    (originals.take 877) original877 (originals.drop 878)
+    [(ofString "wd",.one)]
+    (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) (.comb [.one,.one]) ?_ ?_ ?_
+  · kernel_rfl
+  · rw [original877_eq]
+    simp only [Guest.guestFn_encode_withdrawal_rlp,declToHOL,functionsHOL,funDeclToHOL,
+      List.map_cons,List.map_nil,paramToHOL,shapeToHOL,sourceFunctionBody]
+  · decide_cbv
+
+#print axioms originalRuntimeCode_encode_withdrawal_rlp_lookup
+
+/-- The exact code lookup of `encode_withdrawal_rlp` binds its one word parameter. -/
+theorem rlpEncodeWithdrawal_exact_lookup (W : BitVec 64) :
+    lookupCodeHOLExact originalRuntimeCode.lookup (ofString "encode_withdrawal_rlp")
+      [.val (.word W)] =
+      some (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp,
+        (fun x => if x = ofString "wd" then some (.val (.word W)) else none), .comb [.one,.one]) := by
+  rw [lookupCodeHOLExact,originalRuntimeCode_encode_withdrawal_rlp_lookup]
+  dsimp only
+  rw [if_pos]
+  · simp
+  · refine ⟨by decide,rfl,?_⟩
+    simp [shapeOfHOLExact,shapeEqHOL]
+
+#print axioms rlpEncodeWithdrawal_exact_lookup
+
+/-- A successful finite lookup of the installed `encode_withdrawal_rlp` on one word argument has
+the installed body, a two-word return shape, and reads the argument back under its name. -/
+theorem rlpEncodeWithdrawal_call_facts (W : BitVec 64) (body : ProgHOL 64)
+    (callee : HolFiniteMapExact MlS (ValueHOL 64)) (returnShape : ShapeHOL)
+    (found : PanSemStateFiniteExact.lookupCodeHOLFinite originalRuntimeCode.lookup
+      (ofString "encode_withdrawal_rlp") [.val (.word W)] =
+        some (body,callee,returnShape)) :
+    body = sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp ∧
+      returnShape = .comb [.one,.one] ∧
+      callee.lookup (ofString "wd") = some (.val (.word W)) := by
+  unfold PanSemStateFiniteExact.lookupCodeHOLFinite at found
+  split at found
+  · cases found
+  · rename_i ebody ecl ers raw
+    simp only [rlpEncodeWithdrawal_exact_lookup W] at raw
+    simp only [Option.some.injEq,Prod.mk.injEq] at raw
+    obtain ⟨rfl,rfl,rfl⟩ := raw
+    simp only [Option.some.injEq,Prod.mk.injEq] at found
+    obtain ⟨hbody,hcallee,hshape⟩ := found
+    refine ⟨hbody.symm,hshape.symm,?_⟩
+    rw [← hcallee]
+    simp +decide
+
+#print axioms rlpEncodeWithdrawal_call_facts
 
 end InitECandidate.Runtime
