@@ -165,6 +165,12 @@ program counters, code and the oracle tie are retained. Branch/call/loop
 composition and the bridge from generated expression fragments to these
 ordinary blocks remain open.
 
+`SourceCostLoopMark` proves that the actual `markAllHOL` pass preserves exact
+Loop work for every trace, including loops and reached handlers/continuations.
+The callee code table stays unchanged; only handler/continuation syntax is
+marked. Full `optimiseHOL` still needs call simplification and liveness-shrink
+work transfer before this marking result can close the installed-callee gap.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through source preprocessing and Crep-to-Loop. The
