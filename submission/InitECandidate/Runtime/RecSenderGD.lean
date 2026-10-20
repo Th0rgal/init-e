@@ -333,9 +333,10 @@ heap blocks at or above the entry heap pointer (released); keeps `RG`. The domai
 theorem recoverSender_wn (hF : Fence D DF) (hDF : DF + 8 ≤ 2 ^ 62) (hcap : 33806089496 ≤ DF)
     (Lo Sc K Pd S : BitVec 64) (hK0 : G0.lookup (ofString "keccak_st") = some (.val (.word K)))
     (hPd0 : G0.lookup (ofString "keccak_pad") = some (.val (.word Pd))) (hw : w.toNat < Lo.toNat)
-    (oK : ¬ MWin K 200 w) (oP : ¬ MWin Pd 136 w) (out : ¬ MWin Sc 448 w) (hSc0 : Sc ≠ 0) (oS : ¬ MWin S 20 w) :
+    (oK : ¬ MWin K 200 w) (oP : ¬ MWin Pd 136 w) (out : ¬ MWin Sc 448 w) (hSc0 : Sc ≠ 0) (oS : ¬ MWin S 20 w)
+    {Q : GA → Mem → GA → Prop} :
     AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) (fun L _ G => RSL S L ∧ RG Lo Sc G)
-      (fun _ _ _ => True) (fun _ _ G => RG Lo Sc G)
+      Q (fun _ _ G => RG Lo Sc G)
       (sourceFunctionBody Guest.guestFn_recover_sender_with_chain_id) := by
   rw [rsBody_eq]; unfold rsBody
   refine aqgd_conseq (P := fun L _ G => ∃ H : BitVec 64, ((RSL S L ∧ HeapIs G H) ∧ ScrIs Sc G) ∧ Lo.toNat ≤ H.toNat)
