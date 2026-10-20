@@ -16,10 +16,10 @@ globals and the journal counter kept, memory below the entry heap changed only i
 def GPPost (n : Nat) (c T : Fin n → BitVec 64) (Out : BitVec 64 → Prop) (D : BitVec 64 → Prop) (B : Bool)
     (ko : Fin n) (WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop) (BA IA IS KB Ix : BitVec 64)
     (Rr Ow : BitVec 64 → Prop) (H Nj : BitVec 64) (M1 : Mem) (M : Mem) (G : GA) : Prop :=
-  ∃ (H' : BitVec 64) (Ow' : BitVec 64 → Prop), HeapIs G H' ∧ H.toNat ≤ H'.toNat ∧
+  ∃ (H2 H' : BitVec 64) (Ow' : BitVec 64 → Prop), HeapIs G H' ∧ H.toNat ≤ H2.toNat ∧ H2.toNat ≤ H'.toNat ∧
     G.lookup (ofString "journal_n") = some (.val (.word Nj)) ∧ BalG BA IA IS KB Ix G ∧
-    RegTR n c T Out H' M D B ko (fun x => Rr x ∨ (H.toNat ≤ x.toNat ∧ x.toNat < H'.toNat)) ∧ WsI M H' Ow' ∧
-    (∀ x, Ow' x → Ow x ∨ (H.toNat ≤ x.toNat ∧ x.toNat < H'.toNat)) ∧
+    RegTR n c T Out H' M D B ko (fun x => Rr x ∨ (H.toNat ≤ x.toNat ∧ x.toNat < H2.toNat)) ∧ WsI M H' Ow' ∧
+    (∀ x, Ow' x → Ow x ∨ (H2.toNat ≤ x.toNat ∧ x.toNat < H'.toNat)) ∧
     ∀ x, x.toNat < H.toNat → ¬ Rr x → ¬ Ow x → M x = M1 x
 
 theorem shape2r {v : ValueHOL 64} (h : shapeEqHOL (shapeOfHOLExact v) (.comb [.one,.one]) = true) :
@@ -68,7 +68,8 @@ theorem getPreAcct_aqgd (bk : BalKeep) (BA IA IS KB Ix : BitVec 64)
     Option.map_none]
   let LA : GA → Prop := fun L => L.lookup (ofString "addr") = some (.val (.word A))
   have post0 : GPPost n c T Out D B ko WsI BA IA IS KB Ix Rr Ow H Nj M1 M1 G1 :=
-    ⟨H,Ow,hH1,le_refl _,hn1,hB1,regTR_sub reg (fun x h => Or.inl h),wi,fun x h => Or.inl h,fun _ _ _ _ => rfl⟩
+    ⟨H,H,Ow,hH1,le_refl _,le_refl _,hn1,hB1,regTR_sub reg (fun x h => Or.inl h),wi,fun x h => Or.inl h,
+      fun _ _ _ _ => rfl⟩
   -- w = htab_get(lds (bs + 16), addr): read-only
   refine aqgd_decCallSpecD (Vn' := fun _ => False)
     (Pe := fun _ M0' G0' _ M G => M = M0' ∧ G = G0') (RRe := fun _ M0' G0' _ M' G' => M' = M0' ∧ G' = G0')
@@ -154,8 +155,8 @@ theorem getPreAcct_aqgd (bk : BalKeep) (BA IA IS KB Ix : BitVec 64)
     exact ⟨by show _ = _; rw [e]; simp (config := {decide := true}),rfl,rfl⟩
   · intro L M G v M' G' ⟨_,hM,hG⟩ ⟨H',Ow',hH',le',nh,wi',sub',frW,y,hv⟩ _
     subst hM hG hv
-    refine ⟨y,lookup_update_eq' _ _ _,H',Ow',hH',by omega,(nh _ (by decide)).trans hn3,balG_of_nh bg3 nh,
-      regTR_sub (regTR_mono (regTR_frame reg3 (fun x hx => frW x ?_ ?_)) le') ?_,wi',?_,
+    refine ⟨y,lookup_update_eq' _ _ _,H2,H',Ow',hH',le3,le',(nh _ (by decide)).trans hn3,balG_of_nh bg3 nh,
+      regTR_mono (regTR_frame reg3 (fun x hx => frW x ?_ ?_)) le',wi',sub',
       fun x hx hR hO => (frW x (by omega) hO).trans (fr3 x hx hR)⟩
     · rcases hx with h | ⟨_,h⟩
       · have := rB x h; omega
@@ -164,14 +165,6 @@ theorem getPreAcct_aqgd (bk : BalKeep) (BA IA IS KB Ix : BitVec 64)
       rcases hx with h | ⟨h1,_⟩
       · exact dRO x hO h
       · have := wsr.1.2 M1 H Ow wi x hO; omega
-    · intro x h
-      rcases h with h | ⟨h1,h2⟩
-      · exact Or.inl h
-      · exact Or.inr ⟨h1,by omega⟩
-    · intro x h
-      rcases sub' x h with h | ⟨h1,h2⟩
-      · exact Or.inl h
-      · exact Or.inr ⟨by omega,h2⟩
   exact aqgd_return _ (fun s v H' _ hG ⟨y,hy,po⟩ _ ev => by
     simp [EV,evalHOLExact,hy] at ev
     unfold GIs at hG; subst hG
