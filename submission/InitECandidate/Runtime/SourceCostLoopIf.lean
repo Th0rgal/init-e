@@ -147,7 +147,7 @@ theorem ite_loop_paid {F : Type} {context : CrepToLoopContextExact} {live : NumS
       LoopWork { LoopSemStateFiniteExact.setVar tmp (.word word) st with
         clock := (LoopSemStateFiniteExact.setVar tmp (.word word) st).clock + k }
         (compileHOLExact context live (if word ≠ 0 then yes else no)) output wc →
-      wc ≤ 6 * wb →
+      wc ≤ 7 * wb →
       LoopRunRel context live (evalCrepSemHOLProgExact t (if word ≠ 0 then yes else no))
         (LoopSemStateFiniteExact.cutRes live output) →
       LoopPaid context live t u (.ite condition yes no) (1 + crepNodeWork condition + wb) := by

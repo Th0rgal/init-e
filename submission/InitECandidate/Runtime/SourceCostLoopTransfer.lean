@@ -25,14 +25,17 @@ def LoopRunRel {F : Type} (context : CrepToLoopContextExact) (live : NumSet)
   localsResultRel context live crepRun.1 crepRun.2 loopRun.2
 
 /-- Executed Crep work transfers to the compiled Loop run, at a clock
-extension for which all original simulation conclusions hold. -/
+extension for which all original simulation conclusions hold. The factor is 7,
+not 6: a call that times out at clock zero pays Crep work `1 + crepListWork`,
+while its compiled form also moves every argument into a temporary and reads
+them back (`6 * crepListWork + 1 + arguments`, with `arguments ≤ crepListWork`). -/
 def LoopPaid {F : Type} (context : CrepToLoopContextExact) (live : NumSet)
     (t : CrepSemHOLState 64 F) (u : LoopSemStateFiniteExact 64 F) (p : CrepProgHOL 64)
     (w : Nat) : Prop :=
   ∃ extra wl,
     LoopWork { u with clock := u.clock + extra } (compileHOLExact context live p)
       (evaluate (compileHOLExact context live p) { u with clock := u.clock + extra }) wl ∧
-    wl ≤ 6 * w ∧
+    wl ≤ 7 * w ∧
     LoopRunRel context live (evalCrepSemHOLProgExact t p)
       (evaluate (compileHOLExact context live p) { u with clock := u.clock + extra })
 
@@ -48,7 +51,7 @@ theorem leaf_loop_paid {F : Type} {context : CrepToLoopContextExact} {live : Num
       ⟨rfl, ok, rel.state, rel.memory, rel.globals, rel.code, rel.locals⟩
   obtain ⟨wl, work, bound⟩ := loopBounded_leaf_compile context live p w leaf F
     { u with clock := u.clock + extra }
-  refine ⟨extra, wl, work, bound, ?_⟩
+  refine ⟨extra, wl, work, by omega, ?_⟩
   rw [run]
   exact ⟨hs, hm, hg, hc, hr, hl⟩
 
