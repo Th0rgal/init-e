@@ -8,35 +8,35 @@ other than the source's ends with a different result than the source run
 
 theorem globals_skip (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) :
     GlobalsLe B s .skip none s [.statement] := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
   exact Nat.le_refl _
 
 theorem globals_break (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) :
     GlobalsLe B s .break (some .break) s [.statement] := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
   exact Nat.le_refl _
 
 theorem globals_continue (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) :
     GlobalsLe B s .continue (some .continue) s [.statement] := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
   exact Nat.le_refl _
 
 theorem globals_annotation (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (tag text) :
     GlobalsLe B s (.annot tag text) none s [.statement] := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
   exact Nat.le_refl _
 
 theorem globals_tick (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (r post) :
     GlobalsLe B s .tick r post [.statement] := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target <;> exact Nat.le_refl _
 
@@ -49,7 +49,7 @@ theorem globals_storeValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F
       (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = some memory) :
     GlobalsLe B s (.store destination source) none { s with memory := memory }
       (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length])) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.storeValue dst src write) ok rel target
   simp only [compileProgExactHOL] at target
@@ -72,7 +72,7 @@ theorem globals_store32Value (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
       (BitVec.ofNat 32 value.toNat) = some memory) :
     GlobalsLe B s (.store32 destination source) none { s with memory := memory }
       (.statement :: (addressEvents ++ valueEvents ++ [.memory 1])) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.store32Value dst src write) ok rel target
   simp only [compileProgExactHOL] at target
@@ -94,7 +94,7 @@ theorem globals_storeByteValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 
       (BitVec.ofNat 8 value.toNat) = some memory) :
     GlobalsLe B s (.storeByte destination source) none { s with memory := memory }
       (.statement :: (addressEvents ++ valueEvents ++ [.memory 1])) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.storeByteValue dst src write) ok rel target
   simp only [compileProgExactHOL] at target
@@ -112,7 +112,7 @@ theorem globals_returnValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 
     (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
     GlobalsLe B s (.return expression) (some (.returned value)) (emptyLocalsHOLFinite s)
       (.statement :: (events ++ [.copy (flattenHOL value).length])) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.returnValue expr size) ok rel target
   simp only [compileProgExactHOL] at target
@@ -132,7 +132,7 @@ theorem globals_raiseValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F
     (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
     GlobalsLe B s (.raise exceptionId expression) (some (.exception exceptionId value))
       (emptyLocalsHOLFinite s) (.statement :: (events ++ [.copy (flattenHOL value).length])) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.raiseValue expr declared shapeMatches size) ok rel target
   simp only [compileProgExactHOL] at target
@@ -151,7 +151,7 @@ theorem globals_assignLocal (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 
     GlobalsLe B s (.assign .local name expression) none (setKvarHOLFinite .local name value s)
       (.statement :: (events ++ .copy (flattenHOL value).length ::
         globalEvents .local (flattenHOL value).length)) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.assignValue expr valid) ok rel target
   simp only [compileProgExactHOL] at target

@@ -33,13 +33,13 @@ theorem globals_iteYes (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 
     (nonzero : value ≠ 0) (body : StatementRun s yes r post bodyEvents)
     (ih : GlobalsLe B s yes r post bodyEvents) :
     GlobalsLe B s (.ite condition yes no) r post (.statement :: (guardEvents ++ bodyEvents)) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_ite] at target
   cases target with
   | iteYes guard' _ body' =>
     obtain ⟨_, g⟩ := globals_guard B rel guard guard' ready.1.1
-    have b := ih context t rel ok ready.1.2 code h _ _ _ body'
+    have b := ih context t rel ok ready.1.2 code h cov _ _ _ body'
     rw [srcScore_statement, srcScore_statement, sharpSourceScore_append, sharpSourceScore_append]
     omega
   | iteNo guard' _ =>
@@ -55,7 +55,7 @@ theorem globals_iteNo (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F
     (body : StatementRun s no r post bodyEvents)
     (ih : GlobalsLe B s no r post bodyEvents) :
     GlobalsLe B s (.ite condition yes no) r post (.statement :: (guardEvents ++ bodyEvents)) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_ite] at target
   cases target with
@@ -64,7 +64,7 @@ theorem globals_iteNo (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F
     exact absurd (globals_word_inj hv) nonzero
   | iteNo guard' body' =>
     obtain ⟨_, g⟩ := globals_guard B rel guard guard' ready.1.1
-    have b := ih context t rel ok ready.2 code h _ _ _ body'
+    have b := ih context t rel ok ready.2 code h cov _ _ _ body'
     rw [srcScore_statement, srcScore_statement, sharpSourceScore_append, sharpSourceScore_append]
     omega
   | iteInvalidGuard guard' invalid =>

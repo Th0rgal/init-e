@@ -25,7 +25,7 @@ theorem globals_assignGlobal (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
     GlobalsLe B s (.assign .global name expression) none (setKvarHOLFinite .global name value s)
       (.statement :: (events ++ .copy (flattenHOL value).length ::
         globalEvents .global (flattenHOL value).length)) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.assignValue expr valid) ok rel target
   obtain ⟨old, hold⟩ := globals_valid_global valid
@@ -54,7 +54,7 @@ theorem globals_primitiveValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 
     GlobalsLe B s (.primitive name operator arguments) none (setVarHOLFinite name value s)
       (.statement :: (expressionListEvents s arguments ++ [.scalar 1] ++
         [.copy (flattenHOL value).length])) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.primitiveValue args operation valid) ok rel target
   have values' := globals_list_values rel arguments values args

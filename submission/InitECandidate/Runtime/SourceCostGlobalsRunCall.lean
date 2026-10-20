@@ -65,7 +65,7 @@ theorem globals_callDone_plain (B : Nat) {F : Type} {s post : PanSemStateFiniteE
         [.copy (values.flatMap flattenHOL).length, .frame values.length,
           .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
         [.copy (callPayloadWords bodyResult)] ++ callGlobalEvents s info)) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.callDone args lookup clock bodyRun plan) ok rel target
   have values' := globals_list_values rel arguments values args
   have listLe := globals_list_le B rel arguments (globals_ready_call_args ready) (globals_args_ok args)
@@ -80,7 +80,7 @@ theorem globals_callDone_plain (B : Nat) {F : Type} {s post : PanSemStateFiniteE
     subst this
     obtain ⟨hb, hc, hrs⟩ := globals_lookup_match rel lookup lookup'
     subst hb hc hrs
-    have b := ihBody context _ relEntry bodyOk readyBody entryCode entryNoTemp _ _ _ bodyRun'
+    have b := ihBody context _ relEntry bodyOk readyBody entryCode entryNoTemp cov _ _ _ bodyRun'
     obtain ⟨hbr, -⟩ := globals_sub_match bodyRun bodyOk relEntry bodyRun'
     subst hbr
     rw [globals_callGlobal_plain context t plain, globals_rel_structs rel]

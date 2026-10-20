@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SourceCostGlobalsNoTemp
+import InitECandidate.Runtime.SourceCostGlobalsDomain
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -7,13 +7,23 @@ costs no more, under `sharpSourceScore B`, than the source run. The target run
 is inverted; its results and intermediate states are matched to the source run
 through the original `compile_correct` and determinism. -/
 
+/-- Every global laid out by `pan_globals` is present in the source state. -/
+def GlobalsCovered {F : Type} (context : PanGlobalsContextExact 64) (s : PanSemStateFiniteExact 64 F) :
+    Prop :=
+  ∀ name entry, context.globals.lookup name = some entry → GlobalsPresent s name
+
+theorem StatementRun.covered {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
+    (run : StatementRun s p r post ev) {context : PanGlobalsContextExact 64}
+    (cov : GlobalsCovered context s) : GlobalsCovered context post :=
+  fun name entry found => run.globals_present name (cov name entry found)
+
 /-- The transfer statement for one source run. -/
 def GlobalsLe (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (p : ProgHOL 64)
     (r : Option (PanSemResultExact 64)) (_post : PanSemStateFiniteExact 64 F)
     (ev : List WorkEvent) : Prop :=
   ∀ (context : PanGlobalsContextExact 64) (t : PanSemStateFiniteExact 64 F),
     panGlobalsStateRelHOLExact true context s t → r ≠ some .error → globalsReadyProg p = true →
-      GlobalsCodeReady s.code → s.locals.lookup globalsTemp = none →
+      GlobalsCodeReady s.code → s.locals.lookup globalsTemp = none → GlobalsCovered context s →
       ∀ r' t' ev', StatementRun t (compileProgExactHOL context p) r' t' ev' →
         sharpSourceScore B ev' ≤ sharpSourceScore B ev
 
@@ -72,15 +82,15 @@ theorem globals_seqNext (B : Nat) {F : Type} {s middle post : PanSemStateFiniteE
     (one : StatementRun s a none middle left) (two : StatementRun middle b r post right)
     (ih1 : GlobalsLe B s a none middle left) (ih2 : GlobalsLe B middle b r post right) :
     GlobalsLe B s (.seq a b) r post (left ++ right) := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_seq] at target
   cases target with
   | seqNext one' two' =>
     obtain ⟨_, rel1⟩ := globals_sub_match one (by simp) rel one'
-    have l := ih1 context t rel (by simp) ready.1 code h _ _ _ one'
+    have l := ih1 context t rel (by simp) ready.1 code h cov _ _ _ one'
     have r2 := ih2 context _ rel1 ok ready.2 (by rw [one.code_eq]; exact code)
-      (one.noTemp ready.1 code h) _ _ _ two'
+      (one.noTemp ready.1 code h) (one.covered cov) _ _ _ two'
     rw [sharpSourceScore_append, sharpSourceScore_append]; omega
   | seqStop terminal one' =>
     obtain ⟨hr, _⟩ := globals_sub_match one (by simp) rel one'
@@ -90,7 +100,7 @@ theorem globals_seqStop (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64
     {a b : ProgHOL 64} {r left} (terminal : r ≠ none)
     (one : StatementRun s a r post left) (ih : GlobalsLe B s a r post left) :
     GlobalsLe B s (.seq a b) r post left := by
-  intro context t rel ok ready code h r' t' ev' target
+  intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_seq] at target
   cases target with
@@ -98,7 +108,7 @@ theorem globals_seqStop (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64
     obtain ⟨hr, _⟩ := globals_sub_match one ok rel one'
     exact absurd hr.symm terminal
   | seqStop _ one' =>
-    have := ih context t rel ok ready.1 code h _ _ _ one'
+    have := ih context t rel ok ready.1 code h cov _ _ _ one'
     exact this
 
 #print axioms globals_seqNext
