@@ -173,8 +173,12 @@ known-label call pass never increases work for any non-error trace under its
 original known-labels relation. Indirect-to-direct rewriting retains the same
 callee/environment and all body/handler/continuation traces, removing only the
 target argument charge; full sequences, branches and loops are covered.
-Full `optimiseHOL` still needs liveness-shrink work transfer to close the
-installed-callee gap.
+`SourceCostLoopLiveLeaf` checks all atomic liveness cases under the original
+locals-projection premise. It reuses existing semantic correctness for the
+actual successor/locals relation and proves the retained-or-deleted statement's
+local cost does not increase. The remaining liveness composition covers
+sequences, branches, loops and returning calls; full `optimiseHOL` still needs
+that transfer to close the installed-callee gap.
 
 ## Remaining end-to-end obligations
 
