@@ -68,7 +68,7 @@ without a universal return-slot bound.
 
 | Stage/modules | Proven result | Scope/remaining obligation |
 | --- | --- | --- |
-| `SourceCostCrepWork`, `SourceCostCrepBasis`, `SourceCostCrepLeaf`, `SourceCostCrepDec`, `SourceCostCrepCall`, `SourceCostCrepHandler`, `SourceCostCrepControl` | Executed Crep work paid by source events for control paths, declarations, local assignments, stores, returns/raises and calls including caught exceptions and timeout; return slots paid by requested size | Original state/code/exception/locals relations, localization, bulk-load and callee coverage premises; declaration-call, primitive/external/shared operations and preprocessing still open |
+| `SourceCostCrepWork`, `SourceCostCrepBasis`, `SourceCostCrepLeaf`, `SourceCostCrepDec`, `SourceCostCrepCall`, `SourceCostCrepHandler`, `SourceCostCrepDecCall`, `SourceCostCrepPrimitive`, `SourceCostCrepAtomic`, `SourceCostCrepControl` | Executed Crep work paid by source events for control paths, declarations, local assignments, stores, returns/raises, calls/declaration-calls, primitive/external/shared operations, including caught exceptions and timeout; return slots paid by requested size | All localized constructors under original state/code/exception/locals relations and non-error result, with program/callee bulk-load premises; preprocessing and Crep-to-Loop transfer remain open |
 | `AllocCostModel`, `AllocCostSSA`, `AllocCostPasses`, `AllocCostCompose`, `AllocCostExecuted` | SSA prologue/instruction moves, three-to-two rewrite-site costs, nonamplifying allocation/colouring, and actual path budget for their composed output | Certified straight-line fragments; recursive call/loop reconciliation remains open |
 | `AllocCostOptimizer`, `AllocCostCse`, `AllocCostUnreach` | Local static envelopes for must-terminate/dead-code removal, copy propagation, CSE, sequence cleanup and unreachable removal; expansion charged by rewrite sites | Straight-line fragment bounds; grammar/composed optimizer and dynamic control transfer remain separate |
 | `CrepExpressionWork`, `PanLoweringAllowance` | Full local source expression expansion; context-width and repeated address work retained | Generated syntax, not complete statement execution transfer |
@@ -122,8 +122,9 @@ in the weighted trace.
 
 ## Remaining end-to-end obligations
 
-1. Full executed source-to-Crep/Loop statement transfer, including preprocessing,
-   calls, handlers and failure prefixes, with original semantic relations.
+1. Execute-cost transfer through source preprocessing and Crep-to-Loop. The
+   localized source-to-Crep statement transfer is checked for non-error runs
+   under original semantic relations and explicit bulk-load premises.
 2. Word optimizer/SSA/allocation cost transfer, charging inserted moves at each
    actual execution site, including loop/call reconciliation.
 3. Compose downstream local work across full control flow and native encoding;
