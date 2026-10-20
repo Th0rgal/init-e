@@ -244,7 +244,7 @@ theorem wordPathWork_loop_variant {C F : Type}
       WordSemStateFiniteExact 64 C F) = (res, { s1 with permute := k1, stack := xs1 }))
     (ihBody : wordPathWork body ({ cs with permute := k, stack := xs } :
       WordSemStateFiniteExact 64 C F) = wordPathWork body cs)
-    (ihStop : wordPathWork (.loop names body exitNames)
+    (ihStop : s1.clock ≠ 0 → wordPathWork (.loop names body exitNames)
       ({ decClock s1 with permute := k1, stack := xs1 } : WordSemStateFiniteExact 64 C F) =
       wordPathWork (.loop names body exitNames) (decClock s1)) :
     wordPathWork (.loop names body exitNames) ({ s with permute := k, stack := xs } :
@@ -264,7 +264,7 @@ theorem wordPathWork_loop_variant {C F : Type}
   · rw [if_pos hc, if_pos hc]
     by_cases hz : s1.clock = 0
     · rw [dif_pos hz, dif_pos hz]
-    · rw [dif_neg hz, dif_neg hz, ihStop]
+    · rw [dif_neg hz, dif_neg hz, ihStop hz]
   · rw [if_neg hc, if_neg hc]
 
 
