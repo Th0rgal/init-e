@@ -14,6 +14,11 @@ theorem allInitializerGlobals_world_kept (globals : HolFiniteMapExact MlS (Value
 theorem allInitializerGlobals_empty_root (globals : HolFiniteMapExact MlS (ValueHOL 64)) :
  (allInitializerGlobals globals).lookup (ofString "empty_trie_root")=some (.val (.word 2713717456)) := by
  rfl
+/-- The startup MPT output buffer remains available to both database builds. -/
+theorem allInitializerGlobals_mpt_hash_scratch (globals : HolFiniteMapExact MlS (ValueHOL 64)) :
+ (allInitializerGlobals globals).lookup (ofString "mpt_hash_scratch")=some (.val (.word 2713717584)) := by
+ rfl
+#print axioms allInitializerGlobals_mpt_hash_scratch
 /-- Original declaration initialization supplies actual typed zero world pointers. -/
 theorem canonical_original_world_globals (input : Guest.InputBlob) :
  (canonicalOriginalSourceEntry input).globals.lookup (ofString "ws")=some (.val (.word 0)) ∧

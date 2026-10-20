@@ -13,7 +13,7 @@ def headersInitializerGlobalGood (name : MlS) : Bool :=
  [ofString "_rlp_validate_items_body",ofString "alloc",ofString "bswap64",ofString "decode_header",ofString "hdr_bytes_field",ofString "hdr_raw_field",ofString "hdr_u256_field",ofString "hdr_uint_field",ofString "hdr_word_field",ofString "keccak256",ofString "keccak_absorb_block",ofString "keccak_f1600",ofString "memcpy",ofString "memeq",ofString "memzero",ofString "rlp_decode_fully",ofString "rlp_fail",ofString "rlp_item",ofString "rlp_item_header",ofString "rlp_item_total",ofString "rlp_item_total_unchecked",ofString "rlp_list_count",ofString "rlp_list_to_slices",ofString "rlp_read_length",ofString "rlp_validate_items",ofString "scratch_alloc",ofString "scratch_mark",ofString "scratch_release",ofString "trap_with",ofString "u256_from_be",ofString "validate_headers"].contains name
 /-- Initialized globals required by the subsequent world/trie initializer. -/
 def headersInitializerGlobals : List MlS :=
- [ofString "ws",ofString "bs",ofString "empty_trie_root"]
+ [ofString "ws",ofString "bs",ofString "empty_trie_root",ofString "mpt_hash_scratch"]
 
 theorem headers_initializer_global_check : (functionsHOL sourceDeclarations).all
  (fun entry => !headersInitializerGlobalGood entry.1 ||
