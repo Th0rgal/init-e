@@ -9,8 +9,8 @@ open Flapjack Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proof
 Premises are exactly the original `ncompile_correct` premises, plus the named
 temporary `LoopOptimiseWork` contract for the per-function `optimiseHOL` pass
 (root is proving it), so this theorem is conditional on that contract. -/
-theorem crep_loop_executed_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSemHOLState 64 F}
-    {p : CrepProgHOL 64} {w : Nat} (work : CrepWork t p w) :
+theorem crep_loop_executed_work (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
+    {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64} {w : Nat} (work : CrepWorkL P t p w) :
     ∀ (u : LoopSemStateFiniteExact 64 F) (context : CrepToLoopContextExact) (live : NumSet),
       (evalCrepSemHOLProgExact t p).1 ≠ some .error → CrepLoopRel context live t u →
       LoopPaid context live t u p w := by
@@ -79,7 +79,7 @@ theorem crep_loop_executed_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSem
     intro u context live ok rel
     have okBranch : (evalCrepSemHOLProgExact t (if word ≠ 0 then yes else no)).1 ≠ some .error := by
       rw [evalCrepSemHOLProgExact_ite_holShape, guard] at ok; exact ok
-    exact ite_loop_paid guard ok rel (fun u' rel' => ihBranch u' context live okBranch rel')
+    exact ite_loop_paid P guard ok rel (fun u' rel' => ihBranch u' context live okBranch rel')
   | @iteInvalid t condition yes no invalid =>
     intro u context live ok rel
     exfalso
@@ -90,7 +90,7 @@ theorem crep_loop_executed_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSem
     · rfl
   | @dec t name value body word bodyWork evaluated bodyRun ih =>
     intro u context live ok rel
-    exact dec_loop_paid evaluated ok rel (fun u' c' l' ok' rel' => ih u' c' l' ok' rel')
+    exact dec_loop_paid P evaluated ok rel (fun u' c' l' ok' rel' => ih u' c' l' ok' rel')
   | @decFailure t name value body failed =>
     intro u context live ok rel
     exfalso
@@ -106,10 +106,10 @@ theorem crep_loop_executed_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSem
       | word w =>
         have hw := exit w hev
         subst hw
-        exact while_false_loop_paid hev rel
+        exact while_false_loop_paid P hev rel
   | @whileTimeout t condition body word guard nonzero clock =>
     intro u context live ok rel
-    exact while_timeout_loop_paid guard nonzero clock rel
+    exact while_timeout_loop_paid P guard nonzero clock rel
   | @whileLoop t condition body word bodyWork result middle restWork guard nonzero clock one run
       again rest ihOne ihRest =>
     intro u context live ok rel
@@ -122,18 +122,18 @@ theorem crep_loop_executed_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSem
         rw [if_pos nonzero, run]
         rcases again with rfl | rfl <;> rfl
       rw [← crepRun]; exact ok
-    exact while_loop_loop_paid guard nonzero clock run again rel
+    exact while_loop_loop_paid P guard nonzero clock run again rel
       (fun u' rel' => ihOne u' context live (by rw [run]; exact bodyOk) rel')
       (fun u' rel' => ihRest u' context live restOk rel')
   | @whileStop t condition body word bodyWork result middle guard nonzero clock one run stop
       ihOne =>
     intro u context live ok rel
     have bodyOk := while_body_not_error guard nonzero clock run ok
-    exact while_stop_loop_paid guard nonzero clock run stop ok rel
+    exact while_stop_loop_paid P guard nonzero clock run stop ok rel
       (fun u' rel' => ihOne u' context live (by rw [run]; exact bodyOk) rel')
   | @callShort t returnInfo function arguments short =>
     intro u context live ok rel
-    refine call_loop_paid opt returnInfo function arguments t u context live _ ok rel
+    refine call_loop_paid P opt returnInfo function arguments t u context live _ ok rel
       (fun _ => Nat.le_refl _) ?_
     intro args prog newlocals hargs hlookup hnames hclock
     exfalso
@@ -149,7 +149,7 @@ theorem crep_loop_executed_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSem
   | @callBody t returnInfo function arguments values body locals bodyWork result post args lookup
       names clock bodyRun run unhandled ihBody =>
     intro u context live ok rel
-    refine call_loop_paid opt returnInfo function arguments t u context live _ ok rel
+    refine call_loop_paid P opt returnInfo function arguments t u context live _ ok rel
       (fun h => absurd h clock) ?_
     intro args' prog newlocals hargs hlookup _ _
     rw [args] at hargs; cases hargs
@@ -164,7 +164,7 @@ theorem crep_loop_executed_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSem
   | @callHandler t rts code handler function arguments values body locals bodyWork post
       handlerWork args lookup names clock bodyRun run handlerRun ihBody ihHandler =>
     intro u context live ok rel
-    refine call_loop_paid opt _ function arguments t u context live _ ok rel
+    refine call_loop_paid P opt _ function arguments t u context live _ ok rel
       (fun h => absurd h clock) ?_
     intro args' prog newlocals hargs hlookup _ _
     rw [args] at hargs; cases hargs
@@ -179,7 +179,7 @@ theorem crep_loop_executed_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSem
       exact ⟨handlerWork, fun u' ok' rel' => ihHandler u' context live ok' rel', Nat.le_refl _⟩
   | _ =>
     intro u context live ok rel
-    exact leaf_loop_paid rfl ok rel
+    exact leaf_loop_paid P rfl ok rel
 
 #print axioms crep_loop_executed_work
 end InitECandidate.Runtime.FineCost

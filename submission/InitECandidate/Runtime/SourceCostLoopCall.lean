@@ -20,14 +20,14 @@ installed by `compile_prog`. The relation reasoning is the pinned
 `crepToLoop_ncompile_correct_call` proof; each executed site adds its
 `LoopWork` rule: argument code and moves, the call, the actual callee body,
 the return-slot copy or the matched handler dispatch. -/
-theorem call_loop_paid {F : Type} (opt : LoopOptimiseWork)
+theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
     (caltyp : Option (List Nat × Option (BitVec 64 × CrepProgHOL 64)))
     (fname : Flapjack.Basis.Pure.MlString.MlString) (argexps : List (CrepExpHOL 64))
     (v1 : CrepSemHOLState 64 F) (t : LoopSemStateFiniteExact 64 F)
     (ctxt : CrepToLoopContextExact) (l : NumSet) (w : Nat)
     (ok : (evalCrepSemHOLProgExact v1 (.call caltyp fname argexps)).1 ≠ some .error)
     (rel : CrepLoopRel ctxt l v1 t)
-    (shortW : v1.clock = 0 → 1 + crepListWork argexps ≤ w)
+    (shortW : v1.clock = 0 → P.unit + P.unit + P.unit + P.priceList argexps ≤ w)
     (ihb : ∀ (args : List (HolWordLab 64)) (prog : CrepProgHOL 64)
         (newlocals : HolFiniteMapExact Nat (HolWordLab 64)),
       argexps.mapM (evalCrepSemHOLExp v1) = some args →
@@ -43,7 +43,7 @@ theorem call_loop_paid {F : Type} (opt : LoopOptimiseWork)
         (∀ r post, evalCrepSemHOLProgExact { decClockCrepSemHOL v1 with locals := newlocals } prog =
             (r, post) →
           (∀ eid rts hp, r = some (.exception eid) → caltyp ≠ some (rts, some (eid, hp))) →
-          1 + crepListWork argexps + args.length + wb + crepCallPayloadWords r ≤ w) ∧
+          P.unit + P.unit + P.unit + P.priceList argexps + args.length + wb + crepCallPayloadWords r ≤ w) ∧
         (∀ (st : CrepSemHOLState 64 F) (eid : BitVec 64) (rts : List Nat) (hp : CrepProgHOL 64),
           evalCrepSemHOLProgExact { decClockCrepSemHOL v1 with locals := newlocals } prog =
             (some (.exception eid), st) →
@@ -53,7 +53,7 @@ theorem call_loop_paid {F : Type} (opt : LoopOptimiseWork)
               (evalCrepSemHOLProgExact { st with locals := v1.locals } hp).1 ≠ some .error →
               CrepLoopRel ctxt l { st with locals := v1.locals } u' →
               LoopPaid ctxt l { st with locals := v1.locals } u' hp wh) ∧
-            1 + crepListWork argexps + args.length + wb + wh ≤ w)) :
+            P.unit + P.unit + P.unit + P.priceList argexps + args.length + wb + wh ≤ w)) :
     LoopPaid ctxt l v1 t (.call caltyp fname argexps) w := by
   classical
   rcases hEvalAll : evalCrepSemHOLProgExact v1 (.call caltyp fname argexps) with ⟨res, s1⟩
@@ -75,7 +75,7 @@ theorem call_loop_paid {F : Type} (opt : LoopOptimiseWork)
       res1 = resultToLoop res ∧
       localsResultRel ctxt l res s1 t1 ∧
       ∃ wl, LoopWork { t with clock := t.clock + ck }
-        (compileHOLExact ctxt l (.call caltyp fname argexps)) (res1, t1) wl ∧ wl ≤ 7 * w by
+        (compileHOLExact ctxt l (.call caltyp fname argexps)) (res1, t1) wl ∧ wl ≤ w by
     obtain ⟨ck, res1, t1, run, s, m, g, c, r, lr, wl, work, bound⟩ := core
     refine ⟨ck, wl, ?_, bound, ?_⟩
     · rw [run]; exact work
@@ -178,14 +178,14 @@ theorem call_loop_paid {F : Type} (opt : LoopOptimiseWork)
     rw [List.append_assoc, LoopSemStateFiniteExact.evaluate_nested_seq_append_none p _ _ _ h1k,
       LoopSemStateFiniteExact.evaluate_nested_seq_append_none _ _ _ _ hassign]
   -- executed work of the argument code and argument moves
-  obtain ⟨preCode, preSupported, preBound⟩ := crep_to_loop_list_work ctxt (ctxt.vmax + 1) l argexps
+  obtain ⟨preCode, preSupported, preBound⟩ := P.listOk ctxt (ctxt.vmax + 1) l argexps
   rw [hC] at preSupported preBound
   try dsimp only at preSupported preBound
   obtain ⟨moveCost, moveSupported, moveBound⟩ := assign_codes_work temps les
   have preAllowance : loopExpressionCodesWork (p ++ temps.zipWith HolLoopProg.assign les) =
       some (preCode + moveCost) := by
     rw [loopExpressionCodesWork_append, preSupported, moveSupported]; rfl
-  have argWork := crepListWork_ge_length argexps
+  have unitOk := P.unitOk
   have argLen : args.length = argexps.length := (opt_mmap_length_eq _ _ _ hargs).symm
   have tempsLen : temps.length = args.length := by rw [htlen, hlen]
   have finish : ∀ (k : Nat) (stmt : HolLoopProg 64)
@@ -286,7 +286,7 @@ theorem call_loop_paid {F : Type} (opt : LoopOptimiseWork)
             crepToLoopGlobalsRelHOLExact st'.globals t1.globals ∧
             crepToLoopCodeRelExact ctxt st'.code t1.code ∧
             ∃ wc, LoopWork { sA with clock := sA.clock + ck' } (HolLoopProg.call none (some loc) temps none)
-              (resultToLoop (some r), t1) wc ∧ wc ≤ 1 + temps.length + 7 * wb := by
+              (resultToLoop (some r), t1) wc ∧ wc ≤ 1 + temps.length + wb := by
         intro r st' hb hre hrb hrc
         obtain ⟨ck', wbody, bodyWork, bodyWorkBound, bodyRel⟩ := ihBody T0 nctxt
           (listToNumSetHOLExact (List.range len)) (by rw [hb]; simpa using hre)
@@ -505,7 +505,7 @@ theorem call_loop_paid {F : Type} (opt : LoopOptimiseWork)
               ∃ x wopt, resultToLoop (some r) = some x ∧
                 LoopWork { T0 with clock := T0.clock + ck' }
                   (ocompileHOLExact nctxt (listToNumSetHOLExact (List.range len)) prog)
-                  (some x, t1) wopt ∧ wopt ≤ 7 * wb := by
+                  (some x, t1) wopt ∧ wopt ≤ wb := by
           intro r st' hb hre hrb hrc
           obtain ⟨ck', wbody, bodyWork, bodyWorkBound, bodyRel⟩ := ihBody T0 nctxt
             (listToNumSetHOLExact (List.range len)) (by rw [hb]; simpa using hre)

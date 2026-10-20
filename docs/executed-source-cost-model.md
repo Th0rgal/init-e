@@ -82,6 +82,7 @@ without a universal return-slot bound.
 | `AllocCostReconcile`, `AllocCostSSAControl` | Static local syntax envelopes for renaming, reconciliation, loop setup/back-edges, break/continue targets and tail-call argument moves, using actual live sets | Dynamic semantic execution transfer must still charge each occurrence; returning-call composition remains open |
 | `SourceCostCrepSimp` | Actual arithmetic simplification never increases executed Crep work, including calls and handlers; original result/state relation retained | Same clock; no recursive cost multiplier |
 | `SourceCostLoopCode`, `SourceCostLoopLeaf`, `SourceCostLoopTransfer`, `SourceCostLoopIf`, `SourceCostLoopDec`, `SourceCostLoopWhile*`, `SourceCostLoopCall*`, `SourceCostLoopControl`, `SourceCostLoopSource` | Full localized source-to-Crep-to-arithmetic-simplification-to-Loop per-statement execution transfer, with real guards, actual iterations/callees/handlers and all original compiler relations; optimizer premise discharged | Generic factor-seven coverage envelope is too loose for final score; structures/globals preprocessing and whole-program entry still open |
+| `SourceCostSharp*`, `SourceCostLoopPrice`, `SourceCostLoopPricing`, `PanSharpCost` | Source-to-Crep-to-simplification-to-Loop transfer at factor ONE, with opcode-sensitive local expression prices and per-site certified address replay; canonical selected source cost equals any concrete trace price | Every localized constructor under original semantic relations, non-error result, `sharpSitesProg 40` for program/callees; structures/globals and installed entry remain open |
 | `SourceCostPanSimp*` | Full pinned `pan_simp` sequence reassociation, tail-call rewriting and installed-callee code-map transport preserve/decrease source event costs under EVERY coefficient vector | Actual source traces retained, including timeout/exception prefixes; structures/globals passes separate |
 | `SourceCostLoopWork` | Output-indexed exact Loop execution work, soundness and equal-work lifting to a larger clock for non-timeout runs; selected branches, each loop iteration, callees/continuations/handlers exposed | Actual Crep-to-Loop transfer is a separate stage |
 | `SourceCostLoopOptimise` and `SourceCostLoopLive*` | Full actual call rewrite, liveness shrink and marking preserve or decrease executed work at coefficient ONE, under original terminal-result guards and exact original initial/final states | Discharges `LoopOptimiseWork`; no recursive optimizer multiplier |
@@ -214,16 +215,28 @@ for independent review/replay; no complete opcode/interpreter bound is claimed.
 
 ## Numerical budget audit
 
-The generic `sourceCrepWeights` followed by the factor-seven Loop bound is a
-coverage envelope, not a usable final numeric route. The guest worker reports
-the Seq-free `u256_add` vector as 9 statements, 44 expressions, 102 moved words,
-4 scalar operations and 4 frame slots. Under `sourceCrepWeights` it scores 1976,
-hence the generic Loop envelope is 13,832 units. A gas-3 ADD has only 13,500
-native steps per execution at the overall 900-billion/200-million ratio, before
-other helpers and overhead. This already rules out multiplying the generic
-stage envelopes as the final certificate. Sharper local/vector inequalities
-are required, especially avoiding a bulk-load allowance on load-free helper
-expressions. Preserve semantic coverage proofs while refining those inequalities.
+The generic `sourceCrepWeights` followed by the factor-seven Loop bound remains
+a coverage envelope. It prices the stated Seq-free `u256_add` vector at 13,832
+Loop units, already exceeding gas-3 ADD's 13,500 native-step allowance at the
+overall 900-billion/200-million ratio before other helpers.
+
+The integrated sharp route instead prices the SAME canonical events as
+`10*statements + 5*expressions + 5*movedWords + 12*memoryAccesses + 4*frameSlots
++ 45*replayUnits`. Replay units sum `k-1` for each `.memory k` event. A static
+`sharpSitesProg 40` certificate bounds the scalar address price at multiword
+load sites; no whole-program expression maximum is multiplied into all work.
+The source-to-Loop theorem preserves this allowance with factor ONE through
+arithmetic simplification and the installed Loop optimizer. The stated
+`u256_add` counts yield 836 Loop units (checked numeric lemma). This is not a
+native score: whole ADD/interpreter bounds, downstream compiler prices,
+initialization and nongas input processing remain to be composed.
+
+`PanSharpCost.sourceSharpExecutionCost` scores the unique actual source event
+trace at these prices. `sourceSharpExecutionCost_eq_of_run` connects any concrete
+guest trace to that function; `sourceSharpExecutionCost_pays_loop` applies the
+compiler theorem directly to it. Worker snapshot bb442a0d3 was frozen, its price
+and semantic interfaces reviewed, and all 56 source compiler-chain modules were
+independently rebuilt. The selected-cost bridge was checked separately.
 
 ## Actual Word execution counter
 

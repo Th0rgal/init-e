@@ -145,7 +145,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
     intro _; exact ⟨1, by unfold crepSimpProgHOL; exact .breakStmt _ _, Nat.le_refl _⟩
   | continueStmt t label =>
     intro _; exact ⟨1, by unfold crepSimpProgHOL; exact .continueStmt _ _, Nat.le_refl _⟩
-  | raise t code => intro _; exact ⟨1, by unfold crepSimpProgHOL; exact .raise _ _, Nat.le_refl _⟩
+  | raise t code => intro _; exact ⟨2, by unfold crepSimpProgHOL; exact .raise _ _, Nat.le_refl _⟩
   | extCall t function configuration configurationLength array arrayLength =>
     intro _; exact ⟨1, by unfold crepSimpProgHOL; exact .extCall _ _ _ _ _ _, Nat.le_refl _⟩
   | primitive t names operator args =>
@@ -257,7 +257,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
         have hw := exit w0 hev
         have hev' := crepSimp_exp t condition _ hev
         have := crepSimp_node_work condition
-        refine ⟨1 + crepNodeWork (crepSimpExpHOL condition), ?_, by omega⟩
+        refine ⟨1 + 1 + crepNodeWork (crepSimpExpHOL condition), ?_, by omega⟩
         simp only [crepSimpProgHOL]
         refine .whileExit (fun word h => ?_)
         rw [hev'] at h
@@ -266,7 +266,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
   | @whileTimeout t condition body word guard nonzero clock =>
     intro _
     have := crepSimp_node_work condition
-    exact ⟨1 + crepNodeWork (crepSimpExpHOL condition),
+    exact ⟨1 + 1 + crepNodeWork (crepSimpExpHOL condition),
       by simp only [crepSimpProgHOL]; exact .whileTimeout (crepSimp_exp t condition _ guard) nonzero clock,
       by omega⟩
   | @whileLoop t condition body word bodyWork result middle restWork guard nonzero clock one run
@@ -292,7 +292,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
     have run' := crepArithSimpProgCorrect body _ result middle run bodyOk
     simp only [crepSimpProgHOL] at hr
     have := crepSimp_node_work condition
-    exact ⟨1 + crepNodeWork (crepSimpExpHOL condition) + wb + wr,
+    exact ⟨1 + 1 + crepNodeWork (crepSimpExpHOL condition) + wb + wr,
       by simp only [crepSimpProgHOL]
          exact .whileLoop (crepSimp_exp t condition _ guard) nonzero clock hb run' again hr,
       by omega⟩
@@ -309,7 +309,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
     obtain ⟨wb, hb, bb⟩ := ihOne (by rw [run]; exact bodyOk)
     have run' := crepArithSimpProgCorrect body _ result middle run bodyOk
     have := crepSimp_node_work condition
-    exact ⟨1 + crepNodeWork (crepSimpExpHOL condition) + wb,
+    exact ⟨1 + 1 + crepNodeWork (crepSimpExpHOL condition) + wb,
       by simp only [crepSimpProgHOL]
          exact .whileStop (crepSimp_exp t condition _ guard) nonzero clock hb run' stop,
       by omega⟩
@@ -329,7 +329,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
         · rw [if_pos hn]
         · rfl
       · rfl
-    · refine ⟨1 + crepListWork (arguments.map crepSimpExpHOL), ?_, by omega⟩
+    · refine ⟨1 + 1 + 1 + crepListWork (arguments.map crepSimpExpHOL), ?_, by omega⟩
       unfold crepSimpProgHOL
       exact .callShort (Or.inr ⟨_, crepSimp_args t _ _ hvals, Or.inr (Or.inr hc)⟩)
   | @callBody t returnInfo function arguments values body locals bodyWork result post args lookup
@@ -354,7 +354,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
         some (crepSimpProgHOL body, locals) := by
       rw [crepSimp_lookup, lookup]; rfl
     have := crepSimp_listWork arguments
-    refine ⟨1 + crepListWork (arguments.map crepSimpExpHOL) + values.length + wb +
+    refine ⟨1 + 1 + 1 + crepListWork (arguments.map crepSimpExpHOL) + values.length + wb +
       crepCallPayloadWords result, ?_, by omega⟩
     unfold crepSimpProgHOL
     refine .callBody args' lookup' ?_ clock hb run' ?_
@@ -390,7 +390,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
         some (crepSimpProgHOL body, locals) := by
       rw [crepSimp_lookup, lookup]; rfl
     have := crepSimp_listWork arguments
-    refine ⟨1 + crepListWork (arguments.map crepSimpExpHOL) + values.length + wb + wh, ?_, by omega⟩
+    refine ⟨1 + 1 + 1 + crepListWork (arguments.map crepSimpExpHOL) + values.length + wb + wh, ?_, by omega⟩
     simp only [crepSimpProgHOL]
     exact .callHandler args' lookup' names clock hb run' hh
 

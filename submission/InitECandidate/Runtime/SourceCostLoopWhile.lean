@@ -71,11 +71,12 @@ theorem loopWhile_compile (ctxt : CrepToLoopContextExact) (l : NumSet) (e : Crep
   rw [compileHOLExact, hC]
 
 /-- False guard: the loop body runs once to its `Break 0` and the loop exits. -/
-theorem while_false_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem while_false_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64}
     (hev : evalCrepSemHOLExp v1 e = some (.word 0)) (rel : CrepLoopRel ctxt l v1 t) :
-    LoopPaid ctxt l v1 t (.while e c) (1 + crepNodeWork e) := by
+    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.price e) := by
+  have unitOk := P.unitOk
   classical
   obtain ⟨hs, hm, hg, hc, hl⟩ := rel
   have crepRun : evalCrepSemHOLProgExact v1 (.while e c) = (none, v1) := by
@@ -85,7 +86,7 @@ theorem while_false_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : Nu
   have hlnl : ∀ k, sptDomain l k → sptDomain nl k :=
     fun k hk => hlA ▸ cut_sets_union_domain_subset _ l hokA k hk
   have htmp : ctxt.vmax < tmp := Nat.lt_of_lt_of_le (Nat.lt_succ_self _) htA
-  obtain ⟨codeCost, codeSupported, codeBound⟩ := crep_to_loop_local_work ctxt (ctxt.vmax + 1) l e
+  obtain ⟨codeCost, codeSupported, codeBound⟩ := P.exprOk ctxt (ctxt.vmax + 1) l e
   rw [hC] at codeSupported codeBound
   try dsimp only at codeSupported codeBound
   have hcomp := loopWhile_compile ctxt l e c hC
@@ -140,12 +141,13 @@ theorem while_false_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : Nu
       (loopWhile_locals_rel_insert_of ctxt l nl v1.locals _ st.locals hl h1l hlnl tmp htmp _)
 
 /-- Timeout before an iteration: the loop's entry cut times out. -/
-theorem while_timeout_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem while_timeout_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64} {w : BitVec 64}
     (hev : evalCrepSemHOLExp v1 e = some (.word w)) (hw : w ≠ 0) (hz : v1.clock = 0)
     (rel : CrepLoopRel ctxt l v1 t) :
-    LoopPaid ctxt l v1 t (.while e c) (1 + crepNodeWork e) := by
+    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.price e) := by
+  have unitOk := P.unitOk
   classical
   obtain ⟨hs, hm, hg, hc, hl⟩ := rel
   have crepRun : evalCrepSemHOLProgExact v1 (.while e c) =
@@ -176,7 +178,7 @@ theorem while_timeout_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : 
 
 /-- Shared iteration prelude: entry cut, guard materialization at the
 decremented clock, and the body's simulation premises. -/
-structure LoopWhileIter {F : Type} (ctxt : CrepToLoopContextExact) (l : NumSet)
+structure LoopWhileIter (P : LoopPricing) {F : Type} (ctxt : CrepToLoopContextExact) (l : NumSet)
     (v1 : CrepSemHOLState 64 F) (t : LoopSemStateFiniteExact 64 F)
     (e : CrepExpHOL 64) (c : CrepProgHOL 64) (w : BitVec 64) : Prop where
   out : ∃ (np : List (HolLoopProg 64)) (le : HolLoopExp 64) (tmp : Nat) (a ck : Nat)
@@ -185,7 +187,7 @@ structure LoopWhileIter {F : Type} (ctxt : CrepToLoopContextExact) (l : NumSet)
       [.assign tmp le,
        .ite .notEqual tmp (.imm (0 : BitVec 64))
          (.seq (compileHOLExact ctxt l c) (.continue 0)) (.break 0) l])) l ∧
-    loopExpressionCodesWork np = some a ∧ a + loopValueWork le + 1 ≤ 6 * crepNodeWork e ∧
+    loopExpressionCodesWork np = some a ∧ a + loopValueWork le + 1 ≤ P.price e ∧
     (∀ k, LoopSemStateFiniteExact.cutRes l (none, { t with clock := t.clock + (ck + k) }) =
       (none, { t with locals := sptInter t.locals l, clock := t.clock - 1 + (ck + k) })) ∧
     (∀ k, evaluate (loopNestedSeqHOL np)
@@ -194,11 +196,12 @@ structure LoopWhileIter {F : Type} (ctxt : CrepToLoopContextExact) (l : NumSet)
     (∀ k, LoopSemStateFiniteExact.eval { st with clock := st.clock + k } le = some (.word w)) ∧
     CrepLoopRel ctxt l (decClockCrepSemHOL v1) (LoopSemStateFiniteExact.setVar tmp (.word w) st)
 
-theorem loopWhile_iter {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem loopWhile_iter (P : LoopPricing) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64} {w : BitVec 64}
     (hev : evalCrepSemHOLExp v1 e = some (.word w)) (hz : v1.clock ≠ 0)
-    (rel : CrepLoopRel ctxt l v1 t) : LoopWhileIter ctxt l v1 t e c w := by
+    (rel : CrepLoopRel ctxt l v1 t) : LoopWhileIter P ctxt l v1 t e c w := by
+  have unitOk := P.unitOk
   classical
   obtain ⟨hs, hm, hg, hc, hl⟩ := rel
   rcases hC : compileExpHOLExact ctxt (ctxt.vmax + 1) l e with ⟨np, le, tmp, nl⟩
@@ -206,7 +209,7 @@ theorem loopWhile_iter {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
   have hlnl : ∀ k, sptDomain l k → sptDomain nl k :=
     fun k hk => hlA ▸ cut_sets_union_domain_subset _ l hokA k hk
   have htmp : ctxt.vmax < tmp := Nat.lt_of_lt_of_le (Nat.lt_succ_self _) htA
-  obtain ⟨codeCost, codeSupported, codeBound⟩ := crep_to_loop_local_work ctxt (ctxt.vmax + 1) l e
+  obtain ⟨codeCost, codeSupported, codeBound⟩ := P.exprOk ctxt (ctxt.vmax + 1) l e
   rw [hC] at codeSupported codeBound
   try dsimp only at codeSupported codeBound
   have hsub : LoopSemStateFiniteExact.sptSubsetLive l t.locals := hl.2.2.1
@@ -253,7 +256,7 @@ theorem loopWhile_setVar_clock {F : Type} (tmp : Nat) (x : WordLocW 64)
 
 /-- A normally completing (or continuing) iteration followed by the rest of
 the loop. -/
-theorem while_loop_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem while_loop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 middle : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64} {w : BitVec 64}
     {result : Option (CrepResultHOLExact 64)} {wb wr : Nat}
@@ -264,7 +267,8 @@ theorem while_loop_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : Num
     (ihBody : ∀ u', CrepLoopRel ctxt l (decClockCrepSemHOL v1) u' →
       LoopPaid ctxt l (decClockCrepSemHOL v1) u' c wb)
     (ihRest : ∀ u', CrepLoopRel ctxt l middle u' → LoopPaid ctxt l middle u' (.while e c) wr) :
-    LoopPaid ctxt l v1 t (.while e c) (1 + crepNodeWork e + wb + wr) := by
+    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.price e + wb + wr) := by
+  have unitOk := P.unitOk
   classical
   have crepRun : evalCrepSemHOLProgExact v1 (.while e c) =
       evalCrepSemHOLProgExact middle (.while e c) := by
@@ -273,7 +277,7 @@ theorem while_loop_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : Num
     rw [if_pos hw, hbody]
     rcases again with rfl | rfl <;> rfl
   obtain ⟨⟨np, le, tmp, a, ck, st, hcomp, supported, codeBound, hentryK, h1k, h1v, bodyRel⟩⟩ :=
-    loopWhile_iter (c := c) hev hz rel
+    loopWhile_iter P (c := c) hev hz rel
   obtain ⟨ck', wb', workBody, boundBody, relBody⟩ := ihBody _ bodyRel
   rw [hbody] at relBody
   rcases hb : evaluate (compileHOLExact ctxt l c)
@@ -308,7 +312,7 @@ theorem while_loop_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : Num
     exact relRest
 
 /-- An iteration whose body exits the loop (break) or the enclosing code. -/
-theorem while_stop_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem while_stop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 middle : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64} {w : BitVec 64}
     {result : Option (CrepResultHOLExact 64)} {wb : Nat}
@@ -319,7 +323,8 @@ theorem while_stop_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : Num
     (rel : CrepLoopRel ctxt l v1 t)
     (ihBody : ∀ u', CrepLoopRel ctxt l (decClockCrepSemHOL v1) u' →
       LoopPaid ctxt l (decClockCrepSemHOL v1) u' c wb) :
-    LoopPaid ctxt l v1 t (.while e c) (1 + crepNodeWork e + wb) := by
+    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.price e + wb) := by
+  have unitOk := P.unitOk
   classical
   obtain ⟨r, rfl⟩ := Option.ne_none_iff_exists'.mp stop.1
   have crepRun : evalCrepSemHOLProgExact v1 (.while e c) =
@@ -339,7 +344,7 @@ theorem while_stop_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : Num
         | succ n => rfl
       | _ => rfl
   obtain ⟨⟨np, le, tmp, a, ck, st, hcomp, supported, codeBound, hentryK, h1k, h1v, bodyRel⟩⟩ :=
-    loopWhile_iter (c := c) hev hz rel
+    loopWhile_iter P (c := c) hev hz rel
   obtain ⟨ck', wb', workBody, boundBody, relBody⟩ := ihBody _ bodyRel
   rw [hbody] at relBody
   rcases hb : evaluate (compileHOLExact ctxt l c)

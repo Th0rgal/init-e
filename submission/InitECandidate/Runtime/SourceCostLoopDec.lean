@@ -6,7 +6,7 @@ open Flapjack Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proof
 /-- Declaration transfer: the pinned Dec-case relation reasoning, with the
 initializer code, the slot assignment and the body charged on the actual
 Loop run. -/
-theorem dec_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem dec_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F} {name : Nat}
     {e : CrepExpHOL 64} {body : CrepProgHOL 64} {value : HolWordLab 64} {bodyWork : Nat}
     (evaluated : evalCrepSemHOLExp v1 e = some value)
@@ -18,7 +18,8 @@ theorem dec_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
       CrepLoopRel ctxt' live' { v1 with locals := v1.locals.updateEq (name, value) } u' →
       LoopPaid ctxt' live' { v1 with locals := v1.locals.updateEq (name, value) } u' body
         bodyWork) :
-    LoopPaid ctxt l v1 t (.dec name e body) (1 + crepNodeWork e + bodyWork) := by
+    LoopPaid ctxt l v1 t (.dec name e body) (P.unit + P.price e + bodyWork) := by
+  have unitOk := P.unitOk
   classical
   rcases hEvalAll : evalCrepSemHOLProgExact v1 (.dec name e body) with ⟨res, s1⟩
   have he := hEvalAll
@@ -236,7 +237,7 @@ theorem dec_loop_paid {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
         simpa [crepToLoopCodeRelExact, bodyCtxt] using hFinalCodeBody
 
     obtain ⟨codeCost, codeSupported, codeBound⟩ :=
-      crep_to_loop_local_work ctxt (ctxt.vmax + 1) l e
+      P.exprOk ctxt (ctxt.vmax + 1) l e
     rw [hC] at codeSupported codeBound
     try dsimp only at codeSupported codeBound
     obtain ⟨wp, workP, boundP⟩ := loopBounded_nestedSeq_codes codePrefix codeCost codeSupported F

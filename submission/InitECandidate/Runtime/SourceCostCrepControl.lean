@@ -201,7 +201,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       compiled_guard guard.sound rel.state rel.code rel.locals localised.1
     have guardBound := guard_paid guard rel checked.1 compiled
     rw [compile_while_eq context compiled]
-    refine ⟨1 + crepNodeWork ce, CrepWork.whileExit ?_, ?_⟩
+    refine ⟨1 + 1 + crepNodeWork ce, CrepWork.whileExit ?_, ?_⟩
     · intro word hw
       rw [guardValue] at hw
       simp only [Option.some.injEq, HolWordLab.word.injEq] at hw
@@ -218,7 +218,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     have guardBound := guard_paid guard rel checked.1 compiled
     have targetClock : t.clock = 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
     rw [compile_while_eq context compiled]
-    refine ⟨1 + crepNodeWork ce, CrepWork.whileTimeout guardValue nonzero targetClock, ?_⟩
+    refine ⟨1 + 1 + crepNodeWork ce, CrepWork.whileTimeout guardValue nonzero targetClock, ?_⟩
     rw [score_statement_cons]
     simp only [sourceCrepWeights] at guardBound ⊢
     omega
@@ -246,7 +246,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       ihRest t1 context result ⟨state1, code1, exceptions1, locals1⟩ localisedWhole
         checkedWhole controlWhole (by rw [run_code one]; exact codeOk)
     rw [compile_while_eq context compiled] at workRest ⊢
-    refine ⟨1 + crepNodeWork ce + wb + wr,
+    refine ⟨1 + 1 + crepNodeWork ce + wb + wr,
       CrepWork.whileLoop guardValue nonzero targetClock workBody run1 (Or.inl rfl) workRest, ?_⟩
     rw [score_statement_cons, score_append, score_append]
     simp only [sourceCrepWeights] at guardBound boundBody boundRest ⊢
@@ -275,7 +275,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       ihRest t1 context result ⟨state1, code1, exceptions1, locals1⟩ localisedWhole
         checkedWhole controlWhole (by rw [run_code one]; exact codeOk)
     rw [compile_while_eq context compiled] at workRest ⊢
-    refine ⟨1 + crepNodeWork ce + wb + wr,
+    refine ⟨1 + 1 + crepNodeWork ce + wb + wr,
       CrepWork.whileLoop guardValue nonzero targetClock workBody run1 (Or.inr rfl) workRest, ?_⟩
     rw [score_statement_cons, score_append, score_append]
     simp only [sourceCrepWeights] at guardBound boundBody boundRest ⊢
@@ -298,7 +298,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
         relBody.code relBody.exceptions relBody.locals localised.2
     obtain ⟨rfl, _⟩ := rel1
     rw [compile_while_eq context compiled]
-    refine ⟨1 + crepNodeWork ce + wb,
+    refine ⟨1 + 1 + crepNodeWork ce + wb,
       CrepWork.whileStop guardValue nonzero targetClock workBody run1 (by simp), ?_⟩
     rw [score_statement_cons, score_append]
     simp only [sourceCrepWeights] at guardBound boundBody ⊢
@@ -320,7 +320,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       compiled_source_run (decClockCrepSemHOL t) context one.sound result relBody.state
         relBody.code relBody.exceptions relBody.locals localised.2
     rw [compile_while_eq context compiled]
-    refine ⟨1 + crepNodeWork ce + wb,
+    refine ⟨1 + 1 + crepNodeWork ce + wb,
       CrepWork.whileStop guardValue nonzero targetClock workBody run1
         ⟨resultRel_some_ne_none rel1, resultRel_not_continue notContinue rel1⟩, ?_⟩
     rw [score_statement_cons, score_append]
