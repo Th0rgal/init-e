@@ -1,10 +1,11 @@
-import InitECandidate.Runtime.SourceCostCrepBasis
+import InitECandidate.Runtime.SourceCostCrepLeaf
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
-/-- Source control fragment covered by the first checked transfer milestone. -/
+/-- Source statements currently covered by the checked transfer. -/
 def sourceControlProg : ProgHOL 64 → Bool
   | .skip | .break | .continue | .tick | .annot _ _ => true
+  | .assign VarKind.«local» _ _ | .store _ _ | .store32 _ _ | .storeByte _ _ | .return _ | .raise _ _ => true
   | .seq first second => sourceControlProg first && sourceControlProg second
   | .ite _ yes no => sourceControlProg yes && sourceControlProg no
   | .while _ body => sourceControlProg body
@@ -41,6 +42,47 @@ theorem guard_paid {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHOLS
 
 theorem leaf_paid : 1 ≤ sourceCrepWeights.score (executionWork [.statement]) := by
   simp [executionWork, WorkEvent.units, Work.score, Work.plus, sourceCrepWeights]
+
+theorem score_copy (n : Nat) : sourceCrepWeights.score (executionWork [.copy n]) = 8 * n := by
+  simp [executionWork, WorkEvent.units, Work.score, Work.plus, sourceCrepWeights]
+
+theorem score_memory (n : Nat) :
+    sourceCrepWeights.score (executionWork [.memory n]) = 8 * n := by
+  simp [executionWork, WorkEvent.units, Work.score, Work.plus, sourceCrepWeights]
+
+theorem expression_paid {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHOLState 64 F}
+    {context : PanToCrepContextExact 64} {expression : ExpHOL 64} {value : ValueHOL 64}
+    {events : List WorkEvent}
+    (run : CostedExpressionRun s expression (some value) events)
+    (rel : SourceCrepRel context s t) (checked : bulkLoadSitesExp expression = true) :
+    crepListWork (compileExpExactHOLW context expression).1 ≤
+      sourceCrepWeights.score (executionWork events) := by
+  have bound := compiled_expression_crep_work s context t.locals rel.locals expression _
+    run.sound checked
+  rw [run.events_eq]
+  exact bound
+
+theorem compiled_length {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHOLState 64 F}
+    {context : PanToCrepContextExact 64} {expression : ExpHOL 64} {value : ValueHOL 64}
+    (evaluated : expressionValue s expression = some value)
+    (rel : SourceCrepRel context s t) (localised : localisedExpHOL expression = true) :
+    (compileExpExactHOLW context expression).1.length = (flattenHOL value).length := by
+  classical
+  rcases hc : compileExpExactHOLW context expression with ⟨es, sh⟩
+  obtain ⟨hes, _, _, _⟩ :=
+    @compileExpValRelHOL 64 F _ s
+      (fun address => Classical.propDecidable (s.memaddrs address)) context t
+      (fun address => Classical.propDecidable (t.memaddrs address))
+      expression value es sh evaluated rel.state rel.code rel.locals localised hc
+  have := congrArg List.length hes
+  simpa using this
+
+theorem bounded_paid {F : Type} {t : CrepSemHOLState 64 F} {program : CrepProgHOL 64}
+    {bound : Nat} {events : List WorkEvent} (bounded : CrepBounded program bound)
+    (le : bound ≤ sourceCrepWeights.score (executionWork events)) :
+    CrepWorkPaid t program events := by
+  obtain ⟨w, work, bw⟩ := bounded F t
+  exact ⟨w, work, by omega⟩
 
 theorem compile_ite_eq (context : PanToCrepContextExact 64) {condition : ExpHOL 64}
     {yes no : ProgHOL 64} {ce : CrepExpHOL 64} {shape : ShapeHOL}
@@ -280,6 +322,73 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
         ⟨resultRel_some_ne_none rel1, resultRel_not_continue notContinue rel1⟩, ?_⟩
     rw [score_statement_cons, score_append]
     simp only [sourceCrepWeights] at guardBound boundBody ⊢
+    omega
+  | @assignValue s kind name expression value events expr valid =>
+    intro t context result rel localised checked control
+    cases kind with
+    | «global» => simp [localisedProgHOL] at localised
+    | «local» =>
+      simp only [localisedProgHOL, bulkLoadSitesProg] at localised checked
+      have paid := expression_paid expr rel checked
+      have length := compiled_length expr.sound rel localised
+      simp only [compileProgExactHOLW]
+      refine bounded_paid (bounded_local_assign context name expression) ?_
+      rw [score_statement_cons, score_append, score_copy, length]
+      simp only [sourceCrepWeights] at paid ⊢
+      omega
+  | @storeValue s destination source address value memory addressEvents valueEvents dst src
+      write =>
+    intro t context result rel localised checked control
+    simp only [localisedProgHOL, bulkLoadSitesProg, Bool.and_eq_true] at localised checked
+    have paidAddress := expression_paid dst rel checked.1
+    have paidValue := expression_paid src rel checked.2
+    have length := compiled_length src.sound rel localised.2
+    simp only [compileProgExactHOLW]
+    refine bounded_paid (bounded_store_compiled context destination source) ?_
+    rw [score_statement_cons, score_append, score_append, score_memory, length]
+    simp only [sourceCrepWeights] at paidAddress paidValue ⊢
+    omega
+  | @store32Value s destination source address value memory addressEvents valueEvents dst src
+      write =>
+    intro t context result rel localised checked control
+    simp only [localisedProgHOL, bulkLoadSitesProg, Bool.and_eq_true] at localised checked
+    have paidAddress := expression_paid dst rel checked.1
+    have paidValue := expression_paid src rel checked.2
+    simp only [compileProgExactHOLW]
+    refine bounded_paid (bounded_store32_compiled context destination source) ?_
+    rw [score_statement_cons, score_append, score_append, score_memory]
+    simp only [sourceCrepWeights] at paidAddress paidValue ⊢
+    omega
+  | @storeByteValue s destination source address value memory addressEvents valueEvents dst src
+      write =>
+    intro t context result rel localised checked control
+    simp only [localisedProgHOL, bulkLoadSitesProg, Bool.and_eq_true] at localised checked
+    have paidAddress := expression_paid dst rel checked.1
+    have paidValue := expression_paid src rel checked.2
+    simp only [compileProgExactHOLW]
+    refine bounded_paid (bounded_storeByte_compiled context destination source) ?_
+    rw [score_statement_cons, score_append, score_append, score_memory]
+    simp only [sourceCrepWeights] at paidAddress paidValue ⊢
+    omega
+  | @returnValue s expression value events expr size =>
+    intro t context result rel localised checked control
+    simp only [localisedProgHOL, bulkLoadSitesProg] at localised checked
+    have paid := expression_paid expr rel checked
+    have length := compiled_length expr.sound rel localised
+    simp only [compileProgExactHOLW]
+    refine bounded_paid (bounded_return_compiled context expression) ?_
+    rw [score_statement_cons, score_append, score_copy, length]
+    simp only [sourceCrepWeights] at paid ⊢
+    omega
+  | @raiseValue s exceptionId expression value events shape expr declared shapeMatches size =>
+    intro t context result rel localised checked control
+    simp only [localisedProgHOL, bulkLoadSitesProg] at localised checked
+    have paid := expression_paid expr rel checked
+    have length := compiled_length expr.sound rel localised
+    simp only [compileProgExactHOLW]
+    refine bounded_paid (bounded_raise_compiled context exceptionId expression) ?_
+    rw [score_statement_cons, score_append, score_copy, length]
+    simp only [sourceCrepWeights] at paid ⊢
     omega
   | _ =>
     intro t context result rel localised checked control
