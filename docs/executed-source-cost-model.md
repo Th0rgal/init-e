@@ -105,3 +105,14 @@ Named structures and globals still take the literal fallback clauses at this
 pass: correctness and cost of their earlier preprocessing must be connected
 separately. This theorem bounds generated expression nodes; execution-frequency
 accounting and the later compiler/runtime transfer remain open.
+
+`CrepToLoopLocalBound` proves a coefficient-six bound for every scalar Crep
+expression, covering both emitted straight-line code and the residual Loop
+expression. Its list theorem also reserves one unit per result for argument
+materialization, so nested variadic operations compose without another global
+multiplier. Conditional materialization charges the larger branch allowance.
+The partial code-work function rejects loops/calls rather than silently giving
+them a static cost. `pan_to_loop_expression_work` composes this theorem with
+the Pan-to-Crep allowance, retaining coefficient six. These are generated-work
+bounds, not yet an executed trace or RISC-V runtime bound; instruction selection,
+register allocation, later lowering, and execution-frequency proofs remain.
