@@ -687,3 +687,32 @@ model. The complete recursive theorem, compiled-program eligibility and
 return-location invariants, actual price-table instantiation, fine Word
 transfer, and whole-guest gas/input bound still need completion. No finite
 score is claimed.
+
+### Recursive semantic-derivation to native theorem
+
+`StackExecutionNativeKernel` unifies normal, control-exiting, and terminal
+compiler conclusions. `LocalNativeCaps` lists explicit local opcode, padding,
+control, and call-price inequalities. Its fields contain no native execution
+or whole-run budget assumptions. `ExecutionLeaf.bound` proves the leaf cases.
+
+`StackExecutionTrace` records finite semantic derivations over supported
+post-removal leaves and every Seq/If/Loop/Call/RawCall/JumpLower flow. Each node
+is tied to its actual evaluator equation and reached children. No constructor
+contains a price, native trace, or native budget. Return/raise location validity
+remains explicit in leaf classification. `ExecutionTrace.sound` checks the
+exact evaluator result and successor state.
+
+`StackExecutionTraceNative.ExecutionTrace.bound` proves the recursive compiler
+motive by induction on these derivations, using the independent
+`stackExecutionCost` as its budget. `StackExecutionTraceRiscV.ExecutionTrace.native`
+extracts an actual RISC-V halt within executed Stack cost plus 17, retaining
+the original FlattenHyps, target, encoder, native state relation, and oracle tie.
+Checks: `stack-execution-native-kernel2`, `stack-execution-trace1`,
+`stack-execution-trace-native3`, and `stack-execution-trace-riscv1`; all printed
+axioms are standard.
+
+This theorem is conditional on a semantic derivation and local price table.
+Completeness for successful compiled guest executions, compiled-program/return
+label eligibility, and concrete local price instantiation are NOT yet proved.
+The fine Word pipeline and whole-guest gas/input bound are also unfinished, so
+this is not yet a source-to-RISC-V finite certificate.
