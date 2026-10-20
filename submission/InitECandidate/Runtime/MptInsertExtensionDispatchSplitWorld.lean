@@ -30,7 +30,8 @@ theorem mpt_insert_extension_dispatch_split_world {F : Type}
  (∃found : BitVec 64,∃ready output : PanSemStateFiniteExact 64 F,
   found.toNat≤(length-level).toNat ∧ready.memory=s.memory ∧ready.globals=s.globals ∧
   evaluateHOLFiniteState ready mptInsertExtensionAdvance=(none,output) ∧
-  post.memory=output.memory ∧post.globals=output.globals) ∨
+  post.memory=output.memory ∧post.globals=output.globals ∧
+  post.locals.lookup (ofString "go")=output.locals.lookup (ofString "go")) ∨
  ( ∃root : BitVec 64,∃larger newExtensions : Set (BitVec 64),∃newSize : BitVec 64→Nat,∃finish : BitVec 64,
  post.locals.lookup (ofString "r")=some (.val (.word root)) ∧root∈larger ∧live⊆larger ∧extensions⊆newExtensions ∧
  AllocatedTrieWorld post larger newExtensions (insert frontier branches) newSize finish ∧
@@ -62,7 +63,11 @@ theorem mpt_insert_extension_dispatch_split_world {F : Type}
   fullDomain code budget comparisonRun
  rcases casesWorld with matched | splitWorld
  · obtain ⟨found,ready,final,_,bound,memory,globals,advance,innerScope⟩:=matched
-   exact Or.inl ⟨found,ready,final,bound,memory,globals,advance,by rw [scope,innerScope],by rw [scope,innerScope]⟩
+   apply Or.inl
+   refine ⟨found,ready,final,bound,memory,globals,advance,by rw [scope,innerScope],by rw [scope,innerScope],?_⟩
+   rw [scope,saved_local_lookup_other _ (ofString "seg") (ofString "go") _ (by decide),
+    saved_local_lookup_other _ (ofString "sl") (ofString "go") _ (by decide),innerScope,
+    saved_local_lookup_other _ (ofString "pl") (ofString "go") _ (by decide)]
  · apply Or.inr
    obtain ⟨root,larger,newExtensions,newSize,finish,assigned,rootLive,sub,extSub,
     worldOut,kindsOut,pathsOut,transport,locals⟩:=splitWorld
