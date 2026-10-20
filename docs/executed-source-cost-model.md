@@ -533,3 +533,14 @@ not only non-error status. Concrete guest main signature, struct context, and
 pass2 no-inline/localisation certificates checked in
 `source-outcome-independent` and `guest-entry-syntax3`. This does not yet provide
 the whole guest gas bound or a finite submission score.
+
+`StackWeightedCallReturn.terminalWeightedFlatten_call_return` now composes an
+actual callee returning to its installed location with the reached terminal
+continuation. The price adds the call materialization, direct/indirect jump,
+callee work, and continuation work at `pc + 2`. It permits an arbitrary
+installed exception handler: that handler and the post-continuation join are
+not executed on this terminal path. The proof reconstructs installation, ABI,
+clock, and exact return-PC facts from the original relations and actual callee
+evaluation; it assumes only the recursive child cost motives. Checked with
+standard axioms in `stack-weighted-call-return7`. Normal/other exiting
+continuations and executed exception-handler paths remain open.
