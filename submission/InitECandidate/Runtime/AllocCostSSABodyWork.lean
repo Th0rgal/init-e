@@ -488,6 +488,41 @@ theorem ssaCcTrans_loop_output
   simp only [ssaCcTrans, setupEq, bodyEq, namesEq, exitsEq]
   split <;> simp_all
 
+/-- Literal SSA non-returning call output: the argument move followed by the
+renamed call. -/
+theorem ssaCcTrans_call_none_output
+    (dest : Nat) (args : List Nat)
+    (h : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (ssa : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (names convArgs : List Nat) (moveArgs : WordLangProgHOL (BitVec 64))
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x)
+    (moveEq : moveArgs = .move 1 (convArgs.zip names)) :
+    ssaCcTrans (width := 64) (.call none dest args h) ssa next tables =
+      (.seq moveArgs (.call none dest convArgs h), ssa, next) := by
+  simp only [ssaCcTrans, namesEq, convEq, moveEq]
+
+/-- Actual non-returning call body work.  The inserted argument move is charged
+on this execution, then the call itself uses the callee-level child transfer at
+the post-move state.  The child transfer is the recursive call obligation, not a
+target-work oracle. -/
+theorem bodyWork_call_none {C F : Type}
+    (dest : Nat) (args convArgs : List Nat)
+    (h : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (moveArgs : WordLangProgHOL (BitVec 64))
+    (source middle : WordSemStateFiniteExact 64 C F) (callBudget : Nat)
+    (moveRun : evaluate moveArgs source = (none, middle))
+    (moveWork : wordPathWork moveArgs source = 1)
+    (calleeWork : wordPathWork (.call none dest convArgs h) middle ≤
+      wordPathWork (.call none dest args h) source + callBudget) :
+    wordPathWork (.seq moveArgs (.call none dest convArgs h)) source ≤
+      wordPathWork (.call none dest args h) source + (callBudget + 2) := by
+  rw [wordPathWork_seq, moveRun, moveWork]
+  dsimp only
+  trace_state
+  omega
+
 #print axioms wordControlCost
 #print axioms wordPathWork_le_controlCost_straight
 #print axioms ssaBody_skip_executed_le
@@ -506,4 +541,6 @@ theorem ssaCcTrans_loop_output
 #print axioms ssaCcTrans_ite_output
 #print axioms bodyWork_loopFinal
 #print axioms ssaCcTrans_loop_output
+#print axioms ssaCcTrans_call_none_output
+#print axioms bodyWork_call_none
 end InitECandidate.Runtime.FineCost

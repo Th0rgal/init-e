@@ -220,7 +220,12 @@ Compile order and module stems (checker role `allocation`):
      reconciliation is paid at the actual intermediate state.
    - `ssaCcTrans_loop_output`: the literal SSA `Loop` clause, exposing the
      actual `loopSetup`, renamed body, `ssaReconcile` back-edge and final loop
-     program.  Calls remain.
+     program.
+   - `ssaCcTrans_call_none_output`: the literal non-returning call output,
+     exposing the inserted argument move.
+   - `bodyWork_call_none`: charges that inserted argument move on the actual
+     execution and then uses the callee-level child transfer at the post-move
+     state.  Returning calls remain.
 
    The remaining semantic obligation is now narrower: extend the quantitative
    `bodySimulationRun` from these base instructions through the control
