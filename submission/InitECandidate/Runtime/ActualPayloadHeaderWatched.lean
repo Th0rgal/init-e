@@ -4,6 +4,7 @@ import InitECandidate.Runtime.NodedbWindowGeometry
 import InitECandidate.Runtime.AlignedCellDomains
 import InitECandidate.Runtime.ByteStoreMemoryFrame
 import InitECandidate.Runtime.WordStoreMemoryFrame
+import InitECandidate.Runtime.AllocationRoundNoWrap
 
 set_option maxHeartbeats 8000000
 
@@ -390,13 +391,16 @@ theorem actual_payload_header_strong_alloc_oh_watched {F : Type} (state mid : Pa
       (fun post => ActualPayloadHeaderBaseFacts state post pl raw pointer
           (allocationEnd (allocationEnd pointer (248#64)) (32#64)) ∧
         post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))) ∧
-        WatchWord post (pl + (24#64)) extraLen) 2 (actualPayloadHeaderAt 7) := by
+        WatchWord post (pl + (24#64)) extraLen ∧
+        (allocationEnd (allocationEnd pointer (248#64)) (32#64)).toNat ≤ 33806089496) 2
+      (actualPayloadHeaderAt 7) := by
   obtain ⟨baseFacts, frame⟩ := facts
   rw [source_actual_payload_header_alloc_output]
-  refine actual_payload_header_alloc_step mid (ofString "oh") (32#64) (allocationEnd pointer (248#64))
-    (actualPayloadHeaderAt 7) _ baseFacts.2.2.2.1 (by rw [baseFacts.2.2.2.2.2]; exact code) budget ?_
-  intro post memory domain postCode globals
-  refine ⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩,?_,?_⟩
+  refine actual_payload_header_alloc_step_earned mid (ofString "oh") (32#64)
+    (allocationEnd pointer (248#64)) (actualPayloadHeaderAt 7) _ baseFacts.2.2.2.1
+    (by rw [baseFacts.2.2.2.2.2]; exact code) budget ?_
+  intro post memory domain postCode globals floor
+  refine ⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩,?_,?_,floor⟩
   · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
       baseFacts.1]
   · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
@@ -699,5 +703,245 @@ theorem actual_payload_header_memzero_z8_watched {F : Type} (state mid : PanSemS
   · simpa [locals] using z8Local
 
 #print axioms actual_payload_header_memzero_z8_watched
+
+/-- The watched header cell is distinct from every header cell below it. -/
+theorem actual_payload_header_cell_136_offset_ne (pointer : BitVec 64) (k : Nat)
+    (cap : pointer.toNat ≤ 33806089496) (bound : k < 136) :
+    pointer + (136#64) ≠ pointer + BitVec.ofNat 64 k := by
+  intro same
+  have levels := congrArg BitVec.toNat same
+  rw [actual_payload_header_cell_136_nat pointer cap] at levels
+  have offsetNat : (BitVec.ofNat 64 k).toNat = k := by
+    rw [BitVec.toNat_ofNat]
+    exact Nat.mod_eq_of_lt (by omega)
+  have right : (pointer + BitVec.ofNat 64 k).toNat = pointer.toNat + k := by
+    rw [BitVec.toNat_add_of_lt (by rw [offsetNat]; omega),offsetNat]
+  rw [right] at levels
+  omega
+
+#print axioms actual_payload_header_cell_136_offset_ne
+
+/-- One actual store step of the header construction, keeping the typed `oh` and `tmp` locals and
+the watched cell. -/
+theorem actual_payload_header_store_stage_commit_watched {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp watched cell address stored : BitVec 64) (destination value : ExpHOL 64)
+    (tail : ProgHOL 64)
+    (facts : ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp)
+    (hDestination : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a)) destination = some (.val (.word address)))
+    (hValue : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a)) value = some (.val (.word stored)))
+    (domain : mid.memaddrs address)
+    (separate : watched ≠ address) (watch : WatchWord mid watched cell) :
+    Reaches mid (.seq (.store destination value) tail)
+      (fun post => ActualPayloadHeaderCommit state post pl raw pointer heap oh tmp ∧
+        WatchWord post watched cell) 0 tail := by
+  refine reaches_seq mid (.store destination value) tail 0 _ ?_
+  refine Or.inl ⟨sourceWriteWord mid address stored,⟨ActualPayloadHeaderCommit.write facts,?_⟩,
+    by simp [sourceWriteWord],by simp [sourceWriteWord],?_⟩
+  · exact WatchWord.sourceWriteWord_frame mid address stored watched cell separate watch
+  · exact actual_payload_header_store_any mid destination value address stored hDestination hValue domain
+
+#print axioms actual_payload_header_store_stage_commit_watched
+
+/-- **The three actual stores after the keccak return and the actual `txr` allocation.**  They keep
+the watched header cell, since it lies below every one of their destinations. -/
+theorem actual_payload_header_after_keccak_earned_watched {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F) (pl raw pointer heap oh tmp extraLen : BitVec 64)
+    (facts : ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp)
+    (code : state.code = originalRuntimeCode)
+    (wordDomain : ∀ offset : Nat, offset < 33 → state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (cap : pointer.toNat ≤ 33806089496)
+    (watch : WatchWord mid (pointer + (136#64)) extraLen)
+    (budget : 2 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 10)
+      (fun post => ActualPayloadHeaderCommit state post pl raw pointer (allocationEnd heap (32#64)) oh tmp ∧
+        post.locals.lookup (ofString "txr") = some (.val (.word heap)) ∧
+        (allocationEnd heap (32#64)).toNat ≤ 33806089496 ∧
+        WatchWord post (pointer + (136#64)) extraLen) 2 (actualPayloadHeaderAt 14) := by
+  have storeOh (E : PanSemStateFiniteExact 64 F)
+      (pE : ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp ∧
+        WatchWord E (pointer + (136#64)) extraLen) :
+      Reaches E (actualPayloadHeaderAt 10)
+        (fun post => ActualPayloadHeaderCommit state post pl raw pointer heap oh tmp ∧
+          WatchWord post (pointer + (136#64)) extraLen) 0 (actualPayloadHeaderAt 11) := by
+    obtain ⟨pC,kept⟩ := pE
+    rw [source_actual_payload_header_store_oh]
+    exact actual_payload_header_store_stage_commit_watched state E pl raw pointer heap oh tmp
+      (pointer + (136#64)) extraLen (pointer + (16#64)) oh
+      (.op .add [.var .local (ofString "h"), .const (16#64)]) (.var .local (ofString "oh"))
+      (actualPayloadHeaderAt 11) pC
+      (actual_payload_header_eval_word_add E (ofString "h") pointer (16#64) pC.1.2.2.1)
+      (actual_payload_header_eval_local E (ofString "oh") oh pC.2.1)
+      (by rw [pC.1.2.2.2.2.1]; exact wordDomain 16 (by omega))
+      (actual_payload_header_cell_136_offset_ne pointer 16 cap (by omega)) kept
+  have store32 (E : PanSemStateFiniteExact 64 F)
+      (pE : ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp ∧
+        WatchWord E (pointer + (136#64)) extraLen) :
+      Reaches E (actualPayloadHeaderAt 11)
+        (fun post => ActualPayloadHeaderCommit state post pl raw pointer heap oh tmp ∧
+          WatchWord post (pointer + (136#64)) extraLen) 0 (actualPayloadHeaderAt 12) := by
+    obtain ⟨pC,kept⟩ := pE
+    rw [source_actual_payload_header_store_32]
+    exact actual_payload_header_store_stage_commit_watched state E pl raw pointer heap oh tmp
+      (pointer + (136#64)) extraLen (pointer + (24#64)) (raw + (32#64))
+      (.op .add [.var .local (ofString "h"), .const (24#64)])
+      (.op .add [.var .local (ofString "raw"), .const (32#64)]) (actualPayloadHeaderAt 12) pC
+      (actual_payload_header_eval_word_add E (ofString "h") pointer (24#64) pC.1.2.2.1)
+      (actual_payload_header_eval_word_add E (ofString "raw") raw (32#64) pC.1.2.1)
+      (by rw [pC.1.2.2.2.2.1]; exact wordDomain 24 (by omega))
+      (actual_payload_header_cell_136_offset_ne pointer 24 cap (by omega)) kept
+  have store52 (E : PanSemStateFiniteExact 64 F)
+      (pE : ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp ∧
+        WatchWord E (pointer + (136#64)) extraLen) :
+      Reaches E (actualPayloadHeaderAt 12)
+        (fun post => ActualPayloadHeaderCommit state post pl raw pointer heap oh tmp ∧
+          WatchWord post (pointer + (136#64)) extraLen) 0 (actualPayloadHeaderAt 13) := by
+    obtain ⟨pC,kept⟩ := pE
+    rw [source_actual_payload_header_store_52]
+    exact actual_payload_header_store_stage_commit_watched state E pl raw pointer heap oh tmp
+      (pointer + (136#64)) extraLen (pointer + (32#64)) (raw + (52#64))
+      (.op .add [.var .local (ofString "h"), .const (32#64)])
+      (.op .add [.var .local (ofString "raw"), .const (52#64)]) (actualPayloadHeaderAt 13) pC
+      (actual_payload_header_eval_word_add E (ofString "h") pointer (32#64) pC.1.2.2.1)
+      (actual_payload_header_eval_word_add E (ofString "raw") raw (52#64) pC.1.2.1)
+      (by rw [pC.1.2.2.2.2.1]; exact wordDomain 32 (by omega))
+      (actual_payload_header_cell_136_offset_ne pointer 32 cap (by omega)) kept
+  have stores : Reaches mid (actualPayloadHeaderAt 10)
+      (fun post => ActualPayloadHeaderCommit state post pl raw pointer heap oh tmp ∧
+        WatchWord post (pointer + (136#64)) extraLen) 0 (actualPayloadHeaderAt 13) :=
+    reaches_trans mid (actualPayloadHeaderAt 10) (actualPayloadHeaderAt 11) (actualPayloadHeaderAt 13)
+      _ _ 0 0 (storeOh mid ⟨facts,watch⟩) (fun E pE =>
+        reaches_trans E (actualPayloadHeaderAt 11) (actualPayloadHeaderAt 12) (actualPayloadHeaderAt 13)
+          _ _ 0 0 (store32 E pE) (fun F pF => store52 F pF))
+  have allocation : ∀ E : PanSemStateFiniteExact 64 F,
+      (ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp ∧
+        WatchWord E (pointer + (136#64)) extraLen) → 2 ≤ E.clock →
+      Reaches E (actualPayloadHeaderAt 13)
+        (fun post => ActualPayloadHeaderCommit state post pl raw pointer (allocationEnd heap (32#64)) oh tmp ∧
+          post.locals.lookup (ofString "txr") = some (.val (.word heap)) ∧
+          (allocationEnd heap (32#64)).toNat ≤ 33806089496 ∧
+          WatchWord post (pointer + (136#64)) extraLen) 2 (actualPayloadHeaderAt 14) := by
+    intro E pE clockBound
+    obtain ⟨pC,kept⟩ := pE
+    rw [source_actual_payload_header_alloc_txr]
+    refine actual_payload_header_alloc_step_earned E (ofString "txr") (32#64) heap
+      (actualPayloadHeaderAt 14) _ pC.1.2.2.2.1 (by rw [pC.1.2.2.2.2.2]; exact code)
+      clockBound ?_
+    intro post memory domain postCode globals floor
+    refine ⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_,?_⟩,?_,floor,?_⟩
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pC.1.1]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pC.1.2.1]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pC.1.2.2.1]
+    · simp only [setVarHOLFinite]
+      rw [globals]
+      simp (config := {decide := true}) [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    · simp only [setVarHOLFinite]
+      rw [domain]
+      exact pC.1.2.2.2.2.1
+    · simp only [setVarHOLFinite]
+      rw [postCode]
+      exact pC.1.2.2.2.2.2
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pC.2.1]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pC.2.2]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    · show (setVarHOLFinite (ofString "txr") (.val (.word heap))
+        {post with locals := E.locals}).memory (pointer + (136#64)) = HolWordLab.word extraLen
+      have same : (setVarHOLFinite (ofString "txr") (.val (.word heap))
+          {post with locals := E.locals}).memory = E.memory := by
+        simp [setVarHOLFinite,memory]
+      rw [same]
+      exact kept
+  rcases stores with ⟨E, pE, c1, c2, sc⟩ | ab
+  · rcases allocation E pE (by omega) with ⟨post, pP, a1, a2, asc⟩ | ab2
+    · exact Or.inl ⟨post, pP, by omega, by omega, scoped_trans sc asc⟩
+    · obtain ⟨x, i1, i2, i3, i4, i5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans i1, i2, by omega, by omega, fun k => i5 (by omega)⟩
+  · exact Or.inr (stAbort_mono mid _ 0 2 (by omega) ab)
+
+#print axioms actual_payload_header_after_keccak_earned_watched
+
+/-- **The watched prefix from statement 0 to statement 9.**  The actual loads, the header allocation,
+the actual `memzero(h, 248)`, both header stores, the `oh` and `tmp` allocations and the actual byte
+store run in 255 ticks, or abort, and the loader's extra-length cell is untouched throughout. -/
+theorem actual_payload_header_strong_prefix_0_to_9_watched {F : Type}
+    (state : PanSemStateFiniteExact 64 F) (si pl raw pointer extraLen : BitVec 64)
+    (siLocal : state.locals.lookup (ofString "si") = some (.val (.word si)))
+    (siDomain : state.memaddrs (si + (0#64)))
+    (siCell : state.memory (si + (0#64)) = .word pl)
+    (plDomain : state.memaddrs (pl + (0#64)))
+    (plCell : state.memory (pl + (0#64)) = .word raw)
+    (code : state.code = originalRuntimeCode)
+    (heapGlobal : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (aligned : pointer.toNat % 8 = 0)
+    (pointerBound : pointer.toNat ≤ 33806089496)
+    (wordDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (byteDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (panByteAlignHOL (pointer + BitVec.ofNat 64 offset)))
+    (below : pl.toNat + 136 ≤ pointer.toNat)
+    (watch : WatchWord state (pl + (24#64)) extraLen)
+    (budget : 255 ≤ state.clock) :
+    Reaches state (actualPayloadHeaderAt 0)
+      (fun post => ActualPayloadHeaderBaseFacts state post pl raw pointer
+          (allocationEnd (allocationEnd (allocationEnd pointer (248#64)) (32#64)) (8#64)) ∧
+        post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))) ∧
+        post.locals.lookup (ofString "tmp") =
+          some (.val (.word (allocationEnd (allocationEnd pointer (248#64)) (32#64)))) ∧
+        WatchWord post (pl + (24#64)) extraLen) 255 (actualPayloadHeaderAt 9) := by
+  rcases actual_payload_header_strong_prefix_watched state si pl raw pointer extraLen siLocal
+    siDomain siCell plDomain plCell code heapGlobal pointerBound watch (by omega) with
+    ⟨E, pE, c1, c2, sc⟩ | ab
+  · rcases actual_payload_header_memzero_watched state E pl raw pointer extraLen pE.1 code
+      pE.2.1 aligned pointerBound wordDomain byteDomain below pE.2.2 (by omega) with
+      ⟨G, pG, d1, d2, sd⟩ | ab2
+    · rcases actual_payload_header_strong_stores_watched state G pl raw pointer extraLen pG.1 below
+        pointerBound pG.2.2 with ⟨I, pI, e1, e2, se⟩ | ab3
+      · rcases actual_payload_header_strong_alloc_oh_watched state I pl raw pointer extraLen pI.1 code
+          pI.2 (by omega) with ⟨K, pK, f1, f2, sf⟩ | ab4
+        · rcases actual_payload_header_strong_alloc_tmp_watched state K pl raw pointer extraLen pK.1
+            pK.2.1 code pK.2.2.1 (by omega) with ⟨M, pM, g1, g2, sg⟩ | ab5
+          · rcases actual_payload_header_strong_store_byte_watched state M pl raw pointer
+              (allocationEnd (allocationEnd pointer (248#64)) (32#64)) extraLen pM.1 pM.2.1 pM.2.2.1
+              (by
+                have h248 : (248#64).toNat = 248 := by decide
+                have h32 : (32#64).toNat = 32 := by decide
+                have baseHigh : (allocationEnd pointer (248#64)).toNat ≤ pointer.toNat + 255 := by
+                  rw [allocationEnd_toNat pointer (248#64) (by omega)]
+                  have := Nat.div_mul_le_self (pointer.toNat + 248 + 7) 8
+                  omega
+                have base := allocationEnd_covers_noWrap pointer (248#64)
+                  (by have := pointer.isLt; omega)
+                have top := allocationEnd_covers_noWrap (allocationEnd pointer (248#64)) (32#64)
+                  (by have := (allocationEnd pointer (248#64)).isLt; omega)
+                omega)
+              (allocationEnd_aligned (allocationEnd pointer (248#64)) (32#64)) below pointerBound
+              pM.2.2.2 with ⟨J, pJ, h1, h2, sh⟩ | ab6
+            · refine Or.inl ⟨J, pJ, by omega, by omega,
+                scoped_trans sc (scoped_trans sd (scoped_trans se (scoped_trans sf (scoped_trans sg sh))))⟩
+            · obtain ⟨x, i1, i2, i3, i4, i5⟩ := ab6
+              have ck := (scoped_trans sc (scoped_trans sd (scoped_trans se (scoped_trans sf sg)))).2.1
+              exact Or.inr ⟨x, (scoped_trans sc (scoped_trans sd (scoped_trans se
+                (scoped_trans sf sg)))).1.trans i1, i2, by omega, by omega, fun k => i5 (by omega)⟩
+          · obtain ⟨x, i1, i2, i3, i4, i5⟩ := ab5
+            have ck := (scoped_trans sc (scoped_trans sd (scoped_trans se sf))).2.1
+            exact Or.inr ⟨x, (scoped_trans sc (scoped_trans sd (scoped_trans se sf))).1.trans i1, i2,
+              by omega, by omega, fun k => i5 (by omega)⟩
+        · obtain ⟨x, i1, i2, i3, i4, i5⟩ := ab4
+          have ck := (scoped_trans sc (scoped_trans sd se)).2.1
+          exact Or.inr ⟨x, (scoped_trans sc (scoped_trans sd se)).1.trans i1, i2, by omega, by omega,
+            fun k => i5 (by omega)⟩
+      · obtain ⟨x, i1, i2, i3, i4, i5⟩ := ab3
+        have ck := (scoped_trans sc sd).2.1
+        exact Or.inr ⟨x, (scoped_trans sc sd).1.trans i1, i2, by omega, by omega,
+          fun k => i5 (by omega)⟩
+    · obtain ⟨x, i1, i2, i3, i4, i5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans i1, i2, by omega, by omega, fun k => i5 (by omega)⟩
+  · exact Or.inr (stAbort_mono state _ 2 255 (by omega) ab)
+
+#print axioms actual_payload_header_strong_prefix_0_to_9_watched
 
 end InitECandidate.Runtime
