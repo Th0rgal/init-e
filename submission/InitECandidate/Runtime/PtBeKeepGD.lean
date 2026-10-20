@@ -3,14 +3,14 @@ import InitECandidate.Runtime.JournalGlobalKeep
 The block-environment global `be` is assigned only by `run_attempt` (fork.pnk `be = alloc(BE_SIZE)`).  `BeKeep` is the
 whole-program decidable check that every original function outside `run_attempt` and its callers keeps `be` (the same
 shape as root's `program_check_journal`); it is stated as an explicit premise, to be closed by `decide_cbv` with
-root's raised evaluation limits (as for `BalKeep2`).  From it, every good function keeps `be` at every fuel.
+root's raised evaluation limits (as for `BalKeep2`).  The conservative checker also excludes input_blob because it contains shared-memory loads, which keepsG does not support. From the check, every good function keeps `be` at every fuel.
 -/
 namespace InitECandidate.Runtime
 open InitE Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
 def badBe : List MlS :=
-  [ofString "main", ofString "run_attempt", ofString "attempt_l1", ofString "attempt_l2", ofString "attempt_l3",
+  [ofString "input_blob", ofString "main", ofString "run_attempt", ofString "attempt_l1", ofString "attempt_l2", ofString "attempt_l3",
     ofString "attempt_l4", ofString "attempt_l5", ofString "attempt_l6", ofString "attempt_l7",
     ofString "verify_stateless_new_payload"]
 
