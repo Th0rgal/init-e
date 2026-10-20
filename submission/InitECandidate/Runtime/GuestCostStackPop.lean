@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.GuestCostComb4Load
 import InitECandidate.Runtime.GuestCostPcAdd
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -235,5 +236,27 @@ theorem eval_stackPopValueAddress (s : PanSemStateFiniteExact 64 F) (frame base 
 #print axioms eval_stackPopSub
 #print axioms stackPop_assign_run
 #print axioms stackPop_store_run
+
+
+/-- The popped word: a four-word structured load at the computed address. -/
+theorem stackPop_return_run (s : PanSemStateFiniteExact 64 F) (base w0 w1 w2 w3 : BitVec 64)
+    (hAddress : expressionValue s stackPopValueAddress = some (.val (.word base)))
+    (d0 : s.memaddrs base) (d1 : s.memaddrs (base + 8)) (d2 : s.memaddrs (base + 16))
+    (d3 : s.memaddrs (base + 24))
+    (m0 : s.memory base = .word w0) (m1 : s.memory (base + 8) = .word w1)
+    (m2 : s.memory (base + 16) = .word w2) (m3 : s.memory (base + 24) = .word w3) :
+    StatementRun s (.return (.load comb4Shape stackPopValueAddress))
+      (some (.returned (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
+        .val (.word w3)])))
+      (emptyLocalsHOLFinite s)
+      (.statement :: (expressionEvents s (.load comb4Shape stackPopValueAddress) ++
+        [.copy (flattenHOL (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
+          .val (.word w3)])).length])) :=
+  StatementRun.returnValue (expression := .load comb4Shape stackPopValueAddress)
+    (costedExpression_events s _ _
+      (eval_load_comb4 s stackPopValueAddress base w0 w1 w2 w3 hAddress d0 d1 d2 d3 m0 m1 m2 m3))
+    (by simp [shapeOfHOLExact, comb4Shape])
+
+#print axioms stackPop_return_run
 
 end InitECandidate.Runtime.FineCost
