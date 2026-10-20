@@ -198,6 +198,17 @@ Compile order and module stems (checker role `allocation`):
      derives the same source/target result and `wordStateEqRel` post state, and
      proves the executed work transfer.  These are the first local cases of
      the genuinely missing quantitative body-simulation lemma.
+   - `bodyWork_seq`: actual sequential control composition.  Given the real
+     source and target child runs to the same successful first result and the
+     two executed child-work transfers at the actual intermediate states, the
+     sequential target work is bounded by the sequential source work plus the
+     two child budgets.  The child budgets are the usual induction hypotheses,
+     not a whole-body cost oracle.
+   - `ssaCcTrans_seq_output`: the literal SSA `Seq` clause decomposes into its
+     two actual child outputs and `seq`.
+   - `ssaBody_seq_executed_le`: composes the two child executed-work transfers
+     through the actual compiler `Seq` output.  This is the first quantitative
+     control constructor; branches/loops/calls remain.
 
    The remaining semantic obligation is now narrower: extend the quantitative
    `bodySimulationRun` from these base instructions through the control

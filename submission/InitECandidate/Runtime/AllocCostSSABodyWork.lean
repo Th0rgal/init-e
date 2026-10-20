@@ -279,6 +279,72 @@ theorem bodySimulationRunWork_raise {C F : Type}
       simp [wordPathWork]
     omega
 
+/-- Sequential control composition of executed body work.  This is the
+compiler's `Seq` body case: both children run from the actual intermediate
+states, share the first result, and their per-execution work transfers add.
+The child work premises are the ordinary induction hypotheses of the pinned
+`ssaCcTransCorrectSeq` proof, not a target-work oracle. -/
+theorem bodyWork_seq {C F : Type}
+    (firstBody secondBody firstOut secondOut : WordLangProgHOL (BitVec 64))
+    (source target firstSource firstTarget : WordSemStateFiniteExact 64 C F)
+    (firstBudget secondBudget : Nat)
+    (sourceRun : evaluate firstBody source = (none, firstSource))
+    (targetRun : evaluate firstOut target = (none, firstTarget))
+    (firstWork : wordPathWork firstOut target ≤
+      wordPathWork firstBody source + firstBudget)
+    (secondWork : wordPathWork secondOut firstTarget ≤
+      wordPathWork secondBody firstSource + secondBudget) :
+    wordPathWork (.seq firstOut secondOut) target ≤
+      wordPathWork (.seq firstBody secondBody) source +
+        (firstBudget + secondBudget) := by
+  rw [wordPathWork_seq, wordPathWork_seq, sourceRun, targetRun]
+  dsimp only
+  omega
+
+/-- The literal SSA `Seq` clause decomposes into the two actual child
+compilations and a sequential output.  This is the compiler control constructor
+used by `bodyWork_seq`. -/
+theorem ssaCcTrans_seq_output
+    (first second firstOut secondOut : WordLangProgHOL (BitVec 64))
+    (ssa : Spt Nat) (next : Nat) (ssaFirst : Spt Nat) (nextFirst : Nat)
+    (ssaSecond : Spt Nat) (nextSecond : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (firstEq : ssaCcTrans (width := 64) first ssa next tables =
+      (firstOut, ssaFirst, nextFirst))
+    (secondEq : ssaCcTrans (width := 64) second ssaFirst nextFirst tables =
+      (secondOut, ssaSecond, nextSecond)) :
+    ssaCcTrans (width := 64) (.seq first second) ssa next tables =
+      (WordLangProgHOL.seq firstOut secondOut, ssaSecond, nextSecond) := by
+  simp only [ssaCcTrans, firstEq, secondEq]
+
+/-- Actual compiler `Seq` body case.  `ssaCcTrans_seq_output` supplies the
+literal child outputs, and `bodyWork_seq` adds the two per-execution child
+budgets at the actual intermediate states. -/
+theorem ssaBody_seq_executed_le {C F : Type}
+    (first second firstOut secondOut : WordLangProgHOL (BitVec 64))
+    (ssa : Spt Nat) (next : Nat) (ssaFirst : Spt Nat) (nextFirst : Nat)
+    (ssaSecond : Spt Nat) (nextSecond : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (source target firstSource firstTarget : WordSemStateFiniteExact 64 C F)
+    (firstBudget secondBudget : Nat)
+    (firstEq : ssaCcTrans (width := 64) first ssa next tables =
+      (firstOut, ssaFirst, nextFirst))
+    (secondEq : ssaCcTrans (width := 64) second ssaFirst nextFirst tables =
+      (secondOut, ssaSecond, nextSecond))
+    (sourceRun : evaluate first source = (none, firstSource))
+    (targetRun : evaluate firstOut target = (none, firstTarget))
+    (firstWork : wordPathWork firstOut target ≤
+      wordPathWork first source + firstBudget)
+    (secondWork : wordPathWork secondOut firstTarget ≤
+      wordPathWork second firstSource + secondBudget) :
+    wordPathWork (ssaCcTrans (width := 64) (.seq first second) ssa next tables).1 target ≤
+      wordPathWork (.seq first second) source + (firstBudget + secondBudget) := by
+  rw [ssaCcTrans_seq_output first second firstOut secondOut ssa next ssaFirst
+    nextFirst ssaSecond nextSecond tables firstEq secondEq]
+  exact bodyWork_seq first second firstOut secondOut source target
+    firstSource firstTarget firstBudget secondBudget sourceRun targetRun
+    firstWork secondWork
+
 #print axioms wordControlCost
 #print axioms wordPathWork_le_controlCost_straight
 #print axioms ssaBody_skip_executed_le
@@ -289,4 +355,7 @@ theorem bodySimulationRunWork_raise {C F : Type}
 #print axioms bodySimulationRunWork_move
 #print axioms bodySimulationRunWork_return
 #print axioms bodySimulationRunWork_raise
+#print axioms bodyWork_seq
+#print axioms ssaCcTrans_seq_output
+#print axioms ssaBody_seq_executed_le
 end InitECandidate.Runtime.FineCost
