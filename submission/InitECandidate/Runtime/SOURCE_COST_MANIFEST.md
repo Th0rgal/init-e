@@ -28,3 +28,15 @@ Checked GREEN with only `[propext, Classical.choice, Quot.sound]`.
   (`source_rlpEncodeBytes_body`), the withdrawal record is four fields with a fixed 20-byte address,
   a fixed 64-byte alloc and the short `memcpy` (`source_memcpy_scoped_body`), so the sum is a concrete
   numeral.
+
+### Probe result (checked, then removed from the tree as a scratch check)
+
+`straightLine` of the encoder's callees, evaluated with `decide_cbv` on the authoritative bodies:
+`alloc`, `rlp_write_header` and `memcpy` all evaluate to `false` — each contains calls and/or loops.
+So the encoder's constant is *not* just its own call count: it is
+`(1 + allocBody) + Σ_fields (1 + fieldBody) + (1 + finishBody)`, with `rlp_encode_bytes` itself paying
+`1 + rlp_write_header + 1 + memcpy`, and `memcpy`'s loops paying per iteration (the withdrawal record
+is four fields with a fixed 20-byte address, so the iteration counts are data-bounded by 20 and the sum
+is still a concrete numeral). No supplied callee/frame/fuel oracle is used in this decomposition: every
+term is the callee's own body, which is why the per-callee `CostBounded` instances are the next pieces
+to land in new modules.
