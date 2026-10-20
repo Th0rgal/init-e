@@ -110,6 +110,79 @@ theorem callEnv_stack_swap {C F : Type} (args : List (WordLocW 64)) (size : Opti
 #print axioms pushEnv_stack_swap
 #print axioms callEnv_stack_swap
 
+
+/-- `fixClock` preserves the stack. -/
+theorem fixClock_stack_proj {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (r : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F) :
+    (fixClock s r).2.stack = r.2.stack := rfl
+
+/-- **Sequence case, normal completion.** -/
+theorem wordPathWork_seq_sValEq_variant_none {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate first s = (none, middle))
+    (ihFirst : wordPathWork first { s with stack := xs } = wordPathWork first s)
+    (ihSecond : ∀ (m : WordSemStateFiniteExact 64 C F)
+      (st : List (WordSemStackFrame 64)),
+      WordSemStackEq.sValEq m.stack st →
+      wordPathWork second { m with stack := st } = wordPathWork second m) :
+    wordPathWork (.seq first second) { s with stack := xs } =
+      wordPathWork (.seq first second) s := by
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap first s
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  dsimp only [WordSemStackEq.stackSwapRel] at hT
+  obtain ⟨-, -, hrun⟩ := hT
+  obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hval
+  have hfix : fixClock { s with stack := xs }
+      ((none : Option (WordSemResult 64)), { middle with stack := st }) =
+      ((none : Option (WordSemResult 64)),
+        { (fixClock s ((none : Option (WordSemResult 64)), middle)).2 with stack := st }) := by
+    simp only [fixClock]
+  have hL : wordPathWork (.seq first second) { s with stack := xs } =
+      1 + wordPathWork first s +
+        wordPathWork second
+          { (fixClock s ((none : Option (WordSemResult 64)), middle)).2 with stack := st } := by
+    rw [wordPathWork, hevT, ihFirst, hfix]
+  have hR : wordPathWork (.seq first second) s =
+      1 + wordPathWork first s +
+        wordPathWork second (fixClock s ((none : Option (WordSemResult 64)), middle)).2 := by
+    rw [wordPathWork, hev]
+    simp [fixClock]
+  have hst : WordSemStackEq.sValEq
+      (fixClock s ((none : Option (WordSemResult 64)), middle)).2.stack st := by
+    rw [fixClock_stack_proj]
+    exact hvalT
+  rw [hL, hR, ihSecond _ st hst]
+
+/-- **Sequence case, exiting result.** -/
+theorem wordPathWork_seq_sValEq_variant_result {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate first s = (some (.result location returned), middle))
+    (ihFirst : wordPathWork first { s with stack := xs } = wordPathWork first s) :
+    wordPathWork (.seq first second) { s with stack := xs } =
+      wordPathWork (.seq first second) s := by
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap first s
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  dsimp only [WordSemStackEq.stackSwapRel] at hT
+  obtain ⟨-, -, hrun⟩ := hT
+  obtain ⟨st, hevT, -, -⟩ := hrun xs hval
+  have hL : wordPathWork (.seq first second) { s with stack := xs } =
+      1 + wordPathWork first s := by
+    rw [wordPathWork, hevT, ihFirst]
+    simp [fixClock]
+  have hR : wordPathWork (.seq first second) s = 1 + wordPathWork first s := by
+    rw [wordPathWork, hev]
+    simp [fixClock]
+  rw [hL, hR]
+
+#print axioms wordPathWork_seq_sValEq_variant_none
+#print axioms wordPathWork_seq_sValEq_variant_result
+
+
 #print axioms getVar_stack
 #print axioms getVars_stack
 #print axioms getVarImm_stack
