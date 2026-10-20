@@ -275,3 +275,13 @@ instruction selector emits at most one selected leaf per input expression node.
 maximum. These are counts of emitted selector leaves, not RISC-V runtime steps.
 The full selector first applies `pullExp`; its work bound, selected-code execution
 simulation, register allocation/spills and subsequent native passes remain open.
+
+`WordPullWork.pull_expression_work` now proves nonamplification for the actual
+constant-pulling function, including subtraction conversion, associative
+operand pulling, partitioning and constant reduction. It uses the pinned
+executable/original agreement theorem and only standard Lean axioms.
+`assignment_selection_work_bound` consequently covers the full pinned assignment
+selector, with `selectedLeaves + 1 ≤ 2 * expressionWork`, including pulling and
+binary normalization. The Loop-expression version composes with exact work
+preservation through Loop-to-Word. Selected-code runtime simulation, allocation/
+spills and later native transfer remain separate unfinished obligations.
