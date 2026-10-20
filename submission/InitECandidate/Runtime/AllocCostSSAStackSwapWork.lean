@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.WordPathWork
 import Flapjack.Compiler.Backend.Semantics.WordSem.Props.EvaluateStackSwap
+import Flapjack.Compiler.Backend.Semantics.WordSem.Props.EvaluateStackMax
 
 /-!
 # Cost invariance of `wordPathWork` under a value-equal stack swap
@@ -2332,4 +2333,323 @@ theorem wordPathWork_seq_sValEq_stack_variant_zero {C F : Type}
   | none => exact absurd rfl hne
   | some r => rfl
 
+/-- Stack-swap transport for `.result` runs (the transport excluded by
+`evaluate_stack_swap_result_nonexception`). -/
+theorem evaluate_stack_swap_result_value {C F : Type}
+    (c : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64)) (l0 : WordLocW 64) (r0 : List (WordLocW 64))
+    (middle : WordSemStateFiniteExact 64 C F)
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate c s = (some (.result l0 r0), middle)) :
+    ∃ st, evaluate c { s with stack := xs } = (some (.result l0 r0), { middle with stack := st }) ∧
+      WordSemStackEq.sValEq middle.stack st := by
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap c s
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  dsimp only [WordSemStackEq.stackSwapRel] at hT
+  obtain ⟨-, -, hrun⟩ := hT
+  obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hval
+  exact ⟨st, hevT, hvalT⟩
+
+/-- `decClock` commutes with the stack swap. -/
+theorem decClock_swap_stack {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64)) :
+    decClock { s with stack := xs } = { decClock s with stack := xs } := by
+  cases s
+  rfl
+
+/-- Tail of the loop clause at the stop state: swapping the stack under `decClock`
+does not change the cost, so the clock-guarded tail of the transported run equals the
+clock-guarded tail of the source run. -/
+theorem wordPathWork_stop_tail {C F : Type} (p : WordLangProgHOL (BitVec 64))
+    (m : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64))
+    (ihStop : wordPathWork (wordSemSTOP p) { decClock m with stack := st } =
+      wordPathWork (wordSemSTOP p) (decClock m)) :
+    (if _hc : m.clock = 0 then 0
+     else wordPathWork (wordSemSTOP p) (decClock { m with stack := st })) =
+    (if _hc : m.clock = 0 then 0
+     else wordPathWork (wordSemSTOP p) (decClock m)) := by
+  by_cases hc : m.clock = 0
+  · rw [dif_pos hc, dif_pos hc]
+  · rw [dif_neg hc, dif_neg hc, decClock_swap_stack]
+    exact ihStop
+
+/-! ### The guarded well-founded driver
+
+`.call` is supplied as the explicit hypothesis `hcall` (the one remaining
+obligation); every other constructor is discharged here, including the
+`cutState`-guarded `.loop` case and the `fixClock`-guarded `.seq`/`.ite`
+cases, with every recursive call made at the reached child state.
+-/
+
+theorem wordPathWork_stack_variant_dispatch {C F : Type}
+    (hcall : ∀ (ret : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat))
+      (dest : Option Nat) (args : List Nat)
+      (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+      (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64)),
+      WordSemStackEq.sValEq s.stack xs →
+      (evaluate (.call ret dest args handler) s).1 ≠ some WordSemResult.error →
+      wordPathWork (.call ret dest args handler) { s with stack := xs } =
+        wordPathWork (.call ret dest args handler) s) :
+    ∀ (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+      (xs : List (WordSemStackFrame 64)),
+      WordSemStackEq.sValEq s.stack xs →
+      (evaluate p s).1 ≠ some WordSemResult.error →
+      wordPathWork p { s with stack := xs } = wordPathWork p s := by
+  intro p s xs hval hne
+  match p, s, xs, hval, hne with
+  | .seq first second, s, xs, hval, hne =>
+      rcases hev : evaluate first s with ⟨res, middle⟩
+      have hfixS : fixClock s (evaluate first s) = (res, middle) := by
+        rw [← hev]; exact fix_clock_evaluate s first
+      have hfcS1 : middle.clock ≤ s.clock :=
+        (fixClock_IMP_LESS_EQ s res middle (evaluate first s) hfixS).1
+      have hfcS2 : middle.termdep = s.termdep :=
+        (fixClock_IMP_LESS_EQ s res middle (evaluate first s) hfixS).2
+      have hneF : (evaluate first s).1 ≠ some WordSemResult.error := by
+        intro hc
+        exact hne (evaluate_seq_error_fst first second s hc)
+      have ihF : wordPathWork first { s with stack := xs } = wordPathWork first s :=
+        wordPathWork_stack_variant_dispatch hcall first s xs hval hneF
+      cases res with
+      | none =>
+          obtain ⟨st, hevT, hvalT⟩ :=
+            evaluate_stack_swap_result_nonexception first s xs none middle hval
+              (by simp) (by simp) (by simp) hev
+          have hfe' : (s.fixClock (evaluate first s)).2 = middle :=
+            (congrArg Prod.snd (fix_clock_evaluate s first)).trans (by rw [hev])
+          have hfe : (fixClock s ((none : Option (WordSemResult 64)), middle)).2 = middle := by
+            rw [← hev]; exact hfe'
+          have hneS : (evaluate second middle).1 ≠ some WordSemResult.error := by
+            intro hc
+            exact hne (evaluate_seq_error_snd first second s (by rw [hev])
+              (by rw [hfe']; exact hc))
+          have ihS_raw : wordPathWork second { middle with stack := st } =
+              wordPathWork second middle :=
+            wordPathWork_stack_variant_dispatch hcall second middle st hvalT hneS
+          have ihS : wordPathWork second
+              { (fixClock s ((none : Option (WordSemResult 64)), middle)).2 with stack := st } =
+              wordPathWork second (fixClock s ((none : Option (WordSemResult 64)), middle)).2 := by
+            rw [hfe]; exact ihS_raw
+          exact wordPathWork_seq_sValEq_stack_variant first second s xs none middle st
+            hev hevT hvalT ihF ihS hne
+      | some r =>
+          cases r with
+          | error => exact (hneF (by rw [hev])).elim
+          | exception l' v =>
+              obtain ⟨st0, locs0, hevEx⟩ :=
+                evaluate_stack_swap_result_exception first s xs l' v middle hval hev
+              obtain ⟨mT, hevT⟩ : ∃ mT, evaluate first { s with stack := xs } =
+                  (some (.exception l' v), mT) := ⟨_, hevEx⟩
+              exact wordPathWork_seq_sValEq_stack_variant_zero first second s xs
+                (some (.exception l' v)) middle mT hev hevT (by simp) ihF
+          | result l' r' =>
+              obtain ⟨st, hevT, -⟩ :=
+                evaluate_stack_swap_result_value first s xs l' r' middle hval hev
+              exact wordPathWork_seq_sValEq_stack_variant_zero first second s xs
+                (some (.result l' r')) middle { middle with stack := st } hev hevT (by simp) ihF
+          | finalFfi e =>
+              obtain ⟨st, hevT, -⟩ :=
+                evaluate_stack_swap_result_nonexception first s xs (some (.finalFfi e))
+                  middle hval (by simp) (by simp) (by simp) hev
+              exact wordPathWork_seq_sValEq_stack_variant_zero first second s xs
+                (some (.finalFfi e)) middle { middle with stack := st } hev hevT (by simp) ihF
+          | timeOut =>
+              obtain ⟨st, hevT, -⟩ :=
+                evaluate_stack_swap_result_nonexception first s xs (some .timeOut)
+                  middle hval (by simp) (by simp) (by simp) hev
+              exact wordPathWork_seq_sValEq_stack_variant_zero first second s xs
+                (some .timeOut) middle { middle with stack := st } hev hevT (by simp) ihF
+          | notEnoughSpace =>
+              obtain ⟨st, hevT, -⟩ :=
+                evaluate_stack_swap_result_nonexception first s xs (some .notEnoughSpace)
+                  middle hval (by simp) (by simp) (by simp) hev
+              exact wordPathWork_seq_sValEq_stack_variant_zero first second s xs
+                (some .notEnoughSpace) middle { middle with stack := st } hev hevT (by simp) ihF
+          | «break» k =>
+              obtain ⟨st, hevT, -⟩ :=
+                evaluate_stack_swap_result_nonexception first s xs (some (.break k))
+                  middle hval (by simp) (by simp) (by simp) hev
+              exact wordPathWork_seq_sValEq_stack_variant_zero first second s xs
+                (some (.break k)) middle { middle with stack := st } hev hevT (by simp) ihF
+          | «continue» k =>
+              obtain ⟨st, hevT, -⟩ :=
+                evaluate_stack_swap_result_nonexception first s xs (some (.continue k))
+                  middle hval (by simp) (by simp) (by simp) hev
+              exact wordPathWork_seq_sValEq_stack_variant_zero first second s xs
+                (some (.continue k)) middle { middle with stack := st } hev hevT (by simp) ihF
+  | .ite cmp reg operand first second, s, xs, hval, hne =>
+      rw [wordPathWork, wordPathWork, getVar_stack, getVarImm_stack]
+      cases hx : getVar reg s with
+      | none => simp only [hx]
+      | some x =>
+          cases hy : getVarImm operand s with
+          | none => simp only [hx, hy]
+          | some y =>
+              cases hc : wordSemWordCmp cmp x y with
+              | none => simp only [hx, hy, hc]
+              | some b =>
+                  cases b with
+                  | true =>
+                      simp only [hx, hy, hc]
+                      have hne1 : (evaluate first s).1 ≠ some WordSemResult.error := by
+                        intro h
+                        exact hne (evaluate_ite_error_true cmp reg operand first second s x y hx hy hc h)
+                      rw [wordPathWork_stack_variant_dispatch hcall first s xs hval hne1]
+                  | false =>
+                      simp only [hx, hy, hc]
+                      have hne2 : (evaluate second s).1 ≠ some WordSemResult.error := by
+                        intro h
+                        exact hne (evaluate_ite_error_false cmp reg operand first second s x y hx hy hc h)
+                      rw [wordPathWork_stack_variant_dispatch hcall second s xs hval hne2]
+  | .loop names body exitNames, s, xs, hval, hne =>
+      rw [wordPathWork, wordPathWork]
+      cases hs : cutState (names, .ln) s with
+      | none =>
+          rw [cutState_stack_none (names, .ln) s xs hs]
+      | some cs =>
+          rw [cutState_stack_some (names, .ln) s xs cs hs]
+          simp only []
+          obtain ⟨l, hl⟩ := cutStateConst (names, .ln) s cs hs
+          have hvalCs : WordSemStackEq.sValEq cs.stack xs := by
+            rw [show cs.stack = s.stack from by rw [hl]]; exact hval
+          rw [fix_clock_evaluate cs body, fix_clock_evaluate { cs with stack := xs } body]
+          rcases hev : evaluate body cs with ⟨res, s1⟩
+          have hcs1 : cs.clock = s.clock := (cutState_clock_termdep (names, .ln) s cs hs).1
+          have hcs2 : cs.termdep = s.termdep := (cutState_clock_termdep (names, .ln) s cs hs).2
+          have hfixB : fixClock cs (evaluate body cs) = (res, s1) := by
+            rw [← hev]; exact fix_clock_evaluate cs body
+          have hfcB1 : s1.clock ≤ cs.clock :=
+            (fixClock_IMP_LESS_EQ cs res s1 (evaluate body cs) hfixB).1
+          have hfcB2 : s1.termdep = cs.termdep :=
+            (fixClock_IMP_LESS_EQ cs res s1 (evaluate body cs) hfixB).2
+          have hcs1 : cs.clock = s.clock := (cutState_clock_termdep (names, .ln) s cs hs).1
+          have hcs2 : cs.termdep = s.termdep := (cutState_clock_termdep (names, .ln) s cs hs).2
+          have hfixB : fixClock cs (evaluate body cs) = (res, s1) := by
+            rw [← hev]; exact fix_clock_evaluate cs body
+          have hfcB1 : s1.clock ≤ cs.clock :=
+            (fixClock_IMP_LESS_EQ cs res s1 (evaluate body cs) hfixB).1
+          have hfcB2 : s1.termdep = cs.termdep :=
+            (fixClock_IMP_LESS_EQ cs res s1 (evaluate body cs) hfixB).2
+          have hneB : (evaluate body cs).1 ≠ some WordSemResult.error := by
+            intro hc
+            exact hne (evaluate_loop_error_body names body exitNames s cs hs hc)
+          have ihB : wordPathWork body { cs with stack := xs } = wordPathWork body cs :=
+            wordPathWork_stack_variant_dispatch hcall body cs xs hvalCs hneB
+          cases res with
+          | none =>
+              obtain ⟨st, hevT, hvalT⟩ :=
+                evaluate_stack_swap_result_nonexception body cs xs none s1 hvalCs
+                  (by simp) (by simp) (by simp) hev
+              simp only [hevT, ihB, wordSemContLoop, if_true]
+              try rw [show ({ s1 with stack := st } : WordSemStateFiniteExact 64 C F).clock = s1.clock from rfl]
+              by_cases hc0 : s1.clock = 0
+              · rw [dif_pos hc0, dif_pos hc0]
+              · rw [dif_neg hc0, dif_neg hc0]
+                have ihStop : wordPathWork (wordSemSTOP (.loop names body exitNames))
+                    { decClock s1 with stack := st } =
+                    wordPathWork (wordSemSTOP (.loop names body exitNames)) (decClock s1) := by
+                  refine wordPathWork_stack_variant_dispatch hcall
+                    (wordSemSTOP (.loop names body exitNames)) (decClock s1) st ?_ ?_
+                  · rw [show (decClock s1).stack = s1.stack from rfl]; exact hvalT
+                  · intro hc
+                    exact hne (evaluate_loop_error_stop names body exitNames s cs hs none s1 hfixB
+                      (by simp [wordSemContLoop]) hc0 hc)
+                rw [decClock_swap_stack]
+                exact congrArg (fun z => 1 + wordPathWork body cs + z) ihStop
+          | some r =>
+              cases r with
+              | error => exact (hneB (by rw [hev])).elim
+              | exception l' v =>
+                  obtain ⟨st0, locs0, hevEx⟩ :=
+                    evaluate_stack_swap_result_exception body cs xs l' v s1 hvalCs hev
+                  obtain ⟨mT, hevT⟩ : ∃ mT, evaluate body { cs with stack := xs } =
+                      (some (.exception l' v), mT) := ⟨_, hevEx⟩
+                  simp [hevT, ihB, wordSemContLoop]
+              | result l' r' =>
+                  obtain ⟨st, hevT, -⟩ :=
+                    evaluate_stack_swap_result_value body cs xs l' r' s1 hvalCs hev
+                  simp [hevT, ihB, wordSemContLoop]
+              | finalFfi e =>
+                  obtain ⟨st, hevT, -⟩ :=
+                    evaluate_stack_swap_result_nonexception body cs xs (some (.finalFfi e)) s1 hvalCs
+                      (by simp) (by simp) (by simp) hev
+                  simp [hevT, ihB, wordSemContLoop]
+              | timeOut =>
+                  obtain ⟨st, hevT, -⟩ :=
+                    evaluate_stack_swap_result_nonexception body cs xs (some .timeOut) s1 hvalCs
+                      (by simp) (by simp) (by simp) hev
+                  simp [hevT, ihB, wordSemContLoop]
+              | notEnoughSpace =>
+                  obtain ⟨st, hevT, -⟩ :=
+                    evaluate_stack_swap_result_nonexception body cs xs (some .notEnoughSpace) s1 hvalCs
+                      (by simp) (by simp) (by simp) hev
+                  simp [hevT, ihB, wordSemContLoop]
+              | «break» k =>
+                  obtain ⟨st, hevT, -⟩ :=
+                    evaluate_stack_swap_result_nonexception body cs xs (some (.break k)) s1 hvalCs
+                      (by simp) (by simp) (by simp) hev
+                  simp [hevT, ihB, wordSemContLoop]
+              | «continue» k =>
+                  obtain ⟨st, hevT, hvalT⟩ :=
+                    evaluate_stack_swap_result_nonexception body cs xs (some (.continue k)) s1 hvalCs
+                      (by simp) (by simp) (by simp) hev
+                  by_cases hk : k = 0
+                  · subst hk
+                    simp only [hevT, ihB, wordSemContLoop]
+                    try rw [show ({ s1 with stack := st } : WordSemStateFiniteExact 64 C F).clock = s1.clock from rfl]
+                    by_cases hc0 : s1.clock = 0
+                    · rw [dif_pos hc0, dif_pos hc0]
+                    · rw [dif_neg hc0, dif_neg hc0]
+                      have ihStop : wordPathWork (wordSemSTOP (.loop names body exitNames))
+                          { decClock s1 with stack := st } =
+                          wordPathWork (wordSemSTOP (.loop names body exitNames)) (decClock s1) := by
+                        refine wordPathWork_stack_variant_dispatch hcall
+                          (wordSemSTOP (.loop names body exitNames)) (decClock s1) st ?_ ?_
+                        · rw [show (decClock s1).stack = s1.stack from rfl]; exact hvalT
+                        · intro hc
+                          exact hne (evaluate_loop_error_stop names body exitNames s cs hs
+                            (some (.continue 0)) s1 hfixB (by simp [wordSemContLoop]) hc0 hc)
+                      rw [decClock_swap_stack]
+                      exact congrArg (fun z => 1 + wordPathWork body cs + z) ihStop
+                  · simp [hevT, ihB, wordSemContLoop, hk]
+  | .call ret dest args handler, s, xs, hval, hne =>
+      exact hcall ret dest args handler s xs hval hne
+  | .mustTerminate _, _, _, _, _ => simp only [wordPathWork]
+  | .skip, _, _, _, _ => simp only [wordPathWork]
+  | .move _ _, _, _, _, _ => simp only [wordPathWork]
+  | .inst _, _, _, _, _ => simp only [wordPathWork]
+  | .assign _ _, _, _, _, _ => simp only [wordPathWork]
+  | .get _ _, _, _, _, _ => simp only [wordPathWork]
+  | .set _ _, _, _, _, _ => simp only [wordPathWork]
+  | .store _ _, _, _, _, _ => simp only [wordPathWork]
+  | .tick, _, _, _, _ => simp only [wordPathWork]
+  | .storeConsts _ _ _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .return _ _, _, _, _, _ => simp only [wordPathWork]
+  | .break _, _, _, _, _ => simp only [wordPathWork]
+  | .continue _, _, _, _, _ => simp only [wordPathWork]
+  | .opCurrHeap _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .locValue _ _, _, _, _, _ => simp only [wordPathWork]
+  | .install _ _ _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .codeBufferWrite _ _, _, _, _, _ => simp only [wordPathWork]
+  | .dataBufferWrite _ _, _, _, _, _ => simp only [wordPathWork]
+  | .ffi _ _ _ _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .shareInst _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .alloc _ _, _, _, _, _ => simp only [wordPathWork]
+  | .raise _, _, _, _, _ => simp only [wordPathWork]
+  termination_by p s xs => (s.termdep, s.clock, sizeOf p)
+  decreasing_by
+    all_goals
+      simp_wf
+      apply wordSemLex
+      try (rcases hc with ⟨_, _⟩)
+      try (rcases hcl with ⟨_, _⟩)
+      try simp +zetaDelta only [Flapjack.WordSemStateFiniteExact.decClock,
+        Flapjack.WordSemStateFiniteExact.callEnv, Flapjack.WordSemStateFiniteExact.setVars,
+        Flapjack.WordSemStateFiniteExact.setVar, pushEnv_clock, pushEnv_termdep, true_and] at *
+      first
+      | omega
+      | (left; omega)
+      | (right; refine ⟨by omega, Or.inl (by omega)⟩)
+      | (right; refine ⟨by omega, Or.inr ⟨by omega, by decreasing_tactic⟩⟩)
 end InitECandidate.Runtime.WordToStack
