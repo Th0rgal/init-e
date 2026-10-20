@@ -266,3 +266,12 @@ were rebuilt successfully with these calibrated charges.
 simulation on the same compiler output. Word expression instruction selection,
 register allocation/spills and later native lowering are still outstanding;
 these equalities do not constitute an end-to-end RISC-V runtime bound.
+
+`WordFlattenWork` proves `work(flattenExp e) + 1 ≤ 2 * work(e)` for every Word
+expression, with a list potential that makes binary normalization compose.
+`WordSelectionWork.raw_selection_work_bound` proves that the raw pinned
+instruction selector emits at most one selected leaf per input expression node.
+`flattened_selection_work_bound` combines these bounds without a program-size
+maximum. These are counts of emitted selector leaves, not RISC-V runtime steps.
+The full selector first applies `pullExp`; its work bound, selected-code execution
+simulation, register allocation/spills and subsequent native passes remain open.
