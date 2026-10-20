@@ -59,6 +59,12 @@ theorem score_sized_le (coeff : Work) (upper actual : Nat) (h : actual ≤ upper
   rw [score_copy]
   exact Nat.mul_le_mul_left _ h
 
+
+/-- An empty event list records no work. -/
+theorem executionWork_nil_score (coeff : Work) :
+    coeff.score (executionWork ([] : List WorkEvent)) = 0 := by
+  simp [executionWork, Work.score]
+
 end InitECandidate.Runtime.FineCost
 
 #print axioms InitECandidate.Runtime.FineCost.score_copy

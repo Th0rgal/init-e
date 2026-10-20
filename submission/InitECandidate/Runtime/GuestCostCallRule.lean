@@ -7,13 +7,16 @@ variable {F : Type}
 
 /-- Canonical executed event list of one installed call statement: the call
 entry, the actual argument expressions that were evaluated, the actual
-argument words and frame slots, the traced callee body, and the actual returned
-result words. -/
+argument words and frame slots, the return slots the compiler zero-initializes
+for the callee's declared return shape, the traced callee body, and the actual
+returned result words. -/
 noncomputable def callEvents {F : Type} (s : PanSemStateFiniteExact 64 F) (arguments : List (ExpHOL 64))
-    (values : List (ValueHOL 64)) (bodyResult : Option (PanSemResultExact 64))
+    (values : List (ValueHOL 64)) (returnShape : ShapeHOL)
+    (bodyResult : Option (PanSemResultExact 64))
     (bodyEvents : List WorkEvent) : List WorkEvent :=
   .statement :: (expressionListEvents s arguments ++
-    [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+    [.copy (values.flatMap flattenHOL).length, .frame values.length,
+      .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
     [.copy (callPayloadWords bodyResult)])
 
 /-- Local scalar cost of one executed call: statement entry, the actual argument
@@ -21,22 +24,25 @@ expressions, the actual argument words, frame slots, the traced callee body, and
 the returned words. Every term is a coefficient times an actual size; no
 whole-program maximum appears. -/
 noncomputable def callLocalCost {F : Type} (coeff : Work) (s : PanSemStateFiniteExact 64 F)
-    (arguments : List (ExpHOL 64)) (values : List (ValueHOL 64))
+    (arguments : List (ExpHOL 64)) (values : List (ValueHOL 64)) (returnShape : ShapeHOL)
     (bodyResult : Option (PanSemResultExact 64)) (bodyEvents : List WorkEvent) : Nat :=
   coeff.statements + coeff.score (executionWork (expressionListEvents s arguments)) +
     coeff.movedWords * (values.flatMap flattenHOL).length + coeff.frameSlots * values.length +
+    coeff.frameSlots * sizeOfShapeWithContextHOL s.structs returnShape +
     coeff.score (executionWork bodyEvents) + coeff.movedWords * callPayloadWords bodyResult
 
 /-- The recorded events of one call score exactly its local cost. -/
 theorem callEvents_score {F : Type} (coeff : Work) (s : PanSemStateFiniteExact 64 F)
-    (arguments : List (ExpHOL 64)) (values : List (ValueHOL 64))
+    (arguments : List (ExpHOL 64)) (values : List (ValueHOL 64)) (returnShape : ShapeHOL)
     (bodyResult : Option (PanSemResultExact 64)) (bodyEvents : List WorkEvent) :
-    coeff.score (executionWork (callEvents s arguments values bodyResult bodyEvents)) =
-      callLocalCost coeff s arguments values bodyResult bodyEvents := by
+    coeff.score (executionWork
+        (callEvents s arguments values returnShape bodyResult bodyEvents)) =
+      callLocalCost coeff s arguments values returnShape bodyResult bodyEvents := by
   unfold callEvents callLocalCost
   rw [executionWork_score_cons, score_statement]
   rw [executionWork_score_append, executionWork_score_append, executionWork_score_append]
-  rw [score_pair, score_copy, score_frame, score_singleton, score_copy]
+  simp only [executionWork_score_cons, score_frame, score_copy, score_singleton, score_pair,
+    executionWork_nil_score]
   omega
 
 /-- Actual installed call statement: the exact trace from `StatementRun.callDone`
@@ -57,10 +63,11 @@ theorem call_statement_work {F : Type} (coeff : Work) {s : PanSemStateFiniteExac
     (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post) :
     StatementRun s (.call info function arguments) result post
-      (callEvents s arguments values bodyResult bodyEvents) ∧
-    coeff.score (executionWork (callEvents s arguments values bodyResult bodyEvents)) =
-      callLocalCost coeff s arguments values bodyResult bodyEvents := by
-  refine ⟨?_, callEvents_score coeff s arguments values bodyResult bodyEvents⟩
+      (callEvents s arguments values returnShape bodyResult bodyEvents) ∧
+    coeff.score (executionWork
+        (callEvents s arguments values returnShape bodyResult bodyEvents)) =
+      callLocalCost coeff s arguments values returnShape bodyResult bodyEvents := by
+  refine ⟨?_, callEvents_score coeff s arguments values returnShape bodyResult bodyEvents⟩
   have run := StatementRun.callDone (s := s) (info := info) (function := function)
     (arguments := arguments) (values := values) (body := body) (callee := callee)
     (returnShape := returnShape) (bodyResult := bodyResult) (bodyPost := bodyPost)

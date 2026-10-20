@@ -321,3 +321,16 @@ a load costs at most `addressChunks slots + 2` and a store at most
 straight-line removal outputs have actual label-path budget at most four times
 this sum, and the full flattening simulation retains that bound. No global
 frame/code/bitmap multiplier is introduced.
+
+## Return-slot frame epoch
+
+Compiled calls with return metadata and declared calls zero-initialize their
+return slots before entering the callee, even when the callee then times out
+or raises. Source call rules therefore charge `frame (size of return shape)`
+after a successful callee lookup: `callDone`, `callHandler` and `callTimeout`
+use the looked-up callee return shape; `declareCallReturn`,
+`declareCallRejectedReturn`, `declareCallStopped` and `declareCallTimeout` use
+the declared shape. Argument and lookup failures are unchanged. Calls whose
+compiled form allocates no slots are conservatively over-charged. This
+replaces the earlier static return-size premise of the Crep transfer and lets
+its statement coefficient stay small; trace existence proofs are unchanged.

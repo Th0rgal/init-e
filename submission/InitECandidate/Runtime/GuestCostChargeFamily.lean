@@ -218,13 +218,13 @@ theorem chargeGas_call_run (coeff : Work) (state : PanSemStateFiniteExact 64 Gue
           (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
           frame funding.left funding.used amount) = .done result post ∧
       StatementRun state (.call info (ofString "charge_gas") [argument]) result post
-        (callEvents state [argument] [.val (.word amount)] (some (.returned (.val (.word 0))))
-          bodyEvents) ∧
+        (callEvents state [argument] [.val (.word amount)] .one
+          (some (.returned (.val (.word 0)))) bodyEvents) ∧
       coeff.score (executionWork
-        (callEvents state [argument] [.val (.word amount)] (some (.returned (.val (.word 0))))
-          bodyEvents)) =
-        callLocalCost coeff state [argument] [.val (.word amount)] (some (.returned (.val (.word 0))))
-          bodyEvents := by
+        (callEvents state [argument] [.val (.word amount)] .one
+          (some (.returned (.val (.word 0)))) bodyEvents)) =
+        callLocalCost coeff state [argument] [.val (.word amount)] .one
+          (some (.returned (.val (.word 0)))) bodyEvents := by
   classical
   let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
     HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))
@@ -266,11 +266,6 @@ theorem chargeGas_call_run (coeff : Work) (state : PanSemStateFiniteExact 64 Gue
   exact ⟨bodyEvents, result, post, bodyRun, planEq, call.1, call.2⟩
 
 
-
-/-- An empty event list records no work. -/
-theorem executionWork_nil_score (coeff : Work) :
-    coeff.score (executionWork ([] : List WorkEvent)) = 0 := by
-  simp [executionWork, Work.score]
 
 /-- The exact recorded work of one successful `charge_gas` helper execution, in
 source order: the `dec gl` initialiser and its frame slot, the real out-of-gas
