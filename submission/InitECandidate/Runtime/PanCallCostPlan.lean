@@ -79,5 +79,17 @@ def declareCallStopPlan {F : Type} (result : Option (PanSemResultExact 64))
   | none | some .break | some .continue => (some .error, post)
   | some other => (some other, emptyLocalsHOLFinite post)
 
+/-- Dispatch into a handler changes bindings, never the remaining clock. -/
+theorem callCostPlan_handler_clock {F : Type} (s post entry : PanSemStateFiniteExact 64 F)
+    (info) (shape : ShapeHOL) (result : Option (PanSemResultExact 64)) (program : ProgHOL 64)
+    (plan : callCostPlan s info shape result post = .handler entry program) :
+    entry.clock = post.clock := by
+  unfold callCostPlan at plan
+  repeat' split at plan
+  all_goals simp_all [setVarHOLFinite]
+  exact (congrArg (fun st : PanSemStateFiniteExact 64 F => st.clock) plan.1).symm
+
+#print axioms callCostPlan_handler_clock
+
 #print axioms evaluate_call_cost_plan
 end InitECandidate.Runtime.FineCost

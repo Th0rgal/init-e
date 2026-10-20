@@ -171,3 +171,23 @@ boundaries with exact evaluator results; no callee/loop/handler body can use
 these rules. The statement relation now has rules for every source constructor,
 but its global completeness theorem remains to be proved, followed by the
 compiler cost relation, guest cost bound and end-to-end score verification.
+
+## Global source completeness
+
+`PanCostTotal.source_statement_cost_complete` now proves cost-trace existence
+for every exact source state/program, without successful evaluation or guest
+well-formedness assumptions. Its well-founded measure is `(source clock,
+program size)`: calls/loop iterations decrease clock, structural composition
+uses clock monotonicity and a smaller program, and handler/continuation entry
+preserves the callee's remaining clock. All proof axioms are standard Lean
+`propext`, `Classical.choice` and `Quot.sound`.
+
+`sourceExecutionEvents` selects a certified finite trace;
+`sourceExecutionCost` scalarizes it with the coefficient vector.
+`sourceExecutionCost_spec` connects that function to exact evaluator outcomes.
+No trace uniqueness theorem is claimed: compiler and guest bounds should be
+proved for every trace, which also covers the selected witness. This completes
+global existence for the source cost definition, not the native transfer or
+any numerical bound on guest cost. Native frame/spill/replay charges and the
+connection to the compiler-aware allowance still need to be certified before
+choosing final coefficients and claiming a score.

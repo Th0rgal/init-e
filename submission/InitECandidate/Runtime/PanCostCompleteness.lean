@@ -205,6 +205,77 @@ theorem while_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
 
 #print axioms while_cost_complete
 
+theorem call_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (info) (function : MlStringHOL) (arguments : List (ExpHOL 64))
+    (calleeCost : ∀ values body callee returnShape,
+      evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments = some values →
+      lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape) →
+      s.clock ≠ 0 → HasStatementCost (callEntryStateHOLFinite s callee) body)
+    (handlerCost : ∀ callee body returnShape result post entry program, s.clock ≠ 0 →
+      evaluateHOLFiniteState (callEntryStateHOLFinite s callee) body = (result, post) →
+      callCostPlan s info returnShape result post = .handler entry program →
+      HasStatementCost entry program) :
+    HasStatementCost s (.call info function arguments) := by
+  classical
+  cases args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments with
+  | none => exact (StatementRun.callArgumentsFailure (info := info) (function := function) args).hasCost
+  | some values =>
+    cases lookup : lookupCodeHOLFinite s.code.lookup function values with
+    | none => exact (StatementRun.callLookupFailure (info := info) args lookup).hasCost
+    | some data =>
+      obtain ⟨body, callee, returnShape⟩ := data
+      by_cases clock : s.clock = 0
+      · exact (StatementRun.callTimeout (info := info) args lookup clock).hasCost
+      · obtain ⟨result, post, events, run⟩ := calleeCost _ _ _ _ args lookup clock
+        cases plan : callCostPlan s info returnShape result post with
+        | done result2 post2 => exact (StatementRun.callDone args lookup clock run plan).hasCost
+        | handler entry program =>
+          obtain ⟨result2, post2, events2, run2⟩ := handlerCost _ _ _ _ _ _ _ clock run.sound plan
+          exact (StatementRun.callHandler args lookup clock run plan run2).hasCost
+
+#print axioms call_cost_complete
+
+theorem declared_call_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (name : MlStringHOL) (shape : ShapeHOL) (function : MlStringHOL)
+    (arguments : List (ExpHOL 64)) (continuation : ProgHOL 64)
+    (calleeCost : ∀ values body callee returnShape,
+      evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments = some values →
+      lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape) →
+      s.clock ≠ 0 → HasStatementCost (callEntryStateHOLFinite s callee) body)
+    (continuationCost : ∀ callee body value post, s.clock ≠ 0 →
+      evaluateHOLFiniteState (callEntryStateHOLFinite s callee) body = (some (.returned value), post) →
+      HasStatementCost (setVarHOLFinite name value { post with locals := s.locals }) continuation) :
+    HasStatementCost s (.decCall name shape function arguments continuation) := by
+  classical
+  cases args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments with
+  | none => exact (StatementRun.declareCallArgumentsFailure (name := name) (shape := shape)
+      (function := function) (continuation := continuation) args).hasCost
+  | some values =>
+    cases lookup : lookupCodeHOLFinite s.code.lookup function values with
+    | none => exact (StatementRun.declareCallLookupFailure (name := name) (shape := shape)
+        (continuation := continuation) args lookup).hasCost
+    | some data =>
+      obtain ⟨body, callee, returnShape⟩ := data
+      by_cases clock : s.clock = 0
+      · exact (StatementRun.declareCallTimeout (name := name) (shape := shape)
+          (continuation := continuation) args lookup clock).hasCost
+      · obtain ⟨result, post, events, run⟩ := calleeCost _ _ _ _ args lookup clock
+        by_cases returned : ∃ value, result = some (.returned value)
+        · obtain ⟨value, resultEq⟩ := returned
+          subst result
+          cases matchesShape : shapeEqHOL (shapeOfHOLExact value) shape &&
+              shapeEqHOL (shapeOfHOLExact value) returnShape with
+          | false => exact (StatementRun.declareCallRejectedReturn (name := name)
+              (continuation := continuation) args lookup clock run matchesShape).hasCost
+          | true =>
+            obtain ⟨result2, post2, events2, run2⟩ := continuationCost _ _ _ _ clock run.sound
+            exact (StatementRun.declareCallReturn args lookup clock run matchesShape run2).hasCost
+        · exact (StatementRun.declareCallStopped (name := name) (shape := shape)
+            (continuation := continuation) args lookup clock run
+            (fun value h => returned ⟨value, h⟩)).hasCost
+
+#print axioms declared_call_cost_complete
+
 #print axioms atomic_statement_cost_complete
 #print axioms HasStatementCost.exact_trace
 end InitECandidate.Runtime.FineCost
