@@ -191,3 +191,14 @@ global existence for the source cost definition, not the native transfer or
 any numerical bound on guest cost. Native frame/spill/replay charges and the
 connection to the compiler-aware allowance still need to be certified before
 choosing final coefficients and claiming a score.
+
+`PanScalarCostTransfer` connects source expression costs to the compiler-aware
+allowance for scalar loads/operations and record composition. Its source vector
+charges four units per expression entry and one per moved word; it is an
+intermediate vector, not the final native coefficients. `LocalWidthsFit` states
+an explicit context/runtime-width invariant and still needs to be derived from
+the compiler state relation at guest entry and preserved layouts. The resulting
+`scalar_source_to_loop_cost` theorem bounds actual generated Loop traces by six
+times source expression cost, including residual values. General multiword loads
+are excluded by `scalarLowering` because address replay needs separate accounting.
+Preprocessing and subsequent native lowering remain outside this theorem.
