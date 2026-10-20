@@ -40,3 +40,44 @@ is four fields with a fixed 20-byte address, so the iteration counts are data-bo
 is still a concrete numeral). No supplied callee/frame/fuel oracle is used in this decomposition: every
 term is the callee's own body, which is why the per-callee `CostBounded` instances are the next pieces
 to land in new modules.
+
+## Adapter to the existing `ProgBounded`/`RunBounded`/`FunBounded` machinery (`SourceCostAdapter`)
+
+New module `InitECandidate.Runtime.SourceCostAdapter` (checked, `[propext, Classical.choice, Quot.sound]`):
+
+- `costBounded_of_progBounded`: **`ProgBounded p C` gives the all-outcome bound** for every state with
+  `code = originalRuntimeCode`. Cases on `C ≤ state.clock`: a large clock uses
+  `ProgBounded`'s spent bound directly; a small clock has `state.clock < C ≤ C + post.clock` because
+  the post clock is a `Nat`. No timeout case needs separate treatment.
+- `costBounded_of_runBounded`: the per-state form needs no code premise.
+- `costBounded_call_of_funBounded`, `costBounded_allocCall` (alloc reuse: `ProgBounded.alloc`, cost 2),
+  `costBounded_seq'` (reuses `RunBounded.seq` with `nextCode.trans code`).
+
+So no new algebra is needed for shapes, clock plumbing, loops or calls: `ProgBounded.straight`,
+`ProgBounded.dec`, `ProgBounded.seq`, `ProgBounded.ite`, `ProgBounded.alloc`, `ProgBounded.call`,
+`ProgBounded.tail`, `ProgBounded.decCall`, `ProgBounded.countedDec` and `RunBounded.*` all feed the
+adapter.
+
+## Exact encoder cost dependency order (bodies read from the source, not assumed)
+
+`wdAllocTail` = `decCall "buf" alloc [64] wdDecP`; `wdDecP` = `dec "p" (buf+9) wdCall0`;
+`wdCall0` = `decCall "w" rlp_encode_word [p, word0] (seq wdAssign (seq wdCall8 wdCall8Tail))`;
+`wdCall8` = `call "w" rlp_encode_word [p, word8]`;
+`wdCallBytes` = `call "w" rlp_encode_bytes [p, wd+16, 20]`;
+`wdCall36` = `call "w" rlp_encode_word [p, word36]`;
+`wdFinishTail` = `decCall "total" rlp_finish_list [buf, p] (return …)`.
+
+`rlp_encode_word` = `seq rlpEncodeWordZero (seq rlpEncodeWordSmall rlpEncodeWordLong)`; the first two
+phases are `ite` + `storeByte` + `return` (cost 0), the long phase is
+`decCall "ll" rlp_be_len [w]` then `call none "rlp_put_be" [dst+1, w, ll]` then `return`.
+`rlp_encode_bytes` = `seq rlpEncodeBytesPrefix rlpEncodeBytesTail`, tail =
+`decCall "h" rlp_write_header [dst,128,n]` then `call none memcpy [dst+h, src, n]` then `return`.
+`memcpy` already has `evaluate_memcpy_body_bounded` (cost `size/32 + size/8 + 10`, so **12** for the
+fixed 20-byte address).
+
+So the remaining per-callee obligations, in dependency order, are
+`FunBounded "rlp_be_len"`, `FunBounded "rlp_put_be"` (both counted byte loops, ≤ 8 iterations for a
+64-bit word), then `FunBounded "rlp_encode_word"`, `FunBounded "rlp_write_header"`,
+`FunBounded "rlp_finish_list"`, `FunBounded "rlp_encode_bytes"`, and finally the record sum
+`2 + Σ(1 + callee)` which is a concrete numeral. Each is a `ProgBounded` composition over the quoted
+body with `ProgBounded.alloc`/`call`/`decCall`/`countedDec` — no runtime oracle anywhere.
