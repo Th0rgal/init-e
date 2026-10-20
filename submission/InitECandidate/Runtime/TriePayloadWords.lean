@@ -3,8 +3,8 @@ import InitECandidate.Runtime.HashWordStep
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.PanSemStateFiniteExact
 
-/-- Actual value-pointer and value-length cells needed by leaf splitting and
-hashing. Allocated extent alone does not assert that these cells hold words. -/
+/-- Word-valued payload cells, an automatic property of the exact source
+memory type. Physical read domains and actual payload values are separate facts. -/
 structure TriePayloadWords {F : Type} (s : PanSemStateFiniteExact 64 F)
  (live extensions branches : Set (BitVec 64)) : Prop where
  leaf : ∀node∈live,node∉extensions→node∉branches→
@@ -13,6 +13,21 @@ structure TriePayloadWords {F : Type} (s : PanSemStateFiniteExact 64 F)
  branch : ∀node∈branches,
   (∃value : BitVec 64,s.memory (node+160)=.word value) ∧
   (∃length : BitVec 64,s.memory (node+168)=.word length)
+
+/-- Source memory cells are words by their datatype, independent of allocation. -/
+theorem source_memory_word {F : Type} (s : PanSemStateFiniteExact 64 F) (address : BitVec 64) :
+ ∃value : BitVec 64,s.memory address=.word value := by
+ cases cell : s.memory address with
+ | word value=>exact ⟨value,rfl⟩
+
+/-- No initial payload-typing hypothesis is needed for the source model. -/
+theorem TriePayloadWords.of_state {F : Type} (s : PanSemStateFiniteExact 64 F)
+ (live extensions branches : Set (BitVec 64)) : TriePayloadWords s live extensions branches := by
+ constructor
+ · intro node member nonExt nonBranch
+   exact ⟨source_memory_word s (node+48),source_memory_word s (node+56)⟩
+ · intro node member
+   exact ⟨source_memory_word s (node+160),source_memory_word s (node+168)⟩
 
 theorem TriePayloadWords.empty {F : Type} (s : PanSemStateFiniteExact 64 F) :
  TriePayloadWords s ∅ ∅ ∅ := by
@@ -46,6 +61,7 @@ theorem TriePayloadWords.write_word {F : Type} {s : PanSemStateFiniteExact 64 F}
    have old:=valid.branch node member
    exact ⟨keep _ old.1,keep _ old.2⟩
 
+#print axioms TriePayloadWords.of_state
 #print axioms TriePayloadWords.write_word
 #print axioms TriePayloadWords.after_memory
 end InitECandidate.Runtime
