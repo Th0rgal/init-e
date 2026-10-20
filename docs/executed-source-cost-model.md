@@ -225,7 +225,7 @@ The integrated sharp route instead prices the SAME canonical events as
 `10*statements + 5*expressions + 5*movedWords + 12*memoryAccesses + 4*frameSlots
 + 40*globalAccesses + 17*globalWords + 45*replayUnits`. Replay units sum `k-1`
 for each `.memory k` or `.globalAccess k` event. A static
-`sharpSitesProg 40` certificate bounds the scalar address price at multiword
+`sharpSitesProg 40` certificate bounds the compiled address-head price at multiword
 load sites; no whole-program expression maximum is multiplied into all work.
 The source-to-Loop theorem preserves this allowance with factor ONE through
 arithmetic simplification and the installed Loop optimizer. The stated
@@ -245,8 +245,8 @@ rebuilt through 52 source/compiler modules, including completeness and unique
 canonical traces. A global access records both an occurrence and its flattened
 word count so even zero-word accesses can pay fixed setup. The sharp global
 allowance is `40 + 17*n + 45*(n-1)`; local expression and ordinary memory prices
-are unchanged. The actual `pan_globals` transfer remains a separate pending
-proof; the price definition alone does not discharge it.
+are unchanged. The actual statement-level `pan_globals` transfer is now checked below;
+installed-entry initialization remains a separate obligation.
 
 `pan_simp` now preserves every additive per-event price, including replay and
 global-access charges. `SourceCostPanStructsId` proves structures preprocessing
@@ -255,12 +255,17 @@ is the identity under a checked syntactic no-named-structures predicate;
 is inlinable. `GuestCostSyntax` checks both predicates on the actual simplified guest. The
 post-globals no-inline predicate remains to be checked.
 
-The attempted `sharpSitesProg 40` certificate on the actual simplified guest
-was false: eight storage/account function families contain record-field load
-addresses outside `scalarAddr`, while `op_dup` has scalar address price 43.
-The failed theorem is not part of the checked modules. Extending the selected
-record-field address proof and checking the actual post-globals stage remain
-open; raising the numeric bound alone would not fix the unsupported grammar.
+`SourceCostSharpHead` bounds the exact compiled head expression that structured
+loads reevaluate per additional word. A record field of a local selects one
+compiled variable or constant, regardless of the entire record size. The
+supported address grammar includes these fields and nested loads. The former
+whole-address replay estimate and its narrower grammar have been removed.
+`GuestCostSharpSites` certifies `sharpSitesProg 40` on the exact pass0 and pass2
+declarations, including the generated entry. This repairs the previously
+failing guest certificate. Root independently rebuilt all 38 affected modules
+in `sharp-head-independent`, including both concrete certificates, with only
+standard Lean axioms. Neither the fixed replay coefficient nor the guest source
+was changed.
 
 Existing root guest helpers were replayed with the new model. Generic
 `callEvents`/`callLocalCost` accept optional final call info (default `none`)

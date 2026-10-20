@@ -55,6 +55,12 @@ theorem loadShape_sharp_first (words : Nat) (address : CrepExpHOL 64) :
     simp only [beq_self_eq_true, if_true, loopNodePrice, Nat.add_sub_cancel]
     omega
 
+/-- Exact Loop price of the head of a compiled expression list: the only
+part a structured load re-evaluates for each further word. -/
+def crepHead : List (CrepExpHOL 64) → Nat
+  | [] => 0
+  | head :: _ => loopNodePrice head
+
 /-- Sharp Crep price of a compiled Pan expression. -/
 def flattenedSharpWork (context : PanToCrepContextExact 64) (e : ExpHOL 64) : Nat :=
   sharpCrepList (compileExpExactHOLW context e).1
@@ -192,7 +198,7 @@ theorem sharp_compiled_loadByte (context : PanToCrepContextExact 64) (address : 
 theorem sharp_compiled_load (context : PanToCrepContextExact 64) (shape : ShapeHOL) (address : ExpHOL 64) :
     flattenedSharpWork context (.load shape address) ≤
       3 + flattenedSharpWork context address +
-        (sizeOfShapeHOL shape - 1) * (flattenedSharpWork context address + 5) := by
+        (sizeOfShapeHOL shape - 1) * (crepHead (compileExpExactHOLW context address).1 + 6) := by
   unfold flattenedSharpWork
   generalize hc : compileExpExactHOLW context address = compiled
   obtain ⟨expressions, addressShape⟩ := compiled
@@ -202,9 +208,7 @@ theorem sharp_compiled_load (context : PanToCrepContextExact 64) (shape : ShapeH
   | cons head tail =>
     have localBound := loadShape_sharp_first (sizeOfShapeHOL shape) head
     have hh := sharp_head_le head tail
-    have larger := Nat.mul_le_mul_left (sizeOfShapeHOL shape - 1)
-      (show loopNodePrice head + 6 ≤ sharpCrepList (head :: tail) + 5 by omega)
-    simp only []
+    simp only [crepHead]
     omega
 
 theorem sharp_compField (shapes : List ShapeHOL) (index : Nat) (expressions : List (CrepExpHOL 64)) :
@@ -258,7 +262,7 @@ mutual
     | .rstruct fields => panSharpListAllowance context fields
     | .rfield _ value => 3 + panSharpAllowance context value
     | .load shape address => 3 + panSharpAllowance context address +
-        (sizeOfShapeHOL shape - 1) * (panSharpAllowance context address + 5)
+        (sizeOfShapeHOL shape - 1) * (crepHead (compileExpExactHOLW context address).1 + 6)
     | .load32 address | .loadByte address => 3 + panSharpAllowance context address
     | .op _ args => 3 + panSharpListAllowance context args
     | .panop _ args => 4 + panSharpListAllowance context args
@@ -316,7 +320,6 @@ theorem sharp_lowering_bound (context : PanToCrepContextExact 64) :
       loopNodePrice]
   · intro shape address ih
     simp only [panSharpAllowance]
-    have := Nat.mul_le_mul_left (sizeOfShapeHOL shape - 1) (Nat.add_le_add_right ih 5)
     have := sharp_compiled_load context shape address
     omega
   · intro address ih
