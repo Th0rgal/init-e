@@ -3,6 +3,7 @@ Copyright (c) 2025 Flamingo Ponderado Unipessoal LDA. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import InitECandidate.Runtime.ActualPayloadHeaderConstruction
+import InitECandidate.Runtime.KeccakWideFullCallBound
 
 /-!
 # A stronger actual payload-header prefix: the non-heap globals are untouched
@@ -494,5 +495,92 @@ theorem actual_payload_header_strong_keccak {F : Type} (ref state : PanSemStateF
     exact padGlobal
 
 #print axioms actual_payload_header_strong_keccak
+
+/-- **The outcome analysis of the keccak call.**  Given only a `RunBounded` budget for the actual
+`keccak256(tmp, 1, oh)` call, every outcome is covered: a normal return re-establishes the whole
+commit with the caller's locals restored and the globals and heap pointer untouched, and any other
+result -- never a returned value, never a timeout -- falls in the abort branch. -/
+theorem actual_payload_header_keccak_reaches_of_bounded {F : Type}
+    (ref state : PanSemStateFiniteExact 64 F) (pl raw pointer heap oh tmp : BitVec 64)
+    (facts : ActualPayloadHeaderCommit ref state pl raw pointer heap oh tmp)
+    (code : state.code = originalRuntimeCode) (cost : Nat)
+    (bounded : RunBounded state actualPayloadHeaderKeccak cost) :
+    Reaches state (actualPayloadHeaderAt 9)
+      (ActualPayloadHeaderCommit ref · pl raw pointer heap oh tmp) cost (actualPayloadHeaderAt 10) := by
+  rw [source_actual_payload_header_keccak_shape]
+  refine reaches_seq state actualPayloadHeaderKeccak (actualPayloadHeaderAt 10) cost _ ?_
+  unfold RunBounded at bounded
+  change state.clock ≤ (evaluateHOLFiniteState state actualPayloadHeaderKeccak).2.clock + cost ∧
+    (evaluateHOLFiniteState state actualPayloadHeaderKeccak).2.clock ≤ state.clock ∧
+    (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 ≠ some .timeOut at bounded
+  by_cases normal : (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 = none
+  · obtain ⟨post,run⟩ : ∃ post : PanSemStateFiniteExact 64 F,
+        evaluateHOLFiniteState state actualPayloadHeaderKeccak = (none, post) :=
+      ⟨_, by rw [Prod.eq_iff_fst_eq_snd_eq]; exact ⟨normal,rfl⟩⟩
+    refine Or.inl ⟨post,?_,?_,?_,run⟩
+    · exact actual_payload_header_commit_after_keccak ref state post pl raw pointer heap oh tmp
+        facts code run
+    · have spent := bounded.1
+      rw [run] at spent
+      exact spent
+    · have kept := bounded.2.1
+      rw [run] at kept
+      exact kept
+  · obtain ⟨x,run⟩ : ∃ result, (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 = some result := by
+      cases placed : (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 with
+      | none => exact absurd placed normal
+      | some result => exact ⟨result,rfl⟩
+    refine Or.inr ⟨x,run,?_,bounded.1,bounded.2.1,?_⟩
+    · intro value returned
+      have discard := evaluate_discard_call_no_return state (ofString "keccak256")
+        [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")] value
+      exact discard (run.trans (congrArg some returned))
+    · intro clock budget
+      have different := bounded.2.2
+      rw [run] at different
+      exact different (congrArg some budget)
+
+#print axioms actual_payload_header_keccak_reaches_of_bounded
+
+/-- **The actual keccak call bounded by the canonical typed-only wide contract.**  Only the typed
+`keccak_st`/`keccak_pad` globals of the entry state, the typed argument list and the output's
+eight-byte alignment are needed; the operand workspace domains are not.  The wide bound is 145 ticks
+and is weakened to the 360 the rest of the construction uses. -/
+theorem actual_payload_header_strong_keccak_wide {F : Type} (ref state : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp st pad : BitVec 64)
+    (facts : ActualPayloadHeaderCommit ref state pl raw pointer heap oh tmp)
+    (frame : HeapGlobalsFrame ref state)
+    (code : state.code = originalRuntimeCode)
+    (stateGlobal : ref.globals.lookup (ofString "keccak_st") = some (.val (.word st)))
+    (padGlobal : ref.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)))
+    (ohAligned : oh.toNat % 8 = 0) (ticks : 145 ≤ state.clock) :
+    Reaches state (actualPayloadHeaderAt 9)
+      (ActualPayloadHeaderCommit ref · pl raw pointer heap oh tmp) 145 (actualPayloadHeaderAt 10) := by
+  have one : (1#64 : BitVec 64).toNat = 1 := by decide
+  have args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a))
+      [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")] =
+      (some [.val (.word tmp),.val (.word (1#64)),.val (.word oh)] : Option (List (ValueHOL 64))) := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,facts.2.2,facts.2.1]
+  have atState : state.globals.lookup (ofString "keccak_st") = some (.val (.word st)) := by
+    rw [frame (ofString "keccak_st") (by decide)]
+    exact stateGlobal
+  have atPad : state.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)) := by
+    rw [frame (ofString "keccak_pad") (by decide)]
+    exact padGlobal
+  have wide := runBounded_keccak_wide_full_call state st pad tmp (1#64) oh none
+    [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")]
+    atState atPad args (by decide) ohAligned code (by omega)
+  have bounded : RunBounded state actualPayloadHeaderKeccak 145 := by
+    have spent := wide.1
+    rw [one] at spent
+    refine ⟨?_,wide.2.1,wide.2.2⟩
+    change state.clock ≤ (evaluateHOLFiniteState state (ProgHOL.call (some (none,none))
+      (ofString "keccak256") [.var .local (ofString "tmp"), .const (1#64),
+        .var .local (ofString "oh")])).2.clock + 145
+    exact spent
+  exact actual_payload_header_keccak_reaches_of_bounded ref state pl raw pointer heap oh tmp facts
+    code 145 bounded
+
+#print axioms actual_payload_header_strong_keccak_wide
 
 end InitECandidate.Runtime
