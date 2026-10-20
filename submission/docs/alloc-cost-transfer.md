@@ -82,7 +82,7 @@ Compile order and module stems (checker role `allocation`):
      The constant two is the reassociation envelope; move merging only shortens
      lists and the trailing `Skip` is deleted.
 
-9. `AllocCostReconcile` — dynamic, per-site move budgets
+9. `AllocCostReconcile` — static envelopes for per-site move programs
    - `listNextVarRenameMove_nodeCost`:
      `wordNodeCost (listNextVarRenameMove ssa next names) = 1 + names.length`.
    - `ssaReconcile_nodeCost_le`:
@@ -94,9 +94,9 @@ Compile order and module stems (checker role `allocation`):
    - `fixInconsistencies_nodeCost_le`:
      both handler programs together cost
      `≤ 6 + 8 * |dom left ∪ dom right|`.
-     This is the dynamic exception-handler budget; it counts only the actual
+     This bounds the inserted handler syntax; it counts only the actual
      union of the two branch maps.
-10. `AllocCostSSAControl` — control-flow transfer
+10. `AllocCostSSAControl` — local control-syntax envelopes
    - `ssaCcTrans_loop_nodeCost_le`: for a loop whose body transfer
      `wordNodeCost body' ≤ wordNodeCost body + bodyBudget` has already been
      established,
@@ -123,15 +123,13 @@ axiom, `unsafe`, `native_decide` or `bv_decide`.
 
 ## What is not yet covered
 
-- The straight-line fragments before allocation are still handled by the
-  earlier theorems.  The reconciliation *budgets* for loops, `break`,
-  `continue` and exception handlers are now proved in `AllocCostReconcile`, and
-  the loop and call-none transfer is proved in `AllocCostSSAControl`.  The
-  remaining recursive case is the returning-call (`call some`) handler
-  composition, where the return and exception handler programs and their
-  `fixInconsistencies` budget must be threaded through the same symbolic state.
-  The handler budget itself is already proved; the remaining work is only the
-  symbolic-state plumbing, not a new cost principle.
+- The new loop/call/break/continue theorems bound `wordNodeCost` of generated
+  syntax. They do not establish an executed-cost simulation for full control
+  flow: a loop syntax contains its body once, while a run can execute it many
+  times. The semantic SSA transfer must charge setup, reconciliation and
+  handler moves at each actual execution, threading the related successor
+  states. Returning-call syntax composition is also still open. The proved
+  local envelopes supply budgets for that transfer; they are not that transfer.
 - `WordSimp`/`instSelect` selection is taken as the root participant's
   `selectionLeaves ≤ 2 * wordExpressionWork` bridge.  This note starts from the
   selected straight-line fragment and does not re-prove that bridge.
