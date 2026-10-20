@@ -193,3 +193,49 @@ frames and lss' = lss (keys from e'.map fst = e.map fst = lss.map fst, values fr
 lss.map snd = lss'.map snd) => locs = middle.locals => hmidT holds => _exception_at applies.
 Propagation to recursive calls is free: the generic clause returns `sKeyEq xs st` for the
 child state, and `.seq`/`.ite`/`.loop` already thread the state's stack unchanged.
+
+=== v9 (finite-flash): exception blocker RESOLVED, ingredient set complete ===
+CHECKED (green, commit 84b7f1de2):
+  * sValEq_length : sValEq a b -> a.length = b.length
+  * callEntry_handler_succ : (callEnv args1 ss (pushEnv envs (some (reg,handlerCode,h1,h2)) t)).handler + 1
+      = (...).stack.length      [pushEnv with a handler sets handler := t.stack.length]
+  * callBody_transport_exception : finite-flash/lead fix CONFIRMED in Lean.  Because pushEnv pushes the
+    handler frame itself, entry.handler + 1 = entry.stack.length, so the packet exception clause's
+    LASTN (handler+1) window is the WHOLE entry stack: the transported window is
+    `lastN ... (fr :: xs) = fr :: xs` (same literal frame `fr`), so the clause can be instantiated at
+    e0' = e0, e' = e, ls' = xs.  Then lss' = lss by map_fst_snd_eq (fst from e.map fst = lss.map fst,
+    snd from lss.map snd = lss'.map snd), hence locs = sptUnion (sptFromAList lss) (sptFromAList e0)
+    = middle.locals, hence middleT = { middle with stack := st }.  wordPathWork_call_exception_at is
+    therefore applicable; the earlier "needs a global hkey" conclusion is WRONG and withdrawn.
+  Result-arm transport (callBody_transport_result + popEnv_agree) is also complete; every `.call` arm
+  now has its ingredients.
+
+REMAINING (2 items, both boilerplate):
+  (a) `evaluate_call_error_body_noreturn` (propagation for ret = none, handler = none): statement is
+      (dest) (args) (handler) (prog) (args1) (ss) (s) (locs) (hget) (hbad) (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (ReturnValue := List Nat) (ReturnNames := WordLangCutsetsHOL)
+           (ReturnHandler := WordLangProgHOL (BitVec 64)) none locs) s.code s.stackSize = some (args1,prog,ss))
+        (hhand : handler = none) (hclk : s.clock ≠ 0)
+        (h : (evaluate prog (callEnv args1 ss (decClock s))).1 = some .error) :
+        (evaluate (.call none dest args handler) s).1 = some .error
+      Proof sketch that works structurally (copied from evaluate_call_error_body):
+        rw [evaluate]; try split; <getVars none contradiction>; <some locs> rw [if_neg …];
+        try split; <findCode none contradiction>; <some triple> inject; then
+        * the ret split must be resolved with the `ret = none` case FIRST here (the converse of
+          evaluate_call_error_body, whose program has ret = some): after  rw [dif_neg hclk] and
+          rcases hev : evaluate prog (callEnv …) with ⟨res, st'⟩, rewrite h : res = some .error, then
+          `cases wordSemBadFunReturn (some .error) <;> rfl` — both branches of the bad-return test
+          yield `some .error`, so no lemma about wordSemBadFunReturn is needed.
+        * the handler split: `handler = none` first (real case), `handler = some _` second (contradicts
+          hhand).  Do NOT use `simp at hsome` for the ret = some case before the ret-case order is
+          known; name the equation hypotheses explicitly with `next`/`case` instead of `rename_i` if
+          the order is ambiguous.
+  (b) The `.call` branch of wordPathWork_stack_variant_dispatch (~120 lines) following the clause:
+      getVars / badDest / findCode / (ret none -> handler / clock) / (ret some -> domain / cutEnvs /
+      clock) / body run by arms: error (contradiction via the propagation lemma + hne),
+      result (mismatch / popEnv none / dom false: rw ihBodyAt; else wordPathWork_call_result_at),
+      exception (handler none or loc mismatch or dom false: rw ihBodyAt; else
+      wordPathWork_call_exception_at with callBody_transport_exception),
+      other results (rw ihBodyAt).  ihBodyAt comes from the recursion at `prog` with the entry state,
+      hneBody from the propagation lemma.  Add to decreasing_by:
+      `try (have hfc2 := fixClock_IMP_LESS_EQ _ _ _ _ hfixBody)` for the body/handler children.

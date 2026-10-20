@@ -251,6 +251,7 @@ theorem callBody_transport_exception {C F : Type}
 #print axioms callBody_transport_exception
 
 
+
 /-- Tail of the loop clause at the stop state: swapping the stack under `decClock`
 does not change the cost, so the clock-guarded tail of the transported run equals the
 clock-guarded tail of the source run. -/
