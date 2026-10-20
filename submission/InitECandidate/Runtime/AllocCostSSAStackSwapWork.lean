@@ -81,6 +81,35 @@ theorem setVars_stack {C F : Type} (names : List Nat) (values : List (WordLocW 6
     setVars names values { s with stack := xs } =
       { setVars names values s with stack := xs } := rfl
 
+/-- Pushing a cut frame commutes with a value-equal stack swap.  Wrapper over the
+pinned `pushEnv_withStack` (the lemma the package's own `evaluateStackSwap_Call`
+uses), in the `∃ ys, entry = {entry with stack := ys} ∧ sValEq` shape the cost
+induction consumes. -/
+theorem pushEnv_stack_swap {C F : Type}
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack xs) :
+    ∃ ys, pushEnv envs handler { s with stack := xs } =
+        { pushEnv envs handler s with stack := ys } ∧
+      WordSemStackEq.sValEq (pushEnv envs handler s).stack ys := by
+  obtain ⟨fr, hfr, hpe⟩ := WordSemStackEq.pushEnv_withStack envs handler s xs hval
+  exact ⟨fr :: xs, hpe,
+    by rw [hfr]; exact ⟨hval, of_eq_true (WordSemStackEq.sFrameValEqRefl fr)⟩⟩
+
+/-- `callEnv` commutes with a value-equal stack swap (pinned
+`callEnv_withStack`; only `stackMax` needs the equal stack sizes). -/
+theorem callEnv_stack_swap {C F : Type} (args : List (WordLocW 64)) (size : Option Nat)
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack xs) :
+    ∃ ys, WordSemStateFiniteExact.callEnv args size { s with stack := xs } =
+        { WordSemStateFiniteExact.callEnv args size s with stack := ys } ∧
+      WordSemStackEq.sValEq (WordSemStateFiniteExact.callEnv args size s).stack ys :=
+  ⟨xs, WordSemStackEq.callEnv_withStack args size s xs hval, hval⟩
+
+#print axioms pushEnv_stack_swap
+#print axioms callEnv_stack_swap
+
 #print axioms getVar_stack
 #print axioms getVars_stack
 #print axioms getVarImm_stack
