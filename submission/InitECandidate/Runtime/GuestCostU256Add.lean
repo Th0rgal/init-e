@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.GuestCostChargeFamily
+import InitECandidate.Runtime.GuestCostAtomicExpressions
 import InitECandidate.Runtime.PanScalarCostModel
 import InitECandidate.Runtime.GuestCostComb4Load
 namespace InitECandidate.Runtime.FineCost
@@ -558,6 +559,85 @@ theorem u256Add_run (s : PanSemStateFiniteExact 64 F)
   simpa [u256AddBody, u256AddRest0, u256AddEvents, u256AddPost, u256AddDecEvents, u256AddSeqEvents,
     u256AddPrimEvents, u256AddReturnEvents, u256AddZeroValue, s0a, s0b, s1a, s1b, s2a, s2b,
     s3a, s3b, c0, c1, c2, l0, l1, l2, l3] using dec0
+
+/-- A word-valued field projection copies exactly one word. -/
+theorem resultWords_rfield_word (s : PanSemStateFiniteExact 64 F) (index : Nat) (value : ExpHOL 64)
+    (word : BitVec 64)
+    (h : expressionValue s (.rfield index value) = some (.val (.word word))) :
+    resultWords s (.rfield index value) = 1 := by
+  unfold resultWords
+  rw [h]
+  simp [flattenHOL]
+
+/-- A local variable read copies the flattened value currently bound to its name. -/
+theorem resultWords_var_lookup (s : PanSemStateFiniteExact 64 F)
+    (name : MlStringHOL) (value : ValueHOL 64)
+    (h : s.locals.lookup name = some value) :
+    resultWords s (.var VarKind.local name) = (flattenHOL value).length := by
+  unfold resultWords
+  simp [expressionValue, evalHOLExact, h]
+
+/-- The recorded events of a word-valued field projection of a local variable. -/
+theorem expressionEvents_rfield_var (s : PanSemStateFiniteExact 64 F) (index : Nat)
+    (name : MlStringHOL) (word : BitVec 64)
+    (h : expressionValue s (.rfield index (.var VarKind.local name)) = some (.val (.word word))) :
+    expressionEvents s (.rfield index (.var VarKind.local name)) =
+      .expression :: (expressionEvents s (.var VarKind.local name) ++ [.copy 1]) := by
+  simp [expressionEvents, h, resultWords, flattenHOL]
+
+/-- A field projection of a local variable costs its variable read plus one word. -/
+theorem expressionCost_rfield_var (coeff : Work) (s : PanSemStateFiniteExact 64 F) (index : Nat)
+    (name : MlStringHOL) (word : BitVec 64)
+    (h : expressionValue s (.rfield index (.var VarKind.local name)) = some (.val (.word word))) :
+    expressionCost coeff s (.rfield index (.var VarKind.local name)) =
+      coeff.expressions + expressionCost coeff s (.var VarKind.local name) + coeff.movedWords := by
+  unfold expressionCost
+  rw [expressionEvents_rfield_var s index name word h]
+  rw [executionWork_score_cons, score_expression]
+  rw [executionWork_score_append, score_singleton]
+  rw [guest_score_copy]
+  simp only [Nat.mul_one]
+  omega
+
+/-- A field projection of a local variable costs one expression entry for itself,
+one for the variable read, and the flattened variable plus one copied word. -/
+theorem expressionCost_rfield_var_of (coeff : Work) (s : PanSemStateFiniteExact 64 F)
+    (index : Nat) (name : MlStringHOL) (value : ValueHOL 64) (word : BitVec 64)
+    (h : expressionValue s (.rfield index (.var VarKind.local name)) = some (.val (.word word)))
+    (hl : s.locals.lookup name = some value) :
+    expressionCost coeff s (.rfield index (.var VarKind.local name)) =
+      2 * coeff.expressions + coeff.movedWords * (flattenHOL value).length +
+        coeff.movedWords := by
+  rw [expressionCost_rfield_var coeff s index name word h]
+  rw [expressionCost_var]
+  rw [resultWords_var_lookup s name value hl]
+  omega
+
+/-- A constant expression records exactly one expression and one copied word. -/
+theorem expressionEvents_const (s : PanSemStateFiniteExact 64 F) (word : BitVec 64) :
+    expressionEvents s (.const word) = .expression :: [.copy 1] := by
+  rw [expressionEvents]
+
+/-- The recorded events of a two-constant structure. -/
+theorem expressionEvents_rstruct_two_const (s : PanSemStateFiniteExact 64 F)
+    (w1 w2 : BitVec 64) :
+    expressionEvents s (.rstruct [.const w1, .const w2]) =
+      .expression :: (expressionEvents s (.const w1) ++
+        (expressionEvents s (.const w2) ++ [.copy 2])) := by
+  simp [expressionEvents, expressionListEvents, resultWords, flattenHOL,
+    expressionValue, evalHOLExact, evalListHOLExact]
+
+/-- The zero-pair initialiser costs three expression entries and four copied words. -/
+theorem expressionCost_zeroPair (coeff : Work) (s : PanSemStateFiniteExact 64 F) :
+    expressionCost coeff s u256AddZeroPair =
+      3 * coeff.expressions + 4 * coeff.movedWords := by
+  unfold u256AddZeroPair expressionCost
+  rw [expressionEvents_rstruct_two_const, expressionEvents_const]
+  simp [executionWork, Work.score, WorkEvent.units, Work.plus, Nat.mul_add, Nat.add_mul]
+  omega
+
+#print axioms expressionCost_rfield_var_of
+#print axioms expressionCost_zeroPair
 
 #print axioms u256Add_run
 
