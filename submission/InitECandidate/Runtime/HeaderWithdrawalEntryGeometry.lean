@@ -223,4 +223,22 @@ theorem payloadHeader46_window_geometry_budget {F : Type} (t : PanSemStateFinite
     atPl freshE atSlices atHeap code aligned budget.2.1 budget.1 smallNwd slicesAbove belowRead
     belowW budget.2.2 addrRead memRead tail
 
+/-- The watched payload word `pl + 48` lies strictly below the arena once the payload header
+prologue's separation `pl.toNat + 136 ≤ slices.toNat` holds. -/
+theorem wd_read_below_arena (pl slices read : BitVec 64)
+    (below : pl.toNat + 136 ≤ slices.toNat) (readEq : read = pl + 48#64) :
+    read.toNat < slices.toNat := by
+  subst readEq
+  have plFit : pl.toNat + 136 < 2^64 := by omega
+  have s48 : (48#64 : BitVec 64).toNat = 48 := by decide
+  have addVal : (pl + 48#64).toNat = pl.toNat + 48 := by
+    rw [BitVec.toNat_add, s48, Nat.mod_eq_of_lt (by omega)]
+  rw [addVal]; omega
+
+/-- A watched header word inside the first 136 payload bytes is also strictly below the arena. -/
+theorem wd_watched_below_arena (pl slices w : BitVec 64)
+    (below : pl.toNat + 136 ≤ slices.toNat) (inHeader : w.toNat < pl.toNat + 136) :
+    w.toNat < slices.toNat := by
+  omega
+
 end InitECandidate.Runtime

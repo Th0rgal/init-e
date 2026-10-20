@@ -142,3 +142,10 @@ Checked GREEN with only `[propext, Classical.choice, Quot.sound]`:
 - `payloadHeader46_window_geometry_budget`: statement 46's window taking only the single cap,
   `alSlices`/`alSize` (from which `heapBase`'s 8-alignment is derived), the address separation
   `read/w` below `slices ≤ heapBase`, the decoded count bound, the state bindings and the 47 tail.
+
+### Stage 2, address separation
+
+- `wd_read_below_arena`: the prologue separation `pl.toNat + 136 ≤ slices.toNat` (the same shape the
+  root payload-header modules already carry) gives `read.toNat < slices.toNat` for `read = pl + 48`.
+- `wd_watched_below_arena`: a watched header word inside the first 136 payload bytes
+  (`w.toNat < pl.toNat + 136`) is strictly below the arena.
