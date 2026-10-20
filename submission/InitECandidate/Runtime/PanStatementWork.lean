@@ -104,6 +104,65 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       (expr : ExpressionRun s expression none events) :
       StatementRun s (.raise exceptionId expression) (some .error) s (.statement :: events)
 
+  | storeValue {s destination source address value memory addressEvents valueEvents}
+      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : ExpressionRun s source (some value) valueEvents)
+      (write : @panMemStoresHOL 64 _ address (flattenHOL value) s.memaddrs
+        (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = some memory) :
+      StatementRun s (.store destination source) none { s with memory := memory }
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length]))
+  | storeRejected {s destination source address value addressEvents valueEvents}
+      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : ExpressionRun s source (some value) valueEvents)
+      (write : @panMemStoresHOL 64 _ address (flattenHOL value) s.memaddrs
+        (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = none) :
+      StatementRun s (.store destination source) (some .error) s
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length]))
+  | storeSourceFailure {s destination source address addressEvents valueEvents}
+      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : ExpressionRun s source none valueEvents) :
+      StatementRun s (.store destination source) (some .error) s
+        (.statement :: (addressEvents ++ valueEvents))
+  | storeAddressFailure {s destination source addressEvents}
+      (dst : ExpressionRun s destination none addressEvents) :
+      StatementRun s (.store destination source) (some .error) s (.statement :: addressEvents)
+
+  | store32Value {s destination source address value memory addressEvents valueEvents}
+      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : ExpressionRun s source (some (.val (.word value))) valueEvents)
+      (write : @panMemStore32HOL 64 _ s.memory s.memaddrs
+        (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
+        (BitVec.ofNat 32 value.toNat) = some memory) :
+      StatementRun s (.store32 destination source) none { s with memory := memory }
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
+
+  | store32Rejected {s destination source address value addressEvents valueEvents}
+      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : ExpressionRun s source (some (.val (.word value))) valueEvents)
+      (write : @panMemStore32HOL 64 _ s.memory s.memaddrs
+        (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
+        (BitVec.ofNat 32 value.toNat) = none) :
+      StatementRun s (.store32 destination source) (some .error) s
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
+
+  | storeByteValue {s destination source address value memory addressEvents valueEvents}
+      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : ExpressionRun s source (some (.val (.word value))) valueEvents)
+      (write : @panMemStoreByteWord8HOL 64 _ s.memory s.memaddrs
+        (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
+        (BitVec.ofNat 8 value.toNat) = some memory) :
+      StatementRun s (.storeByte destination source) none { s with memory := memory }
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
+
+  | storeByteRejected {s destination source address value addressEvents valueEvents}
+      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : ExpressionRun s source (some (.val (.word value))) valueEvents)
+      (write : @panMemStoreByteWord8HOL 64 _ s.memory s.memaddrs
+        (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
+        (BitVec.ofNat 8 value.toNat) = none) :
+      StatementRun s (.storeByte destination source) (some .error) s
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
+
 theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
     (run : StatementRun s p r post events) : evaluateHOLFiniteState s p = (r, post) := by
@@ -219,6 +278,56 @@ theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     unfold expressionValue at he
     rw [evaluateHOLFiniteState_raise, he]
     split <;> simp_all
+
+  | storeValue dst src write =>
+    have hd := dst.sound
+    unfold expressionValue at hd
+    have hs := src.sound
+    unfold expressionValue at hs
+    rw [evaluateHOLFiniteState_store, hd, hs]
+    simp only [write]
+  | storeRejected dst src write =>
+    have hd := dst.sound
+    unfold expressionValue at hd
+    have hs := src.sound
+    unfold expressionValue at hs
+    rw [evaluateHOLFiniteState_store, hd, hs]
+    simp only [write]
+  | storeSourceFailure dst src =>
+    have hd := dst.sound
+    unfold expressionValue at hd
+    have hs := src.sound
+    unfold expressionValue at hs
+    rw [evaluateHOLFiniteState_store, hd, hs]
+  | storeAddressFailure dst =>
+    have hd := dst.sound
+    unfold expressionValue at hd
+    rw [evaluateHOLFiniteState_store, hd]
+
+  | store32Value dst src write =>
+    have hd := dst.sound
+    have hs := src.sound
+    unfold expressionValue at hd hs
+    rw [evaluateHOLFiniteState_store32, hd, hs]
+    simp only [write]
+  | store32Rejected dst src write =>
+    have hd := dst.sound
+    have hs := src.sound
+    unfold expressionValue at hd hs
+    rw [evaluateHOLFiniteState_store32, hd, hs]
+    simp only [write]
+  | storeByteValue dst src write =>
+    have hd := dst.sound
+    have hs := src.sound
+    unfold expressionValue at hd hs
+    rw [evaluateHOLFiniteState_storeByte, hd, hs]
+    simp only [write]
+  | storeByteRejected dst src write =>
+    have hd := dst.sound
+    have hs := src.sound
+    unfold expressionValue at hd hs
+    rw [evaluateHOLFiniteState_storeByte, hd, hs]
+    simp only [write]
 
 #print axioms StatementRun.sound
 end InitECandidate.Runtime.FineCost

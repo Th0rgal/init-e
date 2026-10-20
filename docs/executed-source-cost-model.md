@@ -65,7 +65,12 @@ expression events to sequence and conditional execution. These remain partial:
 full expression/statement coverage and completeness are not proved. The memory
 counter currently counts logical scalar reads; its eventual native coefficient
 must cover the alignment and width expansions of all admitted scalar reads.
-Structured access sizes will require separate rules. `LabLocalWork`,
+Structured stores charge the flattened request word count; rejected stores
+conservatively charge the entire request, which bounds any shorter attempted
+prefix. Scalar byte/32-bit stores charge one logical access. The native memory
+coefficient must cover both reads and writes. Structured load rules remain open.
+Statement rules also cover loop control, assignments, returns and successful
+exception payloads; these do not yet give full statement completeness. `LabLocalWork`,
 `LabWeightedInstructionTrace` and `LabWeightedMixedTrace` prove local native
 bounds at the label backend. They do not yet establish the source work vector
 or a complete finite certificate. Native coefficients in the table above remain
