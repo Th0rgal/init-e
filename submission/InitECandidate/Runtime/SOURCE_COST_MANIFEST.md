@@ -251,3 +251,27 @@ plumbing with `Q` the loop-exit predicate (`WdLoopInv` at exit, `i = nwd`).
   call with `ready.clock = state.clock - 1`, `K = 1`), `reaches_dec` for 45 (`K = 0`), and the 46 seam,
   glued by `reaches_trans`/`reaches_mono`. `scoped_restore` absorbs the `resVarEq`/locals difference of
   the `.dec` steps, which is why no pair equality is needed. The builder callee after 47 is untouched.
+
+## LANDED: `WdLoopInv` survives normal loop exit; statement-46 seam carries it (`4fe24855f`)
+
+- `countedWhile_exit` — a counted `while (counter < boundName)` that completes normally preserves `P`:
+  `P` at entry, `keep` per normally completing iteration, counter `advance`, `noContinue`, `noBreak`,
+  clock-insensitivity (`decrease`) ⇒ `P` at the normal exit state, for any remaining-iteration count.
+  Terminal outcomes (`.break`, `.timeOut`, `.returned`, encoder errors) are excluded by the normality
+  hypothesis, so this lemma takes **no callee-success or `normalInv` oracle**. The `fixClockHOLFinite`
+  wrapper of the while semantics is handled by rewriting `fixClockHOLFinite_evaluateState` on *both* the
+  goal and the normality hypothesis (the clock-insensitivity premise `decrease` is what makes the
+  transported predicate legitimate) — this is the seam that previously blocked the induction.
+- `wdLoopInv_decClock` — `WdLoopInv` has no clock conjunct, so it descends a clock tick.
+- `wdSliceLoopInv_exit` — instantiation: from the loop-entry `WdLoopInv`, any **normal** exit state of
+  `wdSliceLoop` still satisfies `WdLoopInv` (pl/nwd bindings, `e` freshness, `wd_rlp_slices` pointer,
+  `code`, memory domain, watched `pl+48` cell, and a final heap frontier `wdHeapWord loopHeap k` for a
+  reached `k ≤ nwd.toNat`), using `wdLoopInv_keep`/`wdLoopInv_advance`/`wdSliceLoopBody_noControl`.
+- `payloadHeader46_reaches_exit` — statement 46 from the loop entry reaches `actualPayloadHeaderAt 47`
+  within `nwd.toNat * ((cost+1)+1)` ticks with postcondition **the full `WdLoopInv`**, replacing the
+  `True` postcondition of `payloadHeader46_reaches` for the builder's benefit.
+
+Remaining plumbing (mechanical, not a blocker): thread that postcondition through the 43 prefix, i.e.
+state `payloadHeader43_reaches` with `Q := WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl slices read X
+(wdHeapWord loopHeap)` — the only extra work is the `m`-transport from the loop entry's `memaddrs` to
+`s.memaddrs` (available as `ready'.memaddrs = s.memaddrs`) at the last leg of the composition.
