@@ -354,6 +354,22 @@ A false source guard jumps over the body for allowance 3; the skipped body
 contributes no work. The shared layout includes its actual emitted label counter
 and installed end location. Other conditional layouts remain to be generalized.
 
+`AllocCostSSAPermStack.wordPathWork_permStack_variant` proves equality of
+`wordPathWork` across stack permutations for every Word constructor under the
+original `permStack` relation and no-allocation/no-installation program and code
+restrictions. Its recursive proof has no recursive cost assumptions. The
+supporting call transport covers successful, exceptional and failing prefixes.
+`AllocCostSSABodyWork` expands compiled calls into inserted moves, callee body
+and reached return handler; its remaining cost premises concern those bodies,
+not the whole call. `AllocCostSSALoopExecuted` charges reconciliation on every
+actual iteration, but instantiating its one-body simulation for the complete
+SSA pass remains open. All 15 allocation dependency modules independently
+checked in `perm-stack-independent` with only standard Lean axioms.
+
+These statements concern the existing additional-clock counter `wordPathWork`.
+They do not yet prove transfer of the finer, price-parametric
+`WordExecutionCost`, nor do they supply the final native instruction budget.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual

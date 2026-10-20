@@ -8,7 +8,7 @@ open InitECandidate.Runtime.WordToStack
 /-!
 # SSA reconciliation move budgets
 
-These are static, per-site envelopes for the move programs SSA inserts at loop
+These are the dynamic, per-site budgets for the moves SSA inserts at loop
 headers, loop back-edges, calls, exception handlers, `break` and `continue`.
 Every budget is a function of the actual live-name list or renaming-map domain
 at that site; none is a whole-program AST, code-table or bitmap maximum.
