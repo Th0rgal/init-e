@@ -229,3 +229,14 @@ to eliminate the independent read-presence premise: successful evaluation and
 the existing compiler locals relation suffice for the scalar source-to-Loop
 work bound. This still excludes general multiword loads and does not yet cover
 later RISC-V lowering, source statement transfer or the guest's numerical cost.
+
+A text audit of the pinned `Guest/Ast.lean` found 1,290 one-word loads,
+247 flat four-word loads and 62 flat six-word loads. This is a source inspection,
+not yet a kernel certificate that every address satisfies the scalar predicate.
+`PanBulkLoadCost` proves the local transfer for successful loads of at most six
+words whose addresses satisfy that predicate. It derives address layout and
+shape validity from successful evaluation plus the compiler locals relation,
+and bounds generated Loop trace work by 36 times source expression cost. This
+covers address replay locally without a whole-program syntax multiplier.
+Compound expressions containing such loads, guest-wide applicability and later
+RISC-V lowering still require proofs.
