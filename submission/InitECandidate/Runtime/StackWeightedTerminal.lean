@@ -23,7 +23,7 @@ def TerminalWeightedFlatten {F : Type} (program : HolProg 64)
     FlattenHyps program source flag (some result) post sectionId labelId continues breaks start →
     ∃ final steps work, final.ffi = post.ffi ∧ final.code = start.code ∧
       work ≤ price encoded start.pc ∧
-      LabToTarget.WeightedInstructionTrace encoded {start with clock := start.clock + steps} final work ∧
+      LabToTarget.WeightedMixedTrace encoded {start with clock := start.clock + steps} final work ∧
       LabToTarget.Terminal final outcome
 
 private theorem terminal_appList {α : Type} (lines : List α) :
@@ -47,7 +47,7 @@ theorem terminalWeightedFlatten_halt {F : Type}
   have operand : start.regs start.ptrReg = .word value := by
     rw [← args]; exact InstCorrect.regOfLookup related read
   let final := {start with clock := start.clock + 1}
-  refine ⟨final, 1, 0, ?_, rfl, Nat.le_refl _, LabToTarget.WeightedInstructionTrace.nil _, ?_⟩
+  refine ⟨final, 1, 0, ?_, rfl, Nat.le_refl _, LabToTarget.WeightedMixedTrace.nil _, ?_⟩
   · simpa only [final, StackSemStateOps.emptyEnv] using relFfi related
   · exact LabToTarget.Terminal.halt final 0 value [] 0 (by simp [final])
       (by simpa only [final, asmFetch] using fetch) operand
@@ -73,13 +73,14 @@ theorem TerminalWeightedFlatten.native {F : Type}
       evaluateTargetHOL mc start.ffi count machine = (.halt outcome, native, post.ffi) := by
   obtain ⟨final, steps, work, ffi, _, bound, trace, terminal⟩ :=
     compiledBound flag post sectionId labelId continues breaks start encoded hyps
-  obtain ⟨prefixCount, middle, middleAsm, prefixBound, prefixRun, middleRelated, _⟩ :=
-    LabToTarget.weightedInstructionTrace_with_oracle encoded trace mc labs base asm machine target encoder
+  obtain ⟨prefixCount, middle, middleAsm, finalConfig, prefixBound, finalTarget, finalEncoder,
+      prefixRun, middleRelated, _⟩ :=
+    LabToTarget.weightedMixedTrace_bounded encoded trace mc labs base asm machine target encoder
       (Flapjack.Compiler.Backend.LabToTarget.stateRelClock _ start asm machine (start.clock + steps) related)
       (Flapjack.Compiler.Backend.LabToTarget.oracleTie_clock mc machine start (start.clock + steps) tie)
   obtain ⟨lastCount, native, lastBound, lastRun⟩ := LabToTarget.terminal_native terminal
-    (Compiler.Backend.Semantics.TargetProps.shiftInterfer prefixCount mc) encoded labs base middleAsm middle
-    target encoder middleRelated
+    finalConfig encoded labs base middleAsm middle
+    finalTarget finalEncoder middleRelated
   refine ⟨prefixCount + lastCount, native, by omega, ?_⟩
   rw [Nat.add_comm prefixCount lastCount, prefixRun lastCount, lastRun, ffi]
 
@@ -169,7 +170,7 @@ theorem terminalWeightedFlatten_seq_next {F : Type}
       rw [h1] at budget
       rw [pc1] at bound2
       omega
-    · have joined := LabToTarget.weightedInstructionTrace_append (trace1.add_clock steps2) trace2
+    · have joined := LabToTarget.weightedMixedTrace_append (trace1.add_clock steps2) trace2
       simpa only [Nat.add_assoc] using joined
 
 

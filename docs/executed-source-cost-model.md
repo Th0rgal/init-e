@@ -422,6 +422,19 @@ offset. The layout and six composition theorems checked independently in
 `stack-general-if-full2`. The two layouts placing a statically nonreturning
 body first remain to be composed.
 
+The recursive `NormalWeightedFlatten`, `ExitWeightedFlatten` and
+`TerminalWeightedFlatten` motives now carry `WeightedMixedTrace`, so reached
+FFI/shared returns can compose with ordinary execution. `LabWeightedMixedClock`
+embeds ordinary traces without changing their price, lifts all three kinds of
+work across additional label-clock supply, and proves installed code and ABI
+register indices survive returned operations. Native extraction retains the
+actual advanced machine configuration (including FFI interference), target,
+encoder and oracle tie. The final terminal allowance remains 17 once after
+the full prefix. Independent replays `lab-mixed-clock2`, `mixed-stack-controls`
+and `mixed-stack-controls2` checked the support lemmas and all twelve affected
+native composition/geometry modules. Actual Stack FFI/shared leaf construction,
+remaining conditional layouts and the complete recursive driver remain open.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual

@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.StackWeightedBlock
+import InitECandidate.Runtime.LabWeightedMixedClock
 import Flapjack.Compiler.Backend.LabToTarget.StateTransport
 namespace InitECandidate.Runtime.StackToLab
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
@@ -14,15 +15,11 @@ open Flapjack.Compiler.Backend.StackToLab.Proofs
 These are register indices, not the values stored in those registers. -/
 theorem weightedTrace_metadata {F : Type} {encoded : LabProgHOL 64}
     {start final : LabSem.State 64 LabToTarget.Config F} {work : Nat}
-    (trace : LabToTarget.WeightedInstructionTrace encoded start final work) :
+    (trace : LabToTarget.WeightedMixedTrace encoded start final work) :
     final.code = start.code ∧ final.ptrReg = start.ptrReg ∧
       final.lenReg = start.lenReg ∧ final.ptr2Reg = start.ptr2Reg ∧
       final.len2Reg = start.len2Reg ∧ final.linkReg = start.linkReg := by
-  induction trace with
-  | step state final instruction bytes n length clock fetch success rest ih =>
-    obtain ⟨_, code, _, _, _, _, _, _, ptr, len, ptr2, len2, link⟩ := asmInstConsts instruction state
-    simpa only [incPc, decClock, code, ptr, len, ptr2, len2, link] using ih
-  | _ => simp_all only [incPc, decClock, LabSem.updPc, LabSem.updReg, and_self]
+  exact trace.metadata
 
 /-- A normal, code-preserving compiled fragment supplies its own weighted
 execution trace. Costs may depend on its installed position and actual encoding.
@@ -39,7 +36,7 @@ def NormalWeightedFlatten {F : Type} (p : HolProg 64)
         (Flapjack.Compiler.Backend.StackToLab.flattenHOL flag p sectionId labelId continues breaks).1).filter
           (fun line => !isLabelHOL line)).length ∧
       final.code = start.code ∧ work ≤ price encoded start.pc ∧
-      LabToTarget.WeightedInstructionTrace encoded {start with clock := start.clock + steps} final work
+      LabToTarget.WeightedMixedTrace encoded {start with clock := start.clock + steps} final work
 
 /-- The motive is discharged for actual ordinary blocks by their existing
 compiler proof, including instruction failures ruled out by original premises. -/
@@ -55,7 +52,7 @@ theorem normalWeightedFlatten_instructionBlock {F : Type}
   have lengthEq := congrArg List.length lines
   simp only [List.length_map] at lengthEq
   exact ⟨final, instructions.length, instructionBlockWork encoded start.pc instructions,
-    related, by simpa only [lengthEq] using pc, code, Nat.le_refl _, trace⟩
+    related, by simpa only [lengthEq] using pc, code, Nat.le_refl _, trace.toMixed⟩
 
 /-- Sequencing adds the actual weighted subtraces. It adds neither a native
 instruction for Seq nor a multiplier to either recursive child's price. Only
@@ -124,7 +121,7 @@ theorem normalWeightedFlatten_seq {F : Type}
       rw [h1] at budget
       rw [pc1] at bound2
       omega
-    · have joined := LabToTarget.weightedInstructionTrace_append (trace1.add_clock steps2) trace2
+    · have joined := LabToTarget.weightedMixedTrace_append (trace1.add_clock steps2) trace2
       simpa only [Nat.add_assoc] using joined
 
 /-- A normal fragment's composed weighted trace executes on the actual native
@@ -145,24 +142,27 @@ theorem NormalWeightedFlatten.native {F : Type}
     (encoder : Compiler.Encoders.AsmProps.encoderCorrect mc.target)
     (related : Flapjack.Compiler.Backend.LabToTarget.stateRel (mc, encoded, labs, base) start asm machine)
     (tie : Flapjack.Compiler.Backend.LabToTarget.oracleTie mc machine start) :
-    ∃ final count native finalAsm, stateRel post final ∧ final.code = start.code ∧
+    ∃ final count native finalAsm finalConfig, stateRel post final ∧ final.code = start.code ∧
       count ≤ price encoded start.pc ∧
+      finalConfig.target = Compiler.Encoders.RiscV.Target.riscvTarget ∧
+      Compiler.Encoders.AsmProps.encoderCorrect finalConfig.target ∧
       (∀ clock, Flapjack.evaluateTargetHOL mc start.ffi (clock + count) machine =
         Flapjack.evaluateTargetHOL
-          (Compiler.Backend.Semantics.TargetProps.shiftInterfer count mc) final.ffi clock native) ∧
+          finalConfig final.ffi clock native) ∧
       Flapjack.Compiler.Backend.LabToTarget.stateRel
-        (Compiler.Backend.Semantics.TargetProps.shiftInterfer count mc, encoded, labs, base) final finalAsm native ∧
+        (finalConfig, encoded, labs, base) final finalAsm native ∧
       Flapjack.Compiler.Backend.LabToTarget.oracleTie
-        (Compiler.Backend.Semantics.TargetProps.shiftInterfer count mc) native final := by
+        finalConfig native final := by
   obtain ⟨final, steps, work, stackRelated, _, code, bound, trace⟩ :=
     compiledBound flag post sectionId labelId continues breaks start encoded hyps
-  obtain ⟨count, native, finalAsm, nativeBound, run, nativeRelated, finalTie⟩ :=
-    LabToTarget.weightedInstructionTrace_with_oracle encoded trace mc labs base asm machine
+  obtain ⟨count, native, finalAsm, finalConfig, nativeBound, finalTarget, finalEncoder,
+      run, nativeRelated, finalTie⟩ :=
+    LabToTarget.weightedMixedTrace_bounded encoded trace mc labs base asm machine
       target encoder
       (Flapjack.Compiler.Backend.LabToTarget.stateRelClock _ start asm machine (start.clock + steps) related)
       (Flapjack.Compiler.Backend.LabToTarget.oracleTie_clock mc machine start (start.clock + steps) tie)
-  exact ⟨final, count, native, finalAsm, stackRelated, code, nativeBound.trans bound,
-    run, nativeRelated, finalTie⟩
+  exact ⟨final, count, native, finalAsm, finalConfig, stackRelated, code, nativeBound.trans bound,
+    finalTarget, finalEncoder, run, nativeRelated, finalTie⟩
 
 #print axioms NormalWeightedFlatten.native
 #print axioms normalWeightedFlatten_instructionBlock

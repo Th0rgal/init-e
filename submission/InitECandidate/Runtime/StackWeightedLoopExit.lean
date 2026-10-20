@@ -57,8 +57,8 @@ theorem exitWeightedFlatten_loop_step {F : Type}
       ⟨evaluated, nonerror, reRelated, argsRest,
         by simpa only [reenter, code1] using installed,
         by simpa only [reenter, code1] using labels⟩
-  have backAndRest := LabToTarget.weightedInstructionTrace_append (jump.add_clock steps2) trace2
-  have joined := LabToTarget.weightedInstructionTrace_append (trace1.add_clock steps2) backAndRest
+  have backAndRest := LabToTarget.weightedMixedTrace_append (jump.toMixed.add_clock steps2) trace2
+  have joined := LabToTarget.weightedMixedTrace_append (trace1.add_clock steps2) backAndRest
   refine ⟨final, steps1 + steps2, work1 + (2 + work2), finalRelated, code2.trans code1, destination2, ?_, ?_⟩
   · change work2 ≤ restPrice encoded start.pc at bound2
     change work1 + (2 + work2) ≤ bodyPrice encoded start.pc + 2 + restPrice encoded start.pc
@@ -111,8 +111,8 @@ theorem exitWeightedFlatten_loop_continue {F : Type}
       ⟨evaluated, nonerror, reRelated, argsRest,
         by simpa only [reenter, code1] using installed,
         by simpa only [reenter, code1] using labels⟩
-  have backAndRest := LabToTarget.weightedInstructionTrace_append (jump.add_clock steps2) trace2
-  have joined := LabToTarget.weightedInstructionTrace_append (trace1.add_clock steps2) backAndRest
+  have backAndRest := LabToTarget.weightedMixedTrace_append (jump.toMixed.add_clock steps2) trace2
+  have joined := LabToTarget.weightedMixedTrace_append (trace1.add_clock steps2) backAndRest
   refine ⟨final, steps1 + steps2, work1 + (2 + work2), finalRelated, code2.trans code1, destination2, ?_, ?_⟩
   · change work2 ≤ restPrice encoded start.pc at bound2
     change work1 + (2 + work2) ≤ bodyPrice encoded start.pc + 2 + restPrice encoded start.pc

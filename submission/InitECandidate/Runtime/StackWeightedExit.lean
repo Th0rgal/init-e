@@ -35,7 +35,7 @@ def ExitWeightedFlatten {F : Type} (program : HolProg 64)
     FlattenHyps program source flag (some result) post sectionId labelId continues breaks start →
     ∃ final steps work, stateRel post final ∧ final.code = start.code ∧
       WeightedExitDestination result sectionId continues breaks final ∧ work ≤ price encoded start.pc ∧
-      LabToTarget.WeightedInstructionTrace encoded {start with clock := start.clock + steps} final work
+      LabToTarget.WeightedMixedTrace encoded {start with clock := start.clock + steps} final work
 
 /-- A break executes its direct jump, with the destination justified by the
 original installed-label premises and a two-instruction native allowance. -/
@@ -45,7 +45,7 @@ theorem exitWeightedFlatten_break {F : Type}
   intro flag post sectionId labelId continues breaks start encoded hyps
   obtain ⟨_, pc, destination, related, trace⟩ := flatten_break_weighted source index flag
     (some (.break index)) post sectionId labelId continues breaks start encoded hyps
-  exact ⟨LabSem.updPc pc start, 1, 2, related, rfl, destination, Nat.le_refl _, trace⟩
+  exact ⟨LabSem.updPc pc start, 1, 2, related, rfl, destination, Nat.le_refl _, trace.toMixed⟩
 
 /-- Continue itself costs zero native instructions: the original compiler
 leaves its back jump pending for the loop rule, avoiding double charging. -/
@@ -61,7 +61,7 @@ theorem exitWeightedFlatten_continue {F : Type}
   · simpa [WeightedExitDestination, resultView,
       Flapjack.Compiler.Backend.StackToLab.flattenHOL,
       exit_appList] using installed
-  · simpa only [Nat.add_zero] using LabToTarget.WeightedInstructionTrace.nil (code := encoded) start
+  · simpa only [Nat.add_zero] using LabToTarget.WeightedMixedTrace.nil (code := encoded) start
 
 /-- Return performs one indirect jump to a valid installed source-code
 location. Validity is an explicit semantic protocol premise, not a cost bound. -/
@@ -76,7 +76,7 @@ theorem exitWeightedFlatten_return {F : Type}
   obtain ⟨_, related, trace⟩ := flatten_return_weighted source reg sectionValue labelValue pc flag
     (some (.result (.loc sectionValue labelValue))) post sectionId labelId continues breaks start encoded
     hyps value destination
-  exact ⟨LabSem.updPc pc start, 1, 1, related, rfl, destination, Nat.le_refl _, trace⟩
+  exact ⟨LabSem.updPc pc start, 1, 1, related, rfl, destination, Nat.le_refl _, trace.toMixed⟩
 
 /-- The exception return uses the same one-instruction indirect-jump
 protocol as an ordinary return, at an installed handler location. -/
@@ -95,8 +95,8 @@ theorem exitWeightedFlatten_raise {F : Type}
   have fetch : asmFetchAux start.pc start.code = some (.asm (.asmi (.jumpReg reg)) [] 0) :=
     fetchSingle rfl (by simpa [Flapjack.Compiler.Backend.StackToLab.flattenHOL, exit_appList] using installed)
   exact ⟨LabSem.updPc pc start, 1, 1, related, rfl, destination, Nat.le_refl _,
-    jumpreg_update_weighted start encoded reg sectionValue labelValue pc fetch
-      (InstCorrect.regOfLookup related value) destination⟩
+    (jumpreg_update_weighted start encoded reg sectionValue labelValue pc fetch
+      (InstCorrect.regOfLookup related value) destination).toMixed⟩
 
 /-- An early control exit executes only the first child of Seq. The untouched
 suffix contributes neither weighted work nor a native join instruction. -/
@@ -185,7 +185,7 @@ theorem exitWeightedFlatten_seq_next {F : Type}
       rw [h1] at budget
       rw [pc1] at bound2
       omega
-    · have joined := LabToTarget.weightedInstructionTrace_append (trace1.add_clock steps2) trace2
+    · have joined := LabToTarget.weightedMixedTrace_append (trace1.add_clock steps2) trace2
       simpa only [Nat.add_assoc] using joined
 
 
@@ -206,24 +206,27 @@ theorem ExitWeightedFlatten.native {F : Type}
     (encoder : Compiler.Encoders.AsmProps.encoderCorrect mc.target)
     (related : Flapjack.Compiler.Backend.LabToTarget.stateRel (mc, encoded, labs, base) start asm machine)
     (tie : Flapjack.Compiler.Backend.LabToTarget.oracleTie mc machine start) :
-    ∃ final count native finalAsm, stateRel post final ∧ final.code = start.code ∧
+    ∃ final count native finalAsm finalConfig, stateRel post final ∧ final.code = start.code ∧
       WeightedExitDestination exit sectionId continues breaks final ∧ count ≤ price encoded start.pc ∧
+      finalConfig.target = Compiler.Encoders.RiscV.Target.riscvTarget ∧
+      Compiler.Encoders.AsmProps.encoderCorrect finalConfig.target ∧
       (∀ clock, Flapjack.evaluateTargetHOL mc start.ffi (clock + count) machine =
         Flapjack.evaluateTargetHOL
-          (Compiler.Backend.Semantics.TargetProps.shiftInterfer count mc) final.ffi clock native) ∧
+          finalConfig final.ffi clock native) ∧
       Flapjack.Compiler.Backend.LabToTarget.stateRel
-        (Compiler.Backend.Semantics.TargetProps.shiftInterfer count mc, encoded, labs, base) final finalAsm native ∧
+        (finalConfig, encoded, labs, base) final finalAsm native ∧
       Flapjack.Compiler.Backend.LabToTarget.oracleTie
-        (Compiler.Backend.Semantics.TargetProps.shiftInterfer count mc) native final := by
+        finalConfig native final := by
   obtain ⟨final, steps, work, stackRelated, code, destination, bound, trace⟩ :=
     compiledBound flag post sectionId labelId continues breaks start encoded hyps
-  obtain ⟨count, native, finalAsm, nativeBound, run, nativeRelated, finalTie⟩ :=
-    LabToTarget.weightedInstructionTrace_with_oracle encoded trace mc labs base asm machine
+  obtain ⟨count, native, finalAsm, finalConfig, nativeBound, finalTarget, finalEncoder,
+      run, nativeRelated, finalTie⟩ :=
+    LabToTarget.weightedMixedTrace_bounded encoded trace mc labs base asm machine
       target encoder
       (Flapjack.Compiler.Backend.LabToTarget.stateRelClock _ start asm machine (start.clock + steps) related)
       (Flapjack.Compiler.Backend.LabToTarget.oracleTie_clock mc machine start (start.clock + steps) tie)
-  exact ⟨final, count, native, finalAsm, stackRelated, code, destination, nativeBound.trans bound,
-    run, nativeRelated, finalTie⟩
+  exact ⟨final, count, native, finalAsm, finalConfig, stackRelated, code, destination, nativeBound.trans bound,
+    finalTarget, finalEncoder, run, nativeRelated, finalTie⟩
 
 
 #print axioms ExitWeightedFlatten.native

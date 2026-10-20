@@ -119,7 +119,7 @@ theorem normalWeightedFlatten_generalIf_true {F : Type}
     exact chosen
   have branch := branch_taken_update_weighted start encoded cmp reg operand _
     (start.pc + 2 + (stackFlattenShape no).2) fetch condition destination
-  have joined := LabToTarget.weightedInstructionTrace_append (branch.add_clock steps) trace
+  have joined := LabToTarget.weightedMixedTrace_append (branch.toMixed.add_clock steps) trace
   refine ⟨final, 1 + steps, 3 + work, finalRelated, ?_, code, ?_, ?_⟩
   · rw [total]
     rw [stackFlatten_length] at finalPc
@@ -165,7 +165,7 @@ theorem exitWeightedFlatten_generalIf_true {F : Type}
     exact chosen
   have branch := branch_taken_update_weighted start encoded cmp reg operand _
     (start.pc + 2 + (stackFlattenShape no).2) fetch condition destination
-  have joined := LabToTarget.weightedInstructionTrace_append (branch.add_clock steps) trace
+  have joined := LabToTarget.weightedMixedTrace_append (branch.toMixed.add_clock steps) trace
   refine ⟨final, 1 + steps, 3 + work, finalRelated, code, finalDestination, ?_, ?_⟩
   · change work ≤ price encoded (start.pc + 2 + (stackFlattenShape no).2) at bound
     change 3 + work ≤ 3 + price encoded (start.pc + 2 + (stackFlattenShape no).2)
@@ -207,7 +207,7 @@ theorem terminalWeightedFlatten_generalIf_true {F : Type}
     exact chosen
   have branch := branch_taken_update_weighted start encoded cmp reg operand _
     (start.pc + 2 + (stackFlattenShape no).2) fetch condition destination
-  have joined := LabToTarget.weightedInstructionTrace_append (branch.add_clock steps) trace
+  have joined := LabToTarget.weightedMixedTrace_append (branch.toMixed.add_clock steps) trace
   refine ⟨final, 1 + steps, 3 + work, ffi, code, ?_, ?_, terminal⟩
   · change work ≤ price encoded (start.pc + 2 + (stackFlattenShape no).2) at bound
     change 3 + work ≤ 3 + price encoded (start.pc + 2 + (stackFlattenShape no).2)
@@ -248,7 +248,7 @@ theorem exitWeightedFlatten_generalIf_false {F : Type}
     rw [InstCorrect.regOfLookup related lhs, StateRel.stateRelGetVarImm ⟨related, rhs⟩]
     exact chosen
   have branch := branch_fallthrough_update_weighted start encoded cmp reg operand _ fetch condition
-  have joined := LabToTarget.weightedInstructionTrace_append (branch.add_clock steps) trace
+  have joined := LabToTarget.weightedMixedTrace_append (branch.toMixed.add_clock steps) trace
   refine ⟨final, 1 + steps, LabToTarget.controlWork 3 encoded start.pc + work,
     finalRelated, code, finalDestination, ?_, ?_⟩
   · change work ≤ price encoded (start.pc + 1) at bound
@@ -291,7 +291,7 @@ theorem terminalWeightedFlatten_generalIf_false {F : Type}
     rw [InstCorrect.regOfLookup related lhs, StateRel.stateRelGetVarImm ⟨related, rhs⟩]
     exact chosen
   have branch := branch_fallthrough_update_weighted start encoded cmp reg operand _ fetch condition
-  have joined := LabToTarget.weightedInstructionTrace_append (branch.add_clock steps) trace
+  have joined := LabToTarget.weightedMixedTrace_append (branch.toMixed.add_clock steps) trace
   refine ⟨final, 1 + steps, LabToTarget.controlWork 3 encoded start.pc + work,
     ffi, code, ?_, ?_, terminal⟩
   · change work ≤ price encoded (start.pc + 1) at bound
@@ -336,11 +336,11 @@ theorem normalWeightedFlatten_generalIf_false {F : Type}
     rw [InstCorrect.regOfLookup related lhs, StateRel.stateRelGetVarImm ⟨related, rhs⟩]
     exact chosen
   have branch := branch_fallthrough_update_weighted start encoded cmp reg operand _ fetch condition
-  have childLift : LabToTarget.WeightedInstructionTrace encoded
+  have childLift : LabToTarget.WeightedMixedTrace encoded
       {incPc start with clock := (incPc start).clock + (steps + 1)}
       {middle with clock := middle.clock + 1} work := by
     simpa only [Nat.add_assoc] using child.add_clock 1
-  have prefixRun := LabToTarget.weightedInstructionTrace_append (branch.add_clock (steps + 1)) childLift
+  have prefixRun := LabToTarget.weightedMixedTrace_append (branch.toMixed.add_clock (steps + 1)) childLift
   let lastLabel := (Flapjack.Compiler.Backend.StackToLab.flattenHOL false no sectionId
     (Flapjack.Compiler.Backend.StackToLab.flattenHOL false yes sectionId labelId continues breaks).2.2
     continues breaks).2.2 + 1
@@ -353,7 +353,7 @@ theorem normalWeightedFlatten_generalIf_false {F : Type}
     simpa only [getPcValue, middleCode, incPc, lastLabel, endPc] using endLocation
   have last := jump_update_weighted middle encoded (.lab sectionId lastLabel) endPc
     lastFetch lastDestination
-  have joined := LabToTarget.weightedInstructionTrace_append prefixRun last
+  have joined := LabToTarget.weightedMixedTrace_append prefixRun last.toMixed
   refine ⟨updPc endPc middle, 1 + steps + 1,
     LabToTarget.controlWork 3 encoded start.pc + work + 2,
     middleRelated, ?_, middleCode, ?_, ?_⟩

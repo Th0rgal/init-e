@@ -87,7 +87,7 @@ theorem normalWeightedFlatten_skipIf_true {F : Type}
       StateRel.stateRelGetVarImm ⟨related, rhs⟩, chosen]
     rfl
   have branch := branch_fallthrough_update_weighted start encoded _ reg operand _ layout.1 cmpFalse
-  have joined := LabToTarget.weightedInstructionTrace_append (branch.add_clock steps) trace
+  have joined := LabToTarget.weightedMixedTrace_append (branch.toMixed.add_clock steps) trace
   refine ⟨final, 1 + steps, LabToTarget.controlWork 3 encoded start.pc + work,
     finalRelated, ?_, code, ?_, ?_⟩
   · rw [layout.2.2.2]
@@ -127,7 +127,7 @@ theorem exitWeightedFlatten_skipIf_true {F : Type}
       StateRel.stateRelGetVarImm ⟨related, rhs⟩, chosen]
     rfl
   have branch := branch_fallthrough_update_weighted start encoded _ reg operand _ layout.1 cmpFalse
-  have joined := LabToTarget.weightedInstructionTrace_append (branch.add_clock steps) trace
+  have joined := LabToTarget.weightedMixedTrace_append (branch.toMixed.add_clock steps) trace
   refine ⟨final, 1 + steps, LabToTarget.controlWork 3 encoded start.pc + work,
     finalRelated, code, destination, ?_, ?_⟩
   · change work ≤ price encoded (start.pc + 1) at bound
@@ -163,7 +163,7 @@ theorem terminalWeightedFlatten_skipIf_true {F : Type}
       StateRel.stateRelGetVarImm ⟨related, rhs⟩, chosen]
     rfl
   have branch := branch_fallthrough_update_weighted start encoded _ reg operand _ layout.1 cmpFalse
-  have joined := LabToTarget.weightedInstructionTrace_append (branch.add_clock steps) trace
+  have joined := LabToTarget.weightedMixedTrace_append (branch.toMixed.add_clock steps) trace
   refine ⟨final, 1 + steps, LabToTarget.controlWork 3 encoded start.pc + work,
     ffi, code, ?_, ?_, terminal⟩
   · change work ≤ price encoded (start.pc + 1) at bound
@@ -196,7 +196,7 @@ theorem normalWeightedFlatten_skipIf_false {F : Type}
   let targetPc := start.pc + 1 + skipIfBodyLength body sectionId labelId continues breaks
   have trace := branch_taken_update_weighted start encoded _ reg operand _ targetPc
     layout.1 condition layout.2.2.1
-  refine ⟨updPc targetPc start, 1, 3, related, ?_, rfl, Nat.le_refl _, trace⟩
+  refine ⟨updPc targetPc start, 1, 3, related, ?_, rfl, Nat.le_refl _, trace.toMixed⟩
   rw [layout.2.2.2]
   simp only [updPc, targetPc]
   omega

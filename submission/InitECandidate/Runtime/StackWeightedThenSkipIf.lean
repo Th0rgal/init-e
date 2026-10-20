@@ -195,7 +195,7 @@ theorem normalWeightedFlatten_bothSkipIf {F : Type}
   refine ⟨start, 0, 0, related, ?_, rfl, Nat.le_refl _, ?_⟩
   · simp [Flapjack.Compiler.Backend.StackToLab.flattenHOL,
       Flapjack.Compiler.Backend.StackToLab.stackIsSkip, appListAppend, appendAux]
-  · simpa only [Nat.add_zero] using LabToTarget.WeightedInstructionTrace.nil (code := encoded) start
+  · simpa only [Nat.add_zero] using LabToTarget.WeightedMixedTrace.nil (code := encoded) start
 
 #print axioms normalWeightedFlatten_bothSkipIf
 #print axioms weighted_thenSkipIf_flatten

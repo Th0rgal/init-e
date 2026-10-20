@@ -29,7 +29,7 @@ theorem normalWeightedFlatten_instructionBlockIf {F : Type}
     | nil => rfl
     | cons instruction rest ih => simpa [isLabelHOL] using ih
   refine ⟨final, instructionBlockIfClock yes no chosen,
-    instructionBlockIfWork encoded start.pc yes no chosen, related, ?_, code, Nat.le_refl _, trace⟩
+    instructionBlockIfWork encoded start.pc yes no chosen, related, ?_, code, Nat.le_refl _, trace.toMixed⟩
   rw [flatten_instructionBlock_if_lines yes no yesNonempty noNonempty]
   simp only [List.filter_cons, isLabelHOL, Bool.not_false, Bool.not_true,
     ↓reduceIte, List.filter_append, List.length_cons, List.length_append,
