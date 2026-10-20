@@ -25,5 +25,20 @@ theorem wd_heap_step_no_cap (pointer : BitVec 64)
   rw [allocationEnd_eq_align, panByteAlign_toNat64, sumVal, rightVal]
   omega
 
+/-- A successful allocation request (`size ≤ HEAP_END - pointer`) together with the allocator's
+frontier invariant (`pointer ≤ HEAP_END`) gives the per-iteration no-wrap fact. The frontier bound is
+explicit: it is not inferred from the subtraction alone, which would wrap above `HEAP_END`. -/
+theorem wd_alloc_success_nowrap (pointer size : BitVec 64)
+    (pointerBound : pointer.toNat ≤ 33806089496)
+    (request : size ≤ (33806089496 : BitVec 64) - pointer)
+    (sizeVal : size.toNat = 64) :
+    pointer.toNat + 71 < 2^64 := by
+  have capVal : (33806089496 : BitVec 64).toNat = 33806089496 := by decide
+  have pLe : pointer ≤ (33806089496 : BitVec 64) := BitVec.le_def.mpr pointerBound
+  have sum := BitVec.le_def.mp request
+  rw [BitVec.toNat_sub_of_le pLe, capVal] at sum
+  omega
+
 #print axioms wd_heap_step_no_cap
+#print axioms wd_alloc_success_nowrap
 end InitECandidate.Runtime

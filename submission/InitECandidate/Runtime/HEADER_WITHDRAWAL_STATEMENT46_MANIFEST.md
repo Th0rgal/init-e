@@ -149,3 +149,22 @@ Checked GREEN with only `[propext, Classical.choice, Quot.sound]`:
   root payload-header modules already carry) gives `read.toNat < slices.toNat` for `read = pl + 48`.
 - `wd_watched_below_arena`: a watched header word inside the first 136 payload bytes
   (`w.toNat < pl.toNat + 136`) is strictly below the arena.
+
+## Stage 4 — allocator guard arithmetic and the decoded count bound (new modules)
+
+`HeaderWithdrawalHeapChain.wd_alloc_success_nowrap` (checked): from the allocator's own request guard
+`size ≤ HEAP_END - pointer`, the explicit frontier invariant `pointer.toNat ≤ 33806089496`, and
+`size.toNat = 64`, the per-iteration no-wrap `pointer.toNat + 71 < 2^64` follows
+(`BitVec.toNat_sub_of_le` on the frontier bound; the frontier bound is explicit, never inferred from
+the subtraction). With `wd_heap_step_no_cap` the loop needs **no** future allocator room at all.
+
+`HeaderWithdrawalCountBound` (new, checked):
+- `wd_signed_count_bound`: the actual decoder's signed fixed-list-count limit gives
+  `count.toNat < 2^63` for `count = (balance - withdrawals) / 44` under the source guard
+  `¬ 9223372036854775807 < count`.
+- `wd_slice_count_cell`: statement 43's load address `pl + 56` is the withdrawal-count cell of the
+  decoded payload struct (`RlpSliceEntry` slice 3), with its address domain.
+- `wd_slice_array_cell`: the sibling cell `pl + 48` holds the withdrawals-array pointer `input + wd`,
+  which is exactly the loop's watched `read`.
+So the count bound and the two watched cells now come from the decoder (`RlpSliceEntry` exported by
+`payload_store_tail_returned_entries`), not from a supplied count theorem.
