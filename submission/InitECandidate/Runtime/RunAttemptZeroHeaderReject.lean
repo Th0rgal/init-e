@@ -47,5 +47,62 @@ theorem run_attempt_zero_header_guard_aborts {F : Type} (s : PanSemStateFiniteEx
   · exact facts.elim
   · exact done
 
+
+/-- A `return` never rewrites memory: it only reports the value. -/
+theorem return_memory_frame {F : Type} (s : PanSemStateFiniteExact 64 F) (expression : ExpHOL 64) :
+    (evaluateHOLFiniteState s (.return expression)).2.memory = s.memory := by
+  rw [evaluateHOLFiniteState_return]
+  split
+  · simp
+  · split <;> simp [emptyLocalsHOLFinite]
+
+#print axioms return_memory_frame
+
+
+/-- With no headers both real loops are skipped, so the returned suffix leaves memory untouched:
+only local variables are assigned. -/
+theorem evaluate_validate_headers_zero_suffix_memory {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (hs hashes : BitVec 64)
+    (atCount : s.locals.lookup (ofString "n") = some (.val (.word (0 : BitVec 64))))
+    (atHs : s.locals.lookup (ofString "hs") = some (.val (.word hs)))
+    (atHashes : s.locals.lookup (ofString "hashes") = some (.val (.word hashes))) :
+    (evaluateHOLFiniteState s (validateHeadersAt 3)).2.memory = s.memory := by
+  let ready := setVarHOLFinite (ofString "i") (.val (.word (0 : BitVec 64))) s
+  let reset := setVarHOLFinite (ofString "i") (.val (.word (1 : BitVec 64))) ready
+  have firstCondition : evalHOLFinite ready (h := fun a => Classical.propDecidable (ready.memaddrs a)) validateHeadersFirstCondition = some (.val (.word (0 : BitVec 64))) := by
+    rw [evalHOLFinite_eq_toExact]
+    simp [ready,validateHeadersFirstCondition,evalHOLExact,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      atCount,Compiler.Encoders.Asm.wordCmpHOL,Compiler.Encoders.Asm.holAsmSignedLess]
+  have secondCondition : evalHOLFinite reset (h := fun a => Classical.propDecidable (reset.memaddrs a)) validateHeadersSecondCondition = some (.val (.word (0 : BitVec 64))) := by
+    rw [evalHOLFinite_eq_toExact]
+    simp (config := {decide := true}) [reset,ready,validateHeadersSecondCondition,evalHOLExact,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      atCount,Compiler.Encoders.Asm.wordCmpHOL,Compiler.Encoders.Asm.holAsmSignedLess]
+  have firstSkip : evaluateHOLFiniteState ready (.while validateHeadersFirstCondition validateHeadersFirstBody) = (none,ready) := by
+    rw [evaluateHOLFiniteState_while_total,firstCondition]
+    simp
+  have secondSkip : evaluateHOLFiniteState reset validateHeadersSecondLoop = (none,reset) := by
+    rw [validateHeadersSecondLoop,evaluateHOLFiniteState_while_total,secondCondition]
+    simp
+  have assigned : evaluateHOLFiniteState ready (.assign .local (ofString "i") (.const 1)) = (none,reset) := by
+    simp [evaluateHOLFiniteState_assign,evalHOLExact,lookupKvarHOLFinite,ready,reset,setKvarHOLFinite,
+      setVarHOLFinite,isValidValueHOLFinite,shapeOfHOLExact,shapeEqHOL,HolFiniteMapExact.lookup_update,FUPDATE]
+  rw [source_validate_headers_index_init,evaluateHOLFiniteState_dec_total]
+  simp only [evalHOLExact,shapeOfHOLExact,shapeEqHOL,if_true]
+  change (evaluateHOLFiniteState ready (validateHeadersAt 4)).2.memory = s.memory
+  rw [source_validate_headers_first_loop,evaluateHOLFiniteState_seq_line780,firstSkip]
+  dsimp only
+  rw [show validateHeadersAt 5 = .seq (.assign .local (ofString "i") (.const 1))
+      validateHeadersSecondTail from source_validate_headers_second_tail]
+  rw [evaluateHOLFiniteState_seq_line780,assigned]
+  dsimp only
+  unfold validateHeadersSecondTail
+  rw [evaluateHOLFiniteState_seq_line780,secondSkip]
+  dsimp only
+  unfold validateHeadersSecondReturn
+  rw [return_memory_frame]
+  simp [ready,reset,setVarHOLFinite]
+
+#print axioms evaluate_validate_headers_zero_suffix_memory
+
 #print axioms run_attempt_zero_header_guard_aborts
 end InitECandidate.Runtime
