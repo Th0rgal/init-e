@@ -185,9 +185,9 @@ noncomputable def u256AddPrimEvents (s : PanSemStateFiniteExact 64 F)
   .statement :: (expressionListEvents s arguments ++ [.scalar 1] ++
     [.copy (flattenHOL (u256AddCarryValue left right carry)).length])
 
-/-- Recorded events of a sequence with its exact statement entry. -/
+/-- Recorded events of a structural sequence: `seq` emits no event. -/
 def u256AddSeqEvents (left right : List WorkEvent) : List WorkEvent :=
-  .statement :: (left ++ right)
+  left ++ right
 
 /-- Recorded events of one declared limb pair: initialiser, frame slot, body, and
 the restored previous binding of the limb name. -/

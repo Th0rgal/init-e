@@ -204,11 +204,9 @@ noncomputable def stackPushSuccessEvents (s : PanSemStateFiniteExact 64 F)
     [.memory (flattenHOL (.val (.word (sp + 1)))).length])
   let ret := .statement :: (expressionEvents updated (.const (0 : BitVec 64)) ++
     [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])
-  let tail := .statement :: (storeV ++ (.statement :: (storeSp ++ ret)))
-  let tailEvents := .statement ::
-    ((.statement :: (fullGuard ++ [.statement])) ++ tail)
-  let bodyEvents := .statement ::
-    ((.statement :: (capGuard ++ [.statement])) ++ tailEvents)
+  let tail := storeV ++ (storeSp ++ ret)
+  let tailEvents := (.statement :: (fullGuard ++ [.statement])) ++ tail
+  let bodyEvents := (.statement :: (capGuard ++ [.statement])) ++ tailEvents
   let capEvents := .statement :: (expressionEvents entrySp (fundingLoad 232) ++
     [.copy (flattenHOL (.val (.word cap))).length, .frame 1] ++ bodyEvents ++
     [.copy (((entrySp.locals.lookup (ofString "cap")).map

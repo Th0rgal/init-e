@@ -6,17 +6,18 @@ open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 variable {F : Type}
 
 /-- Price additivity for a sequence: a straight-line prefix and its suffix each
-keep their traced events and their prices add, plus one statement entry. -/
+keep their traced events and their prices add. The structural `seq` node emits
+no event of its own, so association never changes cost. -/
 theorem seq_statement_cost (coeff : Work) {s middle post : PanSemStateFiniteExact 64 F}
     {first second : ProgHOL 64} {r : Option (PanSemResultExact 64)}
     {left right : List WorkEvent} (A B : Nat)
     (one : StatementRun s first none middle left) (two : StatementRun middle second r post right)
     (oneCost : coeff.score (executionWork left) ≤ A)
     (twoCost : coeff.score (executionWork right) ≤ B) :
-    StatementRun s (.seq first second) r post (.statement :: (left ++ right)) ∧
-    coeff.score (executionWork (.statement :: (left ++ right))) ≤ coeff.statements + A + B := by
+    StatementRun s (.seq first second) r post (left ++ right) ∧
+    coeff.score (executionWork (left ++ right)) ≤ A + B := by
   refine ⟨StatementRun.seqNext one two, ?_⟩
-  rw [executionWork_score_cons, score_statement, executionWork_score_append]
+  rw [executionWork_score_append]
   omega
 
 /-- Price additivity for a taken conditional branch. -/

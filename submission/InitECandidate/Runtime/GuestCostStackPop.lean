@@ -24,9 +24,9 @@ noncomputable def stackPopRejectEvents (s : PanSemStateFiniteExact 64 F) (sp : B
   let entry := setVarHOLFinite (ofString "sp") (.val (.word sp)) s
   .statement :: (expressionEvents s stackPopSp ++
     [.copy (flattenHOL (.val (.word sp))).length, .frame 1] ++
-    (.statement :: (.statement :: (expressionEvents entry stackPopGuard ++
+    (.statement :: (expressionEvents entry stackPopGuard ++
       (.statement :: (expressionEvents entry (.const 2) ++
-        [.copy (flattenHOL (.val (.word (2 : BitVec 64)))).length]))))) ++
+        [.copy (flattenHOL (.val (.word (2 : BitVec 64)))).length])))) ++
     [.copy (((s.locals.lookup (ofString "sp")).map
       (fun previous => (flattenHOL previous).length)).getD 0)])
 
@@ -120,9 +120,9 @@ theorem stackPop_reject_run (s : PanSemStateFiniteExact 64 F) (frame sp : BitVec
               (.op .add [(.load .one (fundingAddress 8)),
                 (.panop .mul [.var VarKind.local (ofString "sp"), .const 32])]))))))
       (some (.exception (ofString "EvmErr") (.val (.word 2)))) (emptyLocalsHOLFinite entry)
-      (.statement :: (.statement :: (expressionEvents entry stackPopGuard ++
+      (.statement :: (expressionEvents entry stackPopGuard ++
         (.statement :: (expressionEvents entry (.const 2) ++
-          [.copy (flattenHOL (.val (.word (2 : BitVec 64)))).length]))))) :=
+          [.copy (flattenHOL (.val (.word (2 : BitVec 64)))).length])))) :=
     StatementRun.seqStop (by simp)
 
       (StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
@@ -337,19 +337,16 @@ noncomputable def stackPopSuccessEvents (s : PanSemStateFiniteExact 64 F) (frame
   .statement ::
     (expressionEvents s stackPopSp ++
       [.copy (flattenHOL (.val (.word sp))).length, .frame 1] ++
-      (.statement ::
-        ((.statement :: (expressionEvents entry stackPopGuard ++ [.statement])) ++
-         (.statement ::
-           ((.statement :: (expressionEvents entry
-               (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
-               [.copy (flattenHOL (.val (.word (sp - 1)))).length])) ++
-            (.statement ::
-              ((.statement :: (expressionEvents assigned (fundingAddress 16) ++
-                  expressionEvents assigned (.var VarKind.local (ofString "sp")) ++
-                  [.memory (flattenHOL (.val (.word (sp - 1)))).length])) ++
-               (.statement :: (expressionEvents stored
-                 (.load comb4Shape stackPopValueAddress) ++
-                 [.copy (flattenHOL payload).length])))))))) ++
+      ((.statement :: (expressionEvents entry stackPopGuard ++ [.statement])) ++
+        (.statement :: (expressionEvents entry
+            (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
+          [.copy (flattenHOL (.val (.word (sp - 1)))).length])) ++
+        .statement :: (expressionEvents assigned (fundingAddress 16) ++
+          expressionEvents assigned (.var VarKind.local (ofString "sp")) ++
+          [.memory (flattenHOL (.val (.word (sp - 1)))).length]) ++
+        .statement :: (expressionEvents stored
+          (.load comb4Shape stackPopValueAddress) ++
+          [.copy (flattenHOL payload).length])) ++
       [.copy (((s.locals.lookup (ofString "sp")).map
         (fun previous => (flattenHOL previous).length)).getD 0)])
 

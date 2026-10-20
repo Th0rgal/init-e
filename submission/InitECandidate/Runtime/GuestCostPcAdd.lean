@@ -88,11 +88,10 @@ noncomputable def pcAddEvents (s : PanSemStateFiniteExact 64 F) (frame value n :
   let stored : PanSemStateFiniteExact 64 F :=
     { s with memory := writeWordMemory s (frame + 0) (value + n) }
   .statement ::
-    (.statement ::
-      (expressionEvents s pcAddAddress ++ expressionEvents s pcAddValue ++
-        [.memory (flattenHOL (.val (.word (value + n)))).length] ++
-        (.statement :: (expressionEvents stored (.const 0) ++
-          [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length]))))
+    (expressionEvents s pcAddAddress ++ expressionEvents s pcAddValue ++
+      [.memory (flattenHOL (.val (.word (value + n)))).length] ++
+      (.statement :: (expressionEvents stored (.const 0) ++
+        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])))
 
 /-- The actual installed `pc_add` helper runs on the fetched program counter. -/
 theorem pcAdd_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVec 64)

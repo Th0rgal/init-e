@@ -65,7 +65,7 @@ noncomputable def addSatCarryEvents (s : PanSemStateFiniteExact 64 F) (sum : Bit
   let guardEvents := expressionEvents entry addSatCarryExpression
   let retEvents := .statement :: (expressionEvents entry (.const addSatMaximum) ++
     [.copy (flattenHOL (.val (.word addSatMaximum))).length])
-  let tailEvents := .statement :: (.statement :: (guardEvents ++ retEvents))
+  let tailEvents := .statement :: (guardEvents ++ retEvents)
   .statement :: (expressionEvents s addSatSumExpression ++
     [.copy (flattenHOL (.val (.word sum))).length, .frame 1] ++ tailEvents ++
     [.copy (((s.locals.lookup (ofString "s")).map
@@ -78,7 +78,7 @@ noncomputable def addSatNoCarryEvents (s : PanSemStateFiniteExact 64 F) (sum : B
   let guardEvents := .statement :: (expressionEvents entry addSatCarryExpression ++ [.statement])
   let retEvents := .statement :: (expressionEvents entry (.var VarKind.local (ofString "s")) ++
     [.copy (flattenHOL (.val (.word sum))).length])
-  let tailEvents := .statement :: (guardEvents ++ retEvents)
+  let tailEvents := guardEvents ++ retEvents
   .statement :: (expressionEvents s addSatSumExpression ++
     [.copy (flattenHOL (.val (.word sum))).length, .frame 1] ++ tailEvents ++
     [.copy (((s.locals.lookup (ofString "s")).map
@@ -123,9 +123,9 @@ theorem addSat_carry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 64)
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   have tailRun : StatementRun entry addSatTail
       (some (.returned (.val (.word addSatMaximum)))) (emptyLocalsHOLFinite entry)
-      (.statement :: (.statement :: (expressionEvents entry addSatCarryExpression ++
+      (.statement :: (expressionEvents entry addSatCarryExpression ++
         (.statement :: (expressionEvents entry (.const addSatMaximum) ++
-          [.copy (flattenHOL (.val (.word addSatMaximum))).length]))))) := by
+          [.copy (flattenHOL (.val (.word addSatMaximum))).length])))) := by
     unfold addSatTail
     exact StatementRun.seqStop (by simp)
       (StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
@@ -179,10 +179,10 @@ theorem addSat_noCarry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 6
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   have tailRun : StatementRun entry addSatTail
       (some (.returned (.val (.word sum)))) (emptyLocalsHOLFinite entry)
-      (.statement :: ((.statement :: (expressionEvents entry addSatCarryExpression ++
+      ((.statement :: (expressionEvents entry addSatCarryExpression ++
         [.statement])) ++
         (.statement :: (expressionEvents entry (.var VarKind.local (ofString "s")) ++
-          [.copy (flattenHOL (.val (.word sum))).length])))) := by
+          [.copy (flattenHOL (.val (.word sum))).length]))) := by
     unfold addSatTail
     exact StatementRun.seqNext
       (StatementRun.iteNo (condition := addSatCarryExpression)
