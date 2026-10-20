@@ -240,3 +240,16 @@ and bounds generated Loop trace work by 36 times source expression cost. This
 covers address replay locally without a whole-program syntax multiplier.
 Compound expressions containing such loads, guest-wide applicability and later
 RISC-V lowering still require proofs.
+
+`PanBulkExpressionCost` extends the local allowance proof through arbitrary
+compound expressions whose multiword loads have scalar addresses, width at
+most six, and valid shapes. The additional factor stays six over the whole
+expression rather than multiplying at each surrounding node.
+`GuestBulkLoadSites.guest_bulk_load_sites` is now a kernel `decide_cbv`
+certificate traversing every pinned guest function/global initializer, including
+call handlers and all expression children. It confirms the size/scalar-address/
+empty-context-shape pattern at every load site. `GuestBulkLoadApplicability`
+lifts that static predicate to all source structure contexts and proves the
+compound source-to-Loop execution bound with coefficient 36. This does not
+establish compiler-artifact agreement, statement execution counts, native
+RISC-V transfer or the final guest score.
