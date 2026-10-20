@@ -544,3 +544,27 @@ clock, and exact return-PC facts from the original relations and actual callee
 evaluation; it assumes only the recursive child cost motives. Checked with
 standard axioms in `stack-weighted-call-return7`. Normal/other exiting
 continuations and executed exception-handler paths remain open.
+
+### Returning continuations and executed exception handlers
+
+`StackWeightedCallReturnPrefix` factors the actual reached-return prefix,
+including the original evaluation, exact return PC, compiler state/ABI relation,
+installed continuation, and mixed trace. `StackWeightedCallReturn` now reuses
+this prefix. `StackWeightedCallReturnControl` adds control-exiting continuations
+with arbitrary installed handlers and normal continuations without a handler.
+`StackWeightedCallReturnJoin` adds the normal-continuation case with an installed
+handler, charging exactly the reached two-instruction join jump and no handler
+work. These checked in `stack-call-return-prefix1`,
+`stack-call-return-compose1`, and `stack-call-return-join1`.
+
+`StackWeightedCallHandlerPrefix` constructs the actual raised-callee path to
+the installed exception handler. `StackWeightedCallHandler` then composes all
+three handler outcomes: normal, control-exiting, and terminal. The return
+continuation is unexecuted; its static instruction count locates the handler
+PC and is never added as executed work. These checked in
+`stack-call-handler-compose4`. All printed axioms are standard.
+
+These are local recursive constructor rules, not the completed compiler
+bound. Callee terminal propagation, unhandled exceptions, other call forms,
+and the full recursive driver and Word pricing transfer still need completion.
+The full guest gas/input bound and finite submission score remain open.
