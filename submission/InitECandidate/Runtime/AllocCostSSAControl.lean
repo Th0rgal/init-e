@@ -4,12 +4,16 @@ open Flapjack Flapjack.Compiler.Backend.WordAlloc
 open InitECandidate.Runtime.WordToStack
 
 /-!
-# SSA control-flow reconciliation
+# SSA control-flow *syntax* envelopes
 
-Break and continue reconcile the current map with the target loop map; a loop
-pays for its setup program and its back-edge reconciliation.  The loop theorem
-is relative to an already established body bound, so it composes with any
-induction or scheduling argument rather than assuming a whole-program maximum.
+This module bounds the syntactic `wordNodeCost` of the programs that SSA emits
+at loop headers, back-edges, call sites and `break`/`continue`.  These are
+static per-site envelopes: the loop theorem counts the body syntax once and
+does **not** by itself prove executed-cost transfer for repeated iterations.
+The actual executed charge is in `AllocCostSSAExecuted`, where each
+reconciliation is evaluated by `wordPathWork` at its concrete state.  The
+whole-loop iteration induction is an explicit remaining premise, not hidden
+here.
 -/
 
 private theorem reconcile_seq_budget (a b : Nat) (h : b ≤ a + 1) :
