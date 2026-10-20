@@ -1,5 +1,9 @@
 import InitECandidate.Runtime.AllocCostSSAExecuted
 import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticControl
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSALocalsGetVars
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSAGetSetVars
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.EvaluateApplyColour.MoveStoreConsts
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.EvaluateApplyColour.Call
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Compiler.Backend.WordAlloc Flapjack.WordSemStateFiniteExact
 open InitECandidate.Runtime.WordToStack
@@ -16,6 +20,19 @@ one node, matching `wordPathWork` rather than `wordNodeCost` (which counts move
 words).  On straight fragments `wordPathWork` is bounded by this cost.  The
 SSA expansion of each base instruction is straight, so its actual executed work
 is bounded by a constant while the source instruction costs one node.
+
+The non-returning `Call` clause is handled from the expanded `wordPathWork`
+call definition: the actual source `getVars`/`wordSemBadDestArgs`/
+`wordSemFindCode` selection is transferred to the compiled call through the
+original `ssaLocalsRel` and `wordStateEqRel`, the inserted argument move is
+charged at its actual execution, and the whole-call bound is reduced to a
+transfer for the callee BODY program at the literal `callEnv` entry states.
+The remaining premise is that body transfer (the recursive call obligation of a
+whole-code-map induction), not the whole-call inequality.  Terminal clock,
+code-lookup, bad-shape, handler-present and failed-move paths are covered
+separately.  `wordPathWork` charges the parallel argument move as one control
+node; the actual moved-word allowance is recorded by `wordMoveWords` in
+`callNoneMove_words`, so the native composition still pays every copied word.
 -/
 
 /-- Executed node count for straight fragments: a parallel move is one node. -/
@@ -488,10 +505,475 @@ theorem ssaCcTrans_loop_output
   simp only [ssaCcTrans, setupEq, bodyEq, namesEq, exitsEq]
   split <;> simp_all
 
-/-- Literal SSA non-returning call output: the argument move followed by the
-renamed call. -/
+/-- `wordSemBadDestArgs` only tests whether the argument list is empty. -/
+theorem wordSemBadDestArgs_congr
+    (dest : Option Nat) {args args' : List Nat} (len : args.length = args'.length) :
+    wordSemBadDestArgs dest args = wordSemBadDestArgs dest args' := by
+  have h : args = [] ↔ args' = [] := by
+    rw [← List.length_eq_zero_iff, ← List.length_eq_zero_iff, len]
+  simp only [wordSemBadDestArgs, h]
+
+theorem moveArgs_nodup (names : List Nat) :
+    ((List.range names.length).map (fun x => 2 * x)).Nodup :=
+  List.Nodup.map (fun a b h => by omega) List.nodup_range
+
+/-- Concrete run of the inserted argument move `Move 1 (convArgs.zip names)`:
+a successful non-error run exposes the read values and the post-move state. -/
+theorem callNoneMoveRun {width : Nat} [NeZero width] {C F : Type}
+    (names convArgs : List Nat) (target middle : WordSemStateFiniteExact width C F)
+    (len : convArgs.length = names.length)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec width)) target =
+      (none, middle)) :
+    ∃ values : List (WordLocW width),
+      getVars names target = some values ∧ middle = setVars convArgs values target := by
+  have hfst : (convArgs.zip names).map Prod.fst = convArgs :=
+    List.map_fst_zip (Nat.le_of_eq len)
+  have hsnd : (convArgs.zip names).map Prod.snd = names :=
+    List.map_snd_zip (Nat.le_of_eq len.symm)
+  simp only [WordSemStateFiniteExact.evaluate, hfst, hsnd] at run
+  split at run
+  · rename_i nodup
+    cases read : getVars names target with
+    | none => simp only [read] at run; exact absurd run (by simp)
+    | some values =>
+        simp only [read] at run
+        refine ⟨values, rfl, ?_⟩
+        simpa only [Prod.mk.injEq, true_and] using run.symm
+  · exact absurd run (by simp)
+
+/-- Successful non-returning call, no handler, nonzero clock: the executed work
+is the call node plus the actual callee body at the literal `callEnv` state. -/
+theorem wordPathWork_call_none_body_eq {C F : Type}
+    (dest : Option Nat) (args : List Nat) (s : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64)) (args1 : List (WordLocW 64))
+    (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (clock : s.clock ≠ 0) :
+    wordPathWork (.call none dest args none) s =
+      1 + wordPathWork prog (callEnv args1 ss (decClock s)) := by
+  rw [wordPathWork]
+  simp [get, bad, find, clock]
+
+/-- Terminal path: failed argument read costs one node. -/
+theorem wordPathWork_call_none_getVars_none {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F)
+    (get : getVars args s = none) :
+    wordPathWork (.call none dest args handler) s = 1 := by
+  rw [wordPathWork]
+  simp [get]
+
+/-- Terminal path: bad destination/argument shape costs one node. -/
+theorem wordPathWork_call_none_badDest {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F)
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = true) :
+    wordPathWork (.call none dest args handler) s = 1 := by
+  rw [wordPathWork]
+  simp [get, bad]
+
+/-- Terminal path: failed code lookup costs one node. -/
+theorem wordPathWork_call_none_findCode_none {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F)
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) s.code s.stackSize = none) :
+    wordPathWork (.call none dest args handler) s = 1 := by
+  rw [wordPathWork]
+  simp [get, bad, find]
+
+/-- Terminal path: a non-returning call with an exception handler is not
+entered; it costs one node. -/
+theorem wordPathWork_call_none_handler {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (hh : Nat × WordLangProgHOL (BitVec 64) × Nat × Nat)
+    (s : WordSemStateFiniteExact 64 C F)
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) s.code s.stackSize =
+      some (args1, prog, ss)) :
+    wordPathWork (.call none dest args (some hh)) s = 1 := by
+  rw [wordPathWork]
+  simp [get, bad, find]
+
+/-- Terminal path: zero clock costs one node. -/
+theorem wordPathWork_call_none_clock_zero {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (s : WordSemStateFiniteExact 64 C F)
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (clock : s.clock = 0) :
+    wordPathWork (.call none dest args none) s = 1 := by
+  rw [wordPathWork]
+  simp [get, bad, find, clock]
+
+/-- Target-side argument/code selection for the compiled non-returning call:
+the inserted move installs exactly the source argument values, and the post-move
+state keeps the source code, stack size and clock, so the callee program and
+entry size selected by the target call are the source ones. -/
+theorem callNone_target_selection {C F : Type}
+    (ssa : Spt Nat) (next : Nat) (args names convArgs : List Nat)
+    (source target middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64))
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (localsRel : ssaLocalsRel next ssa source.locals target.locals)
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x)
+    (get : getVars args source = some xs)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64)) target =
+      (none, middle)) :
+    getVars convArgs middle = some xs ∧
+      middle.code = source.code ∧ middle.stackSize = source.stackSize ∧
+        middle.clock = source.clock := by
+  have convLen : convArgs.length = names.length := by rw [convEq]; simp
+  obtain ⟨values, read, midEq⟩ := callNoneMoveRun names convArgs target middle convLen run
+  have targetRead := ssaLocalsRelGetVars args xs next ssa source target ⟨localsRel, get⟩
+  rw [← namesEq] at targetRead
+  have valuesEq : values = xs := by
+    rw [targetRead] at read
+    exact (Option.some.inj read).symm
+  subst values
+  obtain ⟨-, -, -, -, -, -, stackSizeEq, -, -, -, -, -, clockEq, codeEq, -, -, -, -, -, -, -⟩ := frame
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · rw [midEq]
+    exact getVarsSetVarsEq convArgs xs target
+      ⟨by rw [convEq]; exact moveArgs_nodup names,
+        by rw [Flapjack.WordAlloc.getVarsLength args source xs get, convEq, namesEq]; simp⟩
+  · rw [midEq]; simpa only [WordSemStateFiniteExact.setVars] using codeEq
+  · rw [midEq]; simpa only [WordSemStateFiniteExact.setVars] using stackSizeEq
+  · rw [midEq]; simpa only [WordSemStateFiniteExact.setVars] using clockEq
+
+/-- Quantitative non-returning call transfer, entered-body path.  The inserted
+argument move is executed at the actual target state; the callee program, entry
+arguments and entry size are the ones selected by the *source* lookup, and the
+target lookup selects the same triple.  What remains is the child transfer for
+the actual callee BODY `prog` at the literal `callEnv` entry states. -/
+theorem bodyWork_call_none_body {C F : Type}
+    (dest : Option Nat) (args : List Nat) (ssa : Spt Nat) (next : Nat)
+    (names convArgs : List Nat)
+    (source target middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64)) (args1 : List (WordLocW 64))
+    (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat) (calleeBudget : Nat)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (localsRel : ssaLocalsRel next ssa source.locals target.locals)
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x)
+    (get : getVars args source = some xs)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64)) target =
+      (none, middle))
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) source.code source.stackSize =
+      some (args1, prog, ss))
+    (clock : source.clock ≠ 0)
+    (calleeWork : wordPathWork prog (callEnv args1 ss (decClock middle)) ≤
+      wordPathWork prog (callEnv args1 ss (decClock source)) + calleeBudget) :
+    wordPathWork (.seq (.move 1 (convArgs.zip names)) (.call none dest convArgs none)) target ≤
+      wordPathWork (.call none dest args none) source + (calleeBudget + 2) := by
+  obtain ⟨midRead, midCode, midStackSize, midClock⟩ :=
+    callNone_target_selection ssa next args names convArgs source target middle xs
+      frame localsRel namesEq convEq get run
+  have badLen : convArgs.length = args.length := by rw [convEq, namesEq]; simp
+  have targetBad : wordSemBadDestArgs dest convArgs = false := by
+    rw [wordSemBadDestArgs_congr dest badLen]; exact bad
+  have targetFind : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) middle.code middle.stackSize =
+      some (args1, prog, ss) := by
+    rw [midCode, midStackSize]; exact find
+  have targetClock : middle.clock ≠ 0 := by rw [midClock]; exact clock
+  rw [wordPathWork_seq, run]
+  dsimp only
+  have moveWork : wordPathWork (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64))
+      target = 1 := by simp only [wordPathWork, wordControlCost]
+  rw [moveWork]
+  rw [wordPathWork_call_none_body_eq dest args source xs args1 prog ss get bad find clock]
+  rw [wordPathWork_call_none_body_eq dest convArgs middle xs args1 prog ss
+    midRead targetBad targetFind targetClock]
+  omega
+
+/-- Terminal path: the source call has a bad destination/argument shape, and
+the compiled call reproduces that test, so both sides cost one node. -/
+theorem bodyWork_call_none_badDest {C F : Type}
+    (dest : Option Nat) (args : List Nat) (ssa : Spt Nat) (next : Nat)
+    (names convArgs : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (source target middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64)) (calleeBudget : Nat)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (localsRel : ssaLocalsRel next ssa source.locals target.locals)
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x)
+    (get : getVars args source = some xs)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64)) target =
+      (none, middle))
+    (bad : wordSemBadDestArgs dest args = true) :
+    wordPathWork (.seq (.move 1 (convArgs.zip names)) (.call none dest convArgs handler)) target ≤
+      wordPathWork (.call none dest args handler) source + (calleeBudget + 2) := by
+  obtain ⟨midRead, midCode, -, -⟩ :=
+    callNone_target_selection ssa next args names convArgs source target middle xs
+      frame localsRel namesEq convEq get run
+  have badLen : convArgs.length = args.length := by rw [convEq, namesEq]; simp
+  have targetBad : wordSemBadDestArgs dest convArgs = true := by
+    rw [wordSemBadDestArgs_congr dest badLen]; exact bad
+  rw [wordPathWork_seq, run]
+  dsimp only
+  have moveWork : wordPathWork (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64))
+      target = 1 := by simp only [wordPathWork]
+  rw [moveWork]
+  rw [wordPathWork_call_none_badDest dest args handler source get bad]
+  rw [wordPathWork_call_none_badDest dest convArgs handler middle midRead targetBad]
+  omega
+
+/-- Terminal path: the source code lookup fails, and the compiled call performs
+the same lookup at the related state, so both sides cost one node. -/
+theorem bodyWork_call_none_findCode_none {C F : Type}
+    (dest : Option Nat) (args : List Nat) (ssa : Spt Nat) (next : Nat)
+    (names convArgs : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (source target middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64)) (calleeBudget : Nat)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (localsRel : ssaLocalsRel next ssa source.locals target.locals)
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x)
+    (get : getVars args source = some xs)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64)) target =
+      (none, middle))
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) source.code source.stackSize = none) :
+    wordPathWork (.seq (.move 1 (convArgs.zip names)) (.call none dest convArgs handler)) target ≤
+      wordPathWork (.call none dest args handler) source + (calleeBudget + 2) := by
+  obtain ⟨midRead, midCode, midStackSize, -⟩ :=
+    callNone_target_selection ssa next args names convArgs source target middle xs
+      frame localsRel namesEq convEq get run
+  have badLen : convArgs.length = args.length := by rw [convEq, namesEq]; simp
+  have targetBad : wordSemBadDestArgs dest convArgs = false := by
+    rw [wordSemBadDestArgs_congr dest badLen]; exact bad
+  have targetFind : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) middle.code middle.stackSize = none := by
+    rw [midCode, midStackSize]; exact find
+  rw [wordPathWork_seq, run]
+  dsimp only
+  have moveWork : wordPathWork (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64))
+      target = 1 := by simp only [wordPathWork]
+  rw [moveWork]
+  rw [wordPathWork_call_none_findCode_none dest args handler source get bad find]
+  rw [wordPathWork_call_none_findCode_none dest convArgs handler middle midRead targetBad targetFind]
+  omega
+
+/-- Terminal path: a non-returning call carrying an exception handler is not
+entered, and the compiled call keeps that handler. -/
+theorem bodyWork_call_none_handler {C F : Type}
+    (dest : Option Nat) (args : List Nat) (ssa : Spt Nat) (next : Nat)
+    (names convArgs : List Nat)
+    (hh : Nat × WordLangProgHOL (BitVec 64) × Nat × Nat)
+    (source target middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64)) (args1 : List (WordLocW 64))
+    (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat) (calleeBudget : Nat)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (localsRel : ssaLocalsRel next ssa source.locals target.locals)
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x)
+    (get : getVars args source = some xs)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64)) target =
+      (none, middle))
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) source.code source.stackSize =
+      some (args1, prog, ss)) :
+    wordPathWork (.seq (.move 1 (convArgs.zip names)) (.call none dest convArgs (some hh))) target ≤
+      wordPathWork (.call none dest args (some hh)) source + (calleeBudget + 2) := by
+  obtain ⟨midRead, midCode, midStackSize, -⟩ :=
+    callNone_target_selection ssa next args names convArgs source target middle xs
+      frame localsRel namesEq convEq get run
+  have badLen : convArgs.length = args.length := by rw [convEq, namesEq]; simp
+  have targetBad : wordSemBadDestArgs dest convArgs = false := by
+    rw [wordSemBadDestArgs_congr dest badLen]; exact bad
+  have targetFind : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) middle.code middle.stackSize =
+      some (args1, prog, ss) := by
+    rw [midCode, midStackSize]; exact find
+  rw [wordPathWork_seq, run]
+  dsimp only
+  have moveWork : wordPathWork (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64))
+      target = 1 := by simp only [wordPathWork]
+  rw [moveWork]
+  rw [wordPathWork_call_none_handler dest args hh source get bad find]
+  rw [wordPathWork_call_none_handler dest convArgs hh middle midRead targetBad targetFind]
+  omega
+
+/-- Terminal path: zero clock.  The compiled call is at the same clock, so it
+also returns `timeOut` at cost one. -/
+theorem bodyWork_call_none_clock_zero {C F : Type}
+    (dest : Option Nat) (args : List Nat) (ssa : Spt Nat) (next : Nat)
+    (names convArgs : List Nat)
+    (source target middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64)) (args1 : List (WordLocW 64))
+    (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat) (calleeBudget : Nat)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (localsRel : ssaLocalsRel next ssa source.locals target.locals)
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x)
+    (get : getVars args source = some xs)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64)) target =
+      (none, middle))
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) source.code source.stackSize =
+      some (args1, prog, ss))
+    (clock : source.clock = 0) :
+    wordPathWork (.seq (.move 1 (convArgs.zip names)) (.call none dest convArgs none)) target ≤
+      wordPathWork (.call none dest args none) source + (calleeBudget + 2) := by
+  obtain ⟨midRead, midCode, midStackSize, midClock⟩ :=
+    callNone_target_selection ssa next args names convArgs source target middle xs
+      frame localsRel namesEq convEq get run
+  have badLen : convArgs.length = args.length := by rw [convEq, namesEq]; simp
+  have targetBad : wordSemBadDestArgs dest convArgs = false := by
+    rw [wordSemBadDestArgs_congr dest badLen]; exact bad
+  have targetFind : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) middle.code middle.stackSize =
+      some (args1, prog, ss) := by
+    rw [midCode, midStackSize]; exact find
+  have targetClock : middle.clock = 0 := by rw [midClock]; exact clock
+  rw [wordPathWork_seq, run]
+  dsimp only
+  have moveWork : wordPathWork (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64))
+      target = 1 := by simp only [wordPathWork]
+  rw [moveWork]
+  rw [wordPathWork_call_none_clock_zero dest args source get bad find clock]
+  rw [wordPathWork_call_none_clock_zero dest convArgs middle midRead targetBad targetFind targetClock]
+  omega
+
+/-- Terminal path: the inserted argument move itself fails on the target, so no
+callee body is entered.  Two executed nodes against at least one source node. -/
+theorem bodyWork_call_none_move_fails {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (names convArgs : List Nat)
+    (source target : WordSemStateFiniteExact 64 C F)
+    (result : WordSemResult 64) (middle : WordSemStateFiniteExact 64 C F)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64)) target =
+      (some result, middle))
+    (calleeBudget : Nat) :
+    wordPathWork (.seq (.move 1 (convArgs.zip names)) (.call none dest convArgs handler)) target ≤
+      wordPathWork (.call none dest args handler) source + (calleeBudget + 2) := by
+  rw [wordPathWork_seq, run]
+  dsimp only
+  have moveWork : wordPathWork (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64))
+      target = 1 := by simp only [wordPathWork]
+  rw [moveWork]
+  have sourceWork := one_le_wordPathWork (.call none dest args handler) source
+  omega
+
+/-- Moved-word accounting for the inserted argument move: `wordPathWork`
+charges the parallel move as one control node, while the native composition
+pays every actually moved word.  This is the explicit allowance, so an O(n)
+argument copy is never collapsed to a constant. -/
+theorem callNoneMove_words
+    (dest : Option Nat) (convArgs names : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (len : convArgs.length = names.length) :
+    wordMoveWords (.seq (.move 1 (convArgs.zip names))
+      (.call none dest convArgs handler) : WordLangProgHOL (BitVec 64)) =
+      convArgs.length + wordMoveWords (.call none dest convArgs handler) := by
+  simp only [wordMoveWords, List.length_zip, len, Nat.min_self]
+
+/-- The same accounting in terms of the source argument list length. -/
+theorem callNoneMove_words_args (dest : Option Nat) (args convArgs names : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x) :
+    wordMoveWords (.seq (.move 1 (convArgs.zip names))
+      (.call none dest convArgs handler) : WordLangProgHOL (BitVec 64)) =
+      args.length + wordMoveWords (.call none dest convArgs handler) := by
+  have len : convArgs.length = names.length := by rw [convEq]; simp
+  rw [callNoneMove_words dest convArgs names handler len]
+  congr 1
+  rw [convEq, namesEq]; simp
+
+/-- The callee entry state of the compiled non-returning call, read off the
+source state.  `wsrEq` is the original relation's field decomposition: the
+target's post-move state differs from the source state only in locals and
+permute, and `callEnv` overwrites the locals, so the entry state is the source
+entry state with the target's permutation. -/
+theorem callNoneEntry_eq {C F : Type}
+    (a : List (WordLocW 64)) (ss : Option Nat)
+    (source middle : WordSemStateFiniteExact 64 C F)
+    (rel : Flapjack.WordAlloc.wordStateEqRel source middle) :
+    callEnv a ss (decClock middle) =
+      { callEnv a ss (decClock source) with permute := middle.permute } := by
+  conv_lhs => rw [← Flapjack.WordAlloc.wsrEq rel]
+  rfl
+
+/-- Word work of the compiled non-returning call given only a transferred body
+work at the literal entry states tied by the original `wordStateEqRel`: the
+only difference between the two entry states is the stack permutation. -/
+theorem bodyWork_call_none_related_body {C F : Type}
+    (dest : Option Nat) (args : List Nat) (ssa : Spt Nat) (next : Nat)
+    (names convArgs : List Nat)
+    (source target middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64)) (args1 : List (WordLocW 64))
+    (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat) (calleeBudget : Nat)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (localsRel : ssaLocalsRel next ssa source.locals target.locals)
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x)
+    (get : getVars args source = some xs)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64)) target =
+      (none, middle))
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) source.code source.stackSize =
+      some (args1, prog, ss))
+    (clock : source.clock ≠ 0)
+    (bodyIH : wordPathWork prog
+        { callEnv args1 ss (decClock source) with permute := middle.permute } ≤
+      wordPathWork prog (callEnv args1 ss (decClock source)) + calleeBudget) :
+    wordPathWork (.seq (.move 1 (convArgs.zip names)) (.call none dest convArgs none)) target ≤
+      wordPathWork (.call none dest args none) source + (calleeBudget + 2) := by
+  have convLen : convArgs.length = names.length := by rw [convEq]; simp
+  obtain ⟨values, read, midEq⟩ := callNoneMoveRun names convArgs target middle convLen run
+  have relMid : Flapjack.WordAlloc.wordStateEqRel source middle := by
+    rw [midEq]
+    simpa only [Flapjack.WordAlloc.wordStateEqRel, WordSemStateFiniteExact.setVars] using frame
+  have entryEq := callNoneEntry_eq args1 ss source middle relMid
+  refine bodyWork_call_none_body dest args ssa next names convArgs source target middle xs
+    args1 prog ss calleeBudget frame localsRel namesEq convEq get run bad find clock ?_
+  rw [entryEq]
+  exact bodyIH
+
+/-- Literal SSA non-returning call output at an arbitrary target option: the
+argument move followed by the renamed call. -/
 theorem ssaCcTrans_call_none_output
-    (dest : Nat) (args : List Nat)
+    (dest : Option Nat) (args : List Nat)
     (h : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
     (ssa : Spt Nat) (next : Nat)
     (tables : List (Spt Nat × Spt Unit × Spt Unit))
@@ -503,25 +985,39 @@ theorem ssaCcTrans_call_none_output
       (.seq moveArgs (.call none dest convArgs h), ssa, next) := by
   simp only [ssaCcTrans, namesEq, convEq, moveEq]
 
-/-- Actual non-returning call body work.  The inserted argument move is charged
-on this execution, then the call itself uses the callee-level child transfer at
-the post-move state.  The child transfer is the recursive call obligation, not a
-target-work oracle. -/
-theorem bodyWork_call_none {C F : Type}
-    (dest : Nat) (args convArgs : List Nat)
-    (h : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
-    (moveArgs : WordLangProgHOL (BitVec 64))
-    (source middle : WordSemStateFiniteExact 64 C F) (callBudget : Nat)
-    (moveRun : evaluate moveArgs source = (none, middle))
-    (moveWork : wordPathWork moveArgs source = 1)
-    (calleeWork : wordPathWork (.call none dest convArgs h) middle ≤
-      wordPathWork (.call none dest args h) source + callBudget) :
-    wordPathWork (.seq moveArgs (.call none dest convArgs h)) source ≤
-      wordPathWork (.call none dest args h) source + (callBudget + 2) := by
-  rw [wordPathWork_seq, moveRun, moveWork]
+/-- Actual compiler non-returning call case.  `ssaCcTrans_call_none_output`
+supplies the literal inserted move and renamed call, and
+`bodyWork_call_none_body` charges the actual move execution plus the callee
+BODY transfer at the literal `callEnv` entry states. -/
+theorem ssaBody_call_none_executed_le {C F : Type}
+    (dest : Option Nat) (args : List Nat) (ssa : Spt Nat) (next : Nat)
+    (names convArgs : List Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (source target middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64)) (args1 : List (WordLocW 64))
+    (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat) (calleeBudget : Nat)
+    (namesEq : names = args.map (optionLookup ssa))
+    (convEq : convArgs = (List.range names.length).map fun x => 2 * x)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (localsRel : ssaLocalsRel next ssa source.locals target.locals)
+    (get : getVars args source = some xs)
+    (run : evaluate (.move 1 (convArgs.zip names) : WordLangProgHOL (BitVec 64)) target =
+      (none, middle))
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL ×
+        WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) source.code source.stackSize =
+      some (args1, prog, ss))
+    (clock : source.clock ≠ 0)
+    (calleeWork : wordPathWork prog (callEnv args1 ss (decClock middle)) ≤
+      wordPathWork prog (callEnv args1 ss (decClock source)) + calleeBudget) :
+    wordPathWork (ssaCcTrans (width := 64) (.call none dest args none) ssa next tables).1 target ≤
+      wordPathWork (.call none dest args none) source + (calleeBudget + 2) := by
+  rw [ssaCcTrans_call_none_output dest args none ssa next tables names convArgs
+    (.move 1 (convArgs.zip names)) namesEq convEq rfl]
   dsimp only
-  trace_state
-  omega
+  exact bodyWork_call_none_body dest args ssa next names convArgs source target middle xs
+    args1 prog ss calleeBudget frame localsRel namesEq convEq get run bad find clock calleeWork
 
 #print axioms wordControlCost
 #print axioms wordPathWork_le_controlCost_straight
@@ -542,5 +1038,14 @@ theorem bodyWork_call_none {C F : Type}
 #print axioms bodyWork_loopFinal
 #print axioms ssaCcTrans_loop_output
 #print axioms ssaCcTrans_call_none_output
-#print axioms bodyWork_call_none
+#print axioms bodyWork_call_none_body
+#print axioms bodyWork_call_none_badDest
+#print axioms bodyWork_call_none_findCode_none
+#print axioms bodyWork_call_none_handler
+#print axioms bodyWork_call_none_clock_zero
+#print axioms bodyWork_call_none_move_fails
+#print axioms ssaBody_call_none_executed_le
+#print axioms bodyWork_call_none_related_body
+#print axioms callNoneMove_words
+#print axioms callNoneMove_words_args
 end InitECandidate.Runtime.FineCost

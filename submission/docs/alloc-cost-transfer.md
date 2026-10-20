@@ -221,17 +221,49 @@ Compile order and module stems (checker role `allocation`):
    - `ssaCcTrans_loop_output`: the literal SSA `Loop` clause, exposing the
      actual `loopSetup`, renamed body, `ssaReconcile` back-edge and final loop
      program.
-   - `ssaCcTrans_call_none_output`: the literal non-returning call output,
-     exposing the inserted argument move.
-   - `bodyWork_call_none`: charges that inserted argument move on the actual
-     execution and then uses the callee-level child transfer at the post-move
-     state.  Returning calls remain.
+   - `ssaCcTrans_call_none_output`: the literal non-returning call output at an
+     arbitrary target option, exposing the inserted argument move and the
+     renamed call.
+   - `callNoneMoveRun`: the concrete run of that inserted `Move 1 (convArgs.zip
+     names)`.  A successful run exposes the values read and the post-move
+     state `setVars convArgs values target`.
+   - `callNone_target_selection`: from the original `ssaLocalsRel` and
+     `wordStateEqRel`, the *target* argument read returns exactly the source
+     argument values, and the post-move state keeps the source code map, stack
+     size and clock.  Hence the compiled call selects the same `(args1, prog,
+     ss)` triple as the source call.
+   - `wordPathWork_call_none_body_eq` plus the terminal unfoldings
+     `wordPathWork_call_none_getVars_none`, `..._badDest`, `..._findCode_none`,
+     `..._handler`, `..._clock_zero`: the actual expanded `wordPathWork` call
+     definition, clause by clause.
+   - `bodyWork_call_none_body`: the executed-work transfer for the entered
+     callee path.  The inserted argument move is charged on its actual run, and
+     the whole-call inequality is *reduced* to a transfer for the callee BODY
+     program `prog` at the literal `callEnv` entry states.  The remaining
+     premise is that body transfer (the recursive call obligation of a
+     whole-code-map induction), not the whole-call inequality.
+   - `bodyWork_call_none_badDest` / `..._findCode_none` / `..._handler` /
+     `..._clock_zero` / `..._move_fails`: the terminal clock, bad-shape,
+     code-lookup, handler-present and failed-move paths, each charged against
+     the same `+2`.
+   - `callNoneEntry_eq`: the target callee entry state is the source entry
+     state with the target's stack permutation
+     (`wsrEq`/`callEnv` field decomposition).  `bodyWork_call_none_related_body`
+     states the same transfer with the callee premise formulated only over that
+     permutation difference.
+   - `callNoneMove_words` / `callNoneMove_words_args`: `wordPathWork` charges
+     the inserted parallel move as one control node, while `wordMoveWords` pays
+     `args.length` actually moved words.  The O(n) argument copy is therefore
+     not collapsed to a constant in the native composition.
 
    The remaining semantic obligation is now narrower: extend the quantitative
-   `bodySimulationRun` from these base instructions through the control
-   constructors, then instantiate the original SSA source/target cut relation.
-   The whole-loop induction and per-iteration charging are mechanized; no
-   cost oracle is assumed.
+   `bodySimulationRun` from these base instructions through the remaining
+   control constructors (returning-call return/exception handlers above all),
+   then instantiate the original SSA source/target cut relation.  For calls the
+   residual premise is explicitly a callee-BODY transfer at the actual
+   `callEnv` entry states; the whole-call inequality is no longer assumed.  The
+   whole-loop induction and per-iteration charging are mechanized; no cost
+   oracle is assumed.
 
    A concrete structural point: the original loop context carries `ssa`,
    `next` and the loop tables, and `bodySimulationRun` returns a *new*
@@ -256,12 +288,21 @@ axiom, `unsafe`, `native_decide` or `bv_decide`.
   the loop and call-none transfer is proved in `AllocCostSSAControl`.  The
   whole-loop induction over actual iterations is mechanized in
   `AllocCostSSALoopExecuted`.  The remaining semantic gaps are the quantitative
-  `bodySimulationRun` control-constructor cases and the exception-handler
-  branch of the returning call.  Base-instruction quantitative cases are
+  `bodySimulationRun` control-constructor cases and the returning-call
+  return/exception handler branches.  Base-instruction quantitative cases are
   proved in `AllocCostSSABodyWork`; the per-execution reconciliation charges,
   the return-handler local call composition and the `fixInconsistencies`
   handler budget are proved.  These are exposed as explicit premises, not
   assumed silently.
+- The non-returning call work transfer is now proved from the expanded
+  `wordPathWork` call clause and the original `ssaLocalsRel`/`wordStateEqRel`
+  relations, reducing the residual obligation to a callee-BODY transfer at the
+  literal `callEnv` entry states.  Its genuinely uncovered path is a source
+  whose argument read fails while the compiled argument move still succeeds:
+  the SSA locals relation is one-directional, so that failing prefix is not
+  bounded by this lemma and must be handled where the source run is known to
+  succeed (or by a separate reverse-direction argument).  Returning-call
+  handlers remain to be done the same way.
 - `WordSimp`/`instSelect` selection is taken as the root participant's
   `selectionLeaves ≤ 2 * wordExpressionWork` bridge.  This note starts from the
   selected straight-line fragment and does not re-prove that bridge.
