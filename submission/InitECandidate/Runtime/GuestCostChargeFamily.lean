@@ -277,7 +277,7 @@ theorem chargeGas_call_cost_bound (coeff : Work)
         chargeGasBodyBound coeff (callEntryStateHOLFinite state callee) frame
           funding.left funding.used amount +
         coeff.movedWords * callPayloadWords (some (.returned (.val (.word 0)))) +
-        coeff.score (executionWork (callGlobalEvents info (some (.returned (.val (.word 0)))))) := by
+        coeff.score (executionWork (callGlobalEvents state info)) := by
   intro callee
   have body : coeff.score (executionWork (chargeGasBodyEvents
       (callEntryStateHOLFinite state callee) frame funding.left funding.used amount)) ≤
@@ -431,7 +431,7 @@ theorem chargeGas_call_run (coeff : Work) (state : PanSemStateFiniteExact 64 Gue
             (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
             frame funding.left funding.used amount +
           coeff.movedWords * callPayloadWords (some (.returned (.val (.word 0)))) +
-          coeff.score (executionWork (callGlobalEvents info (some (.returned (.val (.word 0)))))) := by
+          coeff.score (executionWork (callGlobalEvents state info)) := by
   classical
   let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
     HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))

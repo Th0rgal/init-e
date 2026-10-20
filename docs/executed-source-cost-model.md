@@ -344,8 +344,8 @@ theorem. `SourceCostGlobalsReady` exposes the syntactic requirements for the
 remaining statement transfer. `GuestCostGlobalsReady` checks these on the exact
 pass1 declarations: every body and initializer is ready, function parameters
 exclude the generated call temporary, and body readiness follows from actual
-declaration membership. The whole statement/installed-entry globals transfer
-is still pending; these expression and syntax results do not imply it alone.
+declaration membership. The statement-level globals transfer is now checked as described below;
+installed-program entry still requires its separate composition.
 
 `StackWeightedSkipIf` proves the literal layout for a nonempty then arm with
 an empty else arm. A true source guard executes the negated branch's actual
@@ -386,6 +386,20 @@ callee lookup/result protocol and body/continuation cost premises; eliminating
 these through the checked permutation theorem and recursive SSA induction is
 still required. The root replay `call-alignment-independent` checked all seven
 printed theorems with only standard axioms.
+
+`SourceCostGlobalsRun.globals_compile_run` transfers every non-error canonical
+statement run through actual `pan_globals`, preserving the original compiler
+state relation and never increasing `sharpSourceScore B`. The replay coefficient
+remains parametric. Its premises include ready syntax/code, absence of the
+reserved temporary, and presence of every laid-out global. Global presence and
+temporary exclusion are preserved through the actual source runs. A global
+call destination is charged at entry using its declared value size, including
+timeout paths, to pay for the compiler temporary before the callee returns.
+`SourceCostGlobalsCanonical` derives the same factor-one inequality for the
+functional selected execution cost, without an additional trace witness or cost
+oracle. Independent root replays checked all 63 affected modules and both
+canonical corollaries with standard axioms. Installed-entry initialization and
+the downstream native composition remain open.
 
 ## Remaining end-to-end obligations
 

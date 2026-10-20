@@ -8,11 +8,11 @@ theorem globals_global_value {F : Type} {s : PanSemStateFiniteExact 64 F} {name}
 
 /-- A global read: the compiled `TopAddr` load is paid by the source copy and
 its `globalAccess` event. -/
-theorem globals_var_global_le {F : Type} {context : PanGlobalsContextExact 64}
+theorem globals_var_global_le {F : Type} (B : Nat) {context : PanGlobalsContextExact 64}
     {s t : PanSemStateFiniteExact 64 F} (rel : panGlobalsStateRelHOLExact true context s t)
     (name : MlStringHOL) (ok : expressionValue s (.var .global name) ≠ none) :
-    sharpScore (expressionEvents t (compileExpExactHOL context (.var .global name))) ≤
-      sharpScore (expressionEvents s (.var .global name)) := by
+    sharpSourceScore B (expressionEvents t (compileExpExactHOL context (.var .global name))) ≤
+      sharpSourceScore B (expressionEvents s (.var .global name)) := by
   rcases h : expressionValue s (.var .global name) with _ | value
   · exact absurd h ok
   obtain ⟨address, found, wf⟩ := globalsRel_global rel (globals_global_value h)
@@ -26,18 +26,18 @@ theorem globals_var_global_le {F : Type} {context : PanGlobalsContextExact 64}
       .load (shapeOfHOLExact value) (.op .sub [.topAddr, .const address]) := by
     simp [compileExpExactHOL, found]
   rw [compiled] at words ⊢
-  have address_score := globals_address_score t address
+  have address_score := globals_address_score B t address
   conv => rhs; rw [expressionEvents]
-  simp only [globalEvents, sharpScore_expression, sharpScore_copy, sharpScore_global, sharpScore_nil]
+  simp only [globalEvents, srcScore_expression B, srcScore_copy B, srcScore_global B, sharpSourceScore_nil B]
   rw [expressionEvents]
   split
   · split
-    · simp only [sharpScore_expression, sharpScore_append, sharpScore_memory, sharpScore_copy,
-        sharpScore_nil, size, words, sourceWords]
+    · simp only [srcScore_expression B, sharpSourceScore_append B, srcScore_memory B, srcScore_copy B,
+        sharpSourceScore_nil B, size, words, sourceWords]
       omega
-    · simp only [sharpScore_expression, sharpScore_append, sharpScore_nil]
+    · simp only [srcScore_expression B, sharpSourceScore_append B, sharpSourceScore_nil B]
       omega
-  · simp only [sharpScore_expression, sharpScore_nil]
+  · simp only [srcScore_expression B, sharpSourceScore_nil B]
     omega
 
 #print axioms globals_var_global_le
@@ -55,22 +55,22 @@ theorem globals_list_ok {F : Type} {s : PanSemStateFiniteExact 64 F} {head : Exp
 
 /-- Every `pan_globals`-ready successful expression: the compiled expression's
 sharp score is at most the source expression's. -/
-theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
+theorem globals_expression_le {F : Type} (B : Nat) {context : PanGlobalsContextExact 64}
     {s t : PanSemStateFiniteExact 64 F} (rel : panGlobalsStateRelHOLExact true context s t) :
     ∀ e : ExpHOL 64, globalsReadyExp e = true → expressionValue s e ≠ none →
-      sharpScore (expressionEvents t (compileExpExactHOL context e)) ≤
-        sharpScore (expressionEvents s e) := by
+      sharpSourceScore B (expressionEvents t (compileExpExactHOL context e)) ≤
+        sharpSourceScore B (expressionEvents s e) := by
   have sourceStructs : s.structs = [] := by
     unfold panGlobalsStateRelHOLExact at rel; exact rel.2.2.2.2.2.2.1
   have targetStructs := globalsRel_targetStructs rel
   refine ExpHOL.rec
     (motive_1 := fun e => globalsReadyExp e = true → expressionValue s e ≠ none →
-      sharpScore (expressionEvents t (compileExpExactHOL context e)) ≤
-        sharpScore (expressionEvents s e))
+      sharpSourceScore B (expressionEvents t (compileExpExactHOL context e)) ≤
+        sharpSourceScore B (expressionEvents s e))
     (motive_2 := fun es => globalsReadyExps es = true →
       @evalListHOLExact 64 F _ s.toExact (fun a => Classical.propDecidable (s.memaddrs a)) es ≠ none →
-      sharpScore (expressionListEvents t (compileExpExactHOLList context es)) ≤
-        sharpScore (expressionListEvents s es))
+      sharpSourceScore B (expressionListEvents t (compileExpExactHOLList context es)) ≤
+        sharpSourceScore B (expressionListEvents s es))
     (motive_3 := fun _ => True) (motive_4 := fun _ => True)
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
   · intro value _ _
@@ -82,7 +82,7 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
       simp only [compileExpExactHOL] at words ⊢
       rw [expressionEvents, expressionEvents, words]
       exact Nat.le_refl _
-    | «global» => exact globals_var_global_le rel name ok
+    | «global» => exact globals_var_global_le B rel name ok
   · intro fields ih ready ok
     have children : @evalListHOLExact 64 F _ s.toExact
         (fun a => Classical.propDecidable (s.memaddrs a)) fields ≠ none := by
@@ -91,7 +91,7 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have words := globals_resultWords rel ok
     simp only [compileExpExactHOL] at words ⊢
     rw [expressionEvents, expressionEvents, words]
-    simp only [sharpScore_expression, sharpScore_append, sharpScore_copy, sharpScore_nil]
+    simp only [srcScore_expression B, sharpSourceScore_append B, srcScore_copy B, sharpSourceScore_nil B]
     omega
   · intro index value ih ready ok
     have child : expressionValue s value ≠ none := by
@@ -100,7 +100,7 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have words := globals_resultWords rel ok
     simp only [compileExpExactHOL] at words ⊢
     rw [expressionEvents, expressionEvents, words]
-    simp only [sharpScore_expression, sharpScore_append, sharpScore_copy, sharpScore_nil]
+    simp only [srcScore_expression B, sharpSourceScore_append B, srcScore_copy B, sharpSourceScore_nil B]
     omega
   · intro name fields _ ready _
     simp [globalsReadyExp] at ready
@@ -113,8 +113,8 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have words := globals_resultWords rel ok
     simp only [compileExpExactHOL] at words ⊢
     rw [expressionEvents, expressionEvents, words, isWord, targetStructs, ← sourceStructs]
-    simp only [wf, sharp_isWord hw, ↓reduceIte, sharpScore_expression, sharpScore_append,
-      sharpScore_memory, sharpScore_copy, sharpScore_nil]
+    simp only [wf, sharp_isWord hw, ↓reduceIte, srcScore_expression B, sharpSourceScore_append B,
+      srcScore_memory B, srcScore_copy B, sharpSourceScore_nil B]
     omega
   · intro address ih ready ok
     obtain ⟨w, hw⟩ := sharp_value_some_word_child (Or.inl rfl) ok
@@ -123,8 +123,8 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have words := globals_resultWords rel ok
     simp only [compileExpExactHOL] at words ⊢
     rw [expressionEvents, expressionEvents, words, isWord]
-    simp only [sharp_isWord hw, ↓reduceIte, sharpScore_expression, sharpScore_append,
-      sharpScore_memory, sharpScore_copy, sharpScore_nil]
+    simp only [sharp_isWord hw, ↓reduceIte, srcScore_expression B, sharpSourceScore_append B,
+      srcScore_memory B, srcScore_copy B, sharpSourceScore_nil B]
     omega
   · intro address ih ready ok
     obtain ⟨w, hw⟩ := sharp_value_some_word_child (Or.inr rfl) ok
@@ -133,8 +133,8 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have words := globals_resultWords rel ok
     simp only [compileExpExactHOL] at words ⊢
     rw [expressionEvents, expressionEvents, words, isWord]
-    simp only [sharp_isWord hw, ↓reduceIte, sharpScore_expression, sharpScore_append,
-      sharpScore_memory, sharpScore_copy, sharpScore_nil]
+    simp only [sharp_isWord hw, ↓reduceIte, srcScore_expression B, sharpSourceScore_append B,
+      srcScore_memory B, srcScore_copy B, sharpSourceScore_nil B]
     omega
   · intro operator args ih ready ok
     have children : @evalListHOLExact 64 F _ s.toExact
@@ -143,7 +143,7 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have smaller := ih (by simpa [globalsReadyExp] using ready) children
     simp only [compileExpExactHOL]
     rw [expressionEvents, expressionEvents]
-    simp only [sharpScore_expression, sharpScore_append, sharpScore_scalar, sharpScore_nil]
+    simp only [srcScore_expression B, sharpSourceScore_append B, srcScore_scalar B, sharpSourceScore_nil B]
     omega
   · intro operator args ih ready ok
     have children : @evalListHOLExact 64 F _ s.toExact
@@ -152,7 +152,7 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have smaller := ih (by simpa [globalsReadyExp] using ready) children
     simp only [compileExpExactHOL]
     rw [expressionEvents, expressionEvents]
-    simp only [sharpScore_expression, sharpScore_append, sharpScore_scalar, sharpScore_nil]
+    simp only [srcScore_expression B, sharpSourceScore_append B, srcScore_scalar B, sharpSourceScore_nil B]
     omega
   · intro operator left right ihLeft ihRight ready ok
     simp only [globalsReadyExp, Bool.and_eq_true] at ready
@@ -163,8 +163,8 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have b := ihRight ready.2 both.2
     simp only [compileExpExactHOL]
     rw [expressionEvents, expressionEvents, globals_isWord rel both.1, globals_isWord rel both.2]
-    simp only [sharpScore_expression, sharpScore_append]
-    split <;> simp only [sharpScore_scalar, sharpScore_nil] <;> omega
+    simp only [srcScore_expression B, sharpSourceScore_append B]
+    split <;> simp only [srcScore_scalar B, sharpSourceScore_nil B] <;> omega
   · intro operator left right ihLeft ihRight ready ok
     simp only [globalsReadyExp, Bool.and_eq_true] at ready
     have both : expressionValue s left ≠ none ∧ expressionValue s right ≠ none := by
@@ -174,8 +174,8 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have b := ihRight ready.2 both.2
     simp only [compileExpExactHOL]
     rw [expressionEvents, expressionEvents, globals_isWord rel both.1, globals_isWord rel both.2]
-    simp only [sharpScore_expression, sharpScore_append]
-    split <;> simp only [sharpScore_scalar, sharpScore_nil] <;> omega
+    simp only [srcScore_expression B, sharpSourceScore_append B]
+    split <;> simp only [srcScore_scalar B, sharpSourceScore_nil B] <;> omega
   · intros
     simp only [compileExpExactHOL]; rw [expressionEvents, expressionEvents]; exact Nat.le_refl _
   · intro ready _
@@ -190,7 +190,7 @@ theorem globals_expression_le {F : Type} {context : PanGlobalsContextExact 64}
     have a := ihHead ready.1 both.1
     have b := ihTail ready.2 both.2
     simp only [compileExpExactHOLList]
-    rw [expressionListEvents, expressionListEvents, sharpScore_append, sharpScore_append]
+    rw [expressionListEvents, expressionListEvents, sharpSourceScore_append B, sharpSourceScore_append B]
     omega
   · trivial
   · intros; trivial

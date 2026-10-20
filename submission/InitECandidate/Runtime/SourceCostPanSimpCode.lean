@@ -8,6 +8,10 @@ original code map is matched, with no more work, by a run under the code map
 whose bodies are `pan_simp`-compiled. Callee bodies are transported
 recursively and then compiled with `seq_assoc` and `ret_to_tail`. -/
 
+theorem simpCode_callGlobal {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (c : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL)) (info) :
+    callGlobalEvents { s with code := c } info = callGlobalEvents s info := rfl
+
 theorem simpCode_preserved {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
     (run : StatementRun s p r post ev) (ok : r ≠ some .error)
     (c : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL))
@@ -99,7 +103,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .seqNext r1 r2, fun co => by
       try have := l1 co
       try have := l2 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
   | seqStop terminal one ihOne =>
     intro ok c hc
@@ -111,7 +115,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .iteYes (simpCode_costed c guard) nonzero r1, fun co => by
       try have := l1 co
       try have := l2 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
   | iteNo guard body ihBody =>
     intro ok c hc
@@ -119,7 +123,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .iteNo (simpCode_costed c guard) r1, fun co => by
       try have := l1 co
       try have := l2 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
   | whileFalse guard => intro _ c _; exact ⟨_, .whileFalse (simpCode_costed c guard), SimpWorkLe.refl _⟩
   | whileTimeout guard nonzero clock =>
@@ -131,7 +135,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .whileNext (simpCode_costed c guard) nonzero clock r1 r2, fun co => by
       try have := l1 co
       try have := l2 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
   | whileContinue guard nonzero clock one rest ihOne ihRest =>
     intro ok c hc
@@ -140,7 +144,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .whileContinue (simpCode_costed c guard) nonzero clock r1 r2, fun co => by
       try have := l1 co
       try have := l2 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
   | whileBreak guard nonzero clock one ihOne =>
     intro ok c hc
@@ -148,7 +152,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .whileBreak (simpCode_costed c guard) nonzero clock r1, fun co => by
       try have := l1 co
       try have := l2 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
   | whilePropagate guard nonzero clock notBreak notContinue one ihOne =>
     intro ok c hc
@@ -157,7 +161,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
       fun co => by
       try have := l1 co
       try have := l2 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
   | @assignValue s kind name expression value events expr valid =>
     intro _ c _
@@ -184,7 +188,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .declareValue (simpCode_costed c init) shapeMatch r1, fun co => by
       try have := l1 co
       try have := l2 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
   | @primitiveValue s name operator arguments values value args operation valid =>
     intro _ c _
@@ -219,7 +223,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .callDone args' lookup' clock r1 (simpCode_plan_done c plan), fun co => by
       try have := l1 co
       try have := l2 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
   | @callHandler s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post args lookup clock bodyRun plan
@@ -239,7 +243,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .callHandler args' lookup' clock r1 (simpCode_plan_handler c plan) r2,
       fun co => by
         have := l1 co; have := l2 co
-        simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+        simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
         omega⟩
   | @callTimeout s info function arguments values body callee returnShape args lookup clock =>
     intro _ c hc
@@ -248,7 +252,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
         some (panSimpCompileHOL body, callee, returnShape) := by
       rw [PanSimp.lookupCodeRel s.code c hc function values, lookup]; rfl
     refine ⟨_, .callTimeout args' lookup' clock, ?_⟩
-    simp only [simpCode_listEvents]; exact SimpWorkLe.refl _
+    simp only [simpCode_listEvents, simpCode_callGlobal]; exact SimpWorkLe.refl _
   | @declareCallTimeout s name shape function arguments continuation values body callee returnShape
       args lookup clock =>
     intro _ c hc
@@ -273,7 +277,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     exact ⟨_, .declareCallReturn args' lookup' clock r1 shapeMatch r2,
       fun co => by
         have := l1 co; have := l2 co
-        simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+        simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
         omega⟩
   | @declareCallStopped s name shape function arguments continuation values body callee returnShape
       bodyResult bodyPost bodyEvents args lookup clock bodyRun terminal ihBody =>
@@ -291,7 +295,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
     rw [simpCode_stopPlan] at run'
     exact ⟨_, run', fun co => by
       have := l1 co
-      simp only [simpCode_listEvents, eventSum_cons, eventSum_append] at *
+      simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
 
 /-- Whole `pan_simp` transfer for one statement and its installed code map:

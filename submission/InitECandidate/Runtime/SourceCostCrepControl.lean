@@ -104,21 +104,15 @@ theorem compile_while_eq (context : PanToCrepContextExact 64) {condition : ExpHO
   simp only [compileProgExactHOLW, compileWhileExactHOLW, compiled]
 
 /-- A localised call has no global destination, so it emits no global event. -/
-theorem callGlobalEvents_localised {info : Option (Option (VarKind × MlStringHOL) ×
+theorem callGlobalEvents_localised {F : Type} {info : Option (Option (VarKind × MlStringHOL) ×
       Option (MlStringHOL × MlStringHOL × ProgHOL 64))} {function : MlStringHOL}
     {arguments : List (ExpHOL 64)} (localised : localisedProgHOL (.call info function arguments) = true)
-    (result : Option (PanSemResultExact 64)) : callGlobalEvents info result = [] := by
+    (s : PanSemStateFiniteExact 64 F) : callGlobalEvents s info = [] := by
   rcases info with _ | ⟨_ | ⟨kind, name⟩, handler⟩
-  · cases result with
-    | none => rfl
-    | some r => cases r <;> rfl
-  · cases result with
-    | none => rfl
-    | some r => cases r <;> rfl
+  · rfl
+  · rfl
   · cases kind
-    · cases result with
-      | none => rfl
-      | some r => cases r <;> rfl
+    · rfl
     · rcases handler with _ | ⟨a, b, h⟩ <;>
         first
         | simp only [localisedProgHOL, Bool.and_false, Bool.false_eq_true] at localised
@@ -449,6 +443,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     intro t context resultOk rel localised checked control codeOk
     have checkedArgs : bulkLoadSitesExps arguments = true := by
       rcases info with _ | ⟨dest, _ | ⟨a, b, c⟩⟩ <;> simp_all [bulkLoadSitesProg]
+    rw [callGlobalEvents_localised localised, List.append_nil]
     exact call_timeout_transfer args lookup clock rel localised checkedArgs
   | @callHandler s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post args lookup clock bodyRun

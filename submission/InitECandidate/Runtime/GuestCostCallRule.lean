@@ -20,7 +20,7 @@ noncomputable def callEvents {F : Type} (s : PanSemStateFiniteExact 64 F) (argum
   .statement :: (expressionListEvents s arguments ++
     [.copy (values.flatMap flattenHOL).length, .frame values.length,
       .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-    [.copy (callPayloadWords bodyResult)] ++ callGlobalEvents info bodyResult)
+    [.copy (callPayloadWords bodyResult)] ++ callGlobalEvents s info)
 
 /-- Local scalar cost of one executed call: statement entry, the actual argument
 expressions, the actual argument words, frame slots, the traced callee body, and
@@ -34,7 +34,7 @@ noncomputable def callLocalCost {F : Type} (coeff : Work) (s : PanSemStateFinite
     coeff.movedWords * (values.flatMap flattenHOL).length + coeff.frameSlots * values.length +
     coeff.frameSlots * sizeOfShapeWithContextHOL s.structs returnShape +
     coeff.score (executionWork bodyEvents) + coeff.movedWords * callPayloadWords bodyResult +
-    coeff.score (executionWork (callGlobalEvents info bodyResult))
+    coeff.score (executionWork (callGlobalEvents s info))
 
 /-- The recorded events of one call score exactly its local cost. -/
 theorem callEvents_score {F : Type} (coeff : Work) (s : PanSemStateFiniteExact 64 F)

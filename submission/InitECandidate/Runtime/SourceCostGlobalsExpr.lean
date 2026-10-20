@@ -70,14 +70,43 @@ theorem globals_compileList_length (context : PanGlobalsContextExact 64) :
   | [] => by simp [compileExpExactHOLList]
   | _ :: tail => by simp [compileExpExactHOLList, globals_compileList_length context tail]
 
+theorem srcScore_statement (B : Nat) (rest : List WorkEvent) :
+    sharpSourceScore B (.statement :: rest) = 10 + sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_statement]
+
+theorem srcScore_expression (B : Nat) (rest : List WorkEvent) :
+    sharpSourceScore B (.expression :: rest) = 5 + sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_expression]
+
+theorem srcScore_copy (B n : Nat) (rest : List WorkEvent) :
+    sharpSourceScore B (.copy n :: rest) = 5 * n + sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_copy]
+
+theorem srcScore_frame (B n : Nat) (rest : List WorkEvent) :
+    sharpSourceScore B (.frame n :: rest) = 4 * n + sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_frame]
+
+theorem srcScore_scalar (B n : Nat) (rest : List WorkEvent) :
+    sharpSourceScore B (.scalar n :: rest) = sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_scalar, Nat.zero_add]
+
+theorem srcScore_memory (B n : Nat) (rest : List WorkEvent) :
+    sharpSourceScore B (.memory n :: rest) = 12 * n + (B + 5) * (n - 1) + sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_memory]
+
+theorem srcScore_global (B n : Nat) (rest : List WorkEvent) :
+    sharpSourceScore B (.globalAccess n :: rest) =
+      40 + 17 * n + (B + 5) * (n - 1) + sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_global]
+
 /-- The `TopAddr`-relative global address costs 25 under the sharp score. -/
-theorem globals_address_score {F : Type} (t : PanSemStateFiniteExact 64 F) (address : BitVec 64) :
-    sharpScore (expressionEvents t (.op .sub [.topAddr, .const address])) = 25 := by
+theorem globals_address_score {F : Type} (B : Nat) (t : PanSemStateFiniteExact 64 F) (address : BitVec 64) :
+    sharpSourceScore B (expressionEvents t (.op .sub [.topAddr, .const address])) = 25 := by
   rw [expressionEvents]
   simp only [expressionListEvents]
   rw [expressionEvents, expressionEvents]
-  simp only [List.cons_append, List.nil_append, List.append_nil, sharpScore_expression,
-    sharpScore_copy, sharpScore_scalar, sharpScore_nil, List.length_cons, List.length_nil]
+  simp only [List.cons_append, List.nil_append, List.append_nil, srcScore_expression,
+    srcScore_copy, srcScore_scalar, sharpSourceScore_nil, List.length_cons, List.length_nil]
 
 #print axioms globals_address_score
 end InitECandidate.Runtime.FineCost
