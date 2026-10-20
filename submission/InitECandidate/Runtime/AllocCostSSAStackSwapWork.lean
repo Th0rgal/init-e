@@ -504,4 +504,58 @@ theorem frame_eq_of_valEq_keyEq (f g : WordSemStackFrame 64) :
           rw [map_fst_snd_eq ls ls' hk hv]
 
 #print axioms frame_eq_of_valEq_keyEq
+
+/-- `sFrameKeyEq` is symmetric. -/
+theorem sFrameKeyEq_symm (a b : WordSemStackFrame 64) :
+    WordSemStackEq.sFrameKeyEq a b → WordSemStackEq.sFrameKeyEq b a := by
+  cases a with
+  | stackFrame n e0 ls hh =>
+    cases b with
+    | stackFrame n' e0' ls' hh' =>
+      cases hh <;> cases hh' <;>
+        simp only [WordSemStackEq.sFrameKeyEq] <;> simp_all
+
+/-- `sFrameKeyEq` is transitive. -/
+theorem sFrameKeyEq_trans (a b c : WordSemStackFrame 64) :
+    WordSemStackEq.sFrameKeyEq a b → WordSemStackEq.sFrameKeyEq b c →
+      WordSemStackEq.sFrameKeyEq a c := by
+  cases a with
+  | stackFrame n e0 ls hh =>
+    cases b with
+    | stackFrame n' e0' ls' hh' =>
+      cases c with
+      | stackFrame n'' e0'' ls'' hh'' =>
+        cases hh <;> cases hh' <;> cases hh'' <;>
+          simp only [WordSemStackEq.sFrameKeyEq] <;> simp_all
+
+/-- **Pop agreement for the returning call.**  If the two stacks have the same
+head *keys* (both key-equal to the frame `fr` this call pushed) and are
+value-equal, then their head frames are literally equal and `popEnv` yields the
+same locals, with the tails `rest` resp. `u`. -/
+theorem popEnv_agree {C F : Type} (middle : WordSemStateFiniteExact 64 C F)
+    (st : List (WordSemStackFrame 64)) (fr fM fS : WordSemStackFrame 64)
+    (rest u : List (WordSemStackFrame 64))
+    (hms : middle.stack = fM :: rest) (hst : st = fS :: u)
+    (hM : WordSemStackEq.sFrameKeyEq fr fM)
+    (hS : WordSemStackEq.sFrameKeyEq fr fS)
+    (hval : WordSemStackEq.sValEq middle.stack st) :
+    ∃ popped, popEnv middle = some popped ∧
+      popEnv { middle with stack := st } = some { popped with stack := u } := by
+  have hval' : WordSemStackEq.sValEq (fM :: rest) (fS :: u) := by
+    rw [← hms, ← hst]; exact hval
+  have hfv : WordSemStackEq.sFrameValEq fM fS := hval'.2
+  have hfk : WordSemStackEq.sFrameKeyEq fM fS :=
+    sFrameKeyEq_trans fM fr fS (sFrameKeyEq_symm fr fM hM) hS
+  have hfeq : fM = fS := frame_eq_of_valEq_keyEq fM fS hfv hfk
+  rw [← hfeq] at hst
+  have hm' : ({ middle with stack := fM :: rest } : WordSemStateFiniteExact 64 C F) = middle := by
+    rw [← hms]
+  obtain ⟨r, hr1, hr2⟩ := popEnv_stack_swap middle fM rest u
+  refine ⟨r, ?_, ?_⟩
+  · rw [← hm']
+    exact hr1
+  · rw [hst]
+    exact hr2
+
+#print axioms popEnv_agree
 end InitECandidate.Runtime.WordToStack
