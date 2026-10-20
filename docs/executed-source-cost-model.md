@@ -225,6 +225,23 @@ stage envelopes as the final certificate. Sharper local/vector inequalities
 are required, especially avoiding a bulk-load allowance on load-free helper
 expressions. Preserve semantic coverage proofs while refining those inequalities.
 
+## Actual Word execution counter
+
+`WordExecutionCost` defines price-parametric work on the actual Word execution
+path, including reached call bodies, handlers, continuations and MustTerminate
+bodies. `wordLogicalPrice` gives structural Seq/Skip zero price and explicitly
+charges expression sizes, parallel-move words, return words and argument words.
+It is a logical instance, not an asserted native instruction coefficient table.
+The older `wordPathWork` remains a separate additional-Stack-clock allowance.
+
+`WordExecutionCostProps` proves exact sequencing, monotonicity, zero-price work
+and move sizing. `LoopToWordExecutedCost.loop_to_word_executed_local` turns the
+existing supported local-code certificate into an actual execution bound for
+every Word entry state. Its supported subset excludes calls and loops; those
+transfers and native pricing remain obligations. All three modules checked with
+only the standard proof axioms. Experimental additive/scaling algebra is not
+part of this checked interface.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
