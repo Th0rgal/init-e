@@ -11,21 +11,22 @@ section wr
 variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {RR : ValueHOL 64 → Mem → GA → Prop}
   {SP0 P0 FM : BitVec 64} {G0 : GA} {J C SKB Bo U Sc : BitVec 64}
   {BA IA IS KB Ix : BitVec 64} {n : Nat} {c T : Fin n → BitVec 64}
-  {Out : BitVec 64 → Prop} {ko kB : Fin n} {WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop} {Nj : BitVec 64}
+  {Out : BitVec 64 → Prop} {ko kB : Fin n} {WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop} {Sk : BitVec 64 → Prop}
+  {Nj : BitVec 64}
   {ADs : Set (BitVec 64)} {Rg : BalK → BitVec 64 → Prop} {H : BitVec 64} {Rr Ow : BitVec 64 → Prop}
   {M2 : Mem} {G2 : GA}
 
 /-- The world-level `add_balance_change` call statement. -/
 theorem aqgd_call_addBalanceW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → Prop} (ea ei eb : ExpHOL 64)
     (A I b0 b1 b2 b3 : BitVec 64) (hK : A.toNat % 8 = 0) (hKE : A.toNat + 52 ≤ 33806089496)
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (hwP : w.toNat < P0.toNat) (p0 : P0.toNat ≤ H.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w)
     (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memory = M2 → s.globals = G2 → LP s.locals →
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea,ei,eb] =
         some [.val (.word A),.val (.word I),.rStruct [.val (.word b0),.val (.word b1),.val (.word b2),.val (.word b3)]]) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2)
-      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G) RR
+      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G) RR
       (.call (some (none,none)) (ofString "add_balance_change") [ea,ei,eb]) := by
   have u' := u
   obtain ⟨hH,hn,bg,bw,_⟩ := u'
@@ -40,14 +41,14 @@ theorem aqgd_call_addBalanceW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → P
 /-- The world-level `add_nonce_change` call statement. -/
 theorem aqgd_call_addNonceW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → Prop} (ea ei en : ExpHOL 64)
     (A I Nn : BitVec 64) (hK : A.toNat % 8 = 0) (hKE : A.toNat + 52 ≤ 33806089496)
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (hwP : w.toNat < P0.toNat) (p0 : P0.toNat ≤ H.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w)
     (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memory = M2 → s.globals = G2 → LP s.locals →
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea,ei,en] =
         some [.val (.word A),.val (.word I),.val (.word Nn)]) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2)
-      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G) RR
+      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G) RR
       (.call (some (none,none)) (ofString "add_nonce_change") [ea,ei,en]) := by
   have u' := u
   obtain ⟨hH,hn,bg,bw,_⟩ := u'
@@ -62,14 +63,14 @@ theorem aqgd_call_addNonceW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → Pro
 /-- The world-level `add_code_change` call statement. -/
 theorem aqgd_call_addCodeW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → Prop} (ea ei ec el : ExpHOL 64)
     (A I Cd Cl : BitVec 64) (hK : A.toNat % 8 = 0) (hKE : A.toNat + 52 ≤ 33806089496)
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (hwP : w.toNat < P0.toNat) (p0 : P0.toNat ≤ H.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w)
     (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memory = M2 → s.globals = G2 → LP s.locals →
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea,ei,ec,el] =
         some [.val (.word A),.val (.word I),.val (.word Cd),.val (.word Cl)]) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2)
-      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G) RR
+      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G) RR
       (.call (some (none,none)) (ofString "add_code_change") [ea,ei,ec,el]) := by
   have u' := u
   obtain ⟨hH,hn,bg,bw,_⟩ := u'
@@ -85,14 +86,14 @@ theorem aqgd_call_addCodeW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → Prop
 theorem aqgd_call_addStorageW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → Prop} (ea es ei ev : ExpHOL 64)
     (A Sl I v0 v1 v2 v3 : BitVec 64) (hK : A.toNat % 8 = 0) (hKE : A.toNat + 52 ≤ 33806089496)
     (hS : Sl.toNat % 8 = 0) (hSE : Sl.toNat + 52 ≤ 33806089496)
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (hwP : w.toNat < P0.toNat) (p0 : P0.toNat ≤ H.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w)
     (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memory = M2 → s.globals = G2 → LP s.locals →
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea,es,ei,ev] =
         some [.val (.word A),.val (.word Sl),.val (.word I),.rStruct [.val (.word v0),.val (.word v1),.val (.word v2),.val (.word v3)]]) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2)
-      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G) RR
+      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G) RR
       (.call (some (none,none)) (ofString "add_storage_write") [ea,es,ei,ev]) := by
   have u' := u
   obtain ⟨hH,hn,bg,bw,_⟩ := u'
@@ -107,14 +108,14 @@ theorem aqgd_call_addStorageW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → P
 /-- The world-level `bal_remove_change` call statement. -/
 theorem aqgd_call_removeChangeW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → Prop} (ea ew ee ei : ExpHOL 64)
     (A Wc E I : BitVec 64) (sel : ChgSel Wc E) (hK : A.toNat % 8 = 0) (hKE : A.toNat + 52 ≤ 33806089496)
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (hwP : w.toNat < P0.toNat) (p0 : P0.toNat ≤ H.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w)
     (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memory = M2 → s.globals = G2 → LP s.locals →
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea,ew,ee,ei] =
         some [.val (.word A),.val (.word Wc),.val (.word E),.val (.word I)]) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2)
-      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G) RR
+      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G) RR
       (.call (some (none,none)) (ofString "bal_remove_change") [ea,ew,ee,ei]) := by
   have u' := u
   obtain ⟨hH,hn,bg,bw,_⟩ := u'
@@ -130,14 +131,14 @@ theorem aqgd_call_removeChangeW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA →
 theorem aqgd_call_removeStorageW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → Prop} (ea es ei : ExpHOL 64)
     (A Sl I : BitVec 64) (hK : A.toNat % 8 = 0) (hKE : A.toNat + 52 ≤ 33806089496)
     (hS : Sl.toNat % 8 = 0) (hSE : Sl.toNat + 52 ≤ 33806089496)
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (hwP : w.toNat < P0.toNat) (p0 : P0.toNat ≤ H.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w)
     (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memory = M2 → s.globals = G2 → LP s.locals →
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea,es,ei] =
         some [.val (.word A),.val (.word Sl),.val (.word I)]) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2)
-      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G) RR
+      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G) RR
       (.call (some (none,none)) (ofString "remove_storage_write") [ea,es,ei]) := by
   have u' := u
   obtain ⟨hH,hn,bg,bw,_⟩ := u'
@@ -153,13 +154,13 @@ theorem aqgd_call_removeStorageW (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA �
 theorem aqgd_decCall_isaW (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) WsI)
     (ne : kB ≠ ko) (Bs : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
     (hcB : c kB = Bs + 72#64) {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA → Prop} (name : MlS) (ea : ExpHOL 64)
-    {cont : ProgHOL 64} (A : BitVec 64) (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    {cont : ProgHOL 64} (A : BitVec 64) (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (hwP : w.toNat < P0.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w) (hwR : ¬ Rr w) (hwO : ¬ Ow w)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memaddrs = D → s.memory = M2 → s.globals = G2 →
       LP s.locals → evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea] =
         some [.val (.word A)])
     (hres : ∀ (L : GA) (y : BitVec 64) (M : Mem) (G : GA), LP L →
-      USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G → Pc (L.update (name,.val (.word y))) M G)
+      USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G → Pc (L.update (name,.val (.word y))) M G)
     (hc : AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) Pc Qc RR cont)
     (hq : ∀ (L L' : GA) (M' : Mem) (G' : GA), LP L → Qc L' M' G' → Q (L'.resVarEq (name,L.lookup name)) M' G') :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2) Q RR
@@ -167,7 +168,7 @@ theorem aqgd_decCall_isaW (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
   refine aqgd_decCallSpecD (Vn' := fun _ => False)
     (Pe := fun _ M0' G0' L M G => L.lookup (ofString "addr") = some (.val (.word A)) ∧ M = M0' ∧ G = G0')
     (RRe := fun _ _ _ v M' G' => (∃ y : BitVec 64, v = .val (.word y)) ∧
-      USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M' G')
+      USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M' G')
     _ _ _ _ _ _ _ originalRuntimeCode_idxStartAccount_lookup (by simp)
     (fun L0 M0' G0' ⟨_,hM,hG⟩ => by
       rw [hM,hG]
@@ -191,13 +192,13 @@ theorem aqgd_decCall_isaW (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
 theorem aqgd_decCall_issW (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) WsI)
     (ne : kB ≠ ko) (Bs : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
     (hcB : c kB = Bs + 72#64) {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA → Prop} (name : MlS) (ea ek : ExpHOL 64)
-    {cont : ProgHOL 64} (A K : BitVec 64) (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    {cont : ProgHOL 64} (A K : BitVec 64) (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (hwP : w.toNat < P0.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w) (hwR : ¬ Rr w) (hwO : ¬ Ow w)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memaddrs = D → s.memory = M2 → s.globals = G2 →
       LP s.locals → evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea,ek] =
         some [.val (.word A),.val (.word K)])
     (hres : ∀ (L : GA) (a b c' d : BitVec 64) (M : Mem) (G : GA), LP L →
-      USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G →
+      USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G →
       Pc (L.update (name,.rStruct [.val (.word a),.val (.word b),.val (.word c'),.val (.word d)])) M G)
     (hc : AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) Pc Qc RR cont)
     (hq : ∀ (L L' : GA) (M' : Mem) (G' : GA), LP L → Qc L' M' G' → Q (L'.resVarEq (name,L.lookup name)) M' G') :
@@ -206,7 +207,7 @@ theorem aqgd_decCall_issW (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
   refine aqgd_decCallSpecD (Vn' := fun _ => False)
     (Pe := fun _ M0' G0' L M G => (L.lookup (ofString "addr") = some (.val (.word A)) ∧
       L.lookup (ofString "key") = some (.val (.word K))) ∧ M = M0' ∧ G = G0')
-    (RRe := fun _ _ _ _ M' G' => USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M' G')
+    (RRe := fun _ _ _ _ M' G' => USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M' G')
     _ _ _ _ _ _ _ originalRuntimeCode_idxStartStorage_lookup (by simp)
     (fun L0 M0' G0' ⟨_,hM,hG⟩ => by
       rw [hM,hG]

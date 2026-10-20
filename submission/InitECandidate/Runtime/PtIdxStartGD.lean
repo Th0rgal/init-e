@@ -11,7 +11,8 @@ section is
 variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {RR : ValueHOL 64 → Mem → GA → Prop}
   {SP0 P0 FM : BitVec 64} {G0 : GA} {J C SKB Bo U Sc : BitVec 64}
   {BA IA IS KB Ix : BitVec 64} {n : Nat} {c T : Fin n → BitVec 64}
-  {Out : BitVec 64 → Prop} {ko kB : Fin n} {WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop} {Nj : BitVec 64}
+  {Out : BitVec 64 → Prop} {ko kB : Fin n} {WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop} {Sk : BitVec 64 → Prop}
+  {Nj : BitVec 64}
 
 /-- The world-level declared call `name = get_pre_tx_account(ea)`. -/
 theorem aqgd_decCall_gpaW (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) WsI)
@@ -19,13 +20,13 @@ theorem aqgd_decCall_gpaW (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
     (hcB : c kB = Bs + 72#64) {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA → Prop} (name : MlS) (ea : ExpHOL 64)
     {cont : ProgHOL 64} (A : BitVec 64) {ADs : Set (BitVec 64)} {Rg : BalK → BitVec 64 → Prop} {H : BitVec 64}
     {Rr Ow : BitVec 64 → Prop} {M2 : Mem} {G2 : GA}
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (p0 : P0.toNat ≤ H.toNat) (hwP : w.toNat < P0.toNat) (hwR : ¬ Rr w) (hwO : ¬ Ow w)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memaddrs = D → s.memory = M2 → s.globals = G2 →
       LP s.locals → evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea] =
         some [.val (.word A)])
     (hres : ∀ (L : GA) (y : BitVec 64) (M : Mem) (G : GA), LP L →
-      USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G → Pc (L.update (name,.val (.word y))) M G)
+      USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G → Pc (L.update (name,.val (.word y))) M G)
     (hc : AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) Pc Qc RR cont)
     (hq : ∀ (L L' : GA) (M' : Mem) (G' : GA), LP L → Qc L' M' G' → Q (L'.resVarEq (name,L.lookup name)) M' G') :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2) Q RR
@@ -59,12 +60,12 @@ theorem idxStartAcct_aqgd (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
     (ne : kB ≠ ko) (Bs : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
     (hcB : c kB = Bs + 72#64) (A : BitVec 64) {ADs : Set (BitVec 64)} {Rg : BalK → BitVec 64 → Prop}
     {H : BitVec 64} {Rr Ow : BitVec 64 → Prop} {M1 : Mem} {G1 : GA}
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M1 G1)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M1 G1)
     (hwP : w.toNat < P0.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w) (hwR : ¬ Rr w) (hwO : ¬ Ow w) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
       (fun L M G => L.lookup (ofString "addr") = some (.val (.word A)) ∧ M = M1 ∧ G = G1) (fun _ _ _ => False)
       (fun v M G => (∃ y : BitVec 64, v = .val (.word y)) ∧
-        USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M1 M G)
+        USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M1 M G)
       (sourceFunctionBody Guest.guestFn_idx_start_account) := by
   refine uw_heapFact u (fun ⟨p0,hHE,_⟩ => ?_)
   have u' := u
@@ -89,13 +90,13 @@ theorem idxStartAcct_aqgd (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
       rw [hG,hG1]; exact bg.2.2.2.1
     simp [EV,evalHOLExact,gk] at ev; subst ev
     exact ⟨⟨lookup_update_eq' _ _ _,by rw [lookup_update_ne' _ _ (by decide)]; exact la⟩,hM,hG1⟩
-  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M1 M G)
+  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M1 M G)
     (aqgd_stLe64_kbW wsr.1 u hHE (hwk .kb trivial) (fun L h => h.1)) ?_
   refine aqgd_conseq (aqgd_ust (LP' := fun _ => False) (X := fun v => ∃ y : BitVec 64, v = .val (.word y))
     (fun A2 R2 H2 Rr2 Ow2 M2 G2 u2 le2 hk2 hr2 ho2 => ?_) (by omega) hwk hwR hwO)
     (fun _ _ _ h => h) (fun _ _ _ h => h.1.elim) (fun _ _ _ h => h)
   refine uw_heapFact u2 (fun ⟨p2,hHE2,_⟩ => ?_)
-  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj A2 R2 H2 Rr2 Ow2 M2 M G)
+  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj A2 R2 H2 Rr2 Ow2 M2 M G)
     (aqgd_memcpy_kbW wsr.1 u2 hHE2 (hk2 .kb trivial) A (fun L h => h)) ?_
   refine aqgd_ust (fun A3 R3 H3 Rr3 Ow3 M3 G3 u3 le3 hk3 hr3 ho3 => ?_) (by omega) hk2 hr2 ho2
   refine uw_heapFact u3 (fun ⟨p3,_,_⟩ => ?_)
@@ -126,7 +127,7 @@ theorem idxStartAcct_aqgd (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
   -- pre = get_pre_tx_account(addr)
   refine aqgd_decCall_gpaW bk wsr ne Bs hBs hcB (LP := LPk)
     (Pc := fun L M G => ∃ y : BitVec 64, (LPk L ∧ L.lookup (ofString "pre") = some (.val (.word y))) ∧
-      USt D B BA IA IS KB Ix n c T Out ko WsI Nj A3 R3 H3 Rr3 Ow3 M3 M G)
+      USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj A3 R3 H3 Rr3 Ow3 M3 M G)
     (Qc := fun _ _ _ => False) (ofString "pre") _ A u3 p3 hwP hr3 ho3 ?_ ?_ ?_ (fun _ _ _ _ _ h => h.elim)
   · intro F s _ _ _ ⟨_,la⟩
     rw [evalListHOLFinite_eq_toExact]

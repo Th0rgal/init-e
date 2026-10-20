@@ -92,7 +92,8 @@ section rb
 variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {RR : ValueHOL 64 → Mem → GA → Prop}
   {SP0 P0 FM : BitVec 64} {G0 : GA} {J C SKB Bo U Sc : BitVec 64}
   {BA IA IS KB Ix : BitVec 64} {n : Nat} {c T : Fin n → BitVec 64}
-  {Out : BitVec 64 → Prop} {ko : Fin n} {WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop} {Nj : BitVec 64}
+  {Out : BitVec 64 → Prop} {ko : Fin n} {WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop} {Sk : BitVec 64 → Prop}
+  {Nj : BitVec 64}
 
 /-- The `idx_start_account` tail program. -/
 def idxAcctTailP : ProgHOL 64 :=
@@ -122,14 +123,14 @@ def idxAcctRecP : ProgHOL 64 :=
 
 theorem idxAcctRec_aqgd (bk : BalKeep) (wsf : WsIFrame WsI) (A Y : BitVec 64) {ADs : Set (BitVec 64)}
     {Rg : BalK → BitVec 64 → Prop} {H3 : BitVec 64} {Rr Ow : BitVec 64 → Prop} {M3 : Mem} {G3 : GA}
-    (u3 : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H3 Rr Ow M3 G3)
+    (u3 : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H3 Rr Ow M3 G3)
     (hwP : w.toNat < P0.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w) (hwR : ¬ Rr w) (hwO : ¬ Ow w) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
       (fun L M G => (L.lookup (ofString "kb") = some (.val (.word KB)) ∧
         L.lookup (ofString "addr") = some (.val (.word A)) ∧ L.lookup (ofString "pre") = some (.val (.word Y))) ∧
         M = M3 ∧ G = G3) (fun _ _ _ => False)
       (fun v M G => (∃ y : BitVec 64, v = .val (.word y)) ∧
-        USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H3 Rr Ow M3 M G) idxAcctRecP := by
+        USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H3 Rr Ow M3 M G) idxAcctRecP := by
   refine uw_heapFact u3 (fun ⟨p0,hHE,hal⟩ => ?_)
   have hw3 : w.toNat < H3.toNat := by omega
   have u3' := u3

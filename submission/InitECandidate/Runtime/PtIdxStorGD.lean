@@ -61,16 +61,17 @@ section st
 variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {RR : ValueHOL 64 → Mem → GA → Prop}
   {SP0 P0 FM : BitVec 64} {G0 : GA} {J C SKB Bo U Sc : BitVec 64}
   {BA IA IS KB Ix : BitVec 64} {n : Nat} {c T : Fin n → BitVec 64}
-  {Out : BitVec 64 → Prop} {ko kB : Fin n} {WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop} {Nj : BitVec 64}
+  {Out : BitVec 64 → Prop} {ko kB : Fin n} {WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop} {Sk : BitVec 64 → Prop}
+  {Nj : BitVec 64}
 
 /-- `memcpy(kb + 28, key, 32)` in the world. -/
 theorem aqgd_memcpy_kb28W (wsf : WsIFrame WsI) {LP : GA → Prop} {ADs : Set (BitVec 64)}
     {Rg : BalK → BitVec 64 → Prop} {H : BitVec 64} {Rr Ow : BitVec 64 → Prop} {M2 : Mem} {G2 : GA}
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2) (hHE : H.toNat ≤ 33806089496)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2) (hHE : H.toNat ≤ 33806089496)
     (hwk : ¬ Rg .kb w) (K : BitVec 64) (hl : ∀ L, LP L → L.lookup (ofString "kb") = some (.val (.word KB)) ∧
       L.lookup (ofString "key") = some (.val (.word K))) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2)
-      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G) RR
+      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G) RR
       (.call (some (none,none)) (ofString "memcpy") [.op .add [.var .local (ofString "kb"),.const 28#64],
         .var .local (ofString "key"),.const 32#64]) := by
   obtain ⟨al,fit,inR⟩ := uw_kb u hHE
@@ -86,12 +87,12 @@ theorem aqgd_memcpy_kb28W (wsf : WsIFrame WsI) {LP : GA → Prop} {ADs : Set (Bi
 /-- `htab_set(bal_idx_stor, kb, rec)` in the world. -/
 theorem aqgd_setIS_W (bk : BalKeep) (wsf : WsIFrame WsI) {LP : GA → Prop} {ADs : Set (BitVec 64)}
     {Rg : BalK → BitVec 64 → Prop} {H : BitVec 64} {Rr Ow : BitVec 64 → Prop} {M2 : Mem} {G2 : GA}
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (hwis : ¬ Rg .is w) (hwP : w.toNat < P0.toNat) (p0 : P0.toNat ≤ H.toNat) (R : BitVec 64)
     (hl : ∀ L, LP L → L.lookup (ofString "kb") = some (.val (.word KB)) ∧
       L.lookup (ofString "rec") = some (.val (.word R))) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) (fun L M G => LP L ∧ M = M2 ∧ G = G2)
-      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G) RR
+      (fun L M G => LP L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G) RR
       (.call (some (none,none)) (ofString "htab_set") [.var .global (ofString "bal_idx_stor"),
         .var .local (ofString "kb"),.var .local (ofString "rec")]) := by
   have u' := u
@@ -115,13 +116,13 @@ theorem aqgd_decCall_gpsW (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
     (hcB : c kB = Bs + 72#64) {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA → Prop} (name : MlS) (ea ek : ExpHOL 64)
     {cont : ProgHOL 64} (A K : BitVec 64) {ADs : Set (BitVec 64)} {Rg : BalK → BitVec 64 → Prop} {H : BitVec 64}
     {Rr Ow : BitVec 64 → Prop} {M2 : Mem} {G2 : GA}
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 G2)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 G2)
     (p0 : P0.toNat ≤ H.toNat) (hwP : w.toNat < P0.toNat) (hwR : ¬ Rr w) (hwO : ¬ Ow w)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memaddrs = D → s.memory = M2 → s.globals = G2 →
       LP s.locals → evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [ea,ek] =
         some [.val (.word A),.val (.word K)])
     (hres : ∀ (L : GA) (a b c' d : BitVec 64) (M : Mem) (G : GA), LP L →
-      USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M2 M G →
+      USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M2 M G →
       Pc (L.update (name,.rStruct [.val (.word a),.val (.word b),.val (.word c'),.val (.word d)])) M G)
     (hc : AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False) Pc Qc RR cont)
     (hq : ∀ (L L' : GA) (M' : Mem) (G' : GA), LP L → Qc L' M' G' → Q (L'.resVarEq (name,L.lookup name)) M' G') :
@@ -170,28 +171,28 @@ def idxStorTailP : ProgHOL 64 :=
 
 theorem idxStorTail_aqgd (bk : BalKeep) (wsf : WsIFrame WsI) (A K R : BitVec 64) {ADs : Set (BitVec 64)}
     {Rg : BalK → BitVec 64 → Prop} {H : BitVec 64} {Rr Ow : BitVec 64 → Prop} {M4 : Mem} {G4 : GA}
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M4 G4)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M4 G4)
     (hwP : w.toNat < P0.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w) (hwR : ¬ Rr w) (hwO : ¬ Ow w) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
       (fun L M G => ISL KB A K R L ∧ M = M4 ∧ G = G4) (fun _ _ _ => False)
-      (fun _ M G => USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M4 M G) idxStorTailP := by
+      (fun _ M G => USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M4 M G) idxStorTailP := by
   unfold idxStorTailP
   refine uw_heapFact u (fun ⟨p0,hHE,_⟩ => ?_)
-  refine aqgd_seq (Q := fun L M G => ISL KB A K R L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M4 M G)
+  refine aqgd_seq (Q := fun L M G => ISL KB A K R L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M4 M G)
     (aqgd_stLe64_kbW wsf u hHE (hwk .kb trivial) (fun L h => h.1)) ?_
   refine aqgd_conseq (aqgd_ust (LP' := fun _ => False) (X := fun _ => True)
     (fun A5 R5 H5 Rr5 Ow5 M5 G5 u5 le5 hk5 hr5 ho5 => ?_) (by omega) hwk hwR hwO)
     (fun _ _ _ h => h) (fun _ _ _ h => h.1.elim) (fun _ _ _ h => h.2)
   refine uw_heapFact u5 (fun ⟨_,hHE5,_⟩ => ?_)
-  refine aqgd_seq (Q := fun L M G => ISL KB A K R L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj A5 R5 H5 Rr5 Ow5 M5 M G)
+  refine aqgd_seq (Q := fun L M G => ISL KB A K R L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj A5 R5 H5 Rr5 Ow5 M5 M G)
     (aqgd_memcpy_kbW wsf u5 hHE5 (hk5 .kb trivial) A (fun L h => ⟨h.1,h.2.1⟩)) ?_
   refine aqgd_ust (fun A6 R6 H6 Rr6 Ow6 M6 G6 u6 le6 hk6 hr6 ho6 => ?_) (by omega) hk5 hr5 ho5
   refine uw_heapFact u6 (fun ⟨_,hHE6,_⟩ => ?_)
-  refine aqgd_seq (Q := fun L M G => ISL KB A K R L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj A6 R6 H6 Rr6 Ow6 M6 M G)
+  refine aqgd_seq (Q := fun L M G => ISL KB A K R L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj A6 R6 H6 Rr6 Ow6 M6 M G)
     (aqgd_memcpy_kb28W wsf u6 hHE6 (hk6 .kb trivial) K (fun L h => ⟨h.1,h.2.2.1⟩)) ?_
   refine aqgd_ust (fun A7 R7 H7 Rr7 Ow7 M7 G7 u7 le7 hk7 hr7 ho7 => ?_) (by omega) hk6 hr6 ho6
   refine uw_heapFact u7 (fun ⟨p7,_,_⟩ => ?_)
-  refine aqgd_seq (Q := fun L M G => ISL KB A K R L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj A7 R7 H7 Rr7 Ow7 M7 M G)
+  refine aqgd_seq (Q := fun L M G => ISL KB A K R L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj A7 R7 H7 Rr7 Ow7 M7 M G)
     (aqgd_setIS_W bk wsf u7 (hk7 .is trivial) hwP p7 R (fun L h => ⟨h.1,h.2.2.2⟩)) ?_
   exact aqgd_return _ (fun s v _ _ hG ⟨_,st⟩ _ _ => by unfold GIs at hG; subst hG; exact ⟨trivial,st⟩)
 
@@ -204,14 +205,14 @@ def idxStorRecP : ProgHOL 64 :=
 
 theorem idxStorRec_aqgd (bk : BalKeep) (wsf : WsIFrame WsI) (A K a b c' d : BitVec 64) {ADs : Set (BitVec 64)}
     {Rg : BalK → BitVec 64 → Prop} {H3 : BitVec 64} {Rr Ow : BitVec 64 → Prop} {M3 : Mem} {G3 : GA}
-    (u3 : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H3 Rr Ow M3 G3)
+    (u3 : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H3 Rr Ow M3 G3)
     (hwP : w.toNat < P0.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w) (hwR : ¬ Rr w) (hwO : ¬ Ow w) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
       (fun L M G => (L.lookup (ofString "kb") = some (.val (.word KB)) ∧
         L.lookup (ofString "addr") = some (.val (.word A)) ∧ L.lookup (ofString "key") = some (.val (.word K)) ∧
         L.lookup (ofString "v") = some (.rStruct [.val (.word a),.val (.word b),.val (.word c'),.val (.word d)])) ∧
         M = M3 ∧ G = G3) (fun _ _ _ => False)
-      (fun _ M G => USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H3 Rr Ow M3 M G) idxStorRecP := by
+      (fun _ M G => USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H3 Rr Ow M3 M G) idxStorRecP := by
   refine uw_heapFact u3 (fun ⟨p0,hHE,hal⟩ => ?_)
   have hw3 : w.toNat < H3.toNat := by omega
   have u3' := u3
@@ -256,12 +257,12 @@ theorem idxStartStor_aqgd (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
     (ne : kB ≠ ko) (Bs : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
     (hcB : c kB = Bs + 72#64) (A K : BitVec 64) {ADs : Set (BitVec 64)} {Rg : BalK → BitVec 64 → Prop}
     {H : BitVec 64} {Rr Ow : BitVec 64 → Prop} {M1 : Mem} {G1 : GA}
-    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M1 G1)
+    (u : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M1 G1)
     (hwP : w.toNat < P0.toNat) (hwk : ∀ k, BalK.live ADs k → ¬ Rg k w) (hwR : ¬ Rr w) (hwO : ¬ Ow w) :
     AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
       (fun L M G => (L.lookup (ofString "addr") = some (.val (.word A)) ∧
         L.lookup (ofString "key") = some (.val (.word K))) ∧ M = M1 ∧ G = G1) (fun _ _ _ => False)
-      (fun _ M G => USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M1 M G)
+      (fun _ M G => USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M1 M G)
       (sourceFunctionBody Guest.guestFn_idx_start_storage) := by
   refine uw_heapFact u (fun ⟨p0,hHE,_⟩ => ?_)
   have u' := u
@@ -287,17 +288,17 @@ theorem idxStartStor_aqgd (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
     simp [EV,evalHOLExact,gk] at ev; subst ev
     exact ⟨⟨lookup_update_eq' _ _ _,by rw [lookup_update_ne' _ _ (by decide)]; exact la,
       by rw [lookup_update_ne' _ _ (by decide)]; exact lk⟩,hM,hG1⟩
-  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj ADs Rg H Rr Ow M1 M G)
+  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs Rg H Rr Ow M1 M G)
     (aqgd_stLe64_kbW wsr.1 u hHE (hwk .kb trivial) (fun L h => h.1)) ?_
   refine aqgd_conseq (aqgd_ust (LP' := fun _ => False) (X := fun _ => True)
     (fun A2 R2 H2 Rr2 Ow2 M2 G2 u2 le2 hk2 hr2 ho2 => ?_) (by omega) hwk hwR hwO)
     (fun _ _ _ h => h) (fun _ _ _ h => h.1.elim) (fun _ _ _ h => h.2)
   refine uw_heapFact u2 (fun ⟨_,hHE2,_⟩ => ?_)
-  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj A2 R2 H2 Rr2 Ow2 M2 M G)
+  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj A2 R2 H2 Rr2 Ow2 M2 M G)
     (aqgd_memcpy_kbW wsr.1 u2 hHE2 (hk2 .kb trivial) A (fun L h => ⟨h.1,h.2.1⟩)) ?_
   refine aqgd_ust (fun A3 R3 H3 Rr3 Ow3 M3 G3 u3 le3 hk3 hr3 ho3 => ?_) (by omega) hk2 hr2 ho2
   refine uw_heapFact u3 (fun ⟨_,hHE3,_⟩ => ?_)
-  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj A3 R3 H3 Rr3 Ow3 M3 M G)
+  refine aqgd_seq (Q := fun L M G => LPk L ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj A3 R3 H3 Rr3 Ow3 M3 M G)
     (aqgd_memcpy_kb28W wsr.1 u3 hHE3 (hk3 .kb trivial) K (fun L h => ⟨h.1,h.2.2⟩)) ?_
   refine aqgd_ust (fun A4 R4 H4 Rr4 Ow4 M4 G4 u4 le4 hk4 hr4 ho4 => ?_) (by omega) hk3 hr3 ho3
   refine uw_heapFact u4 (fun ⟨p4,_,_⟩ => ?_)
@@ -324,7 +325,7 @@ theorem idxStartStor_aqgd (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM 
   refine aqgd_decCall_gpsW bk wsr ne Bs hBs hcB (LP := LPk)
     (Pc := fun L M G => ∃ q : BitVec 64 × BitVec 64 × BitVec 64 × BitVec 64, (LPk L ∧
       L.lookup (ofString "v") = some (.rStruct [.val (.word q.1),.val (.word q.2.1),.val (.word q.2.2.1),
-        .val (.word q.2.2.2)])) ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Nj A4 R4 H4 Rr4 Ow4 M4 M G)
+        .val (.word q.2.2.2)])) ∧ USt D B BA IA IS KB Ix n c T Out ko WsI Sk Nj A4 R4 H4 Rr4 Ow4 M4 M G)
     (Qc := fun _ _ _ => False) (ofString "v") _ _ A K u4 p4 hwP hr4 ho4 ?_ ?_ ?_ (fun _ _ _ _ _ h => h.elim)
   · intro F s _ _ _ ⟨_,la,lkey⟩
     rw [evalListHOLFinite_eq_toExact]
