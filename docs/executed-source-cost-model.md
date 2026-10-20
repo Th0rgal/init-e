@@ -336,6 +336,17 @@ reentry into a later terminal iteration. Native extraction charges at most
 compiler constructor rules; the complete recursive compiler driver and the
 remaining FFI/shared/call leaf constructions still need completion.
 
+`SourceCostGlobalsExpr*` proves successful ready expressions preserve their
+values and do not increase the sharp source score under the original globals
+state relation. `SourceCostGlobalsState` supplies actual clock/locals/callee
+relations; `StatementRun.code_eq` reuses the pinned evaluator's code-preservation
+theorem. `SourceCostGlobalsReady` exposes the syntactic requirements for the
+remaining statement transfer. `GuestCostGlobalsReady` checks these on the exact
+pass1 declarations: every body and initializer is ready, function parameters
+exclude the generated call temporary, and body readiness follows from actual
+declaration membership. The whole statement/installed-entry globals transfer
+is still pending; these expression and syntax results do not imply it alone.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
