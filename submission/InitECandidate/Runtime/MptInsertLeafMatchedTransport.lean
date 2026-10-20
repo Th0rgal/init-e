@@ -1,27 +1,8 @@
+import InitECandidate.Runtime.TriePathBufferFieldsFrame
 import InitECandidate.Runtime.MptInsertPayloadPathsWorld
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
-
-/-- An actual finite family of in-record changes transports every separated
-path buffer, using its containing-word separation rather than byte alignment. -/
-theorem TriePathBuffer.after_record_fields {F : Type} {s post : PanSemStateFiniteExact 64 F}
- {live extensions branches : Set (BitVec 64)} {size : BitVec 64→Nat} {frontier key len : BitVec 64}
- (path : TriePathBuffer s live size key len frontier)
- (world : AllocatedTrieWorld s live extensions branches size frontier)
- (node : BitVec 64) (member : node∈live) (fields : List Nat)
- (inside : ∀field∈fields,field<size node)
- (frame : ∀watched : BitVec 64,(∀field∈fields,watched≠node+BitVec.ofNat 64 field)→post.memory watched=s.memory watched)
- (domain : post.memaddrs=s.memaddrs) (endian : post.be=s.be) :
- TriePathBuffer post live size key len frontier := by
- refine ⟨path.nibbles.after_cells ?_ domain endian,path.extent,path.separate⟩
- intro offset small
- apply frame
- intro field included equal
- have natural:=congrArg BitVec.toNat equal
- rw [world.layout.field_nat node member field (inside field included)] at natural
- have fieldInside:=inside field included
- rcases path.separate offset small node member with before|after <;>omega
 
 /-- The two real payload stores in an equal-key leaf preserve the allocated
 world, stored node paths, and every other separated input path buffer. -/

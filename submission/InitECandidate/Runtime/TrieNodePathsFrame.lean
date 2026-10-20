@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.TrieNodePaths
-import InitECandidate.Runtime.NodeInvalidateNibbleWorld
+import InitECandidate.Runtime.TriePathBufferFieldsFrame
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.PanSemStateFiniteExact
 
@@ -34,16 +34,8 @@ theorem TrieNodePaths.after_record_fields {F : Type} {s post : PanSemStateFinite
       · exact Ne.symm (safe field included).1
       · exact Ne.symm (safe field included).2
   · exact Or.inl same
- have nibbles : TrieNibbleRange post key len := by
-  apply path.nibbles.after_cells _ domain endian
-  intro offset small
-  apply frame
-  intro field included equal
-  have natural:=congrArg BitVec.toNat equal
-  rw [world.layout.field_nat parent member field (inside field included)] at natural
-  have fieldInside:=inside field included
-  rcases path.separate offset small parent member with before|after <;>omega
- refine ⟨key,len,?_,?_,short,nibbles,path.extent,path.separate⟩
+ have keptPath:=path.after_record_fields world parent member fields inside frame domain endian
+ refine ⟨key,len,?_,?_,short,keptPath⟩
  · rw [show node+32=node+BitVec.ofNat 64 32 from rfl,headerFrame 32 (Or.inl rfl)];exact keyAt
  · rw [show node+40=node+BitVec.ofNat 64 40 from rfl,headerFrame 40 (Or.inr rfl)];exact lenAt
 
