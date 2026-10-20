@@ -76,3 +76,22 @@ bounds at the label backend. They do not yet establish the source work vector
 or a complete finite certificate. Native coefficients in the table above remain
 to be certified; the size charges specify the accounting policy, not assumed
 compiler theorems.
+
+## Compiler-induced repeated work
+
+`PanToCrep.compileExpExactHOLW` lowers a structured load using
+`loadShapeBytesHOLW`: every result word contains another copy of the compiled
+address expression. Source evaluation computes that address once. The source
+cost rule therefore needs a size-dependent replay allowance, in addition to
+its actual expression events and memory-word charge. Nested structured loads
+must compose this allowance recursively; a universal one-word charge is not
+sufficient.
+
+`CrepExpressionWork.loadShape_work_bound` proves, for the actual pinned
+flattening helper, that the sum of emitted scalar expression nodes is at most
+`words * (addressNodeWork + 3)`. The three extra nodes cover a load, offset
+addition and offset constant. This bound is independent of whole-program size.
+It is a syntactic expansion bound, not yet a native runtime theorem. Field
+projection can discard some expanded expressions, so this full-load bound is
+conservative for a projected load. The expression/source cost connection must
+retain these local multiplicities rather than assume flattening is free.
