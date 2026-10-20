@@ -46,13 +46,13 @@ theorem entry_empty_locals {F : Type} {s post : PanSemStateFiniteExact 64 F} {fu
     exact ⟨_, h⟩
 
 /-- Re-dispatching a non-error destination-free call result through a
-destination-free call with the callee's return shape is non-error. -/
-theorem entry_plan_ok {F : Type} {s post : PanSemStateFiniteExact 64 F} {function : MlStringHOL}
+destination-free call with the callee's return shape returns the same result. -/
+theorem entry_plan_same {F : Type} {s post : PanSemStateFiniteExact 64 F} {function : MlStringHOL}
     {r ev} (run : StatementRun s (.call none function []) r post ev) (ok : r ≠ some .error)
     {body callee returnShape}
     (lookup : lookupCodeHOLFinite s.code.lookup function [] = some (body, callee, returnShape))
     (s' bodyPost : PanSemStateFiniteExact 64 F) {res p}
-    (plan : callCostPlan s' none returnShape r bodyPost = .done res p) : res ≠ some .error := by
+    (plan : callCostPlan s' none returnShape r bodyPost = .done res p) : res = r := by
   cases run with
   | @callDone _ _ _ _ _ _ _ _ bodyResult _ _ _ _ args lookup' clock bodyRun plan0 =>
     have values : _ := args
@@ -66,12 +66,12 @@ theorem entry_plan_ok {F : Type} {s post : PanSemStateFiniteExact 64 F} {functio
     all_goals simp only at plan0
     all_goals (try (cases plan0; exact absurd rfl ok))
     all_goals first
-      | (cases plan0; simp only at plan; cases plan; simp; done)
+      | (cases plan0; simp only at plan; cases plan; rfl; done)
       | (split at plan0
          · rename_i hshape
            cases plan0
            simp only [hshape, ↓reduceIte] at plan
-           cases plan; simp
+           cases plan; rfl
          · cases plan0; exact absurd rfl ok)
   | callHandler args lookup clock bodyRun plan0 handlerRun =>
     obtain ⟨_, _, _, h⟩ := globals_plan_handler_info plan0
@@ -80,7 +80,15 @@ theorem entry_plan_ok {F : Type} {s post : PanSemStateFiniteExact 64 F} {functio
   | callLookupFailure args lookup => exact absurd rfl ok
   | callTimeout args lookup clock =>
     unfold callCostPlan at plan
-    cases plan; simp
+    cases plan; rfl
+
+theorem entry_plan_ok {F : Type} {s post : PanSemStateFiniteExact 64 F} {function : MlStringHOL}
+    {r ev} (run : StatementRun s (.call none function []) r post ev) (ok : r ≠ some .error)
+    {body callee returnShape}
+    (lookup : lookupCodeHOLFinite s.code.lookup function [] = some (body, callee, returnShape))
+    (s' bodyPost : PanSemStateFiniteExact 64 F) {res p}
+    (plan : callCostPlan s' none returnShape r bodyPost = .done res p) : res ≠ some .error := by
+  rw [entry_plan_same run ok lookup s' bodyPost plan]; exact ok
 
 theorem entry_lookup_noargs {code : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL)}
     {function : MlS} {body : ProgHOL 64} {returnShape : ShapeHOL}
