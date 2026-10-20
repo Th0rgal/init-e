@@ -2314,4 +2314,22 @@ theorem wordPathWork_ite_sValEq_stack_variant {C F : Type}
   rw [wordPathWork, wordPathWork, getVar_stack, getVarImm_stack]
   split <;> simp_all
 
+
+/-! ### Driver cases with a zero tail (`some` result / non-`contLoop` result) -/
+
+theorem wordPathWork_seq_sValEq_stack_variant_zero {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (res : Option (WordSemResult 64)) (middle mT : WordSemStateFiniteExact 64 C F)
+    (hev : evaluate first s = (res, middle))
+    (hevT : evaluate first { s with stack := xs } = (res, mT))
+    (hne : res ≠ none)
+    (ihF : wordPathWork first { s with stack := xs } = wordPathWork first s) :
+    wordPathWork (.seq first second) { s with stack := xs } =
+      wordPathWork (.seq first second) s := by
+  rw [wordPathWork, wordPathWork, ihF, hev, hevT]
+  cases res with
+  | none => exact absurd rfl hne
+  | some r => rfl
+
 end InitECandidate.Runtime.WordToStack

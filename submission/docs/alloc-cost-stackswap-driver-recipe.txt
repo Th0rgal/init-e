@@ -46,3 +46,20 @@ Per case:
    and lss.map fst = e.map fst ⇒ lss = lss' via map_fst_snd_eq ⇒ middleT.locals =
    middle.locals (sptUnion_env_eq) ⇒ hdomT and middleT = {middle with stack := st};
    then _call_exception_at; other results ⇒ 1+bodyWork.
+
+CONFIRMED PACKET SEMANTICS (WordSem/Props/EvaluateStackSwap/Motive.lean:70-108)
+  generic clause:  sKeyEq s.stack s1.stack ∧ s1.handler = s.handler ∧
+                   ∀ xs, sValEq s.stack xs → ∃ st, E xs = (res, { s1 with stack := st })
+                                                 ∧ sValEq s1.stack st ∧ sKeyEq xs st
+  ⇒ the transported state is EXACTLY the source state with the stack replaced: clock,
+    termdep, locals, handler, permute are all carried over unchanged. Hence
+    (a) fixClock commutes with the swap via fixClock_swap_stack, no clock agreement lemma
+        is needed anywhere;
+    (b) popEnv transports via popEnv_stack_swap and gives literally
+        popEnv middleT = some { popped with stack := u };
+    (c) exception clause: pushEnv SOME sets entry.handler = source.stack.length, so
+        LASTN (entry.handler+1) entry.stack = the whole (fr :: source.stack); the swapped
+        entry stack is the SAME fr :: xs (callEntry_stack_swap), so the packet's for-all
+        instantiates with the SAME e0,e and ls' := xs, giving lss' = lss (map_fst_snd_eq)
+        and hence locs = middle.locals, i.e. middleT = { middle with stack := st }
+        (hmidT) plus hdomT by sptDomainEqUnion_congr. No extra domain hypothesis.
