@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.BoundedDecCallReach
 import InitECandidate.Runtime.HtabGrowRehash
 import InitECandidate.Runtime.AllocationUniformBound
+import InitECandidate.Runtime.MemzeroAlignedCall
 import InitECandidate.Runtime.AllocationInitializersBound
 import InitECandidate.Runtime.OriginalAttemptWrapperCode
 import Guest.Ast
@@ -178,4 +179,77 @@ theorem actual_payload_header_prefix_reaches {F : Type} (state : PanSemStateFini
       rw [postCode]
       rfl
 #print axioms actual_payload_header_prefix_reaches
+/-- **The actual construction prefix through `memzero(h, 248)`.**  Continuing the real entry: `alloc
+248` then the actual `memzero(h, 248)` call, ending immediately at the first construction store, with
+`h = pointer`, `pl`, `raw` typed, the zeroed 248-byte header prefix, the heap advanced to
+`allocationEnd pointer 248`, and the domain and code unchanged. -/
+theorem actual_payload_header_prefix_memzero {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (si pl raw pointer : BitVec 64)
+    (siLocal : state.locals.lookup (ofString "si") = some (.val (.word si)))
+    (siDomain : state.memaddrs (si + (0#64)))
+    (siCell : state.memory (si + (0#64)) = .word pl)
+    (plDomain : state.memaddrs (pl + (0#64)))
+    (plCell : state.memory (pl + (0#64)) = .word raw)
+    (code : state.code = originalRuntimeCode)
+    (heapGlobal : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (aligned : pointer.toNat % 8 = 0)
+    (fits : pointer.toNat + 248 ≤ 33806089496)
+    (wordDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (byteDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (panByteAlignHOL (pointer + BitVec.ofNat 64 offset)))
+    (budget : 251 ≤ state.clock) :
+    Reaches state (actualPayloadHeaderAt 0)
+      (fun post => ZeroBytePrefix post pointer 248 ∧
+        post.locals.lookup (ofString "h") = some (.val (.word pointer)) ∧
+        post.locals.lookup (ofString "pl") = some (.val (.word pl)) ∧
+        post.locals.lookup (ofString "raw") = some (.val (.word raw)) ∧
+        post.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd pointer (248#64)))) ∧
+        post.memaddrs = state.memaddrs ∧ post.code = state.code) 251 (actualPayloadHeaderAt 4) := by
+  rcases actual_payload_header_prefix_reaches state si pl raw pointer siLocal siDomain siCell
+    plDomain plCell code heapGlobal (by omega) (by omega) with ⟨mid, typed, c1, c2, sc⟩ | ab
+  · have sizeNat : (248#64).toNat = 248 := by decide
+    have arguments : evalListHOLFinite mid
+        (h := fun address => Classical.propDecidable (mid.memaddrs address))
+        [.var .local (ofString "h"), .const (248#64)] =
+        (some [ValueHOL.val (HolWordLab.word pointer), ValueHOL.val (HolWordLab.word (248#64))] :
+          Option (List (ValueHOL 64))) := by
+      simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,typed.1]
+    have stage : Reaches mid (actualPayloadHeaderAt 3)
+        (fun post => ZeroBytePrefix post pointer 248 ∧
+          post.locals.lookup (ofString "h") = some (.val (.word pointer)) ∧
+          post.locals.lookup (ofString "pl") = some (.val (.word pl)) ∧
+          post.locals.lookup (ofString "raw") = some (.val (.word raw)) ∧
+          post.globals.lookup (ofString "heap_ptr") =
+            some (.val (.word (allocationEnd pointer (248#64)))) ∧
+          post.memaddrs = state.memaddrs ∧ post.code = state.code) 249
+        (actualPayloadHeaderAt 4) := by
+      rw [source_actual_payload_header_memzero]
+      have codeMid : mid.code = originalRuntimeCode := by rw [typed.2.2.2.2.2]; exact code
+      obtain ⟨post, run, zeroed, spent, kept, globals, postCode, domain, be, locals, occupied⟩ :=
+        evaluate_memzero_aligned_call mid (.var .local (ofString "h")) (.const (248#64)) pointer (248#64)
+          arguments codeMid (by omega) fits aligned
+          (fun offset below => by rw [typed.2.2.2.2.1]; exact wordDomain offset below)
+          (fun offset below => by rw [typed.2.2.2.2.1]; exact byteDomain offset below)
+      refine reaches_seq mid (.call (some (none,none)) (ofString "memzero")
+        [.var .local (ofString "h"), .const (248#64)]) (actualPayloadHeaderAt 4) 249 _ ?_
+      refine Or.inl ⟨post,⟨zeroed,?_,?_,?_,?_,?_,?_⟩,by omega,by omega,run⟩
+      · rw [locals]; exact typed.1
+      · rw [locals]; exact typed.2.1
+      · rw [locals]; exact typed.2.2.1
+      · rw [globals]; exact typed.2.2.2.1
+      · rw [domain]; exact typed.2.2.2.2.1
+      · rw [postCode]; exact typed.2.2.2.2.2
+    rcases stage with ⟨post, facts, s1, s2, sc2⟩ | ab2
+    · refine Or.inl ⟨post, facts, ?_, ?_, scoped_trans sc sc2⟩
+      · show state.clock ≤ post.clock + 251
+        omega
+      · show post.clock ≤ state.clock
+        omega
+    · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
+  · exact Or.inr (stAbort_mono state _ 2 251 (by omega) ab)
+#print axioms actual_payload_header_prefix_memzero
+
 end InitECandidate.Runtime
