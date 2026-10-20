@@ -317,6 +317,26 @@ theorem callEntry_stack_swap {C F : Type}
 
 #print axioms callEntry_stack_swap
 
+
+/-- **Pop agreement over the same pushed frame (the Call return step).**  Two
+states whose stacks have the *same* head frame pop to the same locals, the same
+`localsSize`/`handler`, and tails `t` resp. `u`.  This is what makes the SSA
+callee's `popEnv` agree with the source's: the frame popped is the one this very
+call pushed (same `envs`), so no renamed ancestor frame is ever read. -/
+theorem popEnv_stack_swap {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (fr : WordSemStackFrame 64) (t u : List (WordSemStackFrame 64)) :
+    ∃ r, popEnv { s with stack := fr :: t } = some r ∧
+      popEnv { s with stack := fr :: u } = some { r with stack := u } := by
+  cases fr with
+  | stackFrame m e0 e hh =>
+    cases hh with
+    | none => exact ⟨_, rfl, rfl⟩
+    | some q =>
+      obtain ⟨n, q1, q2⟩ := q
+      exact ⟨_, rfl, rfl⟩
+
+#print axioms popEnv_stack_swap
+
 #print axioms wordPathWork_ite_sValEq_variant
 
 #print axioms wordPathWork_seq_sValEq_variant_none
