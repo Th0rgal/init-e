@@ -5,13 +5,13 @@ open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Encoders.Asm
 
 theorem removalCostSimulation_ite {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
-    (jump : Bool) (cmp : HolCmp) (reg : Nat) (operand : HolRegImm 64) (yes no : HolProg 64)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (cmp : HolCmp) (reg : Nat) (operand : HolRegImm 64) (yes no : HolProg 64)
     (localBound : 5 + gap ≤ sourcePrice (.ite cmp reg operand yes no))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
-    (yesIH : RemovalCostSimulation sourcePrice gap jump yes source)
-    (noIH : RemovalCostSimulation sourcePrice gap jump no source) :
-    RemovalCostSimulation sourcePrice gap jump (.ite cmp reg operand yes no) source := by
-  intro post target result pointer bounds premises
+    (yesIH : RemovalCostSimulation sourcePrice gap jump bounds yes source)
+    (noIH : RemovalCostSimulation sourcePrice gap jump bounds no source) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.ite cmp reg operand yes no) source := by
+  intro post target result pointer premises
   obtain ⟨run, nonerror, related, lower⟩ := premises
   simp only [StackProps.regBound] at lower
   have leftEq := StackRemove.RelationLaws.stateRelGetVar jump bounds pointer reg source target ⟨related, lower.1⟩
@@ -42,10 +42,10 @@ theorem removalCostSimulation_ite {F : Type} (sourcePrice : HolProg 64 → Nat) 
           cases choice
           · exact lower.2.2.2
           · exact lower.2.2.1
-        have branchIH : RemovalCostSimulation sourcePrice gap jump (if choice then yes else no) source := by
+        have branchIH : RemovalCostSimulation sourcePrice gap jump bounds (if choice then yes else no) source := by
           cases choice <;> assumption
         obtain ⟨clock, postTarget, targetRun, postRelation, cost⟩ :=
-          branchIH post target result pointer bounds ⟨branchRun, nonerror, related, branchLower⟩
+          branchIH post target result pointer ⟨branchRun, nonerror, related, branchLower⟩
         have targetLeft : StackSemStateOps.getVar reg {target with clock := clock + target.clock} = some left :=
           leftEq.symm.trans readLeft
         have targetRight : StackSemStateOps.getVarImm (HolRegImm.toWordRegImm operand)

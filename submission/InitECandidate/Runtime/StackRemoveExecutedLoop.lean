@@ -17,20 +17,20 @@ theorem stackExecutionCost_loop_run {F : Type}
 /-- Quantitative original loop simulation; reentry is guarded by the actual
 source result and remaining clock, and cost is additive across iterations. -/
 theorem removalCostSimulation_loop {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
-    (jump : Bool) (body : HolProg 64)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (body : HolProg 64)
     (localBound : 2 ≤ sourcePrice (.loop body))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
-    (bodyIH : RemovalCostSimulation sourcePrice gap jump body source)
+    (bodyIH : RemovalCostSimulation sourcePrice gap jump bounds body source)
     (reentryIH : ∀ bodyResult middle, evaluate (body, source) = (bodyResult, middle) →
       contLoop bodyResult = true → middle.clock ≠ 0 →
-      RemovalCostSimulation sourcePrice gap jump (.loop body) (decClock middle)) :
-    RemovalCostSimulation sourcePrice gap jump (.loop body) source := by
-  intro postSource target result pointer bounds hypothesis
+      RemovalCostSimulation sourcePrice gap jump bounds (.loop body) (decClock middle)) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.loop body) source := by
+  intro postSource target result pointer hypothesis
   rcases hypothesis with ⟨sourceRun, notError, relation, lower⟩
   rcases bodyRun : evaluate (body, source) with ⟨bodyResult, middle⟩
   have bodyNotError := StackRemove.CompCorrect.Loop.loopBodyNotError body source middle postSource bodyResult result bodyRun sourceRun notError
   obtain ⟨firstClock, middleTarget, firstTargetRun, bodyPost, firstCost⟩ :=
-    bodyIH middle target bodyResult pointer bounds
+    bodyIH middle target bodyResult pointer
       ⟨bodyRun, bodyNotError, relation, by simpa only [StackProps.regBound] using lower⟩
   by_cases continues : StackSemControl.contLoop bodyResult = true
   · have middleRelation : stateRelHOL jump bounds pointer middle middleTarget := by
@@ -59,7 +59,7 @@ theorem removalCostSimulation_loop {F : Type} (sourcePrice : HolProg 64 → Nat)
       have decRelation := RelationLaws.stateRelDecClock jump bounds pointer middle middleTarget middleRelation
       obtain ⟨secondClock, postTarget, secondTargetRun, postRelation, secondCost⟩ :=
         reentryIH bodyResult middle bodyRun continues zero postSource
-          (decClock middleTarget) result pointer bounds ⟨sourceRun, notError, decRelation, lower⟩
+          (decClock middleTarget) result pointer ⟨sourceRun, notError, decRelation, lower⟩
       have notTimeout : bodyResult ≠ some .timeOut := by
         rcases StackProps.contLoopImp bodyResult continues with same | same <;> simp [same]
       have extraRun := StackProps.evaluateAddClock secondClock

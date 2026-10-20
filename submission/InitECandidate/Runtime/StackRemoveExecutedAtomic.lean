@@ -22,11 +22,11 @@ theorem stackExecutionCost_atomic {F : Type}
 semantic compiler theorem derives the target run; local instruction pricing
 supplies its executed-cost bound independently. -/
 theorem removalCostSimulation_atomic {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
-    (jump : Bool) (p : HolProg 64) (atomic : executionAtomic p = true)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (p : HolProg 64) (atomic : executionAtomic p = true)
     (localBound : nativePriceWithGap gap p ≤ sourcePrice p)
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
-    RemovalCostSimulation sourcePrice gap jump p source := by
-  intro post target result pointer bounds premises
+    RemovalCostSimulation sourcePrice gap jump bounds p source := by
+  intro post target result pointer premises
   obtain ⟨clock, postTarget, targetRun, postRelation⟩ :=
     StackRemove.CompCorrect.Assembly.compCorrect p source result post target pointer bounds jump premises
   refine ⟨clock, postTarget, targetRun, ?_, ?_⟩

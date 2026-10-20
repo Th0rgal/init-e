@@ -39,10 +39,10 @@ theorem nativeCost_comp_stackGetSize {F : Type} (gap pointer register : Nat)
   omega
 
 theorem removalCostSimulation_opCurrHeap {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
-    (jump : Bool) (op : HolBinop) (destination input : Nat) (localBound : 1 + gap ≤ sourcePrice (.opCurrHeap op destination input))
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (op : HolBinop) (destination input : Nat) (localBound : 1 + gap ≤ sourcePrice (.opCurrHeap op destination input))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
-    RemovalCostSimulation sourcePrice gap jump (.opCurrHeap op destination input) source := by
-  intro post target result pointer bounds premises
+    RemovalCostSimulation sourcePrice gap jump bounds (.opCurrHeap op destination input) source := by
+  intro post target result pointer premises
   obtain ⟨clock, postTarget, targetRun, postRelation⟩ :=
     StackRemove.CompCorrect.Assembly.compCorrect (.opCurrHeap op destination input) source result post target pointer bounds jump premises
   refine ⟨clock, postTarget, targetRun, ?_, ?_⟩
@@ -55,10 +55,10 @@ theorem removalCostSimulation_opCurrHeap {F : Type} (sourcePrice : HolProg 64 �
     exact ((nativeCost_comp_opCurrHeap gap pointer destination input op jump bounds _).le).trans localBound
 
 theorem removalCostSimulation_stackGetSize {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
-    (jump : Bool) (register : Nat) (localBound : 7 + 3 * gap ≤ sourcePrice (.stackGetSize register))
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (register : Nat) (localBound : 7 + 3 * gap ≤ sourcePrice (.stackGetSize register))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
-    RemovalCostSimulation sourcePrice gap jump (.stackGetSize register) source := by
-  intro post target result pointer bounds premises
+    RemovalCostSimulation sourcePrice gap jump bounds (.stackGetSize register) source := by
+  intro post target result pointer premises
   obtain ⟨clock, postTarget, targetRun, postRelation⟩ :=
     StackRemove.CompCorrect.Assembly.compCorrect (.stackGetSize register) source result post target pointer bounds jump premises
   refine ⟨clock, postTarget, targetRun, ?_, ?_⟩

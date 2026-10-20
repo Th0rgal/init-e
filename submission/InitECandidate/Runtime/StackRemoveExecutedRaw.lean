@@ -7,12 +7,12 @@ open Flapjack.StackSemEvaluate Flapjack.StackSemStateOps
 open Flapjack.Compiler.Backend.StackRemove
 
 theorem removalCostSimulation_raw {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
-    (jump : Bool) (label : Nat) (localBound : 2 ≤ sourcePrice (.rawCall label))
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (label : Nat) (localBound : 2 ≤ sourcePrice (.rawCall label))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
     (calleeIH : ∀ frame body, sptLookup label source.code = some (.seq frame body) →
-      source.clock ≠ 0 → RemovalCostSimulation sourcePrice gap jump body (decClock source)) :
-    RemovalCostSimulation sourcePrice gap jump (.rawCall label) source := by
-  intro postSource target result pointer bounds hypothesis
+      source.clock ≠ 0 → RemovalCostSimulation sourcePrice gap jump bounds body (decClock source)) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.rawCall label) source := by
+  intro postSource target result pointer hypothesis
   rcases hypothesis with ⟨sourceRun, notError, relation, _bound⟩
   have clocks : target.clock = source.clock := relation.2.2.2.2.2.2.2.2.1
   rw [evaluate_rawCall] at sourceRun
@@ -62,7 +62,7 @@ theorem removalCostSimulation_raw {F : Type} (sourcePrice : HolProg 64 → Nat) 
           subst result
           subst postSource
           obtain ⟨clock, postTarget, targetRun, postRelation, calleeCost⟩ :=
-            calleeIH frame body lookup zero middle (decClock target) bodyResult pointer bounds
+            calleeIH frame body lookup zero middle (decClock target) bodyResult pointer
               ⟨bodyRun, notError, RelationLaws.stateRelDecClock jump bounds pointer source target relation, programBound.2⟩
           have nonzero : clock + target.clock ≠ 0 := by omega
           have clockEq : decClock {target with clock := clock + target.clock} =

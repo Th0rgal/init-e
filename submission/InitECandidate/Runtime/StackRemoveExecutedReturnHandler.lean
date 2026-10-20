@@ -9,21 +9,21 @@ open Flapjack.Compiler.Backend.StackRemove.CompCorrect.CallReturnNone
 open Flapjack.Compiler.Backend.StackRemove.CompCorrect.CallReturnHandler
 
 theorem removalCostSimulation_returnHandler {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
-    (jump : Bool) (body handler : HolProg 64) (link l1 l2 hl1 hl2 : Nat) (dest : Sum Nat Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (body handler : HolProg 64) (link l1 l2 hl1 hl2 : Nat) (dest : Sum Nat Nat)
     (localBound : 4 + gap + callJumpWork dest ≤ sourcePrice (.call (some (body, link, l1, l2)) dest (some (handler, hl1, hl2))))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
     (calleeIH : ∀ program, StackSemControl.findCode dest (source.regs.eraseEq link) source.code = some program →
-      source.clock ≠ 0 → RemovalCostSimulation sourcePrice gap jump program (decClock (setVar link (.loc l1 l2) source)))
+      source.clock ≠ 0 → RemovalCostSimulation sourcePrice gap jump bounds program (decClock (setVar link (.loc l1 l2) source)))
     (returnIH : ∀ program middle,
       StackSemControl.findCode dest (source.regs.eraseEq link) source.code = some program → source.clock ≠ 0 →
       evaluate (program, decClock (setVar link (.loc l1 l2) source)) = (some (.result (.loc l1 l2)), middle) →
-      RemovalCostSimulation sourcePrice gap jump body middle)
+      RemovalCostSimulation sourcePrice gap jump bounds body middle)
     (handlerIH : ∀ program middle,
       StackSemControl.findCode dest (source.regs.eraseEq link) source.code = some program → source.clock ≠ 0 →
       evaluate (program, decClock (setVar link (.loc l1 l2) source)) = (some (.exception (.loc hl1 hl2)), middle) →
-      RemovalCostSimulation sourcePrice gap jump handler middle) :
-    RemovalCostSimulation sourcePrice gap jump (.call (some (body, link, l1, l2)) dest (some (handler, hl1, hl2))) source := by
-  intro postSource target result pointer bounds hypothesis
+      RemovalCostSimulation sourcePrice gap jump bounds handler middle) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.call (some (body, link, l1, l2)) dest (some (handler, hl1, hl2))) source := by
+  intro postSource target result pointer hypothesis
   rcases hypothesis with ⟨sourceRun, notError, relation, bound⟩
   have clocks : target.clock = source.clock := relation.2.2.2.2.2.2.2.2.1
   rw [evaluateCallReturnHandlerUnclamped] at sourceRun
@@ -82,10 +82,10 @@ theorem removalCostSimulation_returnHandler {F : Type} (sourcePrice : HolProg 64
             subst value
             obtain ⟨first, middleTarget, calleeRun, middleRelation, calleeCost⟩ :=
               calleeIH program lookup zero middle
-                (decClock (setVar link (.loc l1 l2) target)) (some (.result (.loc l1 l2))) pointer bounds
+                (decClock (setVar link (.loc l1 l2) target)) (some (.result (.loc l1 l2))) pointer
                 ⟨bodyRun, by simp, entry, programBound⟩
             obtain ⟨second, postTarget, returnRun, postRelation, returnCost⟩ :=
-              returnIH program middle lookup zero bodyRun postSource middleTarget result pointer bounds
+              returnIH program middle lookup zero bodyRun postSource middleTarget result pointer
                 ⟨sourceRun, notError, middleRelation, bodyBound⟩
             have boosted := calleeAllowance (comp jump bounds pointer program) target middleTarget
               link l1 l2 first second targetNonzero calleeRun
@@ -123,7 +123,7 @@ theorem removalCostSimulation_returnHandler {F : Type} (sourcePrice : HolProg 64
           subst postSource
           obtain ⟨clock, postTarget, targetRun, postRelation, calleeCost⟩ :=
             calleeIH program lookup zero middle
-              (decClock (setVar link (.loc l1 l2) target)) _ pointer bounds
+              (decClock (setVar link (.loc l1 l2) target)) _ pointer
               ⟨bodyRun, by simp, entry, programBound⟩
           refine ⟨clock, postTarget, ?_, postRelation, ?_⟩
           · have nonzero : clock + target.clock ≠ 0 := by omega
@@ -153,10 +153,10 @@ theorem removalCostSimulation_returnHandler {F : Type} (sourcePrice : HolProg 64
             subst value
             obtain ⟨first, middleTarget, calleeRun, middleRelation, calleeCost⟩ :=
               calleeIH program lookup zero middle
-                (decClock (setVar link (.loc l1 l2) target)) (some (.exception (.loc hl1 hl2))) pointer bounds
+                (decClock (setVar link (.loc l1 l2) target)) (some (.exception (.loc hl1 hl2))) pointer
                 ⟨bodyRun, by simp, entry, programBound⟩
             obtain ⟨second, postTarget, returnRun, postRelation, returnCost⟩ :=
-              handlerIH program middle lookup zero bodyRun postSource middleTarget result pointer bounds
+              handlerIH program middle lookup zero bodyRun postSource middleTarget result pointer
                 ⟨sourceRun, notError, middleRelation, handlerBound⟩
             have boosted := exceptionAllowance (comp jump bounds pointer program) target middleTarget
               link l1 l2 hl1 hl2 first second targetNonzero calleeRun

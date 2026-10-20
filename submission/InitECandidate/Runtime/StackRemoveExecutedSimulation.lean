@@ -13,9 +13,9 @@ def RemovalCostPost {F : Type} (jump : Bool) (bounds : BitVec 64 × BitVec 64) (
 
 /-- Original semantic simulation with an additional executed-cost conclusion.
 No target run, native trace or whole-run budget is supplied as a premise. -/
-def RemovalCostSimulation {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat) (jump : Bool)
+def RemovalCostSimulation {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat) (jump : Bool) (bounds : BitVec 64 × BitVec 64)
     (program : HolProg 64) (source : StackSemStateFiniteExact 64 LabToTarget.Config F) : Prop :=
-  ∀ (post target : StackSemStateFiniteExact 64 LabToTarget.Config F) result pointer bounds,
+  ∀ (post target : StackSemStateFiniteExact 64 LabToTarget.Config F) result pointer,
     StackSemEvaluate.evaluate (program, source) = (result, post) ∧ result ≠ some .error ∧
       StackRemove.stateRelHOL jump bounds pointer source target ∧ StackProps.regBound program pointer →
     ∃ clock postTarget,
@@ -27,13 +27,13 @@ def RemovalCostSimulation {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : N
 
 /-- Sequential composition keeps only the reached suffix and sums the two
 compiler clock witnesses without increasing either executed cost. -/
-theorem removalCostSimulation_seq {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat) (jump : Bool)
+theorem removalCostSimulation_seq {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat) (jump : Bool) (bounds : BitVec 64 × BitVec 64)
     (first second : HolProg 64) (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
-    (firstIH : RemovalCostSimulation sourcePrice gap jump first source)
+    (firstIH : RemovalCostSimulation sourcePrice gap jump bounds first source)
     (secondIH : ∀ middle, StackSemEvaluate.evaluate (first, source) = (none, middle) →
-      RemovalCostSimulation sourcePrice gap jump second middle) :
-    RemovalCostSimulation sourcePrice gap jump (.seq first second) source := by
-  intro post target result pointer bounds premises
+      RemovalCostSimulation sourcePrice gap jump bounds second middle) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.seq first second) source := by
+  intro post target result pointer premises
   obtain ⟨run, nonerror, related, lower⟩ := premises
   change StackProps.regBound first pointer ∧ StackProps.regBound second pointer at lower
   rw [StackRemove.CompCorrect.Seq.evaluateSeqUnclamped] at run
@@ -42,9 +42,9 @@ theorem removalCostSimulation_seq {F : Type} (sourcePrice : HolProg 64 → Nat) 
   cases firstResult with
   | none =>
     obtain ⟨firstClock, middleTarget, firstTargetRun, middleRelation, firstCost⟩ :=
-      firstIH middle target none pointer bounds ⟨firstRun, by simp, related, lower.1⟩
+      firstIH middle target none pointer ⟨firstRun, by simp, related, lower.1⟩
     obtain ⟨secondClock, postTarget, secondTargetRun, postRelation, secondCost⟩ :=
-      secondIH middle firstRun post middleTarget result pointer bounds ⟨run, nonerror, middleRelation, lower.2⟩
+      secondIH middle firstRun post middleTarget result pointer ⟨run, nonerror, middleRelation, lower.2⟩
     have shiftedRun := StackProps.evaluateAddClock secondClock
       (StackRemove.comp jump bounds pointer first) {target with clock := firstClock + target.clock}
       none middleTarget ⟨firstTargetRun, by simp⟩
@@ -73,7 +73,7 @@ theorem removalCostSimulation_seq {F : Type} (sourcePrice : HolProg 64 → Nat) 
   | some value =>
     obtain ⟨rfl, rfl⟩ := Prod.mk.inj run
     obtain ⟨clock, postTarget, targetRun, postRelation, cost⟩ :=
-      firstIH middle target (some value) pointer bounds ⟨firstRun, nonerror, related, lower.1⟩
+      firstIH middle target (some value) pointer ⟨firstRun, nonerror, related, lower.1⟩
     refine ⟨clock, postTarget, ?_, postRelation, ?_⟩
     · rw [StackRemove.comp, StackRemove.CompCorrect.Seq.evaluateSeqSome _ _ _ _ _ targetRun]
     · rw [StackRemove.comp, stackExecutionCost_seq, targetRun, stackExecutionCost_seq, firstRun]
