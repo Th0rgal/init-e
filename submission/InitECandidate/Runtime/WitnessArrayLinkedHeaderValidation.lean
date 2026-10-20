@@ -1,20 +1,23 @@
 import InitECandidate.Runtime.RunAttemptHeadersToParentReach
 import InitECandidate.Runtime.WitnessArrayLinkedWindow
 /-!
-The decoder's witness-array link survives real nonzero header validation.
+The decoder's witness-array link survives real header validation.
 
-The initial link `WitnessArrayLinked s si first second array count input length heap` describes the
-canonically decoded witness record at `si`.  Header validation writes only above the old live heap and
-never changes the memory domain, so the link survives: `RunAttemptHeaderValidationFacts` supplies both
-the exact domain `ready.memaddrs = s.memaddrs` and the ready memory frame on `[ceiling, oldHeap)`,
-which is exactly the window the link reads, and it also supplies the typed monotone `finalHeap`.
+The header array and the original witness array are **different objects**: header validation reads its
+own header array/count (the canonical decode's header table), while the decoder's witness record at
+`si` carries its own array pointer and count.  Only the input bytes are common.  These helpers keep the
+two fully separate:
 
-The two steps below are generic (no runtime or frame callback, no assumption about later code):
+* the facts are `RunAttemptHeaderValidationFacts s ready si headerArray headerCount input inputLength
+  …` and supply the typed monotone `finalHeap`, the exact domain `ready.memaddrs = s.memaddrs` and the
+  ready memory frame on `[ceiling, oldHeap)`;
+* the link is `WitnessArrayLinked s si first second witnessArray witnessCount input inputLength heap`.
 
-* `witness_linked_of_header_validation_facts` - caller state to the state after the real
-  `validate_headers` call, at the typed `finalHeap`.
-* `witness_linked_of_final_state` - any later state that only rewrites locals and globals (the
-  `nh`/`parent`/`block_hashes`/`block_hashes_n` prefix) keeps the link unchanged.
+Because the witness array pointer may be the empty-array sentinel, the window assumption on it is
+`witnessCount.toNat = 0 ∨ ceiling ≤ witnessArray.toNat`, handled by
+`WitnessArrayLinked.after_memory_between_or_empty`.  The two record cells are always read, so they
+carry the strict window assumptions.  No runtime or frame callback is used, and nothing is assumed
+about later code.
 -/
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -22,83 +25,87 @@ open Flapjack.Basis.Pure.MlString
 set_option maxRecDepth 100000
 set_option maxHeartbeats 800000
 
-/-- **The link survives the real header validation.**  Given the checked nonzero header validation
-facts for the caller state `s` (typed `finalHeap`, exact domain, ready memory frame on
-`[ceiling, heap)`), the original decoder link, and the window premises that both record cells and the
-array itself sit inside `[ceiling, heap)`, the header pointer and the header count still read the same
-in the state `ready` reached by the real `validate_headers` call, and the recorded array end is below
-the typed monotone `finalHeap`. -/
+/-- **The decoder's witness link survives the real header validation.**  The header array/count used
+by validation and the witness array/count in the decoder's record are separate; the retained window
+`[ceiling, heap)` keeps both record cells, and the witness array pointer only needs a lower bound when
+the witness array is nonempty.  The state `ready` reached by the real `validate_headers` call therefore
+still satisfies the original link, against the typed monotone `finalHeap`. -/
 theorem witness_linked_of_header_validation_facts {F : Type} (s ready : PanSemStateFiniteExact 64 F)
-    (si first second array count input inputLength scratch frame heap keccakState keccakPad : BitVec 64)
+    (si first second witnessArray witnessCount headerArray headerCount : BitVec 64)
+    (input inputLength scratch frame heap keccakState keccakPad : BitVec 64)
     (ceiling : Nat)
-    (facts : RunAttemptHeaderValidationFacts s ready si array count input inputLength scratch frame heap
-      keccakState keccakPad ceiling)
-    (linked : WitnessArrayLinked s si first second array count input inputLength heap)
+    (facts : RunAttemptHeaderValidationFacts s ready si headerArray headerCount input inputLength scratch
+      frame heap keccakState keccakPad ceiling)
+    (linked : WitnessArrayLinked s si first second witnessArray witnessCount input inputLength heap)
     (pointerAbove : ceiling ≤ (si + first).toNat)
     (pointerBefore : (si + first).toNat < heap.toNat)
     (countAbove : ceiling ≤ (si + second).toNat)
     (countBefore : (si + second).toNat < heap.toNat)
-    (arrayAbove : ceiling ≤ array.toNat) :
+    (arrayAbove : witnessCount.toNat = 0 ∨ ceiling ≤ witnessArray.toNat) :
     ∃ finalHeap : BitVec 64,
       ready.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
       heap.toNat ≤ finalHeap.toNat ∧ finalHeap.toNat ≤ 33806089496 ∧
-      WitnessArrayLinked ready si first second array count input inputLength finalHeap := by
+      WitnessArrayLinked ready si first second witnessArray witnessCount input inputLength finalHeap := by
   obtain ⟨value,bodyPost,bodyRun,localsUpdate,readyMemory,readyGlobals,readyDomain,readyCode,valueShape,
-    atVh,countBound,⟨finalHeap,heapGlobal,heapMonotone,heapCapped,_,_,frame⟩,scratchGlobal,frameGlobal,
-    stateGlobal,padGlobal,memoryFrame,tableSlice,rest⟩ := facts
+    atVh,headerBound,⟨finalHeap,heapGlobal,heapMonotone,heapCapped,_,_,_⟩,scratchGlobal,frameGlobal,
+    stateGlobal,padGlobal,memoryFrame,bodySlice,readySlice,pointerPrefix,siLocal⟩ := facts
   refine ⟨finalHeap,heapGlobal,heapMonotone,heapCapped,?_⟩
-  refine WitnessArrayLinked.after_memory_between s ready si first second array count input inputLength
-    heap finalHeap ceiling linked pointerAbove pointerBefore countAbove countBefore arrayAbove
-    heapMonotone readyDomain ?_
+  refine WitnessArrayLinked.after_memory_between_or_empty s ready si first second witnessArray
+    witnessCount input inputLength heap finalHeap ceiling linked pointerAbove pointerBefore countAbove
+    countBefore arrayAbove heapMonotone readyDomain ?_
   intro address above below
   exact memoryFrame address above below
 
 #print axioms witness_linked_of_header_validation_facts
 
-/-- **A locals-and-globals-only continuation keeps the link.**  Header validation's later caller
-prefix only declares locals and assigns globals, so any state `post` with the same memory and the same
-memory domain as the validated state carries the same witness-array link. -/
+/-- **A locals-and-globals-only continuation keeps the link.**  Validation's later caller prefix only
+declares locals and assigns globals, so any state `post` with the same memory and the same memory
+domain carries the same witness-array link. -/
 theorem witness_linked_of_final_state {F : Type} (ready post : PanSemStateFiniteExact 64 F)
-    (si first second array count input inputLength finalHeap : BitVec 64)
-    (linked : WitnessArrayLinked ready si first second array count input inputLength finalHeap)
+    (si first second witnessArray witnessCount input inputLength finalHeap : BitVec 64)
+    (linked : WitnessArrayLinked ready si first second witnessArray witnessCount input inputLength
+      finalHeap)
     (domain : post.memaddrs = ready.memaddrs) (memory : post.memory = ready.memory) :
-    WitnessArrayLinked post si first second array count input inputLength finalHeap :=
-  linked.after_frame ready post si first second array count input inputLength finalHeap domain memory
+    WitnessArrayLinked post si first second witnessArray witnessCount input inputLength finalHeap :=
+  linked.after_frame ready post si first second witnessArray witnessCount input inputLength finalHeap
+    domain memory
 
 #print axioms witness_linked_of_final_state
 
-/-- **The link survives the exact `nh`/`parent`/`block_hashes`/`block_hashes_n` prefix.**
+/-- **The witness link survives the exact `nh`/`parent`/`block_hashes`/`block_hashes_n` prefix.**
 Instantiating the locals-and-globals step at the actual final caller state recorded by the selected
-root reach: declaring `nh`, declaring `parent` and assigning the two `block_hashes` globals never
-touches memory or the memory domain, so the decoder's witness-array link still holds there, against
-the typed monotone final heap. -/
+root reach: declaring `nh` and `parent` from the **header** count and assigning the two
+`block_hashes` globals (the second one from the header count, not the witness count) never touches
+memory or the memory domain, so the decoder's witness link still holds there against `finalHeap`. -/
 theorem witness_linked_of_header_validation_final {F : Type} (s ready : PanSemStateFiniteExact 64 F)
-    (si first second array count input inputLength scratch frame heap keccakState keccakPad : BitVec 64)
+    (si first second witnessArray witnessCount headerArray headerCount : BitVec 64)
+    (input inputLength scratch frame heap keccakState keccakPad : BitVec 64)
     (parent liveHeap : BitVec 64) (ceiling : Nat)
-    (facts : RunAttemptHeaderValidationFacts s ready si array count input inputLength scratch frame heap
-      keccakState keccakPad ceiling)
-    (linked : WitnessArrayLinked s si first second array count input inputLength heap)
+    (facts : RunAttemptHeaderValidationFacts s ready si headerArray headerCount input inputLength scratch
+      frame heap keccakState keccakPad ceiling)
+    (linked : WitnessArrayLinked s si first second witnessArray witnessCount input inputLength heap)
     (pointerAbove : ceiling ≤ (si + first).toNat)
     (pointerBefore : (si + first).toNat < heap.toNat)
     (countAbove : ceiling ≤ (si + second).toNat)
     (countBefore : (si + second).toNat < heap.toNat)
-    (arrayAbove : ceiling ≤ array.toNat) :
+    (arrayAbove : witnessCount.toNat = 0 ∨ ceiling ≤ witnessArray.toNat) :
     ∃ finalHeap : BitVec 64,
       ready.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
       heap.toNat ≤ finalHeap.toNat ∧ finalHeap.toNat ≤ 33806089496 ∧
       WitnessArrayLinked
-        (setGlobalHOLFinite (ofString "block_hashes_n") (.val (.word count))
+        (setGlobalHOLFinite (ofString "block_hashes_n") (.val (.word headerCount))
           (setGlobalHOLFinite (ofString "block_hashes") (.val (.word liveHeap))
             (setVarHOLFinite (ofString "parent") (.val (.word parent))
-              (setVarHOLFinite (ofString "nh") (.val (.word count)) ready))))
-        si first second array count input inputLength finalHeap := by
+              (setVarHOLFinite (ofString "nh") (.val (.word headerCount)) ready))))
+        si first second witnessArray witnessCount input inputLength finalHeap := by
   obtain ⟨finalHeap,heapGlobal,heapMonotone,heapCapped,linkedReady⟩ :=
-    witness_linked_of_header_validation_facts s ready si first second array count input inputLength
-      scratch frame heap keccakState keccakPad ceiling facts linked pointerAbove pointerBefore
-      countAbove countBefore arrayAbove
+    witness_linked_of_header_validation_facts s ready si first second witnessArray witnessCount
+      headerArray headerCount input inputLength scratch frame heap keccakState keccakPad ceiling facts
+      linked pointerAbove pointerBefore countAbove countBefore arrayAbove
   refine ⟨finalHeap,heapGlobal,heapMonotone,heapCapped,?_⟩
-  exact witness_linked_of_final_state ready _ si first second array count input inputLength finalHeap
-    linkedReady (by simp [setVarHOLFinite,setGlobalHOLFinite]) (by simp [setVarHOLFinite,setGlobalHOLFinite])
+  exact witness_linked_of_final_state ready _ si first second witnessArray witnessCount input inputLength
+    finalHeap linkedReady (by simp [setVarHOLFinite,setGlobalHOLFinite])
+    (by simp [setVarHOLFinite,setGlobalHOLFinite])
 
 #print axioms witness_linked_of_header_validation_final
 end InitECandidate.Runtime
