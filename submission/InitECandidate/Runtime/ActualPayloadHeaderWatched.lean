@@ -944,4 +944,126 @@ theorem actual_payload_header_strong_prefix_0_to_9_watched {F : Type}
 
 #print axioms actual_payload_header_strong_prefix_0_to_9_watched
 
+/-- The word size used by the exact store loop. -/
+theorem panBytesInWord64 : panBytesInWord 64 = (8#64) := by decide
+
+#print axioms panBytesInWord64
+
+/-- **A multi-cell store leaves every cell it does not write alone.**  The store loop writes the
+addresses `address`, `address + 8`, ... for as many words as the payload flattens to, so a watched
+cell distinct from all of them survives a successful store. -/
+theorem panMemStoresHOL_frame (address watched : BitVec 64)
+    (domain : BitVec 64 → Prop) [DecidablePred domain] (memory : BitVec 64 → HolWordLab 64) :
+    ∀ (words : List (HolWordLab 64)),
+      (∀ index, index < words.length → watched ≠ address + BitVec.ofNat 64 (8 * index)) →
+      ∀ updated, panMemStoresHOL address words domain memory = some updated →
+        updated watched = memory watched := by
+  intro words
+  induction words generalizing address memory with
+  | nil =>
+    intro separate updated run
+    simp only [panMemStoresHOL, Option.some.injEq] at run
+    rw [← run]
+  | cons value rest induction =>
+    intro separate updated run
+    simp only [panMemStoresHOL] at run
+    split at run
+    · rename_i storedValue store
+      have stored : storedValue watched = memory watched := by
+        rw [panMemStoreHOL] at store
+        split at store
+        · simp only [Option.some.injEq] at store
+          rw [← store]
+          have different : watched ≠ address := by
+            have := separate 0 (by simp)
+            simpa using this
+          simp [different]
+        · exact absurd store (by simp)
+      refine (induction (address + panBytesInWord 64) storedValue ?_ updated run).trans stored
+      intro index bound
+      have shifted : address + panBytesInWord 64 + BitVec.ofNat 64 (8 * index) =
+          address + BitVec.ofNat 64 (8 * (index + 1)) := by
+        rw [panBytesInWord64]
+        bv_omega
+      rw [shifted]
+      exact separate (index + 1) (by simpa using bound)
+    · exact absurd run (by simp)
+
+#print axioms panMemStoresHOL_frame
+#print axioms panMemStoresHOL_frame
+
+/-- **A store of a flattened payload changes only the cells it writes.** -/
+theorem evaluate_store_flat_memory_frame {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (destination value : ExpHOL 64) (address watched : BitVec 64) (payload : ValueHOL 64)
+    (words : List (HolWordLab 64))
+    (addressEval : @evalHOLExact 64 F _ state.toExact
+      (fun a => Classical.propDecidable (state.memaddrs a)) destination = some (.val (.word address)))
+    (valueEval : @evalHOLExact 64 F _ state.toExact
+      (fun a => Classical.propDecidable (state.memaddrs a)) value = some payload)
+    (flat : flattenHOL payload = words)
+    (untouched : ∀ index, index < words.length → watched ≠ address + BitVec.ofNat 64 (8 * index)) :
+    (evaluateHOLFiniteState state (.store destination value)).2.memory watched =
+      state.memory watched := by
+  rw [evaluateHOLFiniteState_store,addressEval,valueEval]
+  dsimp only
+  rw [flat]
+  classical
+  cases run : panMemStoresHOL address words state.memaddrs state.memory with
+  | none => rfl
+  | some updated =>
+    exact panMemStoresHOL_frame address watched state.memaddrs state.memory words untouched updated run
+
+#print axioms evaluate_store_flat_memory_frame
+
+/-- One actual header store, keeping the construction facts and a watched cell below the store. -/
+theorem actual_payload_header_store_step_prefix_watched_flat {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F) (pl raw pointer heap watched cell : BitVec 64)
+    (index k : Nat) (destination value : ExpHOL 64) (tail : ProgHOL 64)
+    (payload : ValueHOL 64) (words : List (HolWordLab 64))
+    (shape : actualPayloadHeaderAt index = .seq (.store destination value) tail)
+    (destShape : destination = .op .add [.var .local (ofString "h"), .const (BitVec.ofNat 64 k)])
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (valueEval : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a)) value = some payload)
+    (flat : flattenHOL payload = words)
+    (untouched : ∀ offset, offset < words.length →
+      watched ≠ pointer + BitVec.ofNat 64 k + BitVec.ofNat 64 (8 * offset))
+    (watch : WatchWord mid watched cell) :
+    Reaches mid (actualPayloadHeaderAt index)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer heap ∧
+        WatchWord post watched cell) 0 tail := by
+  have addressEval : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a)) destination =
+      some (.val (.word (pointer + BitVec.ofNat 64 k))) := by
+    rw [destShape]
+    exact actual_payload_header_eval_word_add mid (ofString "h") pointer (BitVec.ofNat 64 k)
+      facts.2.2.1
+  rw [shape]
+  refine reaches_seq mid (.store destination value) tail 0 _ ?_
+  rcases evaluate_store_cases mid destination value with error | ⟨memory,run⟩
+  · refine Or.inr ?_
+    unfold StAbort
+    rw [error]
+    exact ⟨.error,rfl,by simp,by simp,by simp,by simp⟩
+  · have frameMemory : memory watched = mid.memory watched := by
+      have runMemory : (evaluateHOLFiniteState mid (.store destination value)).2.memory watched =
+          mid.memory watched :=
+        evaluate_store_flat_memory_frame mid destination value (pointer + BitVec.ofNat 64 k) watched
+          payload words addressEval valueEval flat untouched
+      rw [run] at runMemory
+      exact runMemory
+    refine Or.inl ⟨{mid with memory := memory},⟨?_prefix,?_watch⟩,by simp,by simp,run⟩
+    · refine ⟨?_,?_,?_,?_,?_,?_⟩
+      · simpa using facts.1
+      · simpa using facts.2.1
+      · simpa using facts.2.2.1
+      · simpa using facts.2.2.2.1
+      · exact facts.2.2.2.2.1
+      · exact facts.2.2.2.2.2
+    · show memory watched = HolWordLab.word cell
+      rw [frameMemory]
+      exact watch
+
+#print axioms actual_payload_header_store_step_prefix_watched_flat
+
 end InitECandidate.Runtime
