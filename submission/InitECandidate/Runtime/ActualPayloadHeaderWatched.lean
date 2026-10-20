@@ -1266,4 +1266,162 @@ theorem actual_payload_header_stores_14_to_24_watched {F : Type}
 #print axioms actual_payload_header_stores_14_to_24_watched
 
 
+/-- **The actual struct declaration of the tail binds a four-word value.**  Beyond the frame lemma,
+the declaration's shape test pins the number of cells the bound value occupies, which is what the
+following four-word store needs. -/
+theorem actual_payload_header_dec_four_watched {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap watched extraLen : BitVec 64) (name : MlS) (shape : ShapeHOL)
+    (initializer : ExpHOL 64) (body : ProgHOL 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (namePl : name ≠ ofString "pl") (nameRaw : name ≠ ofString "raw") (nameH : name ≠ ofString "h")
+    (watch : WatchWord mid watched extraLen)
+    (four : sizeOfShapeHOL shape = 4)
+    (wf : isWfShapeExactHOL ([] : StructContextExact) shape = true) :
+    Reaches mid (.dec name shape initializer body)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer heap ∧
+        WatchWord post watched extraLen ∧
+        ∃ v, post.locals.lookup name = some v ∧ (flattenHOL v).length = 4) 0 body := by
+  rw [Reaches, evaluateHOLFiniteState_dec_total]
+  dsimp only
+  cases he : @evalHOLExact 64 F _ mid.toExact (fun a => Classical.propDecidable (mid.memaddrs a))
+    initializer with
+  | none => exact Or.inr (stAbort_error mid 0)
+  | some v =>
+    by_cases ok : shapeEqHOL shape (shapeOfHOLExact v)
+    · have okTrue : shapeEqHOL shape (shapeOfHOLExact v) = true := ok
+      have shapeEq : shapeOfHOLExact v = shape :=
+        ((shapeEqHOL_eq_true shape (shapeOfHOLExact v)).mp okTrue).symm
+      have lengthFour : (flattenHOL v).length = 4 := by
+        rw [flattenHOL_length_eq_sizeOfShapeHOL v (by rw [shapeEq]; exact wf),shapeEq,four]
+      obtain ⟨plLocal,rawLocal,hLocal,heapGlobal,domain,code⟩ := facts
+      simp only [ok,if_true] at *
+      refine Or.inl ⟨setVarHOLFinite name v mid,
+        ⟨⟨?_,?_,?_,?_,?_,?_⟩,?_,⟨v,?_,lengthFour⟩⟩,?_,?_,?_⟩
+      · simpa [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,namePl] using plLocal
+      · simpa [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,nameRaw] using rawLocal
+      · simpa [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,nameH] using hLocal
+      · simpa only [setVarHOLFinite] using heapGlobal
+      · simpa only [setVarHOLFinite] using domain
+      · simpa only [setVarHOLFinite] using code
+      · simpa only [WatchWord,setVarHOLFinite] using watch
+      · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+      · simp [setVarHOLFinite]
+      · simp [setVarHOLFinite]
+      · exact scoped_restore _ _
+    · simp only [ok,if_false] at *
+      exact Or.inr ⟨.error,rfl,by simp,by simp,by simp,by simp⟩
+
+#print axioms actual_payload_header_dec_four_watched
+
+/-- A one-word load yields a single-cell value. -/
+theorem eval_load_one_val {F : Type} (state : PanSemStateFiniteExact 64 F) (address : ExpHOL 64)
+    (value : ValueHOL 64)
+    (loaded : @evalHOLExact 64 F _ state.toExact (fun a => Classical.propDecidable (state.memaddrs a))
+      (.load .one address) = some value) :
+    ∃ cell, value = .val cell := by
+  rw [evalHOLExact] at loaded
+  split at loaded
+  · split at loaded
+    · rename_i content contentEval
+      by_cases inDomain : state.memaddrs content
+      · simp only [memLoadHOLExact,inDomain,if_true] at loaded
+        exact ⟨state.memory content,by simpa using loaded.symm⟩
+      · simp only [memLoadHOLExact,inDomain,if_false] at loaded
+        exact absurd loaded (by simp)
+    · exact absurd loaded (by simp)
+  · exact absurd loaded (by simp)
+
+#print axioms eval_load_one_val
+
+/-- **A load-valued store writes exactly one cell.**  The value expression is a one-word load, so
+whatever it evaluates to occupies a single cell: a watched cell elsewhere survives, or the store
+rejects. -/
+theorem evaluate_store_load_memory_frame {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (destination address : ExpHOL 64) (watched current : BitVec 64)
+    (destEval : @evalHOLExact 64 F _ state.toExact
+      (fun a => Classical.propDecidable (state.memaddrs a)) destination =
+      some (.val (.word current)))
+    (separate : watched ≠ current) :
+    (evaluateHOLFiniteState state (.store destination (.load .one address))).2.memory watched =
+      state.memory watched := by
+  rw [evaluateHOLFiniteState_store,destEval]
+  dsimp only
+  classical
+  cases loaded : evalHOLExact state.toExact (.load .one address) with
+  | none => simp [loaded]
+  | some value =>
+    obtain ⟨cell,shape⟩ := eval_load_one_val state address value loaded
+    subst shape
+    simp only [flattenHOL]
+    cases run : panMemStoresHOL current [cell] state.memaddrs state.memory with
+    | none => rfl
+    | some updated =>
+      refine panMemStoresHOL_frame current watched state.memaddrs state.memory [cell] ?_ updated run
+      intro index bound
+      have zero : index = 0 := by simpa using bound
+      subst zero
+      simpa using separate
+
+#print axioms evaluate_store_load_memory_frame
+
+/-- One actual header store once the store's memory frame is known. -/
+theorem actual_payload_header_store_step_prefix_watched_frame {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F) (pl raw pointer heap watched cell : BitVec 64)
+    (index k : Nat) (destination value : ExpHOL 64) (tail : ProgHOL 64)
+    (shape : actualPayloadHeaderAt index = .seq (.store destination value) tail)
+    (destShape : destination = .op .add [.var .local (ofString "h"), .const (BitVec.ofNat 64 k)])
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (frame : (evaluateHOLFiniteState mid (.store destination value)).2.memory watched =
+      mid.memory watched)
+    (watch : WatchWord mid watched cell) :
+    Reaches mid (actualPayloadHeaderAt index)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer heap ∧
+        WatchWord post watched cell) 0 tail := by
+  rw [shape]
+  refine reaches_seq mid (.store destination value) tail 0 _ ?_
+  rcases evaluate_store_cases mid destination value with error | ⟨memory,run⟩
+  · refine Or.inr ?_
+    unfold StAbort
+    rw [error]
+    exact ⟨.error,rfl,by simp,by simp,by simp,by simp⟩
+  · have frameMemory : memory watched = mid.memory watched := by
+      rw [run] at frame
+      exact frame
+    refine Or.inl ⟨{mid with memory := memory},⟨?_prefix,?_watch⟩,by simp,by simp,run⟩
+    · refine ⟨?_,?_,?_,?_,?_,?_⟩
+      · simpa using facts.1
+      · simpa using facts.2.1
+      · simpa using facts.2.2.1
+      · simpa using facts.2.2.2.1
+      · exact facts.2.2.2.2.1
+      · exact facts.2.2.2.2.2
+    · show memory watched = HolWordLab.word cell
+      rw [frameMemory]
+      exact watch
+
+#print axioms actual_payload_header_store_step_prefix_watched_frame
+
+/-- One actual load-valued header store, keeping the construction facts and a watched cell. -/
+theorem actual_payload_header_store_step_load_watched {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F) (pl raw pointer heap watched cell : BitVec 64)
+    (index k : Nat) (address : ExpHOL 64) (tail : ProgHOL 64)
+    (shape : actualPayloadHeaderAt index = .seq
+      (.store (.op .add [.var .local (ofString "h"), .const (BitVec.ofNat 64 k)])
+        (.load .one address)) tail)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (separate : watched ≠ pointer + BitVec.ofNat 64 k)
+    (watch : WatchWord mid watched cell) :
+    Reaches mid (actualPayloadHeaderAt index)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer heap ∧
+        WatchWord post watched cell) 0 tail := by
+  refine actual_payload_header_store_step_prefix_watched_frame state mid pl raw pointer heap
+    watched cell index k (.op .add [.var .local (ofString "h"), .const (BitVec.ofNat 64 k)])
+    (.load .one address) tail shape rfl facts ?_ watch
+  exact evaluate_store_load_memory_frame mid (.op .add [.var .local (ofString "h"),
+    .const (BitVec.ofNat 64 k)]) address watched (pointer + BitVec.ofNat 64 k)
+    (actual_payload_header_eval_word_add mid (ofString "h") pointer (BitVec.ofNat 64 k) facts.2.2.1)
+    separate
+
+#print axioms actual_payload_header_store_step_load_watched
+
 end InitECandidate.Runtime
