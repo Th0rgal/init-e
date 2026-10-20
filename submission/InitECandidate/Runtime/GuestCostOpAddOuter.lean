@@ -240,4 +240,50 @@ theorem opAddOuterThirtyTwoEvents_localCost (coeff : Work)
 
 #print axioms opAddOuterThirtyTwoEvents_localCost
 
+
+/-- Dispatcher-body corollary: once the actual `op_dispatch` body is presented in
+the canonical guard nesting, the `op = 1` run follows without evaluating any
+later opcode arm. The body-shape premise is discharged by `rfl` at the call site. -/
+theorem opAddOuter_dispatch_body_run (coeff : Work)
+    (d : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent)
+    (rest rest2 rest2b rest3 : ProgHOL 64)
+    (armRun : StatementRun (callEntryStateHOLFinite d HolFiniteMapExact.empty)
+      (sourceFunctionBody Guest.guestFn_op_add) (some (.returned (.val (.word 0))))
+      bodyPost bodyEvents)
+    (dFrame : d.globals.lookup (ofString "ev") = some (.val (.word 0)))
+    (dClock : d.clock ≠ 0)
+    (dInstalled : d.code.lookup = originalRuntimeCode.lookup)
+    (opValue : d.locals.lookup (ofString "op") = some (.val (.word (1 : BitVec 64))))
+    (hbody : sourceFunctionBody Guest.guestFn_op_dispatch =
+      (.seq
+        (.ite (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (32 : BitVec 64)))
+          (.seq
+            (.ite (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (16 : BitVec 64)))
+              (.seq
+                (.ite (.cmp Cmp.equal (.var VarKind.local (ofString "op")) (.const (0 : BitVec 64)))
+                  (.seq (.call (some (none, none)) (ofString "op_stop") [])
+                    (.return (.const (0 : BitVec 64))))
+                  .skip)
+                (.seq
+                  (.ite (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+                      (.const (1 : BitVec 64)))
+                    (.seq (.call (some (none, none)) (ofString "op_add") [])
+                      (.return (.const (0 : BitVec 64))))
+                    .skip)
+                  rest))
+              rest2)
+            rest2b)
+          (.seq (.call (some (none, none)) (ofString "op_stop") [])
+            (.return (.const (0 : BitVec 64)))))
+        rest3)) :
+    StatementRun d (sourceFunctionBody Guest.guestFn_op_dispatch)
+      (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
+      (opAddOuterThirtyTwoEvents d bodyPost bodyEvents) := by
+  have arm := opAdd_dispatch_arm_run coeff d bodyPost bodyEvents armRun dFrame dClock dInstalled
+  have run := opAddOuter_lt32_run coeff d bodyPost bodyEvents rest rest2 rest2b rest3 arm opValue
+  rw [hbody]
+  simpa [opAddOuterThirtyTwoEvents] using run
+
+#print axioms opAddOuter_dispatch_body_run
 end InitECandidate.Runtime.FineCost
