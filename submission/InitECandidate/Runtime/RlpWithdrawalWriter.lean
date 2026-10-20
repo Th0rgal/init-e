@@ -341,118 +341,193 @@ theorem wdFinishTail_window {F : Type} (t : PanSemStateFiniteExact 64 F)
 
 #print axioms wdFinishTail_window
 
+/-- The `.one` shape check yields a word, reading the shape check from the parameter side. -/
+theorem shapeWord_of_one_left {v : ValueHOL 64} (h : shapeEqHOL .one (shapeOfHOLExact v) = true) :
+    ∃ y : BitVec 64, v = .val (.word y) := by
+  cases v with
+  | val x => cases x with
+    | word y => exact ⟨y,rfl⟩
+  | rStruct fields => simp [shapeOfHOLExact,shapeEqHOL] at h
+  | nStruct name fields => simp [shapeOfHOLExact,shapeEqHOL] at h
+
+#print axioms shapeWord_of_one_left
+
+/-- If the lookup of `rlp_encode_word` succeeds at all, then its second argument is already a
+word: the exact lookup's shape check enforces the `.one` parameter shape. -/
+theorem rlpEncodeWord_second_word {P : BitVec 64} {A2 : ValueHOL 64} {body : ProgHOL 64}
+    {callee : HolFiniteMapExact MlS (ValueHOL 64)} {returnShape : ShapeHOL}
+    (found : PanSemStateFiniteExact.lookupCodeHOLFinite originalRuntimeCode.lookup
+      (ofString "rlp_encode_word") [.val (.word P), A2] = some (body,callee,returnShape)) :
+    ∃ Y : BitVec 64, A2 = .val (.word Y) := by
+  by_cases hshape : shapeEqHOL .one (shapeOfHOLExact A2) = true
+  · exact shapeWord_of_one_left hshape
+  · exfalso
+    have hnone : lookupCodeHOLExact originalRuntimeCode.lookup (ofString "rlp_encode_word")
+        [.val (.word P), A2] = none := by
+      rw [lookupCodeHOLExact,originalRuntimeCode_rlp_encode_word_lookup]
+      dsimp only
+      rw [if_neg]
+      intro hc
+      have hall := hc.2.2
+      simp only [List.zip_cons_cons,List.all_cons,List.all_nil,Bool.and_eq_true] at hall
+      exact hshape hall.2.1
+    unfold PanSemStateFiniteExact.lookupCodeHOLFinite at found
+    split at found
+    · cases found
+    · rename_i raw
+      rw [hnone] at raw
+      cases raw
+
+#print axioms rlpEncodeWord_second_word
+
 /-- The amount writer, its offset advance and the list finish keep every cell outside the buffer
-window. -/
+window.  The record word is left abstract: if it cannot be loaded the call simply fails, and if it is
+loaded then the lookup's shape check makes it a word. -/
 theorem wdCall36_window {F : Type} (t : PanSemStateFiniteExact 64 F)
-    (B P V36 w : BitVec 64) (K : Nat)
+    (B P w : BitVec 64) (K : Nat)
     (out : ¬ MWin B 64 w)
     (hB : B.toNat + 64 < 2 ^ 64)
     (hP : P = B + BitVec.ofNat 64 K)
     (hK : K + 9 ≤ 64) (hK9 : 9 ≤ K)
-    (hV36 : @evalHOLExact 64 F _ t.toExact (fun a => Classical.propDecidable (t.memaddrs a))
-      withdrawalWord36 = some (.val (.word V36)))
     (hb : t.locals.lookup (ofString "buf") = some (.val (.word B)))
     (hp : t.locals.lookup (ofString "p") = some (.val (.word P)))
     (code : t.code = originalRuntimeCode) :
     (evaluateHOLFiniteState t (.seq wdCall36 wdCall36Tail)).2.memory w = t.memory w := by
-  have argsEval : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
-      [.var .local (ofString "p"), withdrawalWord36] =
-      some [.val (.word P), .val (.word V36)] := by
-    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,hp,hV36]
-  obtain ⟨callee,look⟩ := lookupCodeHOLFinite_of_exact t.code.lookup (ofString "rlp_encode_word")
-    [.val (.word P), .val (.word V36)] (sourceFunctionBody Guest.guestFn_rlp_encode_word) _ .one
-    (by rw [code]; exact rlpEncodeWord_exact_lookup P V36)
-  have look' := look
-  rw [code] at look'
-  obtain ⟨bodyEq,hshapeEq,hdC,hwC⟩ := rlpEncodeWord_call_facts P V36 _ _ _ look'
-  have hdE : (callEntryStateHOLFinite t callee).locals.lookup (ofString "dst")
-      = some (.val (.word P)) := by
-    rw [callEntryStateHOLFinite]; exact hdC
-  have hwE : (callEntryStateHOLFinite t callee).locals.lookup (ofString "w")
-      = some (.val (.word V36)) := by
-    rw [callEntryStateHOLFinite]; exact hwC
-  have entryCode : (callEntryStateHOLFinite t callee).code = originalRuntimeCode := by
-    rw [callEntryStateHOLFinite]; exact code
-  have hbody : (evaluateHOLFiniteState (callEntryStateHOLFinite t callee)
-      (sourceFunctionBody Guest.guestFn_rlp_encode_word)).2.memory w = t.memory w :=
-    rlpEncodeWord_window (callEntryStateHOLFinite t callee) P V36 w
-      (by rw [hP]; exact mwin_narrow_shift out hK) hdE hwE entryCode
-  rw [evaluateHOLFiniteState_seq_line780]
-  cases callRun : evaluateHOLFiniteState t wdCall36 with
-  | mk rc mid =>
-    dsimp only
-    cases rc with
-    | some res =>
-      have window := assignCall_window t .local (ofString "w") (ofString "rlp_encode_word")
-        [.var .local (ofString "p"), withdrawalWord36] [.val (.word P), .val (.word V36)]
-        (sourceFunctionBody Guest.guestFn_rlp_encode_word) callee .one w argsEval look hbody
-      first
-        | (rw [callRun] at window; dsimp only at window; exact window)
-        | (rw [show wdCall36 = (.call (some ((some (.local,ofString "w")),none))
-              (ofString "rlp_encode_word") [.var .local (ofString "p"), withdrawalWord36]) from rfl] at callRun
-           rw [callRun] at window
-           dsimp only at window
-           exact window)
-    | none =>
-      obtain ⟨value, post, bodyRun, hshape, hvalid, hmid⟩ :=
-        assignCall_none_facts t .local (ofString "w") (ofString "rlp_encode_word")
-          [.var .local (ofString "p"), withdrawalWord36] [.val (.word P), .val (.word V36)]
-          (sourceFunctionBody Guest.guestFn_rlp_encode_word) callee .one mid argsEval look callRun
-      obtain ⟨H, hval, hHle⟩ := rlpEncodeWord_returns_le_nine (callEntryStateHOLFinite t callee)
-        V36 entryCode value hwE (by rw [bodyRun])
-      have hpm : post.memory w = t.memory w := by
-        rw [bodyRun] at hbody
-        exact hbody
-      rw [hmid, hval]
-      simp only [setKvarHOLFinite]
-      set sp := setVarHOLFinite (ofString "p") (.val (.word (P + H)))
-        (setVarHOLFinite (ofString "w") (.val (.word H)) {post with locals := t.locals})
-      have hpL : (setVarHOLFinite (ofString "w") (.val (.word H))
-          {post with locals := t.locals}).locals.lookup (ofString "p") = some (.val (.word P)) := by
-        simpa [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
-          show ofString "w" ≠ ofString "p" by decide] using hp
-      have hwL : (setVarHOLFinite (ofString "w") (.val (.word H))
-          {post with locals := t.locals}).locals.lookup (ofString "w") = some (.val (.word H)) :=
-        lookup_setVar_eq _ _ _
-      have asg : evaluateHOLFiniteState
-          (setVarHOLFinite (ofString "w") (.val (.word H)) {post with locals := t.locals})
-          wdAssign = (none, sp) := by
-        simp only [sp,wdAssign,withdrawalOffset,evaluateHOLFiniteState_assign,setKvarHOLFinite]
-        rw [show @evalHOLExact 64 F _
-            (setVarHOLFinite (ofString "w") (.val (.word H)) {post with locals := t.locals}).toExact
-            (fun a => Classical.propDecidable
-              ((setVarHOLFinite (ofString "w") (.val (.word H)) {post with locals := t.locals}).memaddrs a))
-            (.op .add [.var .local (ofString "p"),.var .local (ofString "w")]) =
-            some (.val (.word (P + H))) from by
-          simp [evalHOLExact,evalListHOLExact,hpL,hwL,wordOpHOL,wordOp,valueIsWord,valueWord]]
+  have hwd : wdCall36 = (.call (some ((some (.local,ofString "w")),none))
+      (ofString "rlp_encode_word") [.var .local (ofString "p"), withdrawalWord36]) := rfl
+  rw [hwd, evaluateHOLFiniteState_seq_line780]
+  by_cases h2 : ∃ A2 : ValueHOL 64,
+      @evalHOLExact 64 F _ t.toExact (fun a => Classical.propDecidable (t.memaddrs a))
+        withdrawalWord36 = some A2
+  · obtain ⟨A2, h2⟩ := h2
+    have hargs : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+        [.var .local (ofString "p"), withdrawalWord36] = some [.val (.word P), A2] := by
+      simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,hp,h2]
+    by_cases hlook : ∃ l, PanSemStateFiniteExact.lookupCodeHOLFinite t.code.lookup
+        (ofString "rlp_encode_word") [.val (.word P), A2] = some l
+    · obtain ⟨⟨body, callee, returnShape⟩, hlook⟩ := hlook
+      have hlookO := hlook
+      rw [code] at hlookO
+      obtain ⟨Y, hY⟩ := rlpEncodeWord_second_word (P := P) hlookO
+      have look2 : PanSemStateFiniteExact.lookupCodeHOLFinite originalRuntimeCode.lookup
+          (ofString "rlp_encode_word") [.val (.word P), .val (.word Y)] =
+          some (body,callee,returnShape) := by
+        rw [← hY]; exact hlookO
+      obtain ⟨bodyEq,hshapeEq,hdC,hwC⟩ := rlpEncodeWord_call_facts P Y body callee returnShape look2
+      have hdE : (callEntryStateHOLFinite t callee).locals.lookup (ofString "dst")
+          = some (.val (.word P)) := by
+        rw [callEntryStateHOLFinite]; exact hdC
+      have hwE : (callEntryStateHOLFinite t callee).locals.lookup (ofString "w")
+          = some (.val (.word Y)) := by
+        rw [callEntryStateHOLFinite]; exact hwC
+      have entryCode : (callEntryStateHOLFinite t callee).code = originalRuntimeCode := by
+        rw [callEntryStateHOLFinite]; exact code
+      have hbody : (evaluateHOLFiniteState (callEntryStateHOLFinite t callee) body).2.memory w
+          = t.memory w := by
+        rw [bodyEq]
+        exact rlpEncodeWord_window (callEntryStateHOLFinite t callee) P Y w
+          (by rw [hP]; exact mwin_narrow_shift out hK) hdE hwE entryCode
+      cases callRun : evaluateHOLFiniteState t
+          (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_word")
+            [.var .local (ofString "p"), withdrawalWord36]) with
+      | mk rc mid =>
         dsimp only
-        rw [if_pos (isValidValue_local_word _ (ofString "p") (P + H) P hpL)]
-      rw [wdCall36Tail, evaluateHOLFiniteState_seq_line780, asg]
-      dsimp only
-      have spmem : sp.memory w = t.memory w := by
-        simp only [sp,setVarHOLFinite]
-        exact hpm
-      have hPloc : sp.locals.lookup (ofString "p") = some (.val (.word (P + H))) := by
-        simp only [sp,setVarHOLFinite]
-        exact lookup_setVar_eq _ _ _
-      have hbloc : sp.locals.lookup (ofString "buf") = some (.val (.word B)) := by
-        simp [sp,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,hb,
-          show ofString "p" ≠ ofString "buf" by decide,
-          show ofString "w" ≠ ofString "buf" by decide]
-      have postCode : post.code = t.code := by
-        have met := (evaluateHOLFiniteState_metadata (callEntryStateHOLFinite t callee)
-          (sourceFunctionBody Guest.guestFn_rlp_encode_word)).1
-        rw [bodyRun] at met
-        exact met
-      have spcode : sp.code = originalRuntimeCode := by
-        simp only [sp,setVarHOLFinite]
-        exact postCode.trans code
-      have hPn : P + H = B + BitVec.ofNat 64 (K + H.toNat) := by
-        rw [hP]; bv_omega
-      rw [wdFinishTail_window sp B (P + H) w (K + H.toNat) out hB hPn (by omega) (by omega)
-        hbloc hPloc spcode]
-      exact spmem
-
+        cases rc with
+        | some res =>
+          have window := assignCall_window t .local (ofString "w") (ofString "rlp_encode_word")
+            [.var .local (ofString "p"), withdrawalWord36] [.val (.word P), A2]
+            body callee returnShape w hargs hlook hbody
+          rw [callRun] at window
+          dsimp only at window
+          exact window
+        | none =>
+          obtain ⟨value, post, bodyRun, hshape, hvalid, hmid⟩ :=
+            assignCall_none_facts t .local (ofString "w") (ofString "rlp_encode_word")
+              [.var .local (ofString "p"), withdrawalWord36] [.val (.word P), A2]
+              body callee returnShape mid hargs hlook callRun
+          obtain ⟨H, hval, hHle⟩ := rlpEncodeWord_returns_le_nine (callEntryStateHOLFinite t callee)
+            Y entryCode value hwE (by rw [← bodyEq,bodyRun])
+          have hpm : post.memory w = t.memory w := by
+            rw [bodyRun] at hbody
+            exact hbody
+          rw [hmid, hval]
+          simp only [setKvarHOLFinite]
+          set sp := setVarHOLFinite (ofString "p") (.val (.word (P + H)))
+            (setVarHOLFinite (ofString "w") (.val (.word H)) {post with locals := t.locals})
+          have hpL : (setVarHOLFinite (ofString "w") (.val (.word H))
+              {post with locals := t.locals}).locals.lookup (ofString "p") = some (.val (.word P)) := by
+            simpa [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+              show ofString "w" ≠ ofString "p" by decide] using hp
+          have hwL : (setVarHOLFinite (ofString "w") (.val (.word H))
+              {post with locals := t.locals}).locals.lookup (ofString "w") = some (.val (.word H)) :=
+            lookup_setVar_eq _ _ _
+          have asg : evaluateHOLFiniteState
+              (setVarHOLFinite (ofString "w") (.val (.word H)) {post with locals := t.locals})
+              wdAssign = (none, sp) := by
+            simp only [sp,wdAssign,withdrawalOffset,evaluateHOLFiniteState_assign,setKvarHOLFinite]
+            rw [show @evalHOLExact 64 F _
+                (setVarHOLFinite (ofString "w") (.val (.word H)) {post with locals := t.locals}).toExact
+                (fun a => Classical.propDecidable
+                  ((setVarHOLFinite (ofString "w") (.val (.word H)) {post with locals := t.locals}).memaddrs a))
+                (.op .add [.var .local (ofString "p"),.var .local (ofString "w")]) =
+                some (.val (.word (P + H))) from by
+              simp [evalHOLExact,evalListHOLExact,hpL,hwL,wordOpHOL,wordOp,valueIsWord,valueWord]]
+            dsimp only
+            rw [if_pos (isValidValue_local_word _ (ofString "p") (P + H) P hpL)]
+          rw [wdCall36Tail, evaluateHOLFiniteState_seq_line780, asg]
+          dsimp only
+          have spmem : sp.memory w = t.memory w := by
+            simp only [sp,setVarHOLFinite]
+            exact hpm
+          have hPloc : sp.locals.lookup (ofString "p") = some (.val (.word (P + H))) := by
+            simp only [sp,setVarHOLFinite]
+            exact lookup_setVar_eq _ _ _
+          have hbloc : sp.locals.lookup (ofString "buf") = some (.val (.word B)) := by
+            simp [sp,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,hb,
+              show ofString "p" ≠ ofString "buf" by decide,
+              show ofString "w" ≠ ofString "buf" by decide]
+          have postCode : post.code = t.code := by
+            have met := (evaluateHOLFiniteState_metadata (callEntryStateHOLFinite t callee)
+              (sourceFunctionBody Guest.guestFn_rlp_encode_word)).1
+            rw [← bodyEq,bodyRun] at met
+            exact met
+          have spcode : sp.code = originalRuntimeCode := by
+            simp only [sp,setVarHOLFinite]
+            exact postCode.trans code
+          have hPn : P + H = B + BitVec.ofNat 64 (K + H.toNat) := by
+            rw [hP]; bv_omega
+          rw [wdFinishTail_window sp B (P + H) w (K + H.toNat) out hB hPn (by omega) (by omega)
+            hbloc hPloc spcode]
+          exact spmem
+    · push_neg at hlook
+      have hnone : PanSemStateFiniteExact.lookupCodeHOLFinite t.code.lookup
+          (ofString "rlp_encode_word") [.val (.word P), A2] = none := by
+        cases h : PanSemStateFiniteExact.lookupCodeHOLFinite t.code.lookup
+            (ofString "rlp_encode_word") [.val (.word P), A2] with
+        | none => rfl
+        | some l => exact absurd h (hlook l)
+      have hpair : evaluateHOLFiniteState t
+          (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_word")
+            [.var .local (ofString "p"), withdrawalWord36]) = (some .error, t) := by
+        rw [evaluateHOLFiniteState_call,hargs]
+        dsimp only
+        rw [hnone]
+      rw [hpair]
+  · push_neg at h2
+    have hnone : @evalHOLExact 64 F _ t.toExact (fun a => Classical.propDecidable (t.memaddrs a))
+        withdrawalWord36 = none := by
+      cases h : @evalHOLExact 64 F _ t.toExact (fun a => Classical.propDecidable (t.memaddrs a))
+          withdrawalWord36 with
+      | none => rfl
+      | some v => exact absurd h (h2 v)
+    have hargs : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+        [.var .local (ofString "p"), withdrawalWord36] = none := by
+      simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,hnone]
+    have hpair : evaluateHOLFiniteState t
+        (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_word")
+          [.var .local (ofString "p"), withdrawalWord36]) = (some .error, t) := by
+      rw [evaluateHOLFiniteState_call,hargs]
+    rw [hpair]
 #print axioms wdCall36_window
 
 end InitECandidate.Runtime
