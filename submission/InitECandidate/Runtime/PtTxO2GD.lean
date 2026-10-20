@@ -288,26 +288,28 @@ end c1b
 section hi
 variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {RR : ValueHOL 64 → Mem → GA → Prop}
   {SP0 FM : BitVec 64} {G0 : GA} {J C SKB Bo U Sc : BitVec 64}
-  {n : Nat} {c T : Fin n → BitVec 64} {Out : BitVec 64 → Prop} {ko kA kB k40 : Fin n}
+  {n m : Nat} {c T : Fin n → BitVec 64} {Out : BitVec 64 → Prop} {ko kA kB : Fin n}
   {WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop} {Sk : BitVec 64 → Prop}
   {Excl' Wbal W40 W72 Z : BitVec 64 → Prop} {Ix L40 L72 : BitVec 64}
 
 /-- The staging premise of `processTx_fullO2` is met by the actual installed incorporate call with
-`BV Y := IncW` (outside words `Out ∨ ORec Y`, excluded words `Excl' ∨ Wbal`) and `BVo Y := IncWo`. `BalKeep` and the
-OPEN witness obligation `WsReadObl` (at every raised arena bound) stay explicit. -/
+`BV Y := IncW` over the sub-registry `e` (outside words `Out ∨ ORec Y`, excluded words `Excl' ∨ Wbal`) and
+`BVo Y := IncWo`. `BalKeep` and the OPEN witness obligation `WsReadObl` (at every raised arena bound) stay explicit. -/
 theorem hinc_of_incorpCO2_call (bk : BalKeep)
     (wsr : ∀ Hp : BitVec 64, w.toNat < Hp.toNat → WsReadObl D B (JWSBUS SP0 Hp FM G0 J C SKB Bo U Sc) WsI)
-    (hAB : kA ≠ kB) (ne : kB ≠ ko) (Bs : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
-    (hcB : c kB = Bs + 72#64) (ne40 : k40 ≠ ko) (Ts : BitVec 64)
-    (hTs : G0.lookup (ofString "ts") = some (.val (.word Ts))) (hc40 : c k40 = Ts + 40#64)
+    (e : Fin m → Fin n) (inj : ∀ i j, e i = e j → i = j) (ko' kB' k40' : Fin m) (hko : ∀ i, e i ≠ ko)
+    (hAB : kA ≠ kB) (ne : kB' ≠ ko') (Bs : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
+    (hcB : c (e kB') = Bs + 72#64) (ne40 : k40' ≠ ko') (Ts : BitVec 64)
+    (hTs : G0.lookup (ofString "ts") = some (.val (.word Ts))) (hc40 : c (e k40') = Ts + 40#64)
     (hSkSO : ∀ x, SkWin SKB x → Out x ∧ ∀ i, x ≠ c i) (hSk : ∀ x, SkWin SKB x → Sk x)
     (Pw : BitVec 64) (hwZ : ¬ Z w) (hwPw : w.toNat < Pw.toNat)
     (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a) :
     ∀ (Y Hp : BitVec 64) (Mp : Mem) (Hb : BitVec 64), w.toNat < Hp.toNat → IncorpCO2 D B w RR SP0 Hp FM G0 J C SKB
       Bo U Sc n c T (fun x => Out x ∨ ORec Y x) ko (fun x => Excl' x ∨ Wbal x) W40 W72
-      (fun M G => IncW D B n c T WsI Sk Ts Bs Pw Z (fun x => Out x ∨ ORec Y x) (fun x => Excl' x ∨ Wbal x) W40 W72 M G)
-      (fun M G => IncWo D B n c T ko WsI Sk M G) Mp Y Ix Hb L40 L72 :=
-  fun _ Hp _ _ hwP => incorpCO2_call bk (wsr Hp hwP) hAB ne Bs hBs hcB ne40 Ts hTs hc40
+      (fun M G => IncW D B n m c T e ko' WsI Sk Ts Bs Pw Z (fun x => Out x ∨ ORec Y x) (fun x => Excl' x ∨ Wbal x)
+        W40 W72 M G)
+      (fun M G => IncWo D B m (fun i => c (e i)) (fun i => T (e i)) ko' WsI Sk M G) Mp Y Ix Hb L40 L72 :=
+  fun _ Hp _ _ hwP => incorpCO2_call bk (wsr Hp hwP) e inj ko' kB' k40' hko hAB ne Bs hBs hcB ne40 Ts hTs hc40
     (fun x h => ⟨Or.inl (hSkSO x h).1,(hSkSO x h).2⟩) hSk Pw hwZ hwPw hwP Dall
 
 #print axioms hinc_of_incorpCO2_call
