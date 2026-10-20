@@ -6,6 +6,16 @@ open Flapjack.Basis.Pure.MlString
 set_option maxRecDepth 100000
 set_option maxHeartbeats 4000000
 
+/-- A one-word shape pins a value to a word. -/
+theorem shapeWord_of_one {v : ValueHOL 64} (h : shapeEqHOL (shapeOfHOLExact v) .one = true) :
+    ∃ y : BitVec 64, v = .val (.word y) := by
+  cases v with
+  | val x => cases x with
+    | word y => exact ⟨y,rfl⟩
+  | _ => simp [shapeOfHOLExact,shapeEqHOL] at h
+
+#print axioms shapeWord_of_one
+
 /-- A program whose whole memory is framed keeps any single watched cell. -/
 theorem window_of_memoryFrame {program : ProgHOL 64} (frame : MemoryFrame program)
     {F : Type} (s : PanSemStateFiniteExact 64 F) (w : BitVec 64)
@@ -123,7 +133,10 @@ theorem decCall_window {F : Type} (s : PanSemStateFiniteExact 64 F)
     (hargs : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments = some values)
     (hlookup : lookupCodeHOLFinite s.code.lookup function values = some (body,callee,returnShape))
     (hbody : (evaluateHOLFiniteState (callEntryStateHOLFinite s callee) body).2.memory w = s.memory w)
-    (hcont : ∀ (value : ValueHOL 64) (base : PanSemStateFiniteExact 64 F), base.memory w = s.memory w →
+    (hcont : ∀ (value : ValueHOL 64) (base : PanSemStateFiniteExact 64 F),
+      evaluateHOLFiniteState (callEntryStateHOLFinite s callee) body = (some (.returned value),base) →
+      shapeEqHOL (shapeOfHOLExact value) shape = true →
+      shapeEqHOL (shapeOfHOLExact value) returnShape = true →
       ∀ (k : Nat), (evaluateHOLFiniteState
         (setVarHOLFinite resultName value {base with clock := k, locals := s.locals})
         continuation).2.memory w = s.memory w) :
@@ -147,8 +160,9 @@ theorem decCall_window {F : Type} (s : PanSemStateFiniteExact 64 F)
         | «returned» value =>
           dsimp only
           split
-          · dsimp only
-            exact hcont value st hbody _
+          · rename_i hshape
+            simp only [Bool.and_eq_true] at hshape
+            exact hcont value st run hshape.1 hshape.2 _
           · dsimp only
             exact hbody
         | _ =>
