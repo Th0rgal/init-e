@@ -23,6 +23,33 @@ def sharpPricing : LoopPricing where
 
 /-- Crep work at exact Loop prices. -/
 abbrev CrepWorkS {σ : Type} := @CrepWorkP loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.skip {σ : Type} := @CrepWorkP.skip loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.tick {σ : Type} := @CrepWorkP.tick loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.breakStmt {σ : Type} := @CrepWorkP.breakStmt loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.continueStmt {σ : Type} := @CrepWorkP.continueStmt loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.raise {σ : Type} := @CrepWorkP.raise loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.assign {σ : Type} := @CrepWorkP.assign loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.storeGlob {σ : Type} := @CrepWorkP.storeGlob loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.store {σ : Type} := @CrepWorkP.store loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.store32 {σ : Type} := @CrepWorkP.store32 loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.storeByte {σ : Type} := @CrepWorkP.storeByte loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.returnStmt {σ : Type} := @CrepWorkP.returnStmt loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.primitive {σ : Type} := @CrepWorkP.primitive loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.shMem {σ : Type} := @CrepWorkP.shMem loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.extCall {σ : Type} := @CrepWorkP.extCall loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.decFailure {σ : Type} := @CrepWorkP.decFailure loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.dec {σ : Type} := @CrepWorkP.dec loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.seqNext {σ : Type} := @CrepWorkP.seqNext loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.seqStop {σ : Type} := @CrepWorkP.seqStop loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.iteBranch {σ : Type} := @CrepWorkP.iteBranch loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.iteInvalid {σ : Type} := @CrepWorkP.iteInvalid loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.whileExit {σ : Type} := @CrepWorkP.whileExit loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.whileTimeout {σ : Type} := @CrepWorkP.whileTimeout loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.whileLoop {σ : Type} := @CrepWorkP.whileLoop loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.whileStop {σ : Type} := @CrepWorkP.whileStop loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.callShort {σ : Type} := @CrepWorkP.callShort loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.callBody {σ : Type} := @CrepWorkP.callBody loopNodePrice sharpCrepList 2 σ
+abbrev CrepWorkS.callHandler {σ : Type} := @CrepWorkP.callHandler loopNodePrice sharpCrepList 2 σ
 
 /-- Uniform node-count ceilings: six Loop units per Crep node, one more per
 argument, seven per statement. -/
