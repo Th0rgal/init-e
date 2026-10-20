@@ -2,8 +2,8 @@
 
 This note records the checked local transfer result for the stage between
 instruction selection and native lowering.  It is deliberately stated in the
-new executed-work model (`InitECandidate.Runtime.FineCost.Work`), not in the old
-clock/fuel model, and it never multiplies by a whole-program AST, code-table,
+local Word envelope compatible with the executed-work approach, rather than
+the old clock/fuel model, and it never multiplies by a whole-program AST, code-table,
 bitmap, ROM or `2^64`/`2^74` ceiling.
 
 ## Unit of account

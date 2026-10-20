@@ -61,14 +61,16 @@ callee exception; forms that allocate no slots are conservatively charged too.
 Argument/lookup failures remain unchanged. The source compiler transfer can
 therefore pay by the actual requested size instead of a universal return-size
 cap or an inflated coefficient on every statement. Completeness and erasure
-remain exact; adapting the broader statement transfer is still in progress.
+remain exact; the checked source-to-Crep transfer uses this size event directly,
+without a universal return-slot bound.
 
 ## Checked compiler pieces
 
 | Stage/modules | Proven result | Scope/remaining obligation |
 | --- | --- | --- |
-| `SourceCostCrepWork`, `SourceCostCrepBasis`, `SourceCostCrepControl` | Executed Crep work and source-event payment for skip/annotation/tick/break/continue, actual sequence/conditional/loop paths under original compiler premises | Control fragment only; data statements, calls and preprocessing still open |
-| `AllocCostModel`, `AllocCostSSA`, `AllocCostPasses`, `AllocCostCompose`, `AllocCostExecuted` | SSA prologue/instruction moves, three-to-two rewrite-site costs, nonamplifying allocation/colouring, and actual path budget for their composed output | Certified straight-line fragments; deleting passes and recursive call/loop reconciliation remain open |
+| `SourceCostCrepWork`, `SourceCostCrepBasis`, `SourceCostCrepLeaf`, `SourceCostCrepDec`, `SourceCostCrepCall`, `SourceCostCrepHandler`, `SourceCostCrepControl` | Executed Crep work paid by source events for control paths, declarations, local assignments, stores, returns/raises and calls including caught exceptions and timeout; return slots paid by requested size | Original state/code/exception/locals relations, localization, bulk-load and callee coverage premises; declaration-call, primitive/external/shared operations and preprocessing still open |
+| `AllocCostModel`, `AllocCostSSA`, `AllocCostPasses`, `AllocCostCompose`, `AllocCostExecuted` | SSA prologue/instruction moves, three-to-two rewrite-site costs, nonamplifying allocation/colouring, and actual path budget for their composed output | Certified straight-line fragments; recursive call/loop reconciliation remains open |
+| `AllocCostOptimizer`, `AllocCostCse`, `AllocCostUnreach` | Local static envelopes for must-terminate/dead-code removal, copy propagation, CSE, sequence cleanup and unreachable removal; expansion charged by rewrite sites | Straight-line fragment bounds; grammar/composed optimizer and dynamic control transfer remain separate |
 | `CrepExpressionWork`, `PanLoweringAllowance` | Full local source expression expansion; context-width and repeated address work retained | Generated syntax, not complete statement execution transfer |
 | `CrepToLoopLocalBound` | Generated code plus residual expression work <=6 times Crep expression work; list materialization potential | Local expression lowering |
 | `LoopExecutedWork` | Sound, complete, bounded actual traces for generated expression-code subset | Calls/loops rejected by the static subset cost |
