@@ -817,4 +817,62 @@ theorem wdCall8_window {F : Type} (t : PanSemStateFiniteExact 64 F)
 #print axioms wdCall8_window
 
 
+/-- After the first record word is bound, the offset advance followed by the second and address
+writers keeps every cell outside the buffer window. -/
+theorem wdAssign8_window {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (B W P H w : BitVec 64) (K : Nat)
+    (out : ¬ MWin B 64 w)
+    (hB : B.toNat + 64 < 2 ^ 64)
+    (hP : P = B + BitVec.ofNat 64 K)
+    (hK : K ≤ 9) (hK9 : 9 ≤ K) (hH : H.toNat ≤ 9)
+    (hb : t.locals.lookup (ofString "buf") = some (.val (.word B)))
+    (hp : t.locals.lookup (ofString "p") = some (.val (.word P)))
+    (hwdloc : t.locals.lookup (ofString "wd") = some (.val (.word W)))
+    (code : t.code = originalRuntimeCode) :
+    (evaluateHOLFiniteState (setVarHOLFinite (ofString "w") (.val (.word H)) t)
+      (.seq wdAssign (.seq wdCall8 wdCall8Tail))).2.memory w = t.memory w := by
+  set t' := setVarHOLFinite (ofString "w") (.val (.word H)) t with ht'
+  have hpL : t'.locals.lookup (ofString "p") = some (.val (.word P)) := by
+    simp only [ht',setVarHOLFinite]
+    exact lookup_setVar_ne _ (ofString "w") (ofString "p") _ _ (by decide) (by simpa using hp)
+  have hwL : t'.locals.lookup (ofString "w") = some (.val (.word H)) := by
+    simp only [ht',setVarHOLFinite]
+    exact lookup_setVar_eq _ _ _
+  have asg : evaluateHOLFiniteState t' wdAssign = (none, setVarHOLFinite (ofString "p")
+      (.val (.word (P + H))) t') := by
+    simp only [ht',wdAssign,withdrawalOffset,evaluateHOLFiniteState_assign,setKvarHOLFinite]
+    rw [show @evalHOLExact 64 F _ t'.toExact
+        (fun a => Classical.propDecidable (t'.memaddrs a))
+        (.op .add [.var .local (ofString "p"),.var .local (ofString "w")]) =
+        some (.val (.word (P + H))) from by
+      simp [evalHOLExact,evalListHOLExact,hpL,hwL,wordOpHOL,wordOp,valueIsWord,valueWord]]
+    dsimp only
+    rw [if_pos (isValidValue_local_word _ (ofString "p") (P + H) P hpL)]
+  set sp := setVarHOLFinite (ofString "p") (.val (.word (P + H))) t' with hsp
+  rw [evaluateHOLFiniteState_seq_line780, asg]
+  dsimp only
+  have hbloc : sp.locals.lookup (ofString "buf") = some (.val (.word B)) := by
+    simp [hsp,ht',setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,hb,
+      show ofString "p" ≠ ofString "buf" by decide,
+      show ofString "w" ≠ ofString "buf" by decide]
+  have hPloc : sp.locals.lookup (ofString "p") = some (.val (.word (P + H))) := by
+    simp only [hsp,setVarHOLFinite]
+    exact lookup_setVar_eq _ _ _
+  have hwn : sp.locals.lookup (ofString "wd") = some (.val (.word W)) := by
+    simp [hsp,ht',setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,hwdloc,
+      show ofString "p" ≠ ofString "wd" by decide,
+      show ofString "w" ≠ ofString "wd" by decide]
+  have spmem : sp.memory w = t.memory w := by
+    simp only [hsp,ht',setVarHOLFinite]
+  have spcode : sp.code = originalRuntimeCode := by
+    simp only [hsp,ht',setVarHOLFinite]
+    exact code
+  have hPn : P + H = B + BitVec.ofNat 64 (K + H.toNat) := by
+    rw [hP]; bv_omega
+  rw [wdCall8_window sp B W (P + H) w (K + H.toNat) out hB hPn (by omega) (by omega)
+    hbloc hPloc hwn spcode]
+  exact spmem
+
+#print axioms wdAssign8_window
+
 end InitECandidate.Runtime
