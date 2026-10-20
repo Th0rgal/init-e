@@ -546,3 +546,22 @@ clock extension, `LoopWork` at most `sharpScore` of the original events plus
 The per-state pipeline premises (`EntryPipeline`) are those of the pinned
 `pan_to_crep` and `crep_to_loop` `state_rel_imp_semantics` theorems. They are
 stated for the actual post-declaration state of the compiled program.
+
+`SourceCostInitial.source_loop_initial` instantiates this at the initial states
+of the pinned `panToWordStateRelImpSemantics` proof:
+
+- the `pan_globals` target state;
+- `crepStateHOL`;
+- `loopStateHOL`, built from the source state and the Word target state.
+
+It derives every `EntryPipeline` field from that theorem's premises, following
+its own proof. The remaining premises are static facts about the program:
+
+- no structures;
+- no inline functions;
+- the replay-site certificate;
+- `pan_globals` readiness;
+- constant global initialisers;
+- the parameterless `start` function.
+
+For the guest, these are certified on the exact compiler stages.
