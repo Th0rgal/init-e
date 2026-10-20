@@ -32,6 +32,7 @@ theorem split_extension_declaration_world {F : Type}
  TrieNodeKinds bodyPost larger newExtensions (insert frontier branches) ∧
  TrieNodePaths bodyPost larger newExtensions (insert frontier branches) newSize finish ∧
  (∀nib len,TriePathBuffer s live size nib len frontier→TriePathBuffer bodyPost larger newSize nib len finish) ∧
+ bodyPost.memaddrs=s.memaddrs ∧bodyPost.be=s.be ∧bodyPost.code=s.code ∧
  evaluateHOLFiniteState (setVarHOLFinite name (.val (.word frontier)) {bodyPost with locals:=s.locals}) tail=(none,output) ∧
  post={output with locals:=HolFiniteMapExact.resVarEq output.locals (name,s.locals.lookup name)} := by
  have nodeLive : node∈live:=world.layout.extensionLive extension
@@ -62,8 +63,10 @@ theorem split_extension_declaration_world {F : Type}
    (by simp (config:={decide:=true}) [entry,callee,callEntryStateHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE])
    (by simp (config:={decide:=true}) [entry,callee,callEntryStateHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE])
    fullDomain code (by change 50≤s.clock-1;omega) returned bodyRun
+ have metadata:=evaluateHOLFiniteState_metadata entry (sourceFunctionBody Guest.guestFn__split_extension)
+ rw [bodyRun] at metadata
  rw [valueEq] at tailRun
- refine ⟨bodyPost,output,larger,newExtensions,newSize,finish,sub,extSub,worldOut,kindsOut,pathsOut,?_,tailRun,scope⟩
+ refine ⟨bodyPost,output,larger,newExtensions,newSize,finish,sub,extSub,worldOut,kindsOut,pathsOut,?_,metadata.2.1,metadata.2.2.1,metadata.1,tailRun,scope⟩
  intro nib len path
  exact transport nib len (path.after_context rfl rfl rfl)
 
