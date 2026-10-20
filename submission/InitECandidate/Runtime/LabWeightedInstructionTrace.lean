@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.LabLocalWork
+import InitECandidate.Runtime.LabInstructionLocalCost
 import InitECandidate.Runtime.LabInstructionTrace
 
 namespace InitECandidate.Runtime.LabToTarget
@@ -17,7 +18,7 @@ inductive WeightedInstructionTrace (code : LabProgHOL 64) {F : Type} : LabSem.St
       (fetch : asmFetch state = some (.asm (.asmi (.inst i)) bytes n))
       (success : ¬ (asmInst i state).failed)
       (rest : WeightedInstructionTrace code (incPc (decClock (asmInst i state))) final length) :
-      WeightedInstructionTrace code state final (length + labLineWork code state.pc)
+      WeightedInstructionTrace code state final (length + LocalCost.instructionWork code state.pc i)
 
   | jump (state final : LabSem.State 64 Config F) (label : Lab) (pc : Nat) (w : BitVec 64)
       (bytes : List (BitVec 8)) (n length : Nat)
@@ -80,7 +81,7 @@ theorem weightedInstructionTrace_bounded {F : Type} {start final : LabSem.State 
     · simpa [shiftInterfer_zero] using related
   | step state final i bytes n length clock fetch success rest ih =>
     obtain ⟨firstCount, middle, middleAsm, firstBound, positive, firstRun, firstSearch, middleRel⟩ :=
-      fetched_inst_local_bound state i mc code labs p asm machine bytes n target fetch success encoder related
+      LocalCost.fetched_inst_work_bound state i mc code labs p asm machine bytes n target fetch success encoder related
     obtain ⟨restCount, post, finalAsm, restBound, restRun, restSearch, finalRel⟩ :=
       ih (shiftInterfer firstCount mc) middleAsm middle target encoder middleRel
     refine ⟨firstCount + restCount, post, finalAsm, ?_, ?_, ?_, ?_⟩
