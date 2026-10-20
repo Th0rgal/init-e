@@ -159,3 +159,37 @@ Also fixed along the way: `.seq` fully checked; `evaluate_stack_swap_result_valu
 added; the loop `if h : True`/`if h : False` subgoals need `dif_pos hc0` / `dif_neg hc0`
 (one per side) rather than `simp`, and the swapped clock must be normalised with
 `have hclk : ({s1 with stack := st}).clock = s1.clock := rfl; rw [hclk]` first.
+
+=== v8 (finite-flash): packet instantiation for `.call` bodies + a genuine blocking finding ===
+CHECKED (module green at exit=0, driver still parameterised by `hcall`):
+  * callBody_transport_result : packet generic clause at the callee entry state, with the
+    entry frame `fr` named; yields middleT = {middle with stack := st}, sValEq middle.stack st,
+    sKeyEq (fr :: xs) st, and sKeyEq entry.stack middle.stack (needed for popEnv_agree's hM).
+  * callBody_transport_shape : same for the `.call` arms whose tail cost is zero
+    (none / break / continue / finalFfi / timeOut / notEnoughSpace).
+  * popEnv transport is fully covered by popEnv_agree (needs hms, hst, hM, hS, hval):
+    hms from `cases middle.stack` + hpop, hst from sKeyEq (fr :: xs) st,
+    hM from sKeyEq entry.stack middle.stack (callBody_transport_result), hS from sKeyEq (fr :: xs) st,
+    hvalPop : sValEq popped.stack u from sValEq rest u (the tail half of sValEq middle.stack st).
+  So the `.call`-RESULT arm is fully assemblable from wordPathWork_call_result_at.
+
+BLOCKER (exact): `wordPathWork_call_exception_at` requires
+  hmidT : middleT = { middle with stack := st }
+but the packet's exception clause (Props/EvaluateStackSwap/Motive.lean:88-105) rebuilds the
+transported middle's locals from the *transported* frame payload:
+  E xs = (some (.exception x y), { s1 with stack := st, handler := n.1, locals := locs })
+  locs = sptUnion (sptFromAList lss') (sptFromAList e0'), lss.map snd = lss'.map snd,
+  e'.map fst = lss'.map fst
+i.e. the transported locals agree with the source locals in *values* but carry the
+transported (SSA-renamed) *keys*.  With only `sValEq s.stack xs` as hypothesis, lss' keys are
+unconstrained, so `middleT.locals = middle.locals` is NOT derivable, and the same handlerCode
+run at two locals differing in keys can have different wordPathWork cost => the exception arm
+(and hence `.call` for handlers != none) is not derivable from sValEq alone.
+
+FIX (recommended, one-line change of hypothesis, propagation already available): carry
+  hkey : sKeyEq s.stack xs
+alongside hval through the induction.  Then the packet's ∀ can be instantiated at the actual
+frames and lss' = lss (keys from e'.map fst = e.map fst = lss.map fst, values from
+lss.map snd = lss'.map snd) => locs = middle.locals => hmidT holds => _exception_at applies.
+Propagation to recursive calls is free: the generic clause returns `sKeyEq xs st` for the
+child state, and `.seq`/`.ite`/`.loop` already thread the state's stack unchanged.

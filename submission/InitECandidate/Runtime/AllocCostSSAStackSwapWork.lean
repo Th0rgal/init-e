@@ -2357,6 +2357,117 @@ theorem decClock_swap_stack {C F : Type} (s : WordSemStateFiniteExact 64 C F)
   cases s
   rfl
 
+/-- Body transport for a `.call` whose body exits with `.result`: the packet's generic
+clause instantiated at the callee entry state, with the entry frame `fr` named. -/
+theorem callBody_transport_result {C F : Type}
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (middle : WordSemStateFiniteExact 64 C F)
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))) =
+      (some (.result location returned), middle)) :
+    ∃ (fr : WordSemStackFrame 64) (middleT : WordSemStateFiniteExact 64 C F)
+      (st : List (WordSemStackFrame 64)),
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).stack =
+        fr :: s.stack ∧
+      WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock { s with stack := xs })) =
+        { WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)) with
+          stack := fr :: xs } ∧
+      evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock { s with stack := xs }))) =
+        (some (.result location returned), middleT) ∧
+      middleT = { middle with stack := st } ∧
+      WordSemStackEq.sValEq middle.stack st ∧
+      WordSemStackEq.sKeyEq (fr :: xs) st ∧
+      WordSemStackEq.sKeyEq
+        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).stack
+        middle.stack := by
+  obtain ⟨fr, hfr1, hfr2⟩ := callEntry_stack_swap args1 ss envs handler s xs hval
+  have hvalEntry : WordSemStackEq.sValEq
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).stack
+      (fr :: xs) := by
+    rw [hfr1]; exact sValEq_cons_self fr hval
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap prog
+    (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)))
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  obtain ⟨hkMS, -, hrun⟩ := hT
+  obtain ⟨st, hevT, hvalT, hkeyT⟩ := hrun (fr :: xs) hvalEntry
+  refine ⟨fr, { middle with stack := st }, st, hfr1, hfr2, ?_, rfl, hvalT, hkeyT, hkMS⟩
+  rw [hfr2]
+  exact hevT
+
+#print axioms callBody_transport_result
+
+/-- Body transport shape for the `.call` arms whose tail cost is zero: the swapped body
+run ends with the *same* result, at *some* state. -/
+theorem callBody_transport_shape {C F : Type}
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (res : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hne : res ≠ some (.error))
+    (hexc : ∀ (l v : WordLocW 64), res ≠ some (.exception l v))
+    (hev : evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))) = (res, middle)) :
+    ∃ (fr : WordSemStackFrame 64) (middleT : WordSemStateFiniteExact 64 C F),
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).stack =
+        fr :: s.stack ∧
+      WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock { s with stack := xs })) =
+        { WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)) with
+          stack := fr :: xs } ∧
+      evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock { s with stack := xs }))) =
+        (res, middleT) := by
+  obtain ⟨fr, hfr1, hfr2⟩ := callEntry_stack_swap args1 ss envs handler s xs hval
+  have hvalEntry : WordSemStackEq.sValEq
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).stack
+      (fr :: xs) := by
+    rw [hfr1]; exact sValEq_cons_self fr hval
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap prog
+    (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)))
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  cases res with
+  | none =>
+      obtain ⟨-, -, hrun⟩ := hT
+      obtain ⟨st, hevT, -, -⟩ := hrun (fr :: xs) hvalEntry
+      exact ⟨fr, { middle with stack := st }, hfr1, hfr2, by rw [hfr2]; exact hevT⟩
+  | some r =>
+      cases r with
+      | error => exact absurd rfl hne
+      | exception l v => exact absurd rfl (hexc l v)
+      | result l rt =>
+          obtain ⟨-, -, hrun⟩ := hT
+          obtain ⟨st, hevT, -, -⟩ := hrun (fr :: xs) hvalEntry
+          exact ⟨fr, { middle with stack := st }, hfr1, hfr2, by rw [hfr2]; exact hevT⟩
+      | finalFfi e =>
+          obtain ⟨-, -, hrun⟩ := hT
+          refine ⟨fr, middle, hfr1, hfr2, ?_⟩
+          rw [hfr2]; exact hrun (fr :: xs) hvalEntry
+      | timeOut =>
+          obtain ⟨-, -, hrun⟩ := hT
+          refine ⟨fr, middle, hfr1, hfr2, ?_⟩
+          rw [hfr2]; exact hrun (fr :: xs) hvalEntry
+      | notEnoughSpace =>
+          obtain ⟨-, -, hrun⟩ := hT
+          refine ⟨fr, middle, hfr1, hfr2, ?_⟩
+          rw [hfr2]; exact hrun (fr :: xs) hvalEntry
+      | «break» k =>
+          obtain ⟨-, -, hrun⟩ := hT
+          obtain ⟨st, hevT, -, -⟩ := hrun (fr :: xs) hvalEntry
+          exact ⟨fr, { middle with stack := st }, hfr1, hfr2, by rw [hfr2]; exact hevT⟩
+      | «continue» k =>
+          obtain ⟨-, -, hrun⟩ := hT
+          obtain ⟨st, hevT, -, -⟩ := hrun (fr :: xs) hvalEntry
+          exact ⟨fr, { middle with stack := st }, hfr1, hfr2, by rw [hfr2]; exact hevT⟩
+
+#print axioms callBody_transport_shape
+
 /-- Tail of the loop clause at the stop state: swapping the stack under `decClock`
 does not change the cost, so the clock-guarded tail of the transported run equals the
 clock-guarded tail of the source run. -/
