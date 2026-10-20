@@ -333,3 +333,44 @@ axiom, `unsafe`, `native_decide` or `bv_decide`.
   `StackStraightLineCost` are the intended interfaces; no claim about them is
   made here.
 - No final finite certificate or submission-binary statement is claimed.
+
+## Actual returning-call alignment (`AllocCostSSACallAlignment`)
+
+`AllocCostSSABodyWork` reduces the returning-call work bound to a transfer at
+the compiled program shape, but it takes the inserted stack move, the inserted
+argument move, the renamed argument read, the renamed paired cut, the renamed
+bad-shape test and the code lookup as premises.  `AllocCostSSACallAlignment`
+removes the SSA-side premises:
+
+- `ssaCcTrans_call_returning_none_output`: the literal `ssaCcTrans` output for
+  a returning call without an exception handler — stack rename move, argument
+  move over the physical registers `2*(i+1)`, then the renamed call carrying
+  the physical return registers, the renamed cut key and the return-handler
+  move (ret code renaming, `ret'.zip regs`, renamed handler).
+- `wordSemBadDestArgs_renameArgs`: the bad-shape test is preserved because it
+  only inspects whether `dest` and the argument list are simultaneously empty.
+- `wordPathWork_listNextVarRenameMove`: a stack rename move is a single
+  parallel move, so it charges exactly one `wordPathWork` node.
+- `ssaCallReturning_prepare_alignment`: from the public
+  `returningPrepareArguments` (itself built on `returningRefreshArguments`)
+  and the literal constituents, the actual compiled path is derived: both
+  inserted moves run normally and charge one node each, `fixClock` of the
+  normal stack-move run is the run itself, the renamed argument read returns
+  the same values, the renamed paired cut exists at the renamed key, the
+  bad-shape test is the source one, and both the frame and the mapped locals
+  relation survive.
+- `sourceCall_getVars_some_of_not_error`: a call whose actual source
+  evaluation is not the `error` result cannot have a failing `getVars`, since
+  the literal `evaluate` call clause answers `some .error` there.  This
+  replaces any inversion of the one-directional `ssaLocalsRel`.
+- `ssaBody_call_returning_executed_le`: the fresh actual returning-call bound
+  on the literal compiled program, with the seven SSA-side premises above
+  discharged.  What remains is callee-dependent and stated explicitly: the
+  compiled code lookup at the physical return registers (`findT`, with its
+  renamed cut domain `domT` and `regs.Nodup`), the callee result/pop
+  correspondence at the renamed entry state (`runT`, `popT`, `locEqT`,
+  `lenEqT`, `domUnionT`, `clockT`) and the two body work transfers.
+  `calleeWork` *is* the pending body permutation transport (the root driver's
+  `wordPathWork` transport across `PERM_STACK`-related entry states);
+  `retWork` is the continuation transfer.  No whole-call inequality is
+  assumed anywhere: both transfers are body-only.
