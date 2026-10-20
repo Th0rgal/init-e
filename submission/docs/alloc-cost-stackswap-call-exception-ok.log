@@ -1,0 +1,89 @@
+'InitECandidate.Runtime.WordToStack.pushEnv_stack_swap' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.callEnv_stack_swap' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.wordPathWork_loop_sValEq_variant_of_none' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'InitECandidate.Runtime.WordToStack.callEntry_stack_swap' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.popEnv_stack_swap' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.wordPathWork_call_noreturn_sValEq_variant' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'InitECandidate.Runtime.WordToStack.map_fst_snd_eq' depends on axioms: [propext]
+'InitECandidate.Runtime.WordToStack.wordPathWork_ite_sValEq_variant' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'InitECandidate.Runtime.WordToStack.wordPathWork_seq_sValEq_variant_none' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'InitECandidate.Runtime.WordToStack.wordPathWork_seq_sValEq_variant_result' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'InitECandidate.Runtime.WordToStack.getVar_stack' depends on axioms: [propext]
+'InitECandidate.Runtime.WordToStack.getVars_stack' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.getVarImm_stack' depends on axioms: [propext]
+'InitECandidate.Runtime.WordToStack.cutState_stack' depends on axioms: [propext, Classical.choice, Quot.sound]
+'InitECandidate.Runtime.WordToStack.decClock_stack' depends on axioms: [propext]
+'InitECandidate.Runtime.WordToStack.setVar_stack' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.setVars_stack' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.frame_eq_of_valEq_keyEq' depends on axioms: [propext]
+'InitECandidate.Runtime.WordToStack.popEnv_agree' depends on axioms: [propext, Quot.sound]
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:634:36: warning: This simp argument is unused:
+  Prod.mk.injEq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Option.some.injEq, WordSemResult.result.injEq, WordSemResult.exception.injEq] at *
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:634:51: warning: This simp argument is unused:
+  Option.some.injEq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Prod.mk.injEq, WordSemResult.result.injEq, WordSemResult.exception.injEq] at *
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:634:70: warning: This simp argument is unused:
+  WordSemResult.result.injEq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Prod.mk.injEq, Option.some.injEq, WordSemResult.exception.injEq] at *
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:635:12: warning: This simp argument is unused:
+  WordSemResult.exception.injEq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Prod.mk.injEq, Option.some.injEq, WordSemResult.result.injEq] at *
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'InitECandidate.Runtime.WordToStack.wordPathWork_call_unfold_result' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:682:5: warning: Variable name `hval` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hval
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+'InitECandidate.Runtime.WordToStack.wordPathWork_call_result_sValEq_variant' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:794:70: warning: This simp argument is unused:
+  WordSemResult.result.injEq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Prod.mk.injEq, Option.some.injEq, WordSemResult.exception.injEq] at *
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:795:12: warning: This simp argument is unused:
+  WordSemResult.exception.injEq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Prod.mk.injEq, Option.some.injEq, WordSemResult.result.injEq] at *
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+'InitECandidate.Runtime.WordToStack.wordPathWork_call_unfold_exception' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'InitECandidate.Runtime.WordToStack.wordPathWork_call_exception_sValEq_variant' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
