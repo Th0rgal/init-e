@@ -85,6 +85,21 @@ theorem opAddPcState_clock (s : PanSemStateFiniteExact 64 Guest.HostMemory)
       (opAddPushState s frame sp cap base x y funding a0 a1 a2 a3 b0 b1 b2 b3).clock - 1 := by
   simp [opAddPcState, emptyLocalsHOLFinite, setVarHOLFinite, callEntryStateHOLFinite]
 
+
+/-- The two pops leave the funding cells and the gas budget intact. -/
+theorem opAddYEntry_funding (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame sp : BitVec 64) (x y : ValueHOL 64) (funding : GasFunding)
+    (memory : HasGasFunding s frame funding)
+    (leftNe : frame + 64 ≠ frame + 16) (usedNe : frame + 184 ≠ frame + 16)
+    (spilledNe : frame + 192 ≠ frame + 16) :
+    HasGasFunding (opAddYEntry s frame sp x y) frame funding := by
+  unfold HasGasFunding at *
+  refine ⟨?_, ?_, ?_⟩
+  · rw [opAddYEntry_memory_ne s frame sp x y (frame + 64) leftNe]; exact memory.1
+  · rw [opAddYEntry_memory_ne s frame sp x y (frame + 184) usedNe]; exact memory.2.1
+  · rw [opAddYEntry_memory_ne s frame sp x y (frame + 192) spilledNe]; exact memory.2.2
+
+#print axioms opAddYEntry_funding
 #print axioms chargeGasPost_memory_ne
 #print axioms stackPushPost_memory_ne
 #print axioms opAddPcState_memory_ne
