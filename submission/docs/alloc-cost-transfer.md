@@ -215,7 +215,9 @@ Compile order and module stems (checker role `allocation`):
      the false branch pays only the child transfer.
    - `ssaCcTrans_ite_output`: the literal SSA `Ite` clause, exposing both child
      outputs and both actual reconciliation programs.
-     Loops/calls remain.
+   - `bodyWork_loopFinal`: one executed loop body.  It composes the target body
+     child transfer with `loopBodyFinal_executed_le`, so the inserted back-edge
+     reconciliation is paid at the actual intermediate state.  Calls remain.
 
    The remaining semantic obligation is now narrower: extend the quantitative
    `bodySimulationRun` from these base instructions through the control

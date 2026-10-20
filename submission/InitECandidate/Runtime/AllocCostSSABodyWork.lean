@@ -434,6 +434,36 @@ theorem ssaCcTrans_ite_output
   simp only [ssaCcTrans, e2Eq, e3Eq, fixEq, riEq]
   cases ri <;> rfl
 
+/-- One executed loop body: the target body child work plus the actual
+back-edge reconciliation program.  `loopBodyFinal_executed_le` charges the
+inserted back moves at the actual intermediate state; this theorem adds the
+child body transfer. -/
+theorem bodyWork_loopFinal {C F : Type} {β : Type}
+    (sourceBody targetBody back : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (names : Spt β) (bodyBudget : Nat)
+    (childWork : wordPathWork targetBody target ≤
+      wordPathWork sourceBody source + bodyBudget)
+    (backBound : ∀ middle : WordSemStateFiniteExact 64 C F,
+      wordPathWork back middle ≤ 1 + (sptToAList names).length) :
+    wordPathWork (match back with
+      | .skip => targetBody
+      | _ => targetBody.seq back) target ≤
+      wordPathWork sourceBody source +
+        (bodyBudget + ((sptToAList names).length + 2)) := by
+  have finalBound := loopBodyFinal_executed_le targetBody back target names backBound
+  calc
+    wordPathWork (match back with
+      | .skip => targetBody
+      | _ => targetBody.seq back) target ≤
+        wordPathWork targetBody target + ((sptToAList names).length + 2) := finalBound
+    _ ≤ (wordPathWork sourceBody source + bodyBudget) +
+        ((sptToAList names).length + 2) := by
+      exact Nat.add_le_add_right childWork _
+    _ = wordPathWork sourceBody source +
+        (bodyBudget + ((sptToAList names).length + 2)) := by
+      ac_rfl
+
 #print axioms wordControlCost
 #print axioms wordPathWork_le_controlCost_straight
 #print axioms ssaBody_skip_executed_le
@@ -450,4 +480,5 @@ theorem ssaCcTrans_ite_output
 #print axioms bodyWork_ite_true
 #print axioms bodyWork_ite_false
 #print axioms ssaCcTrans_ite_output
+#print axioms bodyWork_loopFinal
 end InitECandidate.Runtime.FineCost
