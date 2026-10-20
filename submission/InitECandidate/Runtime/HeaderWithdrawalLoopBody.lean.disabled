@@ -1,0 +1,82 @@
+import InitECandidate.Runtime.HeaderWithdrawalLoopStep
+import InitECandidate.Runtime.RlpWindowCalls
+import InitECandidate.Runtime.PanSingleWordLookup
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+set_option maxRecDepth 100000
+set_option maxHeartbeats 4000000
+
+/-- One full iteration of the withdrawal loop keeps every cell outside the two slice cells of that
+iteration and outside the encoder's own 64-byte allocation window.  The encoder's returned tuple
+supplies exactly the two stored words. -/
+theorem wd_slice_step_window {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (slices counter argumentWord heapBase w : BitVec 64)
+    (atCounter : t.locals.lookup (ofString "i") = some (.val (.word counter)))
+    (atSlices : t.globals.lookup (ofString "wd_rlp_slices") = some (.val (.word slices)))
+    (atHeap : t.globals.lookup (ofString "heap_ptr") = some (.val (.word heapBase)))
+    (code : t.code = originalRuntimeCode) (clock : 2 ≤ t.clock)
+    (heapBound : heapBase.toNat + 64 < 2^64)
+    (out : ¬ MWin heapBase 64 w)
+    (slice0 : w ≠ slices + counter * 16#64)
+    (slice8 : w ≠ slices + (counter * 16#64 + 8#64))
+    (hargs : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+      [.op .add [.load .one (.op .add [.var .local (ofString "pl"), .const (48#64)]),
+        .panop .mul [.var .local (ofString "i"), .const (44#64)]]] =
+      some [.val (.word argumentWord)]) :
+    (evaluateHOLFiniteState t wdSliceLoopBody).2.memory w = t.memory w := by
+  rw [wdSliceLoopBody]
+  have installed : t.code.lookup (ofString "encode_withdrawal_rlp") =
+      some ([(ofString "wd",.one)],sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp,
+        .comb [.one,.one]) := by
+    rw [code]; exact originalRuntimeCode_encode_withdrawal_rlp_lookup
+  have lookup := pan_single_word_lookup t.code.lookup (ofString "encode_withdrawal_rlp")
+    (ofString "wd") (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) argumentWord installed
+  have calleeForm : (fun x => if x = ofString "wd" then some (.val (.word argumentWord)) else none) =
+      (fun x => if x = ofString "wd" then some (.val (.word argumentWord)) else none) := rfl
+  apply decCall_window (values := [.val (.word argumentWord)])
+    (body := sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp)
+    (callee := fun x => if x = ofString "wd" then some (.val (.word argumentWord)) else none)
+    (returnShape := .comb [.one,.one]) hargs lookup
+  · -- the encoder keeps the cell by its own window lemma
+    have entryHeap : (callEntryStateHOLFinite t
+        (fun x => if x = ofString "wd" then some (.val (.word argumentWord)) else none)).globals.lookup
+          (ofString "heap_ptr") = some (.val (.word heapBase)) := by
+      simpa [callEntryStateHOLFinite] using atHeap
+    have entryWd : (callEntryStateHOLFinite t
+        (fun x => if x = ofString "wd" then some (.val (.word argumentWord)) else none)).locals.lookup
+          (ofString "wd") = some (.val (.word argumentWord)) := by
+      simp [callEntryStateHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    have entryCode : (callEntryStateHOLFinite t
+        (fun x => if x = ofString "wd" then some (.val (.word argumentWord)) else none)).code =
+        originalRuntimeCode := by
+      simpa [callEntryStateHOLFinite] using code
+    exact rlpEncodeWithdrawal_window _ heapBase argumentWord w entryHeap entryWd out heapBound entryCode
+  · -- the stores keep the cell whatever the callee returned
+    intro value base bodyRun shapeOk returnOk k
+    obtain ⟨first,second,rfl⟩ := valueWords_of_comb shapeOk
+    have baseHeap : base.globals.lookup (ofString "heap_ptr") = some (.val (.word heapBase)) := by
+      have entryHeap : (callEntryStateHOLFinite t
+          (fun x => if x = ofString "wd" then some (.val (.word argumentWord)) else none)).globals.lookup
+            (ofString "heap_ptr") = some (.val (.word heapBase)) := by
+        simpa [callEntryStateHOLFinite] using atHeap
+      exact rlpEncodeWithdrawal_heap _ base heapBase value entryHeap
+        (by simpa [callEntryStateHOLFinite] using code) (by simpa [callEntryStateHOLFinite] using clock)
+        bodyRun
+    have baseSlices : base.globals.lookup (ofString "wd_rlp_slices") = some (.val (.word slices)) := by
+      have entryHeap : (callEntryStateHOLFinite t
+          (fun x => if x = ofString "wd" then some (.val (.word argumentWord)) else none)).globals.lookup
+            (ofString "heap_ptr") = some (.val (.word heapBase)) := by
+        simpa [callEntryStateHOLFinite] using atHeap
+      have kept := rlpEncodeWithdrawal_other_globals _ base heapBase value (ofString "wd_rlp_slices")
+        entryHeap (by simpa [callEntryStateHOLFinite] using code)
+        (by simpa [callEntryStateHOLFinite] using clock) (by decide) bodyRun
+      rw [kept]
+      exact atSlices
+    refine wd_slice_stores_window _ slices counter first second w ?_ ?_ ?_ slice0 slice8
+    · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,atCounter]
+    · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    · simp [setVarHOLFinite,baseSlices]
+
+#print axioms wd_slice_step_window
+end InitECandidate.Runtime
