@@ -506,4 +506,55 @@ theorem wdSliceLoopInv_exit {F : Type} (t : PanSemStateFiniteExact 64 F)
 
 #print axioms wdLoopInv_decClock
 #print axioms wdSliceLoopInv_exit
+
+/-- **The statement-46 seam with the concrete exit invariant.** Statement 46, started from the loop entry
+state, reaches the builder continuation `actualPayloadHeaderAt 47` within the loop cost, and every normal
+exit state satisfies the full `WdLoopInv`: the `pl`/`nwd` bindings, `e` freshness, the `wd_rlp_slices`
+pointer, `code`, the memory domain, the watched `pl + 48` cell, and a final heap frontier
+`wdHeapWord loopHeap k` for a reached `k ≤ nwd.toNat`. -/
+theorem payloadHeader46_reaches_exit {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (DF : Nat) (nwd pl slices loopHeap read X : BitVec 64)
+    (readEq : read = pl + 48#64)
+    (al : loopHeap.toNat % 8 = 0)
+    (fit : loopHeap.toNat + 64 * nwd.toNat + 64 < 2 ^ 64)
+    (limit : loopHeap.toNat + 64 * nwd.toNat + 64 ≤ 33806089496)
+    (smallNwd : nwd.toNat + 1 < 2 ^ 63)
+    (slicesBelow : slices.toNat ≤ loopHeap.toNat)
+    (readBelow : read.toNat < slices.toNat)
+    (noWrapCells : slices.toNat + 16 * nwd.toNat + 8 < 2 ^ 64)
+    (fence : Fence t.memaddrs DF) (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
+    (frontier : ∀ k, k ≤ nwd.toNat → (wdHeapWord loopHeap k).toNat ≤ 33806089496)
+    (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (wdHeapWord loopHeap k) 64 read)
+    (sliceRead : ∀ j, j ≤ nwd.toNat →
+      read ≠ slices + (BitVec.ofNat 64 j) * 16#64 ∧
+      read ≠ slices + ((BitVec.ofNat 64 j) * 16#64 + 8#64))
+    (heapStep : ∀ k, k ≤ nwd.toNat →
+      wdHeapWord loopHeap (k + 1) = allocationEnd (wdHeapWord loopHeap k) 64)
+    (atCounter : t.locals.lookup (ofString "i") =
+      some (ValueHOL.val (HolWordLab.word 0#64)))
+    (atNwd : t.locals.lookup (ofString "nwd") = some (ValueHOL.val (HolWordLab.word nwd)))
+    (atPl : t.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
+    (freshE : t.locals.lookup (ofString "e") = none)
+    (atSlices : t.globals.lookup (ofString "wd_rlp_slices") =
+      some (ValueHOL.val (HolWordLab.word slices)))
+    (atHeap : t.globals.lookup (ofString "heap_ptr") =
+      some (ValueHOL.val (HolWordLab.word loopHeap)))
+    (code : t.code = originalRuntimeCode)
+    (addrRead : t.memaddrs read) (memRead : t.memory read = HolWordLab.word X)
+    (budget : nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1) ≤ t.clock) :
+    Reaches t (actualPayloadHeaderAt 46)
+      (WdLoopInv (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap))
+      (nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47) := by
+  have entryInv : WdLoopInv (fun a => t.memaddrs a) 0#64 nwd pl slices read X
+      (wdHeapWord loopHeap) t :=
+    ⟨0, by simp, fun a => Iff.rfl, atCounter, atNwd, atPl, freshE, atSlices,
+      by rw [wdHeapWord_zero]; exact atHeap, code, addrRead, memRead⟩
+  exact payloadHeader46_reaches DF t nwd pl slices loopHeap read X readEq al fit limit smallNwd
+    slicesBelow readBelow noWrapCells fence smallDF bigDF atCounter atNwd atPl freshE atSlices atHeap
+    code addrRead memRead budget
+    (WdLoopInv (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap))
+    (fun post run => wdSliceLoopInv_exit t nwd pl slices read X loopHeap frontier outRead sliceRead
+      heapStep readEq smallNwd code atCounter entryInv post run)
+
+#print axioms payloadHeader46_reaches_exit
 end InitECandidate.Runtime
