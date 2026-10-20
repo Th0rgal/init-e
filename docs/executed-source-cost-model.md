@@ -55,6 +55,8 @@ such traces; trace uniqueness has not been claimed.
 
 | Stage/modules | Proven result | Scope/remaining obligation |
 | --- | --- | --- |
+| `SourceCostCrepWork`, `SourceCostCrepBasis`, `SourceCostCrepControl` | Executed Crep work and source-event payment for skip/annotation/tick/break/continue, actual sequence/conditional/loop paths under original compiler premises | Control fragment only; data statements, calls and preprocessing still open |
+| `AllocCostModel`, `AllocCostSSA` | Straight-line Word path envelope and concrete SSA prologue/instruction-move expansion bounds | Static envelope used only on certified straight-line fragments; recursive reconciliation and remaining passes open |
 | `CrepExpressionWork`, `PanLoweringAllowance` | Full local source expression expansion; context-width and repeated address work retained | Generated syntax, not complete statement execution transfer |
 | `CrepToLoopLocalBound` | Generated code plus residual expression work <=6 times Crep expression work; list materialization potential | Local expression lowering |
 | `LoopExecutedWork` | Sound, complete, bounded actual traces for generated expression-code subset | Calls/loops rejected by the static subset cost |
