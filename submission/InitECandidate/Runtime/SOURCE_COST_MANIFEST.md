@@ -347,7 +347,36 @@ All four modules re-verified `OK` with only `[propext, Classical.choice, Quot.so
   cells (`pl + 48`, `pl + 56`), and clock monotonicity. This is the hand-over rule for an actual preceding
   statement (e.g. the statement-42 builder call) into `payloadHeader43_reaches_entry`.
 
-## LANDED: dynamic capped-heap 43 → 47 bound (no full-loop arena reservation)
+## CORRECTION: the `room` premise is NOT a weaker premise (lead correction accepted)
+
+`room : ∀ k ≤ nwd, (allocationEnd loopHeap size) + 64*k + 64 ≤ cap` quantifies over *all* future
+iterations, so it is mathematically the same reservation as `loopHeap + 80*nwd + 80 ≤ cap` (it is implied
+by, and implies, the arithmetic chain bound). It therefore does **not** eliminate the full-loop room
+premise and must not be described as doing so. Its only genuine improvement is the *shape*: it is stated
+per-iteration on the actual `allocationEnd` chain, which makes the real dynamic restructure below
+expressible. `payloadHeader43_reaches_capped` must be read as taking the full-loop room in per-iteration
+form.
+
+## LANDED: dynamic heap-cap step (the real per-iteration content)
+
+`HeaderWithdrawalLoopCapStep`:
+- `allocationEnd_cap_step` — from the *current* heap pointer being under the cap
+  (`pointer + 64 ≤ cap`, `cap ≤ 33806089496`) the successor pointer of that actual allocation is again
+  under the cap: `(allocationEnd pointer 64).toNat ≤ cap`, using `allocationEnd_aligned_toNat`. A failed
+  allocation produces no successor at all (it raises), so there is no case for it here; inside the loop its
+  outcome is `StAbort`.
+- `wdHeapWord_cap_step` — the same on the loop's chain: given the loop's own successor equation (produced
+  only by a *normal* successful allocation) and the current bound, the next heap word is capped.
+- `wdHeapWord_frontier_of_cap` — the `frontier` fact at iteration `k` follows from the capped heap at `k`
+  plus the cap, so no future iteration's room is needed.
+
+Remaining restructure (not yet done): add the cap conjunct `heap_ptr.toNat ≤ cap` to `WdLoopInv`, preserve
+it in `wdLoopInv_keep` via `wdHeapWord_cap_step`, and replace `wdSliceLoop_count`'s all-`k` `frontier`
+input with the per-iteration derivation. That is the interface change in
+`HeaderWithdrawalLoopCount`/`HeaderWithdrawalLoopRuntime`; until it lands, the 43 → 47 endpoints still
+carry the full-loop room in per-iteration form.
+
+## PREVIOUSLY LANDED: per-iteration-shaped capped-heap 43 → 47 bound
 
 `payloadHeader43_reaches_capped` — the same 43 → 47 `Reaches` (concrete `WdLoopInv` exit state, cost
 `1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)`) with the full-loop room premise
