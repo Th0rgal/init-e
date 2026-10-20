@@ -2,6 +2,7 @@ import InitECandidate.Runtime.MptNibbleUnsecuredBodyReturned
 import InitECandidate.Runtime.OriginalMptNibbleKeyCode
 import InitECandidate.Runtime.PanThreeValueLookupShape
 import InitECandidate.Runtime.BoundedDecCallReach
+import InitECandidate.Runtime.MptNibbleUnsecuredMemoryFrame
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -15,7 +16,17 @@ def MptNibbleUnsecuredDeclarationReady {F : Type} (base next : PanSemStateFinite
  next.globals=base.globals.update (ofString "heap_ptr",.val (.word (allocationEnd pointer (2*length)))) ∧
  2*length≤(33806089496 : BitVec 64)-pointer ∧
  (allocationEnd pointer (2*length)).toNat≤33806089496 ∧
- next.memaddrs=base.memaddrs ∧next.be=base.be ∧next.code=base.code
+ next.memaddrs=base.memaddrs ∧next.be=base.be ∧next.code=base.code ∧
+ (length.toNat≤9→pointer.toNat≤33806089496→pointer.toNat%8=0→
+  ∀watched : BitVec 64,watched.toNat<pointer.toNat→next.memory watched=base.memory watched)
+
+theorem MptNibbleUnsecuredDeclarationReady.before_memory {F : Type}
+ {base next : PanSemStateFiniteExact 64 F} {name : MlS} {pointer length : BitVec 64}
+ (ready : MptNibbleUnsecuredDeclarationReady base next name pointer length)
+ (short : length.toNat≤9) (capped : pointer.toNat≤33806089496) (aligned : pointer.toNat%8=0) :
+ ∀watched : BitVec 64,watched.toNat<pointer.toNat→next.memory watched=base.memory watched := by
+ rcases ready with ⟨_,_,_,_,_,_,_,_,memory⟩
+ exact memory short capped aligned
 
 /-- The actual installed two-result declaration reaches its continuation
 with the real allocation pointer and doubled key length, or terminates within
@@ -54,10 +65,13 @@ theorem mpt_nibble_unsecured_declaration_reaches {F : Type} (s : PanSemStateFini
  intro value post run checked
  obtain ⟨returned,globals,request,finish,domain,endian,keptCode⟩:=mpt_nibble_unsecured_body_returned entry post
   table key length pointer value tableLocal keyLocal lengthLocal atHeap unsecured code run
- refine ⟨?_,?_,globals,request,finish,domain,endian,keptCode⟩
+ refine ⟨?_,?_,globals,request,finish,domain,endian,keptCode,?_⟩
  · simp [returned,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
  · intro key different
    simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm different]
+ · intro short capped aligned watched before
+   exact mpt_nibble_unsecured_body_returned_memory entry post table key length pointer value
+    tableLocal keyLocal lengthLocal atHeap unsecured short capped aligned code run watched before
 
 #print axioms mpt_nibble_unsecured_declaration_reaches
 end InitECandidate.Runtime
