@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.MptInsertRunningNodeNonzero
 import InitECandidate.Runtime.TrieNodePathsContext
 import InitECandidate.Runtime.MptInsertLoopInvariant
 import InitECandidate.Runtime.MptInsertContinuingPathsWorld
@@ -67,4 +68,27 @@ theorem mpt_insert_paths_active_nonnull_step {F : Type} (s post : PanSemStateFin
 
 #print axioms MptInsertPathsActive.decClock
 #print axioms mpt_insert_paths_active_nonnull_step
+
+/-- The stronger invariant advances for every actual continuing iteration;
+nonnullness is derived from source control flow rather than assumed. -/
+theorem mpt_insert_paths_active_step {F : Type} (s post : PanSemStateFiniteExact 64 F)
+ (live extensions branches : Set (BitVec 64)) (size : BitVec 64→Nat)
+ (frontier key length value valueLength : BitVec 64) (rank : Nat)
+ (current : MptInsertPathsActive s live extensions branches size frontier key length value valueLength rank)
+ (capacity : ∀node∈live,32≤size node) (recordsBefore : ∀node∈live,node.toNat+32≤key.toNat)
+ (aligned : key.toNat%8=0) (keyExtent : key.toNat+length.toNat≤33806089496) (short : length.toNat≤18)
+ (code : s.code=originalRuntimeCode) (budget : 21≤s.clock)
+ (running : post.locals.lookup (Flapjack.Basis.Pure.MlString.ofString "go")≠some (.val (.word (0#64))))
+ (run : evaluateHOLFiniteState s mptInsertLoopStep=(none,post)) :
+ ∃nextRank,nextRank<rank ∧MptInsertPathsActive post live extensions branches size frontier key length value valueLength nextRank := by
+ obtain ⟨node,slot,level,root,atNode,_⟩:=current.active.path
+ have nonzero:=mpt_insert_step_running_nonzero s post node atNode running run
+ have nonnull : s.locals.lookup (Flapjack.Basis.Pure.MlString.ofString "node")≠some (.val (.word (0#64))) := by
+  intro zero
+  have same : node=0#64:=HolWordLab.word.inj (ValueHOL.val.inj (Option.some.inj (atNode.symm.trans zero)))
+  exact nonzero same
+ exact mpt_insert_paths_active_nonnull_step s post live extensions branches size frontier key length value valueLength
+  rank current capacity recordsBefore aligned keyExtent short code budget nonnull running run
+
+#print axioms mpt_insert_paths_active_step
 end InitECandidate.Runtime
