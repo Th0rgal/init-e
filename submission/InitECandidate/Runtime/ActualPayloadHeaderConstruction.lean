@@ -4,6 +4,7 @@ import InitECandidate.Runtime.KeccakGlobalsFrame
 import InitECandidate.Runtime.PanEvaluationMetadata
 import InitECandidate.Runtime.DiscardCallNoReturn
 import InitECandidate.Runtime.AllocationFailureTail
+import InitECandidate.Runtime.FrameHalt
 import InitECandidate.Runtime.DecodeRequestsBodyBound
 
 namespace InitECandidate.Runtime
@@ -880,5 +881,50 @@ theorem actual_payload_header_extra_cell_not_z8 (heap z8 : BitVec 64)
   omega
 
 #print axioms actual_payload_header_extra_cell_not_z8
+
+/-- **The whole header lies below the later allocation floors.**  Every address inside the 248-byte
+header block allocated by statement 2 is strictly below the floor the `z8` allocation starts from, so
+none of the later allocations, stores or the actual `memzero(z8, 8)` can touch a header cell such as
+the extra-length cell at `heap_ptr + 136`.  This is the geometry the `block_rlp_length` runtime
+argument uses. -/
+theorem actual_payload_header_header_below_floors (heap : BitVec 64)
+    (fits : heap.toNat + 400 ≤ 33806089496) :
+    ∀ headerAddress : BitVec 64, heap.toNat ≤ headerAddress.toNat → headerAddress.toNat < heap.toNat + 248 →
+      headerAddress.toNat < (allocationEnd (allocationEnd (allocationEnd heap (248#64)) (32#64)) (32#64)).toNat := by
+  intro headerAddress above below
+  have lower := actual_payload_header_z8_lower heap fits
+  omega
+
+#print axioms actual_payload_header_header_below_floors
+
+/-- **A store to a different address keeps a cell.**  The actual word store only replaces the cell it
+writes, so any cell with a different address keeps its value. -/
+theorem actual_payload_header_write_keeps_cell {σ : Type} (state : PanSemStateFiniteExact 64 σ)
+    (written value cell : BitVec 64) (distinct : cell ≠ written) :
+    (sourceWriteWord state written value).memory cell = state.memory cell := by
+  simp [sourceWriteWord,distinct]
+
+#print axioms actual_payload_header_write_keeps_cell
+
+/-- **Distinct header cells stay distinct.**  Two different constant offsets inside the header block
+address different cells, so the later header stores never overwrite the extra-length cell at offset
+136. -/
+theorem actual_payload_header_offset_distinct (pointer : BitVec 64) (first second : Nat)
+    (room : pointer.toNat + 256 < 2^64) (distinct : first ≠ second)
+    (firstBound : first < 256) (secondBound : second < 256) :
+    pointer + BitVec.ofNat 64 first ≠ pointer + BitVec.ofNat 64 second := by
+  have firstNat : (BitVec.ofNat 64 first).toNat = first := by
+    rw [BitVec.toNat_ofNat]
+    omega
+  have secondNat : (BitVec.ofNat 64 second).toNat = second := by
+    rw [BitVec.toNat_ofNat]
+    omega
+  intro same
+  have values := congrArg BitVec.toNat same
+  rw [BitVec.toNat_add_of_lt (by rw [firstNat]; omega),
+    BitVec.toNat_add_of_lt (by rw [secondNat]; omega),firstNat,secondNat] at values
+  exact distinct (by omega)
+
+#print axioms actual_payload_header_offset_distinct
 
 end InitECandidate.Runtime
