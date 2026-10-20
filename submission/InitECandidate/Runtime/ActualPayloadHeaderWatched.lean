@@ -74,6 +74,38 @@ theorem actual_payload_header_pl_cell_nat (pl : BitVec 64) (bound : pl.toNat + 2
 
 #print axioms actual_payload_header_pl_cell_nat
 
+/-- **A store of a single evaluated word-lab changes only its own cell.**  The value's flattening is
+one word whatever the payload is, so a store whose destination evaluates to another address leaves
+the watched cell alone -- this covers loads, which can yield a byte payload as readily as a word. -/
+theorem evaluate_store_val_memory_frame {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (destination value : ExpHOL 64) (address watched : BitVec 64) (payload : HolWordLab 64)
+    (addressEval : @evalHOLExact 64 F _ state.toExact
+      (fun a => Classical.propDecidable (state.memaddrs a)) destination = some (.val (.word address)))
+    (valueEval : @evalHOLExact 64 F _ state.toExact
+      (fun a => Classical.propDecidable (state.memaddrs a)) value = some (.val payload))
+    (separate : watched ≠ address) :
+    (evaluateHOLFiniteState state (.store destination value)).2.memory watched =
+      state.memory watched := by
+  rw [evaluateHOLFiniteState_store,addressEval,valueEval]
+  by_cases accessible : state.memaddrs address
+  · simp [flattenHOL,panMemStoresHOL,panMemStoreHOL,accessible,separate]
+  · simp [flattenHOL,panMemStoresHOL,panMemStoreHOL,accessible]
+
+#print axioms evaluate_store_val_memory_frame
+
+/-- An actual one-word load from a typed pointer local, given only the readability of its cell. -/
+theorem actual_payload_header_eval_load_one {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (name : MlS) (base offset : BitVec 64)
+    (entryLocal : state.locals.lookup name = some (.val (.word base)))
+    (domain : state.memaddrs (base + offset)) :
+    @evalHOLExact 64 F _ state.toExact (fun a => Classical.propDecidable (state.memaddrs a))
+      (.load .one (.op .add [.var .local name, .const offset])) =
+      (some (.val (state.memory (base + offset))) : Option (ValueHOL 64)) := by
+  simp [evalHOLExact,evalListHOLExact,wordOpHOL,wordOp,valueIsWord,valueWord,entryLocal,
+    memLoadHOLExact,domain]
+
+#print axioms actual_payload_header_eval_load_one
+
 /-- **A watched word survives one actual header store.**  The store is the actual
 `h[k] := value` of the header construction: the destination is the header cell `pointer + k` and the
 value is a word, so only that cell changes and the watched word elsewhere is untouched. -/
@@ -83,8 +115,9 @@ theorem actual_payload_header_store_step_strong_watched {F : Type}
     (shape : actualPayloadHeaderAt index = .seq (.store destination value) tail)
     (destShape : destination = .op .add [.var .local (ofString "h"), .const (BitVec.ofNat 64 k)])
     (facts : ActualPayloadHeaderBaseFacts state mid pl raw pointer heap)
-    (valueEval : @evalHOLExact 64 F _ mid.toExact
-      (fun a => Classical.propDecidable (mid.memaddrs a)) value = some (.val (.word stored)))
+    (valueShape : ∀ parsed, @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a)) value = some parsed →
+      ∃ payload : HolWordLab 64, parsed = .val payload)
     (separate : watched ≠ pointer + BitVec.ofNat 64 k)
     (watch : WatchWord mid watched cell) :
     Reaches mid (actualPayloadHeaderAt index)
@@ -105,13 +138,19 @@ theorem actual_payload_header_store_step_strong_watched {F : Type}
     rw [error]
     exact ⟨.error,rfl,by simp,by simp,by simp,by simp⟩
   · have frameMemory : memory watched = mid.memory watched := by
-      have stored := evaluate_wordStore_memory_frame mid destination value
-        (pointer + BitVec.ofNat 64 k) watched addressEval
-        (by
-          intro parsed evaluated
-          exact ⟨stored,Option.some.inj (evaluated.symm.trans valueEval)⟩) separate
-      rw [run] at stored
-      exact stored
+      have runMemory : (evaluateHOLFiniteState mid (.store destination value)).2.memory watched =
+          mid.memory watched := by
+        cases evaluated : @evalHOLExact 64 F _ mid.toExact
+            (fun a => Classical.propDecidable (mid.memaddrs a)) value with
+        | none =>
+          simp only [evaluateHOLFiniteState_store,addressEval,evaluated] at run
+          exact absurd (congrArg Prod.fst run) (by simp)
+        | some parsed =>
+          obtain ⟨payload,rfl⟩ := valueShape parsed evaluated
+          exact evaluate_store_val_memory_frame mid destination value
+            (pointer + BitVec.ofNat 64 k) watched payload addressEval evaluated separate
+      rw [run] at runMemory
+      exact runMemory
     refine Or.inl ⟨{mid with memory := memory},
       ⟨⟨baseFacts,frame.trans (HeapGlobalsFrame.of_globals (by rfl))⟩,?_⟩,by simp,by simp,run⟩
     show memory watched = .word cell
@@ -318,13 +357,18 @@ theorem actual_payload_header_strong_stores_watched {F : Type}
   rcases actual_payload_header_store_step_strong_watched state mid pl raw pointer
     (allocationEnd pointer (248#64)) (pl + (24#64)) extraLen 4 0 _ _ (1#64) (actualPayloadHeaderAt 5)
     source_actual_payload_header_store_zero rfl facts
-    (actual_payload_header_eval_word_const mid (1#64))
+    (by
+      intro parsed evaluated
+      exact ⟨_,Option.some.inj (evaluated.symm.trans (actual_payload_header_eval_word_const mid (1#64)))⟩)
     (actual_payload_header_pl_cell_word_separate pl pointer 0 below cap (by omega)) watch with
     ⟨E, pE, c1, c2, sc⟩ | ab
   · rcases actual_payload_header_store_step_strong_watched state E pl raw pointer
       (allocationEnd pointer (248#64)) (pl + (24#64)) extraLen 5 8 _ _ (raw + (0#64))
       (actualPayloadHeaderAt 6) source_actual_payload_header_store_raw rfl pE.1
-      (actual_payload_header_eval_word_add E (ofString "raw") raw (0#64) pE.1.1.2.1)
+      (by
+        intro parsed evaluated
+        exact ⟨_,Option.some.inj (evaluated.symm.trans
+          (actual_payload_header_eval_word_add E (ofString "raw") raw (0#64) pE.1.1.2.1))⟩)
       (actual_payload_header_pl_cell_word_separate pl pointer 8 below cap (by omega)) pE.2 with
       ⟨G, pG, d1, d2, sd⟩ | ab2
     · exact Or.inl ⟨G, pG, by omega, by omega, scoped_trans sc sd⟩
@@ -430,5 +474,230 @@ theorem actual_payload_header_strong_alloc_tmp_watched {F : Type} (state mid : P
     exact watch
 
 #print axioms actual_payload_header_strong_alloc_tmp_watched
+
+/-- The natural value of the header's extra-length cell. -/
+theorem actual_payload_header_cell_136_nat (pointer : BitVec 64) (cap : pointer.toNat ≤ 33806089496) :
+    (pointer + (136#64)).toNat = pointer.toNat + 136 := by
+  have oneThirtySix : (136#64).toNat = 136 := by decide
+  rw [BitVec.toNat_add_of_lt (by rw [oneThirtySix]; have := pointer.isLt; omega),oneThirtySix]
+
+#print axioms actual_payload_header_cell_136_nat
+
+/-- A header cell above the watched cell is a different word cell. -/
+theorem actual_payload_header_cell_136_below (pointer base : BitVec 64) (offset : Nat)
+    (cap : pointer.toNat ≤ 33806089496) (above : pointer.toNat + 248 ≤ base.toNat)
+    (baseCap : base.toNat ≤ 33806089496) (bound : offset < 248) :
+    pointer + (136#64) ≠ base + BitVec.ofNat 64 offset := by
+  intro same
+  have levels := congrArg BitVec.toNat same
+  rw [actual_payload_header_cell_136_nat pointer cap] at levels
+  have offsetNat : (BitVec.ofNat 64 offset).toNat = offset := by
+    rw [BitVec.toNat_ofNat]
+    exact Nat.mod_eq_of_lt (Nat.lt_of_lt_of_le bound (by norm_num))
+  have sumBound : base.toNat + offset < 2^64 := by omega
+  have right : (base + BitVec.ofNat 64 offset).toNat = base.toNat + offset := by
+    rw [BitVec.toNat_add_of_lt (by rw [offsetNat]; exact sumBound),offsetNat]
+  rw [right] at levels
+  omega
+
+#print axioms actual_payload_header_cell_136_below
+
+/-- A byte cell of an address at or above an aligned base is at or above that base. -/
+theorem panByteAlignHOL_toNat_ge_aligned (base : BitVec 64) (offset : Nat)
+    (aligned : base.toNat % 8 = 0) (baseCap : base.toNat ≤ 33806089496)
+    (bound : offset < 248) :
+    base.toNat ≤ (panByteAlignHOL (base + BitVec.ofNat 64 offset)).toNat := by
+  have offsetNat : (BitVec.ofNat 64 offset).toNat = offset := by
+    rw [BitVec.toNat_ofNat]
+    exact Nat.mod_eq_of_lt (Nat.lt_of_lt_of_le bound (by norm_num))
+  have sumBound : base.toNat + offset < 2^64 := by omega
+  have address : (base + BitVec.ofNat 64 offset).toNat = base.toNat + offset := by
+    rw [BitVec.toNat_add_of_lt (by rw [offsetNat]; exact sumBound),offsetNat]
+  rw [panByteAlign_toNat64,address]
+  have self : base.toNat = base.toNat / 8 * 8 := by omega
+  calc base.toNat = base.toNat / 8 * 8 := self
+    _ ≤ (base.toNat + offset) / 8 * 8 :=
+      Nat.mul_le_mul_right 8 (Nat.div_le_div_right (by omega))
+
+#print axioms panByteAlignHOL_toNat_ge_aligned
+
+/-- A header cell above the watched cell is a different byte cell. -/
+theorem actual_payload_header_cell_136_below_byte (pointer base : BitVec 64) (offset : Nat)
+    (cap : pointer.toNat ≤ 33806089496) (above : pointer.toNat + 248 ≤ base.toNat)
+    (aligned : base.toNat % 8 = 0) (baseCap : base.toNat ≤ 33806089496)
+    (bound : offset < 248) :
+    pointer + (136#64) ≠ panByteAlignHOL (base + BitVec.ofNat 64 offset) := by
+  intro same
+  have levels := congrArg BitVec.toNat same
+  rw [actual_payload_header_cell_136_nat pointer cap] at levels
+  have base_le := panByteAlignHOL_toNat_ge_aligned base offset aligned baseCap bound
+  omega
+
+#print axioms actual_payload_header_cell_136_below_byte
+
+/-- **The actual byte store of the test byte leaves the watched cells alone.**  The store targets the
+`tmp` allocation, which is above the header, so the extra-length cell and the operand locals are
+untouched. -/
+theorem actual_payload_header_strong_store_byte_watched {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F) (pl raw pointer tmp extraLen : BitVec 64)
+    (facts : ActualPayloadHeaderBaseFacts state mid pl raw pointer
+      (allocationEnd (allocationEnd (allocationEnd pointer (248#64)) (32#64)) (8#64)))
+    (ohLocal : mid.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))))
+    (tmpLocal : mid.locals.lookup (ofString "tmp") = some (.val (.word tmp)))
+    (tmpAbove : pointer.toNat ≤ tmp.toNat) (tmpAligned : tmp.toNat % 8 = 0)
+    (below : pl.toNat + 136 ≤ pointer.toNat) (cap : pointer.toNat ≤ 33806089496)
+    (watch : WatchWord mid (pl + (24#64)) extraLen) :
+    Reaches mid (actualPayloadHeaderAt 8)
+      (fun post => ActualPayloadHeaderBaseFacts state post pl raw pointer
+          (allocationEnd (allocationEnd (allocationEnd pointer (248#64)) (32#64)) (8#64)) ∧
+        post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))) ∧
+        post.locals.lookup (ofString "tmp") = some (.val (.word tmp)) ∧
+        WatchWord post (pl + (24#64)) extraLen) 0 (actualPayloadHeaderAt 9) := by
+  obtain ⟨baseFacts, frame⟩ := facts
+  have cellBelow := actual_payload_header_pl_cell_below pl pointer below cap
+  have separate : pl + (24#64) ≠ panByteAlignHOL tmp := by
+    rw [panByteAlign_eq_self_aligned tmp tmpAligned]
+    intro same
+    have levels := congrArg BitVec.toNat same
+    have left : (pl + (24#64)).toNat = pl.toNat + 24 := by
+      rw [BitVec.toNat_add_of_lt (by have := pl.isLt; omega),show (24#64).toNat = 24 from by decide]
+    rw [left] at levels
+    omega
+  rw [source_actual_payload_header_store_byte]
+  refine reaches_seq mid (.storeByte (.var .local (ofString "tmp")) (.const (192#64)))
+    (actualPayloadHeaderAt 9) 0 _ ?_
+  have control := evaluate_storeByte_control_frame mid (.var .local (ofString "tmp")) (.const (192#64))
+  cases run : evaluateHOLFiniteState mid (.storeByte (.var .local (ofString "tmp")) (.const (192#64))) with
+    | mk result next =>
+    rw [run] at control
+    dsimp only at control ⊢
+    obtain ⟨ctrl,clock,locals,globals,code,domain,_⟩ := control
+    rcases ctrl with rfl | rfl
+    · refine Or.inl ⟨next,⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩,?_,?_,?_⟩,by omega,by omega,rfl⟩
+      · rw [locals]; exact baseFacts.1
+      · rw [locals]; exact baseFacts.2.1
+      · rw [locals]; exact baseFacts.2.2.1
+      · rw [globals]; exact baseFacts.2.2.2.1
+      · rw [domain]; exact baseFacts.2.2.2.2.1
+      · rw [code]; exact baseFacts.2.2.2.2.2
+      · intro name different
+        rw [globals]
+        exact frame name different
+      · rw [locals]; exact ohLocal
+      · rw [locals]; exact tmpLocal
+      · show WatchWord next (pl + (24#64)) extraLen
+        have kept := evaluate_storeByte_memory_frame mid (.var .local (ofString "tmp")) (.const (192#64))
+          tmp (pl + (24#64))
+          (actual_payload_header_eval_local mid (ofString "tmp") tmp tmpLocal) separate
+        rw [run] at kept
+        unfold WatchWord at watch ⊢
+        rw [kept]
+        exact watch
+    · refine Or.inr ⟨.error,rfl,by simp,by dsimp only; omega,by dsimp only; omega,by simp⟩
+
+#print axioms actual_payload_header_strong_store_byte_watched
+
+/-- **An actual allocation preserves the watched word.**  The allocator rewrites only the heap
+frontier global and introduces its result local, so memory is untouched. -/
+theorem actual_payload_header_alloc_next_watched {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap watched cell : BitVec 64) (name : MlS) (size : BitVec 64)
+    (continuation : ProgHOL 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (code : state.code = originalRuntimeCode)
+    (namePl : ofString "pl" ≠ name) (nameRaw : ofString "raw" ≠ name) (nameH : ofString "h" ≠ name)
+    (watch : WatchWord mid watched cell)
+    (budget : 2 ≤ mid.clock) :
+    Reaches mid (.decCall name .one (ofString "alloc") [(.const size)] continuation)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd heap size) ∧
+        post.locals.lookup name = some (.val (.word heap)) ∧
+        WatchWord post watched cell) 2 continuation := by
+  refine actual_payload_header_alloc_step mid name size heap continuation _ facts.2.2.2.1
+    (by rw [facts.2.2.2.2.2]; exact code) (by omega) ?_
+  intro post memory domain postCode globals
+  refine ⟨⟨?_,?_,?_,?_,?_,?_⟩,?_,?_⟩
+  · by_cases same : name = ofString "pl"
+    · exact absurd same.symm namePl
+    · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,same,facts.1]
+  · by_cases same : name = ofString "raw"
+    · exact absurd same.symm nameRaw
+    · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,same,facts.2.1]
+  · by_cases same : name = ofString "h"
+    · exact absurd same.symm nameH
+    · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,same,facts.2.2.1]
+  · simp only [setVarHOLFinite]
+    rw [globals]
+    simp (config := {decide := true}) [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  · simp only [setVarHOLFinite]
+    rw [domain]
+    exact facts.2.2.2.2.1
+  · simp only [setVarHOLFinite]
+    rw [postCode]
+    exact facts.2.2.2.2.2
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  · show (setVarHOLFinite name (.val (.word heap)) {post with locals := mid.locals}).memory watched =
+      HolWordLab.word cell
+    have same : (setVarHOLFinite name (.val (.word heap)) {post with locals := mid.locals}).memory =
+        mid.memory := by
+      simp [setVarHOLFinite,memory]
+    rw [same]
+    exact watch
+
+#print axioms actual_payload_header_alloc_next_watched
+
+/-- **The actual `memzero(z8, 8)` leaves the header's extra-length cell alone.**  The zeroed scratch
+interval starts above the header, so the real call preserves the watched cell and the scratch
+binding. -/
+theorem actual_payload_header_memzero_z8_watched {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap z8 extraLen : BitVec 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (z8Local : mid.locals.lookup (ofString "z8") = some (.val (.word z8)))
+    (code : state.code = originalRuntimeCode)
+    (small : z8.toNat + 8 ≤ 33806089496) (aligned : z8.toNat % 8 = 0)
+    (above : pointer.toNat + 248 ≤ z8.toNat) (cap : pointer.toNat ≤ 33806089496)
+    (fullDomain : ∀ address : BitVec 64, address.toNat < 33806089496 → state.memaddrs address)
+    (watch : WatchWord mid (pointer + (136#64)) extraLen)
+    (budget : 9 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 26)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer heap ∧
+        post.locals.lookup (ofString "z8") = some (.val (.word z8)) ∧
+        WatchWord post (pointer + (136#64)) extraLen) 9 (actualPayloadHeaderAt 27) := by
+  rw [source_actual_payload_header_memzero_z8]
+  obtain ⟨window,bytes⟩ := actual_payload_header_window_domain state z8 8 fullDomain (by omega)
+  have sizeNat : (8#64).toNat = 8 := by decide
+  have arguments : evalListHOLFinite mid (h := fun address => Classical.propDecidable (mid.memaddrs address))
+      [.var .local (ofString "z8"), .const (8#64)] =
+      (some [ValueHOL.val (HolWordLab.word z8), ValueHOL.val (HolWordLab.word (8#64))] :
+        Option (List (ValueHOL 64))) := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,z8Local]
+  have codeMid : mid.code = originalRuntimeCode := by
+    rw [facts.2.2.2.2.2]; exact code
+  obtain ⟨post, run, _, spent, kept, globals, postCode, domain, _, locals, _⟩ :=
+    evaluate_memzero_aligned_call mid (.var .local (ofString "z8")) (.const (8#64)) z8 (8#64) arguments
+      codeMid (by omega) (by omega) aligned
+      (fun offset below => by rw [facts.2.2.2.2.1]; exact window offset (by omega))
+      (fun offset below => by rw [facts.2.2.2.2.1]; exact bytes offset (by omega))
+  have watched : WatchWord post (pointer + (136#64)) extraLen :=
+    WatchWord.memzero mid post (.var .local (ofString "z8")) (.const (8#64)) z8 (8#64)
+      (pointer + (136#64)) extraLen arguments codeMid (by omega) (by omega) aligned
+      (fun offset below => by rw [facts.2.2.2.2.1]; exact window offset (by omega))
+      (fun offset below => actual_payload_header_cell_136_below pointer z8 offset cap above (by omega)
+        (by omega))
+      (fun offset below => actual_payload_header_cell_136_below_byte pointer z8 offset cap above aligned
+        (by omega) (by omega))
+      (fun offset below => by rw [facts.2.2.2.2.1]; exact bytes offset (by omega))
+      watch run
+  refine reaches_seq mid (.call (some (none,none)) (ofString "memzero")
+    [.var .local (ofString "z8"), .const (8#64)]) (actualPayloadHeaderAt 27) 9 _ ?_
+  refine Or.inl ⟨post,⟨?_,?_,watched⟩,by omega,by omega,run⟩
+  · refine ⟨?_,?_,?_,?_,?_,?_⟩
+    · simpa [locals] using facts.1
+    · simpa [locals] using facts.2.1
+    · simpa [locals] using facts.2.2.1
+    · simpa [globals] using facts.2.2.2.1
+    · simpa [domain] using facts.2.2.2.2.1
+    · simpa [postCode] using facts.2.2.2.2.2
+  · simpa [locals] using z8Local
+
+#print axioms actual_payload_header_memzero_z8_watched
 
 end InitECandidate.Runtime
