@@ -351,4 +351,90 @@ theorem payloadHeader43_reaches (DF : Nat) {F : Type} (s : PanSemStateFiniteExac
       (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) h43 h44)
 
 #print axioms payloadHeader43_reaches
+
+/-- **A counted while preserves an invariant through normal exit.** If `P` holds at entry, is preserved by
+every normally completing iteration, and the counter advances by `step`, then any *normal* exit state of
+`while counter < K` satisfies `P`. Terminal outcomes (`break`, `timeOut`, `returned`, encoder errors) are
+excluded by the hypothesis that the loop completes normally, so no callee-success oracle is needed. The
+`decrease` premise is the clock-insensitivity of `P` that carries it through the loop's clock handling. -/
+theorem countedWhile_exit (counter : MlS) (op : Cmp) (hop : op = .less ∨ op = .lower)
+    (K step : BitVec 64) (small : K.toNat + step.toNat < 2 ^ 63) (positive : 0 < step.toNat)
+    {body : ProgHOL 64}
+    (P : ∀ {F : Type}, PanSemStateFiniteExact 64 F → Prop)
+    (keep : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
+      state.code = originalRuntimeCode →
+      state.locals.lookup counter = some (.val (.word w)) →
+      w.toNat < K.toNat →
+      (evaluateHOLFiniteState state body).1 = none → P (evaluateHOLFiniteState state body).2)
+    (advance : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
+      state.locals.lookup counter = some (.val (.word w)) →
+      (evaluateHOLFiniteState state body).1 = none →
+      (evaluateHOLFiniteState state body).2.locals.lookup counter = some (.val (.word (w + step))) ∧
+      (evaluateHOLFiniteState state body).2.code = state.code)
+    (noContinue : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
+      (evaluateHOLFiniteState state body).1 ≠ some .continue)
+    (noBreak : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
+      (evaluateHOLFiniteState state body).1 ≠ some .break)
+    (decrease : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F), P state →
+      P (decClockHOLFinite state)) :
+    ∀ n : Nat, ∀ {F : Type} (state : PanSemStateFiniteExact 64 F), P state →
+      state.code = originalRuntimeCode →
+      ∀ w : BitVec 64, state.locals.lookup counter = some (.val (.word w)) →
+      w.toNat ≤ K.toNat + step.toNat → K.toNat - w.toNat = n →
+      (evaluateHOLFiniteState state
+        (.while (.cmp op (.var .local counter) (.const K)) body)).1 = none →
+      P (evaluateHOLFiniteState state
+        (.while (.cmp op (.var .local counter) (.const K)) body)).2 := by
+  intro n
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+    intro F state pstate code w atCounter within distance normal
+    have condition := eval_counted_condition state counter op hop K w (by omega) (by omega) atCounter
+    rw [evaluateHOLFiniteState_while_total, condition] at normal ⊢
+    by_cases lt : w.toNat < K.toNat
+    · rw [if_pos lt] at normal ⊢
+      simp only [show (1 : BitVec 64) ≠ 0 by decide, if_true, ne_eq, not_false_eq_true] at normal ⊢
+      by_cases clock0 : state.clock = 0
+      · rw [if_pos clock0] at normal
+        simp at normal
+      · rw [if_neg clock0] at normal ⊢
+        rw [fixClockHOLFinite_evaluateState] at normal ⊢
+        have pclock : P (decClockHOLFinite state) := decrease state pstate
+        have codeClock : (decClockHOLFinite state).code = originalRuntimeCode := by
+          simpa [decClockHOLFinite] using code
+        have atClock : (decClockHOLFinite state).locals.lookup counter = some (.val (.word w)) := by
+          simpa [decClockHOLFinite] using atCounter
+        cases bodyRun : evaluateHOLFiniteState (decClockHOLFinite state) body with
+        | mk result middle =>
+          rw [bodyRun] at normal
+          cases result with
+          | none =>
+            dsimp only at normal ⊢
+            have adv := advance (decClockHOLFinite state) w pclock atClock (by rw [bodyRun])
+            obtain ⟨nextCounter, nextCode⟩ := adv
+            have nextCounter' : middle.locals.lookup counter = some (.val (.word (w + step))) := by
+              simpa [bodyRun] using nextCounter
+            have nextCode' : middle.code = (decClockHOLFinite state).code := by
+              simpa [bodyRun] using nextCode
+            have keepP : P middle := by
+              simpa [bodyRun] using keep (decClockHOLFinite state) w pclock codeClock atClock
+                (by simpa using lt) (by rw [bodyRun])
+            have natural : (w + step).toNat = w.toNat + step.toNat := BitVec.toNat_add_of_lt (by omega)
+            have nextRank : K.toNat - (w + step).toNat < n := by rw [natural]; omega
+            exact ih (K.toNat - (w + step).toNat) nextRank middle keepP (nextCode'.trans codeClock)
+              (w + step) nextCounter' (by rw [natural]; omega) rfl normal
+          | some r =>
+            dsimp only at normal ⊢
+            cases r with
+            | «continue» =>
+              exfalso
+              exact noContinue (decClockHOLFinite state) w pclock (by rw [bodyRun])
+            | «break» =>
+              exfalso
+              exact noBreak (decClockHOLFinite state) w pclock (by rw [bodyRun])
+            | _ => exact False.elim (by simpa using normal)
+    · rw [if_neg lt]
+      exact pstate
+
+#print axioms countedWhile_exit
 end InitECandidate.Runtime
