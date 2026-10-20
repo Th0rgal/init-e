@@ -13,7 +13,7 @@ namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 set_option maxRecDepth 1000000
-set_option maxHeartbeats 1000000
+set_option maxHeartbeats 8000000
 
 /-- The clock decrement leaves the roomed invariant intact: no data, heap or memory changes. -/
 theorem validate_headers_stored_roots_roomed_dec_clock {F : Type}
@@ -83,6 +83,63 @@ theorem validate_headers_stored_roots_roomed_loop_ranked (e : ValidateHeadersFir
       exact (controls.2 broken).elim
 
 #print axioms validate_headers_stored_roots_roomed_loop_ranked
+
+
+/-- The roomed loop's normal exit: the roomed invariant holds at rank `0` together with unchanged
+code.  The runtime part comes from the lead's loop-exit lemma, the stored records and the room are
+adjusted to rank `0`. -/
+theorem validate_headers_stored_roots_roomed_loop_normal {F : Type} (e : ValidateHeadersFirstEnvironment)
+    (s post : PanSemStateFiniteExact 64 F) (rank : Nat) (code : s.code = originalRuntimeCode)
+    (hsAbove : e.ceiling ≤ e.hs.toNat)
+    (bufferBeforeHashes : e.hs.toNat + e.count.toNat * 8 ≤ e.hashes.toNat)
+    (valid : ValidateHeadersStoredRootsRoomedInvariant e s rank)
+    (budget : validateHeadersFirstLoopCost e.inputLimit ≤ s.clock)
+    (normal : evaluateHOLFiniteState s (.while validateHeadersFirstCondition validateHeadersFirstBody) =
+      (none,post)) :
+    ValidateHeadersStoredRootsRoomedInvariant e post 0 ∧ post.code = s.code := by
+  have exhausted := validate_headers_first_loop_normal e s post rank code valid.1.1.1 budget normal
+  have small := Nat.mul_le_mul_right (validateHeadersFirstIterationCost e.inputLimit + 1)
+    (validate_headers_first_invariant_rank_bound e s rank valid.1.1.1)
+  have result := validate_headers_stored_roots_roomed_loop_ranked e hsAbove bufferBeforeHashes rank s
+    code valid (le_trans small budget)
+  rw [normal] at result
+  obtain ⟨m,kept,_,_⟩ := result.2.2.2 rfl
+  obtain ⟨stored,room⟩ := kept
+  have storedZero : ValidateHeadersStoredRootsInvariant e post 0 :=
+    ⟨⟨exhausted.1,stored.1.2⟩,stored.2⟩
+  refine ⟨⟨storedZero,?_⟩,exhausted.2⟩
+  intro heap' binding
+  have reserve := room heap' binding
+  unfold headerCarryRoom at *
+  omega
+
+/-- The actual first loop reaches its own continuation with the roomed invariant, or terminates
+within the loop budget. -/
+theorem validate_headers_stored_roots_roomed_loop_reaches {F : Type} (e : ValidateHeadersFirstEnvironment)
+    (s : PanSemStateFiniteExact 64 F) (rank : Nat) (code : s.code = originalRuntimeCode)
+    (hsAbove : e.ceiling ≤ e.hs.toNat)
+    (bufferBeforeHashes : e.hs.toNat + e.count.toNat * 8 ≤ e.hashes.toNat)
+    (valid : ValidateHeadersStoredRootsRoomedInvariant e s rank)
+    (budget : validateHeadersFirstLoopCost e.inputLimit ≤ s.clock) :
+    Reaches s (validateHeadersAt 4)
+      (fun post => ValidateHeadersStoredRootsRoomedInvariant e post 0 ∧ post.code = s.code)
+      (validateHeadersFirstLoopCost e.inputLimit) (validateHeadersAt 5) := by
+  rw [source_validate_headers_first_loop]
+  apply runBounded_seq_reaches s _ _ _ _
+    (runBounded_validate_headers_first_loop e s rank code valid.1.1.1 budget)
+  · intro value
+    apply evaluate_noDirectReturnWhile
+    change noDirectReturnWhile validateHeadersFirstBody = true
+    rw [source_validate_headers_first_decode]
+    change noDirectReturnWhile validateHeadersFirstTail = true
+    rw [source_validate_headers_first_tail]
+    rfl
+  · intro post normal
+    exact validate_headers_stored_roots_roomed_loop_normal e s post rank code hsAbove bufferBeforeHashes
+      valid budget normal
+
+#print axioms validate_headers_stored_roots_roomed_loop_normal
+#print axioms validate_headers_stored_roots_roomed_loop_reaches
 
 #print axioms validate_headers_stored_roots_roomed_dec_clock
 end InitECandidate.Runtime
