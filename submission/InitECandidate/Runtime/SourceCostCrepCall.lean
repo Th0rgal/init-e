@@ -2,16 +2,27 @@ import InitECandidate.Runtime.SourceCostCrepDec
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
-/-- Largest callee return-slot count the call transfer charges to the call
-statement entry. Compiled calls zero-initialize these slots before the call,
-including when the callee then times out or raises. The pinned guest's largest
-function return shape has eight words. -/
-def returnSlotLimit : Nat := 8
+theorem size_nil_context : ∀ shape : ShapeHOL,
+    sizeOfShapeWithContextHOL [] shape = sizeOfShapeHOL shape := by
+  refine ShapeHOL.rec
+    (motive_1 := fun shape => sizeOfShapeWithContextHOL [] shape = sizeOfShapeHOL shape)
+    (motive_2 := fun shapes => sizeOfShapesWithContextHOL [] shapes = sizeOfShapesHOL shapes)
+    ?_ ?_ ?_ ?_ ?_
+  · simp [sizeOfShapeWithContextHOL, sizeOfShapeHOL]
+  · intro shapes ih; simp [sizeOfShapeWithContextHOL, sizeOfShapeHOL, ih]
+  · intro name; simp [sizeOfShapeWithContextHOL, sizeOfShapeHOL, structContextLookupHOL_nil]
+  · simp [sizeOfShapesWithContextHOL, sizeOfShapesHOL]
+  · intro head tail ihHead ihTail
+    simp [sizeOfShapesWithContextHOL, sizeOfShapesHOL, ihHead, ihTail]
 
-/-- Static signature premise: callee return shapes have bounded word size. -/
-def ReturnSlotsBounded (context : PanToCrepContextExact 64) : Prop :=
-  ∀ function shapes returnShape, context.funcs.lookup function = some (shapes, returnShape) →
-    sizeOfShapeHOL returnShape ≤ returnSlotLimit
+/-- Under the simulation relation the source struct context is empty, so the
+return-slot frame event is exactly the compiled slot count. -/
+theorem frame_size_eq {F : Type} {context : PanToCrepContextExact 64}
+    {s : PanSemStateFiniteExact 64 F} {t : CrepSemHOLState 64 F}
+    (rel : SourceCrepRel context s t) (shape : ShapeHOL) :
+    sizeOfShapeWithContextHOL s.structs shape = sizeOfShapeHOL shape := by
+  rw [rel.state.2.2.2.1]
+  exact size_nil_context shape
 
 /-- The transfer conclusion: an executed Crep work derivation for the compiled
 program from the related target state, paid by the source trace. -/
@@ -173,10 +184,10 @@ theorem done_plan_no_fire {F : Type} {s : PanSemStateFiniteExact 64 F}
         · simp only [CallCostPlan.done.injEq] at plan; exact resultOk plan.1.symm
       · simp only [CallCostPlan.done.injEq] at plan; exact resultOk plan.1.symm
 
-theorem call_events_score (arguments bodyEvents : List WorkEvent) (a b c : Nat) :
-    sourceCrepWeights.score (executionWork (.statement :: (arguments ++ [.copy a, .frame b] ++
+theorem call_events_score (arguments bodyEvents : List WorkEvent) (a b f c : Nat) :
+    sourceCrepWeights.score (executionWork (.statement :: (arguments ++ [.copy a, .frame b, .frame f] ++
       bodyEvents ++ [.copy c]))) =
-    24 + sourceCrepWeights.score (executionWork arguments) + 8 * a + 8 * b +
+    8 + sourceCrepWeights.score (executionWork arguments) + 8 * a + 8 * b + 8 * f +
       sourceCrepWeights.score (executionWork bodyEvents) + 8 * c := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, score_append,
     executionWork_score_cons]
@@ -206,14 +217,14 @@ theorem call_done_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     (rel : SourceCrepRel context s t)
     (localised : localisedProgHOL (.call info function arguments) = true)
     (checkedArgs : bulkLoadSitesExps arguments = true)
-    (slots : ReturnSlotsBounded context)
     (ihBody : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' (callEntryStateHOLFinite s callee) t' →
-      localisedProgHOL body = true → ReturnSlotsBounded context' →
+      localisedProgHOL body = true →
       CrepWorkPaid t' (compileProgExactHOLW context' body) bodyEvents) :
     CrepWorkPaid t (compileProgExactHOLW context (.call info function arguments))
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+        [.copy (values.flatMap flattenHOL).length, .frame values.length,
+          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
         [.copy (callPayloadWords bodyResult)])) := by
   classical
   have bodyOk := call_body_ok plan resultOk
@@ -221,21 +232,15 @@ theorem call_done_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     hloc'⟩ :=
     pcCompileCorrectCallPrelude s t context function arguments values body callee returnShape
       args lookup rel.state rel.code rel.exceptions rel.locals (everyArgs_localised localised)
-  have calleeSlots : ReturnSlotsBounded (ctxtFcExactHOL context.funcs context.eids
-      (vshapes.map Prod.fst) (vshapes.map Prod.snd)
-      (List.range (sizeOfShapeHOL (.comb (vshapes.map Prod.snd))))) := by
-    intro f sh r h
-    exact slots f sh r (by simpa [ctxtFcExactHOL] using h)
-  obtain ⟨wb, workBody, boundBody⟩ := ihBody _ _ ⟨hst', hcode', hexcp', hloc'⟩ hprogLoc calleeSlots
+  obtain ⟨wb, workBody, boundBody⟩ := ihBody _ _ ⟨hst', hcode', hexcp', hloc'⟩ hprogLoc
   obtain ⟨r1, t1, hrun1, _, _, _, hrr⟩ :=
     compiled_source_run _ _ bodyRun.sound bodyOk hst' hcode' hexcp' hloc' hprogLoc
   have htclock : t.clock ≠ 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
   have argsPaid := arguments_paid rel arguments values args checkedArgs
   have payload := crep_payload_le hrr
-  have rshBound := slots function vshapes returnShape hfuncs
-  simp only [returnSlotLimit] at rshBound
+  have rsize := frame_size_eq rel returnShape
   unfold CrepWorkPaid
-  rw [call_events_score]
+  rw [call_events_score, rsize]
   generalize sourceCrepWeights.score (executionWork (expressionListEvents s arguments)) = A
     at argsPaid ⊢
   generalize sourceCrepWeights.score (executionWork bodyEvents) = B at boundBody ⊢
@@ -336,21 +341,22 @@ theorem call_timeout_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     (rel : SourceCrepRel context s t)
     (localised : localisedProgHOL (.call info function arguments) = true)
     (checkedArgs : bulkLoadSitesExps arguments = true)
-    (slots : ReturnSlotsBounded context) :
+    :
     CrepWorkPaid t (compileProgExactHOLW context (.call info function arguments))
-      (.statement :: expressionListEvents s arguments) := by
+      (.statement :: (expressionListEvents s arguments ++
+        [.frame (sizeOfShapeWithContextHOL s.structs returnShape)])) := by
   classical
   obtain ⟨vshapes, _hsrc, _, hfuncs, _hlen, htargs, htlookup, _, _, _, _⟩ :=
     pcCompileCorrectCallPrelude s t context function arguments values body callee returnShape
       args lookup rel.state rel.code rel.exceptions rel.locals (everyArgs_localised localised)
   have htclock : t.clock = 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
   have argsPaid := arguments_paid rel arguments values args checkedArgs
-  have rshBound := slots function vshapes returnShape hfuncs
-  simp only [returnSlotLimit] at rshBound
+  have rsize := frame_size_eq rel returnShape
   unfold CrepWorkPaid
-  rw [score_statement_cons]
+  rw [score_statement_cons, score_append, executionWork_score_cons, rsize]
   simp only [sourceCrepWeights] at argsPaid ⊢
   generalize Work.score _ (executionWork (expressionListEvents s arguments)) = A at argsPaid ⊢
+  simp only [executionWork, WorkEvent.units, Work.score]
   have short : ∀ (t'' : CrepSemHOLState 64 F) ri,
       ((compileExpExactHOLWList context arguments).flatMap Prod.fst).mapM
         (evalCrepSemHOLExp t'') = some (values.flatMap flattenHOL) → t''.code = t.code →
