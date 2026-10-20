@@ -267,8 +267,229 @@ theorem wordPathWork_loop_variant {C F : Type}
     · rw [dif_neg hz, dif_neg hz, ihStop]
   · rw [if_neg hc, if_neg hc]
 
+
+/-! ### Returning calls: exception and terminal branches -/
+
+/-- Returning call whose callee raises an exception that the handler catches:
+one call node, the callee BODY work and the handler work at the actual
+post-call state. -/
+theorem wordPathWork_call_returning_exception {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (location value : WordLocW 64)
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (some (.exception location value), middle))
+    (handl : handler = some (reg, handlerCode, h1, h2))
+    (locEq : location = .loc h1 h2)
+    (domUnion : sptDomainEqUnion middle.locals envs.1 envs.2) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      1 + wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) +
+        wordPathWork handlerCode (setVar reg value middle) := by
+  rw [wordPathWork]
+  simp only [get]
+  rw [bad, if_neg (by simp)]
+  rw [find]
+  dsimp only
+  rw [if_neg (by simp [dom, nodup])]
+  rw [cut]
+  dsimp only
+  rw [dif_neg clock]
+  rw [run]
+  dsimp only
+  rw [handl]
+  dsimp only
+  rw [if_neg (by simp [locEq]), if_pos domUnion]
+
+/-- Returning call whose callee result is neither a `result` nor an
+`exception`: the call falls through to the terminal branch and costs one node
+plus the callee body work. -/
+theorem wordPathWork_call_returning_other {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (result : Option (WordSemResult 64))
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (result, middle))
+    (hnotRes : ∀ (l : WordLocW 64) (r : List (WordLocW 64)), result ≠ some (.result l r))
+    (hnotExc : ∀ (l v : WordLocW 64), result ≠ some (.exception l v)) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      1 + wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) := by
+  rw [wordPathWork]
+  simp only [get]
+  rw [bad, if_neg (by simp)]
+  rw [find]
+  dsimp only
+  rw [if_neg (by simp [dom, nodup])]
+  rw [cut]
+  dsimp only
+  rw [dif_neg clock]
+  rw [run]
+  cases result with
+  | none => rfl
+  | some r =>
+      cases r with
+      | result l rr => exact absurd rfl (hnotRes l rr)
+      | exception l v => exact absurd rfl (hnotExc l v)
+      | _ => rfl
+
+/-- Transport of the exception branch of a returning call. -/
+theorem wordPathWork_call_returning_exception_variant {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (k : Nat → Nat → Nat)
+    (xs : List (WordSemStackFrame 64))
+    (vals0 : List (WordLocW 64)) (args1 : List (WordLocW 64))
+    (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (location value : WordLocW 64)
+    (middle : WordSemStateFiniteExact 64 C F)
+    (k2 : Nat → Nat → Nat) (xs2 : List (WordSemStackFrame 64))
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (get : getVars args s = some vals0)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) vals0) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (runS : evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s))) =
+      (some (.exception location value), middle))
+    (handl : handler = some (reg, handlerCode, h1, h2))
+    (locEq : location = .loc h1 h2)
+    (domUnion : sptDomainEqUnion middle.locals envs.1 envs.2)
+    (runT : evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F)))) =
+      (some (.exception location value), ({ middle with permute := k2, stack := xs2 } :
+        WordSemStateFiniteExact 64 C F)))
+    (ihBody : wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F)))) =
+      wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))))
+    (ihHandler : wordPathWork handlerCode ({ setVar reg value middle with
+      permute := k2, stack := xs2 } : WordSemStateFiniteExact 64 C F) =
+      wordPathWork handlerCode (setVar reg value middle)) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler)
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F) =
+      wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s := by
+  have hgetT : getVars args ({ s with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F) = some vals0 := by
+    rw [getVars_swap]; exact get
+  have hfindT : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) vals0)
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F).code
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F).stackSize =
+      some (args1, prog, ss) := find
+  have hcutT : wordSemCutEnvs names ({ s with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F).locals = some envs := cut
+  have hclockT : ({ s with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F).clock ≠ 0 := clock
+  have hdomUnionT : sptDomainEqUnion ({ middle with permute := k2, stack := xs2 } :
+      WordSemStateFiniteExact 64 C F).locals envs.1 envs.2 := domUnion
+  have hsv : setVar reg value ({ middle with permute := k2, stack := xs2 } :
+      WordSemStateFiniteExact 64 C F) =
+      ({ setVar reg value middle with permute := k2, stack := xs2 } :
+        WordSemStateFiniteExact 64 C F) := rfl
+  rw [wordPathWork_call_returning_exception values names retCode l1 l2 dest args handler
+      ({ s with permute := k, stack := xs }) ({ middle with permute := k2, stack := xs2 })
+      vals0 envs args1 prog ss location value reg handlerCode h1 h2
+      hgetT bad hfindT dom nodup hcutT hclockT (by rw [fix_clock_evaluate]; exact runT)
+      handl locEq hdomUnionT,
+    wordPathWork_call_returning_exception values names retCode l1 l2 dest args handler
+      s middle vals0 envs args1 prog ss location value reg handlerCode h1 h2
+      get bad find dom nodup cut clock (by rw [fix_clock_evaluate]; exact runS)
+      handl locEq domUnion]
+  rw [hsv, ihBody, ihHandler]
+
+/-- Transport of the terminal branch of a returning call. -/
+theorem wordPathWork_call_returning_other_variant {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (k : Nat → Nat → Nat)
+    (xs : List (WordSemStackFrame 64))
+    (vals0 : List (WordLocW 64)) (args1 : List (WordLocW 64))
+    (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (result : Option (WordSemResult 64)) (middle middleT : WordSemStateFiniteExact 64 C F)
+    (get : getVars args s = some vals0)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) vals0) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (runS : evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s))) =
+      (result, middle))
+    (hnotRes : ∀ (l : WordLocW 64) (r : List (WordLocW 64)), result ≠ some (.result l r))
+    (hnotExc : ∀ (l v : WordLocW 64), result ≠ some (.exception l v))
+    (runT : evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F)))) =
+      (result, middleT))
+    (ihBody : wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F)))) =
+      wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler)
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F) =
+      wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s := by
+  have hgetT : getVars args ({ s with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F) = some vals0 := by
+    rw [getVars_swap]; exact get
+  have hfindT : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) vals0)
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F).code
+      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F).stackSize =
+      some (args1, prog, ss) := find
+  have hcutT : wordSemCutEnvs names ({ s with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F).locals = some envs := cut
+  have hclockT : ({ s with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F).clock ≠ 0 := clock
+  rw [wordPathWork_call_returning_other values names retCode l1 l2 dest args handler
+      ({ s with permute := k, stack := xs }) middleT vals0 envs args1 prog ss result
+      hgetT bad hfindT dom nodup hcutT hclockT (by rw [fix_clock_evaluate]; exact runT)
+      hnotRes hnotExc,
+    wordPathWork_call_returning_other values names retCode l1 l2 dest args handler
+      s middle vals0 envs args1 prog ss result get bad find dom nodup cut clock
+      (by rw [fix_clock_evaluate]; exact runS) hnotRes hnotExc]
+  rw [ihBody]
+
 #print axioms wordPathWork_loop
 #print axioms wordPathWork_loop_variant
+#print axioms wordPathWork_call_returning_exception
+#print axioms wordPathWork_call_returning_other
+#print axioms wordPathWork_call_returning_exception_variant
+#print axioms wordPathWork_call_returning_other_variant
 #print axioms wordPathWork_mustTerminate_variant
 #print axioms wordPathWork_seq_variant
 #print axioms wordPathWork_ite_variant
