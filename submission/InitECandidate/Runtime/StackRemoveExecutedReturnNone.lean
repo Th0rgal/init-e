@@ -93,26 +93,13 @@ theorem removalCostSimulation_returnNone {F : Type} (sourcePrice : HolProg 64 �
               | none => exact postRelation
               | some r => cases r <;> exact postRelation
             · have totalNonzero : (first + second) + target.clock ≠ 0 := by omega
-              have shiftedCost := stackExecutionCost_addClock (nativePriceWithGap gap)
-                (comp jump bounds pointer program)
-                {decClock (setVar link (.loc l1 l2) target) with
-                  clock := first + (decClock (setVar link (.loc l1 l2) target)).clock}
-                middleTarget (some (.result (.loc l1 l2))) calleeRun (by simp) second
               have boostedCost : stackExecutionCost (fun p _ => nativePriceWithGap gap p)
                   (comp jump bounds pointer program)
                   (decClock (setVar link (.loc l1 l2) {target with clock := (first + second) + target.clock})) ≤
                   stackExecutionCost (fun p _ => sourcePrice p) program (decClock (setVar link (.loc l1 l2) source)) := by
-                rw [entryClock target link l1 l2 (first + second) targetNonzero]
-                have eq : stackExecutionCost (fun p _ => nativePriceWithGap gap p)
-                    (comp jump bounds pointer program)
-                    {decClock (setVar link (.loc l1 l2) target) with
-                      clock := (first + second) + (decClock (setVar link (.loc l1 l2) target)).clock} =
-                    stackExecutionCost (fun p _ => nativePriceWithGap gap p)
-                    (comp jump bounds pointer program)
-                    {decClock (setVar link (.loc l1 l2) target) with
-                      clock := first + (decClock (setVar link (.loc l1 l2) target)).clock} := by
-                  simpa only [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using shiftedCost
-                exact eq.le.trans calleeCost
+                exact (stackExecutionCost_calleeAllowance (nativePriceWithGap gap)
+                  (comp jump bounds pointer program) target middleTarget link l1 l2 first second _
+                  targetNonzero calleeRun (by simp)).le.trans calleeCost
               rw [comp,
                 stackExecutionCost_call_run (fun p _ => nativePriceWithGap gap p)
                   (comp jump bounds pointer body) (comp jump bounds pointer program) link l1 l2 dest none {target with clock := (first + second) + target.clock} _ _
