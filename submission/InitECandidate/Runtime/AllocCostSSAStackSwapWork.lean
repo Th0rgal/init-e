@@ -932,4 +932,200 @@ theorem wordSemLastN_length_succ_cons {α : Type} (fr : α) (rest : List α) :
   simp
 
 #print axioms wordSemLastN_length_succ_cons
+
+/-! ### Prelude lemmas for the `.call` clause
+
+Each one pins `wordPathWork` of a call to `1` when one of the clause's guards
+fails.  These are the "cheap" branches of the guarded driver. -/
+theorem wordPathWork_call_getVars_none {C F : Type}
+    (ret : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (t : WordSemStateFiniteExact 64 C F)
+    (hget : WordSemStateFiniteExact.getVars args t = none) :
+    wordPathWork (.call ret dest args handler) t = 1 := by
+  rw [wordPathWork]
+  split
+  · rfl
+  · rename_i locs1 h
+    rw [hget] at h
+    cases h
+
+theorem wordPathWork_call_badDest {C F : Type}
+    (ret : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = true) :
+    wordPathWork (.call ret dest args handler) t = 1 := by
+  rw [wordPathWork]
+  split
+  · rfl
+  · rename_i locs1 h
+    rw [hget] at h
+    cases h
+    rw [if_pos hbad]
+
+theorem wordPathWork_call_findCode_none {C F : Type}
+    (ret : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest (wordSemAddRetLoc ret locs) t.code t.stackSize = none) :
+    wordPathWork (.call ret dest args handler) t = 1 := by
+  rw [wordPathWork]
+  split
+  · rfl
+  · rename_i locs1 h
+    rw [hget] at h
+    cases h
+    rw [if_neg (by rw [hbad]; simp)]
+    split
+    · rfl
+    · rename_i a1 p1 ss1 hf
+      rw [hfind] at hf
+      cases hf
+
+theorem wordPathWork_call_returning_dom {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat) (dest : Option Nat)
+    (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+        t.code t.stackSize = some (args1, prog, ss))
+    (hdc : sptDomainEmpty names.1 ∨ ¬ values.Nodup) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) t = 1 := by
+  rw [wordPathWork]
+  split
+  · rfl
+  · rename_i locs1 h
+    rw [hget] at h
+    cases h
+    rw [if_neg (by rw [hbad]; simp)]
+    split
+    · rfl
+    · rename_i a1 p1 ss1 hf
+      rw [hfind] at hf
+      cases hf
+      split
+      · rename_i hc
+        simp at hc
+      · rename_i v1 n1 rc1 m1 q1 hc
+        cases hc
+        rw [if_pos hdc]
+
+theorem wordPathWork_call_returning_cut_none {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat) (dest : Option Nat)
+    (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+        t.code t.stackSize = some (args1, prog, ss))
+    (hnd : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hce : wordSemCutEnvs names t.locals = none) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) t = 1 := by
+  rw [wordPathWork]
+  split
+  · rfl
+  · rename_i locs1 h
+    rw [hget] at h
+    cases h
+    rw [if_neg (by rw [hbad]; simp)]
+    split
+    · rfl
+    · rename_i a1 p1 ss1 hf
+      rw [hfind] at hf
+      cases hf
+      split
+      · rename_i hc
+        simp at hc
+      · rename_i v1 n1 rc1 m1 q1 hc
+        cases hc
+        rw [if_neg hnd]
+        split
+        · rfl
+        · rename_i envs1 hcu
+          rw [hce] at hcu
+          cases hcu
+
+theorem wordPathWork_call_none_clock_zero {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat)) locs)
+        t.code t.stackSize = some (args1, prog, ss))
+    (hhand : handler = none) (hz : t.clock = 0) :
+    wordPathWork (.call none dest args handler) t = 1 := by
+  rw [wordPathWork]
+  split
+  · rfl
+  · rename_i locs1 h
+    rw [hget] at h
+    cases h
+    rw [if_neg (by rw [hbad]; simp)]
+    split
+    · rfl
+    · rename_i a1 p1 ss1 hf
+      rw [hfind] at hf
+      cases hf
+      subst hhand
+      rw [dif_pos hz]
+
+theorem wordPathWork_call_returning_clock_zero {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat) (dest : Option Nat)
+    (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+        t.code t.stackSize = some (args1, prog, ss))
+    (hnd : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hce : wordSemCutEnvs names t.locals = some envs) (hz : t.clock = 0) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) t = 1 := by
+  rw [wordPathWork]
+  split
+  · rfl
+  · rename_i locs1 h
+    rw [hget] at h
+    cases h
+    rw [if_neg (by rw [hbad]; simp)]
+    split
+    · rfl
+    · rename_i a1 p1 ss1 hf
+      rw [hfind] at hf
+      cases hf
+      split
+      · rename_i hc
+        simp at hc
+      · rename_i v1 n1 rc1 m1 q1 hc
+        cases hc
+        rw [if_neg hnd]
+        split
+        · rfl
+        · rename_i envs1 hcu
+          rw [hce] at hcu
+          cases hcu
+          rw [dif_pos hz]
 end InitECandidate.Runtime.WordToStack
