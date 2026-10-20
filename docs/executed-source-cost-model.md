@@ -352,5 +352,30 @@ constructors are covered, including declarations, structured assignment and
 stores through fresh temporaries, calls with return slots, caught handlers,
 declared calls, primitives, FFI and shared memory. No whole-program size enters
 the bound. `source_execution_cost_pays_crep` restates it for the selected
-canonical trace. The Crep-to-Loop executed transfer and the downstream
-composition remain.
+canonical trace.
+
+## Crep-to-Loop executed transfer (conditional on `LoopOptimiseWork`)
+
+`SourceCostLoopWork.LoopWork s p out w` counts executed Loop work rule by rule
+on the exact Loop evaluator (leaf costs, selected branches, every loop
+iteration, actual callee bodies, return-slot copies, handler dispatch, short
+calls). `SourceCostLoopControl.crep_loop_executed_work` proves by induction
+on `CrepWork` that every Crep execution with a non-error result and the
+original `ncompile_correct` relations has, at some clock extension of the
+Loop state, a `LoopWork` derivation of the compiled `compileHOLExact` code
+bounded by `7 *` the Crep work, together with all original `ncompile_correct`
+conclusions (`LoopPaid`). All Crep constructors are covered with no static
+coverage premise. Clock extensions are composed explicitly. Work is lifted
+to a larger clock only on non-timeout prefixes (`LoopWork.add_clock`). The
+factor is 7, not 6, because a call that times out at clock zero pays Crep
+`1 + crepListWork args`, while its compiled code also moves each argument
+(`<= 6 * crepListWork + 1 + |args|`).
+
+The call case (`SourceCostLoopCall.call_loop_paid`) is conditional on the
+named contract `SourceCostLoopCallBase.LoopOptimiseWork`. The contract says
+that the per-function `optimiseHOL` pass does not increase executed work for
+non-error, non-break and non-continue results. Root is proving it separately.
+`SourceCostLoopSource.source_loop_executed_work` composes the two transfers
+for one statement. It does not yet cover the preprocessing passes
+(`pan_simp`, `pan_structs`, `pan_globals`, `crep_arith` `simp_prog`) or
+whole-program entry composition.
