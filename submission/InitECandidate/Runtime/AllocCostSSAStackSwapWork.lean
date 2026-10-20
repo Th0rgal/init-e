@@ -1920,4 +1920,154 @@ theorem evaluate_call_error_handler {C F : Type}
           all_goals (try dsimp only [])
           all_goals (try exact h)
           all_goals simp_all
+
+/-! ### Pointwise-IH variants of the case lemmas
+
+The driver carries the top-level non-error hypothesis only, so the recursive
+hypotheses are needed at the *specific* reached states (not uniformly). -/
+
+theorem wordPathWork_call_result_at {C F : Type}
+    (dest : Option Nat) (args : List Nat) (values : List Nat)
+    (names : WordLangCutsetsHOL) (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (locs : List (WordLocW 64)) (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (middle middleT : WordSemStateFiniteExact 64 C F)
+    (popped : WordSemStateFiniteExact 64 C F) (u : List (WordSemStackFrame 64))
+    (hget : WordSemStateFiniteExact.getVars args s = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+        s.code s.stackSize = some (args1, prog, ss))
+    (hnd : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcut : wordSemCutEnvs names s.locals = some envs)
+    (hclk : s.clock ≠ 0)
+    (hfix : fixClock
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock s)))
+        (evaluate prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock s))))
+        = (some (.result location returned), middle))
+    (hfixT : fixClock
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+        (evaluate prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs }))))
+        = (some (.result location returned), middleT))
+    (hnl : ¬ (location ≠ .loc l1 l2 ∨ returned.length ≠ values.length))
+    (hpop : popEnv middle = some popped)
+    (hpopT : popEnv middleT = some { popped with stack := u })
+    (hdom : sptDomainEqUnion popped.locals envs.1 envs.2)
+    (ihBodyAt : wordPathWork prog
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs }))) =
+      wordPathWork prog
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock s))))
+    (ihRetAt : wordPathWork retCode
+        { WordSemStateFiniteExact.setVars values returned popped with stack := u } =
+      wordPathWork retCode (WordSemStateFiniteExact.setVars values returned popped)) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler)
+        { s with stack := xs } =
+      wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s := by
+  have hgetL : WordSemStateFiniteExact.getVars args { s with stack := xs } = some locs := by
+    rw [getVars_stack args s xs]; exact hget
+  have hfindL : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+      ({ s with stack := xs } : WordSemStateFiniteExact 64 C F).code
+      ({ s with stack := xs } : WordSemStateFiniteExact 64 C F).stackSize = some (args1, prog, ss) := by
+    rw [wordSemFindCode_stack]
+    exact hfind
+  rw [wordPathWork_call_unfold_result (dest := dest) (args := args) (values := values)
+      (names := names) (retCode := retCode) (l1 := l1) (l2 := l2) (handler := handler)
+      (prog := prog) (args1 := args1) (ss := ss) (t := { s with stack := xs }) (locs := locs)
+      (envs := envs) (location := location) (returned := returned) (middle := middleT)
+      (popped := { popped with stack := u }) (hget := hgetL) (hbad := hbad) (hfind := hfindL)
+      (hnd := hnd) (hcut := hcut) (hclk := hclk) (hfix := hfixT) (hnl := hnl) (hpop := hpopT)
+      (hdom := hdom),
+    wordPathWork_call_unfold_result (dest := dest) (args := args) (values := values)
+      (names := names) (retCode := retCode) (l1 := l1) (l2 := l2) (handler := handler)
+      (prog := prog) (args1 := args1) (ss := ss) (t := s) (locs := locs)
+      (envs := envs) (location := location) (returned := returned) (middle := middle)
+      (popped := popped) (hget := hget) (hbad := hbad) (hfind := hfind) (hnd := hnd)
+      (hcut := hcut) (hclk := hclk) (hfix := hfix) (hnl := hnl) (hpop := hpop)
+      (hdom := hdom)]
+  rw [ihBodyAt, setVars_stack, ihRetAt]
+
+theorem wordPathWork_call_exception_at {C F : Type}
+    (dest : Option Nat) (args : List Nat) (values : List Nat)
+    (names : WordLangCutsetsHOL) (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (locs : List (WordLocW 64)) (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (location : WordLocW 64) (value : WordLocW 64)
+    (middle middleT : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64))
+    (hget : WordSemStateFiniteExact.getVars args s = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+        s.code s.stackSize = some (args1, prog, ss))
+    (hnd : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcut : wordSemCutEnvs names s.locals = some envs)
+    (hclk : s.clock ≠ 0)
+    (hfix : fixClock
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock s)))
+        (evaluate prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock s))))
+        = (some (.exception location value), middle))
+    (hfixT : fixClock
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+        (evaluate prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs }))))
+        = (some (.exception location value), middleT))
+    (hhand : handler = some (reg, handlerCode, h1, h2))
+    (hloc : location = .loc h1 h2)
+    (hmidT : middleT = { middle with stack := st })
+    (hdom : sptDomainEqUnion middle.locals envs.1 envs.2)
+    (hdomT : sptDomainEqUnion middleT.locals envs.1 envs.2)
+    (ihBodyAt : wordPathWork prog
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs }))) =
+      wordPathWork prog
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock s))))
+    (ihHandAt : wordPathWork handlerCode
+        { WordSemStateFiniteExact.setVar reg value middle with stack := st } =
+      wordPathWork handlerCode (WordSemStateFiniteExact.setVar reg value middle)) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler)
+        { s with stack := xs } =
+      wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s := by
+  have hgetL : WordSemStateFiniteExact.getVars args { s with stack := xs } = some locs := by
+    rw [getVars_stack args s xs]; exact hget
+  have hfindL : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+      ({ s with stack := xs } : WordSemStateFiniteExact 64 C F).code
+      ({ s with stack := xs } : WordSemStateFiniteExact 64 C F).stackSize = some (args1, prog, ss) := by
+    rw [wordSemFindCode_stack]
+    exact hfind
+  rw [wordPathWork_call_unfold_exception (dest := dest) (args := args) (values := values)
+      (names := names) (retCode := retCode) (l1 := l1) (l2 := l2) (handler := handler)
+      (reg := reg) (handlerCode := handlerCode) (h1 := h1) (h2 := h2) (prog := prog)
+      (args1 := args1) (ss := ss) (t := { s with stack := xs }) (locs := locs) (envs := envs)
+      (location := location) (value := value) (middle := middleT) (hget := hgetL) (hbad := hbad)
+      (hfind := hfindL) (hnd := hnd) (hcut := hcut) (hclk := hclk) (hfix := hfixT) (hhand := hhand)
+      (hloc := hloc) (hdom := hdomT),
+    wordPathWork_call_unfold_exception (dest := dest) (args := args) (values := values)
+      (names := names) (retCode := retCode) (l1 := l1) (l2 := l2) (handler := handler)
+      (reg := reg) (handlerCode := handlerCode) (h1 := h1) (h2 := h2) (prog := prog)
+      (args1 := args1) (ss := ss) (t := s) (locs := locs) (envs := envs) (location := location)
+      (value := value) (middle := middle) (hget := hget) (hbad := hbad) (hfind := hfind)
+      (hnd := hnd) (hcut := hcut) (hclk := hclk) (hfix := hfix) (hhand := hhand) (hloc := hloc)
+      (hdom := hdom)]
+  rw [ihBodyAt, hmidT, setVar_stack, ihHandAt]
 end InitECandidate.Runtime.WordToStack
