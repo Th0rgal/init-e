@@ -1608,4 +1608,97 @@ theorem wordPathWork_call_exception_loc_mismatch {C F : Type}
           all_goals (try (rw [hhand]))
           all_goals (try (simp only [if_pos hloc]))
           all_goals (try omega)
+
+/-! ### Error propagation from a non-erroring parent
+
+`WordSemResult.error` is never caught (`handler`s catch `exception` only), so a
+non-erroring program has non-erroring reached children.  These lemmas discharge
+the `stackSwapPost` non-error side conditions on *reached* paths only. -/
+
+theorem evaluate_seq_error_fst {C F : Type} (c1 c2 : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F)
+    (h : (evaluate c1 s).1 = some (WordSemResult.error)) :
+    (evaluate (.seq c1 c2) s).1 = some (WordSemResult.error) := by
+  rw [evaluate]
+  split
+  · rename_i res s1 hfix
+    have hfst : res = (evaluate c1 s).1 := (congrArg Prod.fst hfix).symm
+    rw [hfst, h]
+
+theorem evaluate_seq_error_snd {C F : Type} (c1 c2 : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F)
+    (h1 : (evaluate c1 s).1 = none)
+    (h2 : (evaluate c2 (fixClock s (evaluate c1 s)).2).1 = some (WordSemResult.error)) :
+    (evaluate (.seq c1 c2) s).1 = some (WordSemResult.error) := by
+  rw [evaluate]
+  split
+  · rename_i res s1 hfix
+    have hfst : res = (evaluate c1 s).1 := (congrArg Prod.fst hfix).symm
+    have hsnd : s1 = (fixClock s (evaluate c1 s)).2 := (congrArg Prod.snd hfix).symm
+    rw [hfst, h1, hsnd]
+    exact h2
+
+theorem evaluate_ite_error_true {C F : Type} (cmp : Cmp) (reg : Nat)
+    (operand : WordRegImm (BitVec 64)) (c1 c2 : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (x y : WordLocW 64)
+    (hv : WordSemStateFiniteExact.getVar reg s = some x)
+    (hi : WordSemStateFiniteExact.getVarImm operand s = some y)
+    (hc : wordSemWordCmp cmp x y = some true)
+    (h : (evaluate c1 s).1 = some (WordSemResult.error)) :
+    (evaluate (.ite cmp reg operand c1 c2) s).1 = some (WordSemResult.error) := by
+  simp only [evaluate, hv, hi, hc]
+  exact h
+
+theorem evaluate_ite_error_false {C F : Type} (cmp : Cmp) (reg : Nat)
+    (operand : WordRegImm (BitVec 64)) (c1 c2 : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (x y : WordLocW 64)
+    (hv : WordSemStateFiniteExact.getVar reg s = some x)
+    (hi : WordSemStateFiniteExact.getVarImm operand s = some y)
+    (hc : wordSemWordCmp cmp x y = some false)
+    (h : (evaluate c2 s).1 = some (WordSemResult.error)) :
+    (evaluate (.ite cmp reg operand c1 c2) s).1 = some (WordSemResult.error) := by
+  simp only [evaluate, hv, hi, hc]
+  exact h
+
+theorem evaluate_loop_error_body {C F : Type} (names : WordLangNumSetHOL)
+    (body : WordLangProgHOL (BitVec 64)) (exitNames : WordLangNumSetHOL)
+    (s cs : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cs)
+    (h : (evaluate body cs).1 = some (WordSemResult.error)) :
+    (evaluate (.loop names body exitNames) s).1 = some (WordSemResult.error) := by
+  rw [evaluate, hs]
+  split
+  · rfl
+  · rename_i s' hs'
+    injection hs' with hx
+    cases hx
+    split
+    · rename_i res s1 hfix
+      have hfst : res = (evaluate body cs).1 := (congrArg Prod.fst hfix).symm
+      rw [hfst, h]
+      rfl
+
+theorem evaluate_loop_error_stop {C F : Type} (names : WordLangNumSetHOL)
+    (body : WordLangProgHOL (BitVec 64)) (exitNames : WordLangNumSetHOL)
+    (s cs : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cs)
+    (res : Option (WordSemResult 64)) (s1 : WordSemStateFiniteExact 64 C F)
+    (hfix : fixClock cs (evaluate body cs) = (res, s1))
+    (hc : wordSemContLoop res = true) (hz : ¬ s1.clock = 0)
+    (h : (evaluate (wordSemSTOP (.loop names body exitNames)) (Flapjack.WordSemStateFiniteExact.decClock s1)).1
+        = some (WordSemResult.error)) :
+    (evaluate (.loop names body exitNames) s).1 = some (WordSemResult.error) := by
+  rw [evaluate, hs]
+  split
+  · rfl
+  · rename_i s' hs'
+    injection hs' with hx
+    cases hx
+    split
+    · rename_i res' s1' hfix'
+      rw [hfix] at hfix'
+      cases hfix'
+      rw [hc]
+      rw [dif_neg hz]
+      exact h
 end InitECandidate.Runtime.WordToStack
