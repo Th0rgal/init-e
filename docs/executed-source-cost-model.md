@@ -177,7 +177,7 @@ prefix bounded by the sum of each visited opcode/padding cost. Related states,
 program counters, code and the oracle tie are retained.
 
 `StackWeightedControl` supplies real flattened Break and LocValue prefixes under
-the original `FlattenHyps`: direct jump allowance2, local materialization/padding
+the original `FlattenHyps`: direct jump allowance 2, local materialization/padding
 for LocValue. Returning to an explicitly valid installed location uses one
 native indirect jump. `StackWeightedBranch` proves the actual compiled layout
 of two nonempty ordinary instruction arms. `StackWeightedIf` covers both actual
@@ -272,6 +272,18 @@ These checked rules cover normal prefixes. They do not assert a complete
 compiler theorem for calls, loops, terminal results, code installation or
 resource exits; those need their corresponding recursive rules and concrete
 Word-to-Stack price justifications before an end-to-end score can be derived.
+
+`StackWeightedExit` adds a separate recursive motive for nonhalting control
+exits. It retains the actual installed destination and distinguishes a reached
+location from Continue's pending back jump. Checked leaves cover Break (native
+allowance 2), Continue (prefix allowance 0), and Return/Raise to semantically valid
+installed locations (allowance 1). Early-exit Seq discards its untouched suffix;
+normal-prefix-to-exit Seq joins only the reached traces. The composed exit has
+an actual RISC-V prefix theorem with related state and advanced oracle tie.
+`StackWeightedLoop.normalWeightedFlatten_loop_break` covers the final iteration
+whose body returns Break 0: the break's existing jump reaches the loop exit and
+Loop/labels add no native charge. Continuing iterations, propagated exits and
+terminal/resource outcomes still need their corresponding loop rules.
 
 ## Remaining end-to-end obligations
 
