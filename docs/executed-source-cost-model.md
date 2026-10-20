@@ -462,6 +462,22 @@ Together with the empty-arm and general-layout modules, all six compiler
 conditional layouts now have checked local composition rules. A complete
 recursive compiler driver still needs to instantiate these rules.
 
+`SourceCostFperm` preserves the exact source events when globals lowering
+renames the original entry. `SourceCostSimpTop` transfers installed declaration
+code through pan_simp, and `SourceCostSourceTop` composes that with structures
+identity and actual globals initialization. `SourceCostLoopTop.source_loop_top`
+then carries the ORIGINAL entry-run cost to the actual installed Loop entry,
+retaining the original run relation and non-error outcome. Its remaining
+`EntryPipeline` premises are the pinned compiler state relations, code maps,
+entry lookup and static certificates, rather than quantitative transfer oracles.
+They still need discharge for the concrete challenge initial states.
+The one-time source allowance is `20 + 4*returnShapeWords + 57*globalCount +
+5*payloadWords`. `GuestCostGlobalsInit` checks the actual pass1 has 93 constant
+global initializers, so the store subtotal is 5301. Independent root replays
+`source-entry-independent` (8 modules) and `source-loop-top-independent`
+(strengthened non-error result and six affected modules) passed with standard
+axioms. This is not the final native budget or a complete guest gas bound.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
