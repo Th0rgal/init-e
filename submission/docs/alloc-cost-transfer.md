@@ -116,6 +116,13 @@ Compile order and module stems (checker role `allocation`):
    - `ssaCcTrans_call_none_nodeCost_le`: a non-returning call pays only its
      argument move:
      `≤ wordNodeCost (call none dest args h) + (4 + args.length)`.
+   - `ssaCcTrans_call_some_ret_nodeCost_le`: local returning-call composition
+     for the return handler, with no exception handler.  It takes the actual
+     stack/return move lists and the return handler budget `B` and proves
+     `≤ wordNodeCost (call (some ...) ... none)`
+     `  + (10 + 2 * |ls| + args.length + ret.length + B)`.
+     This is the syntactic call-site composition; it does not claim executed
+     handler transfer.
 
    These are syntactic `wordNodeCost` envelopes.  In particular the loop
    theorem counts the body syntax once; it is not an executed-cost theorem for
@@ -153,11 +160,12 @@ axiom, `unsafe`, `native_decide` or `bv_decide`.
   `continue` and exception handlers are now proved in `AllocCostReconcile`, and
   the loop and call-none syntax envelopes are proved in `AllocCostSSAControl`.  The
   remaining semantic gaps are the whole-loop induction over actual iterations
-  and the returning-call (`call some`) handler composition.  The per-execution
-  reconciliation charges and the `fixInconsistencies` handler budget are
-  proved; what remains is threading them through every actual iteration and
-  through the return/exception symbolic states.  These are exposed as explicit
-  premises, not assumed silently.
+  and the exception-handler branch of the returning call.  The per-execution
+  reconciliation charges, the return-handler local call composition and the
+  `fixInconsistencies` handler budget are proved; what remains is threading
+  them through every actual iteration and through the exception-handler
+  symbolic state.  These are exposed as explicit premises, not assumed
+  silently.
 - `WordSimp`/`instSelect` selection is taken as the root participant's
   `selectionLeaves ≤ 2 * wordExpressionWork` bridge.  This note starts from the
   selected straight-line fragment and does not re-prove that bridge.

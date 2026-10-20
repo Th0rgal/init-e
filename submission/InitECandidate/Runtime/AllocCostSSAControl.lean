@@ -100,6 +100,50 @@ theorem ssaCcTrans_call_none_nodeCost_le (dest : Nat)
     simp only [wordNodeCost, List.length_map, List.length_zip, List.length_range]
     omega
 
+/-- Returning-call local syntax composition, without an exception handler.
+The return handler's transfer is supplied as a budget; the argument, stack and
+return move lists are the actual SSA lists at this call site. -/
+theorem ssaCcTrans_call_some_ret_nodeCost_le
+    (ret : List Nat) (numset : WordLangCutsetsHOL)
+    (retHandler : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Nat) (args : List Nat) (ssa : Spt Nat) (next : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit))
+    (ls : List Nat)
+    (hls : ls = (sptToAList (sptUnion numset.1 numset.2)).map Prod.fst)
+    (stackMov : WordLangProgHOL (BitVec 64)) (ssa' : Spt Nat) (na' : Nat)
+    (hstack : listNextVarRenameMove (width := 64) ssa (next + 2) ls =
+      (stackMov, ssa', na'))
+    (retMov : WordLangProgHOL (BitVec 64)) (ssa'' : Spt Nat) (na'' : Nat)
+    (hretMov : listNextVarRenameMove (width := 64)
+      (sptInter ssa' (sptUnion numset.1 numset.2)) (na' + 2) ls =
+      (retMov, ssa'', na''))
+    (ret' : List Nat) (ssa2p : Spt Nat) (na2p : Nat)
+    (hret : listNextVarRename ret ssa'' na'' = (ret', ssa2p, na2p))
+    (renRet : WordLangProgHOL (BitVec 64)) (ssa2 : Spt Nat) (na2 : Nat)
+    (hren : ssaCcTrans (width := 64) retHandler ssa2p na2p lt =
+      (renRet, ssa2, na2))
+    (bodyBudget : Nat)
+    (hbody : wordNodeCost renRet ≤ wordNodeCost retHandler + bodyBudget) :
+    wordNodeCost (ssaCcTrans (width := 64)
+      (.call (some (ret, numset, retHandler, l1, l2)) dest args none)
+      ssa next lt).1 ≤
+      wordNodeCost (.call (some (ret, numset, retHandler, l1, l2)) dest args none) +
+        (10 + 2 * ls.length + args.length + ret.length + bodyBudget) := by
+  rw [ssaCcTrans]
+  dsimp only
+  rw [← hls]
+  rw [hstack, hretMov, hret, hren]
+  dsimp only
+  have stackCost := listNextVarRenameMove_nodeCost ssa (next + 2) ls
+  rw [hstack] at stackCost
+  dsimp only at stackCost
+  have retMovCost := listNextVarRenameMove_nodeCost
+    (sptInter ssa' (sptUnion numset.1 numset.2)) (na' + 2) ls
+  rw [hretMov] at retMovCost
+  dsimp only at retMovCost
+  simp only [wordNodeCost, List.length_map, List.length_zip, List.length_range]
+  omega
+
 /-- A loop costs its setup plus the already bounded body and the back-edge
 reconciliation. -/
 theorem ssaCcTrans_loop_nodeCost_le (names exitNames : Spt Unit)
@@ -136,6 +180,7 @@ theorem ssaCcTrans_loop_nodeCost_le (names exitNames : Spt Unit)
 #print axioms ssaCcTrans_continue_target_nodeCost_le
 #print axioms ssaCcTrans_break_nodeCost_le
 #print axioms ssaCcTrans_continue_nodeCost_le
+#print axioms ssaCcTrans_call_some_ret_nodeCost_le
 #print axioms ssaCcTrans_call_none_nodeCost_le
 #print axioms ssaCcTrans_loop_nodeCost_le
 end InitECandidate.Runtime.FineCost
