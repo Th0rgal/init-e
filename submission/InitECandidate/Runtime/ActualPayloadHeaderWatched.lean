@@ -1066,4 +1066,204 @@ theorem actual_payload_header_store_step_prefix_watched_flat {F : Type}
 
 #print axioms actual_payload_header_store_step_prefix_watched_flat
 
+/-- The loader's extra-length cell is below every header store cell. -/
+theorem actual_payload_header_pl_cell_flat_separate (pl pointer : BitVec 64) (k offset : Nat)
+    (below : pl.toNat + 136 ≤ pointer.toNat) (cap : pointer.toNat ≤ 33806089496)
+    (bound : 8 * offset < 248) (kBound : k < 248) :
+    pl + (24#64) ≠ pointer + BitVec.ofNat 64 k + BitVec.ofNat 64 (8 * offset) := by
+  intro same
+  have levels := congrArg BitVec.toNat same
+  have cellNat : (pl + (24#64)).toNat = pl.toNat + 24 := by
+    have h24 : (24#64).toNat = 24 := by decide
+    rw [BitVec.toNat_add_of_lt (by rw [h24]; have := pl.isLt; omega),h24]
+  have step : ∀ n : Nat, n < 248 → (BitVec.ofNat 64 n).toNat = n := by
+    intro n bound
+    rw [BitVec.toNat_ofNat]
+    exact Nat.mod_eq_of_lt (by omega)
+  have inner : (pointer + BitVec.ofNat 64 k).toNat = pointer.toNat + k := by
+    rw [BitVec.toNat_add_of_lt (by rw [step k kBound]; omega),step k kBound]
+  have outer : (pointer + BitVec.ofNat 64 k + BitVec.ofNat 64 (8 * offset)).toNat =
+      pointer.toNat + k + 8 * offset := by
+    rw [BitVec.toNat_add_of_lt (by rw [step (8*offset) bound]; omega),step (8*offset) bound,inner]
+  rw [cellNat,outer] at levels
+  omega
+
+#print axioms actual_payload_header_pl_cell_flat_separate
+
+/-- A small constant offset of the loader pointer does not wrap and stays below the cap. -/
+theorem actual_payload_header_pl_add_toNat (pl pointer : BitVec 64) (k : Nat)
+    (below : pl.toNat + 136 ≤ pointer.toNat) (cap : pointer.toNat ≤ 33806089496)
+    (bound : k < 136) : (pl + BitVec.ofNat 64 k).toNat = pl.toNat + k := by
+  have small : (BitVec.ofNat 64 k).toNat = k := by
+    rw [BitVec.toNat_ofNat]
+    exact Nat.mod_eq_of_lt (by omega)
+  rw [BitVec.toNat_add_of_lt (by rw [small]; omega),small]
+
+/-- A small constant offset of the loader pointer is inside the reachable memory. -/
+theorem actual_payload_header_pl_add_below (pl pointer : BitVec 64) (k : Nat)
+    (below : pl.toNat + 136 ≤ pointer.toNat) (cap : pointer.toNat ≤ 33806089496)
+    (bound : k < 136) : (pl + BitVec.ofNat 64 k).toNat < 33806089496 := by
+  rw [actual_payload_header_pl_add_toNat pl pointer k below cap bound]
+  omega
+
+/-- A small constant offset of the header pointer is inside the reachable memory. -/
+theorem actual_payload_header_pointer_add_below (pointer : BitVec 64) (k : Nat)
+    (room : pointer.toNat + 248 ≤ 33806089496) (bound : k < 248) :
+    (pointer + BitVec.ofNat 64 k).toNat < 33806089496 := by
+  have small : (BitVec.ofNat 64 k).toNat = k := by
+    rw [BitVec.toNat_ofNat]
+    exact Nat.mod_eq_of_lt (by omega)
+  have noWrap : pointer.toNat + (BitVec.ofNat 64 k).toNat < 2^64 := by rw [small]; omega
+  rw [BitVec.toNat_add_of_lt noWrap,small]
+  omega
+
+#print axioms actual_payload_header_pointer_add_below
+
+/-- **The actual header stores from statement 14 to statement 24.**  The nine header stores, then the
+actual copy of the loader's extra-length cell into `h+136`; 0 ticks, or abort. -/
+theorem actual_payload_header_stores_14_to_24_watched {F : Type}
+    (state entry : PanSemStateFiniteExact 64 F) (pl raw pointer extraLen txr : BitVec 64)
+    (facts : ActualPayloadHeaderPrefix state entry pl raw pointer (actualPayloadHeaderTxrFloor pointer))
+    (txrLocal : entry.locals.lookup (ofString "txr") = some (.val (.word txr)))
+    (fullDomain : ∀ address : BitVec 64, address.toNat < 33806089496 → state.memaddrs address)
+    (below : pl.toNat + 136 ≤ pointer.toNat) (cap : pointer.toNat ≤ 33806089496)
+    (room : pointer.toNat + 248 ≤ 33806089496)
+    (watch : WatchWord entry (pl + (24#64)) extraLen) :
+    Reaches entry (actualPayloadHeaderAt 14)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer
+          (actualPayloadHeaderTxrFloor pointer) ∧
+        post.memory (pointer + (136#64)) = .word extraLen) 0 (actualPayloadHeaderAt 24) := by
+  have separation : ∀ (k offset : Nat), 8 * offset < 248 → k < 248 →
+      pl + (24#64) ≠ pointer + BitVec.ofNat 64 k + BitVec.ofNat 64 (8 * offset) :=
+    fun k offset bound kBound =>
+      actual_payload_header_pl_cell_flat_separate pl pointer k offset below cap bound kBound
+  have wordStep : ∀ (start : PanSemStateFiniteExact 64 F) (index k : Nat)
+      (destination value : ExpHOL 64) (tail : ProgHOL 64) (payload : ValueHOL 64)
+      (words : List (HolWordLab 64)),
+      ActualPayloadHeaderPrefix state start pl raw pointer (actualPayloadHeaderTxrFloor pointer) →
+      WatchWord start (pl + (24#64)) extraLen →
+      actualPayloadHeaderAt index = .seq (.store destination value) tail →
+      destination = .op .add [.var .local (ofString "h"), .const (BitVec.ofNat 64 k)] →
+      @evalHOLExact 64 F _ start.toExact (fun a => Classical.propDecidable (start.memaddrs a))
+        value = some payload →
+      flattenHOL payload = words →
+      (∀ offset, offset < words.length → pl + (24#64) ≠
+        pointer + BitVec.ofNat 64 k + BitVec.ofNat 64 (8 * offset)) →
+      Reaches start (actualPayloadHeaderAt index)
+        (fun post => ActualPayloadHeaderPrefix state post pl raw pointer
+            (actualPayloadHeaderTxrFloor pointer) ∧
+          WatchWord post (pl + (24#64)) extraLen) 0 tail :=
+    fun start index k destination value tail payload words startFacts kept shape destShape valueEval
+      flat untouched =>
+      actual_payload_header_store_step_prefix_watched_flat state start pl raw pointer
+        (actualPayloadHeaderTxrFloor pointer) (pl + (24#64)) extraLen index k destination value tail
+        payload words shape destShape startFacts valueEval flat untouched kept
+  have one : ∀ (k : Nat) (offset : Nat), offset < 1 → 8 * offset < 248 := by
+    intro k offset bound
+    have : offset = 0 := by omega
+    subst this
+    omega
+  refine reaches_trans entry (actualPayloadHeaderAt 14) (actualPayloadHeaderAt 15) (actualPayloadHeaderAt 24)
+    _ _ 0 0
+    (wordStep entry 14 40 (.op .add [.var .local (ofString "h"), .const (40#64)])
+      (.var .local (ofString "txr")) (actualPayloadHeaderAt 15) (.val (.word txr)) [.word txr]
+      facts watch rfl rfl
+      (actual_payload_header_eval_local entry (ofString "txr") txr txrLocal) (by simp [flattenHOL])
+      (by intro offset bound; exact separation 40 offset (one 40 offset bound) (by omega))) ?_
+  intro E1 pE1
+  refine reaches_trans E1 (actualPayloadHeaderAt 15) (actualPayloadHeaderAt 16) (actualPayloadHeaderAt 24)
+    _ _ 0 0
+    (wordStep E1 15 48 (.op .add [.var .local (ofString "h"), .const (48#64)])
+      (.op .add [.var .local (ofString "raw"), .const (84#64)]) (actualPayloadHeaderAt 16)
+      (.val (.word (raw + (84#64)))) [.word (raw + (84#64))]
+      pE1.1 pE1.2 rfl rfl
+      (actual_payload_header_eval_word_add E1 (ofString "raw") raw (84#64) pE1.1.2.1) (by simp [flattenHOL])
+      (by intro offset bound; exact separation 48 offset (one 48 offset bound) (by omega))) ?_
+  intro E2 pE2
+  refine reaches_trans E2 (actualPayloadHeaderAt 16) (actualPayloadHeaderAt 17) (actualPayloadHeaderAt 24)
+    _ _ 0 0
+    (wordStep E2 16 56 (.op .add [.var .local (ofString "h"), .const (56#64)])
+      (.op .add [.var .local (ofString "raw"), .const (116#64)]) (actualPayloadHeaderAt 17)
+      (.val (.word (raw + (116#64)))) [.word (raw + (116#64))]
+      pE2.1 pE2.2 rfl rfl
+      (actual_payload_header_eval_word_add E2 (ofString "raw") raw (116#64) pE2.1.2.1) (by simp [flattenHOL])
+      (by intro offset bound; exact separation 56 offset (one 56 offset bound) (by omega))) ?_
+  intro E3 pE3
+  refine reaches_trans E3 (actualPayloadHeaderAt 17) (actualPayloadHeaderAt 18) (actualPayloadHeaderAt 24)
+    _ _ 0 0
+    (wordStep E3 17 64 (.op .add [.var .local (ofString "h"), .const (64#64)])
+      (.rstruct [.const (0#64), .const (0#64), .const (0#64), .const (0#64)])
+      (actualPayloadHeaderAt 18)
+      (.rStruct [.val (.word (0#64)),.val (.word (0#64)),.val (.word (0#64)),.val (.word (0#64))])
+      [.word (0#64),.word (0#64),.word (0#64),.word (0#64)]
+      pE3.1 pE3.2 rfl rfl
+      (by simp [evalHOLExact,evalListHOLExact]) (by simp [flattenHOL])
+      (by
+        intro offset bound
+        have tiny : offset < 4 := by simpa using bound
+        interval_cases offset
+        · exact separation 64 0 (by omega) (by omega)
+        · exact separation 64 1 (by omega) (by omega)
+        · exact separation 64 2 (by omega) (by omega)
+        · exact separation 64 3 (by omega) (by omega))) ?_
+  intro E4 pE4
+  refine reaches_trans E4 (actualPayloadHeaderAt 18) (actualPayloadHeaderAt 19) (actualPayloadHeaderAt 24)
+    _ _ 0 0
+    (wordStep E4 18 96 (.op .add [.var .local (ofString "h"), .const (96#64)])
+      (.load .one (.op .add [.var .local (ofString "pl"), .const (80#64)]))
+      (actualPayloadHeaderAt 19) (.val (E4.memory (pl + (80#64)))) [E4.memory (pl + (80#64))]
+      pE4.1 pE4.2 rfl rfl
+      (actual_payload_header_eval_load_one E4 (ofString "pl") pl (80#64) pE4.1.1
+        (by rw [pE4.1.2.2.2.2.1]; exact fullDomain _ (actual_payload_header_pl_add_below pl pointer 80 below cap (by omega)))) (by simp [flattenHOL])
+      (by intro offset bound; exact separation 96 offset (one 96 offset bound) (by omega))) ?_
+  intro E5 pE5
+  refine reaches_trans E5 (actualPayloadHeaderAt 19) (actualPayloadHeaderAt 20) (actualPayloadHeaderAt 24)
+    _ _ 0 0
+    (wordStep E5 19 104 (.op .add [.var .local (ofString "h"), .const (104#64)])
+      (.load .one (.op .add [.var .local (ofString "pl"), .const (88#64)]))
+      (actualPayloadHeaderAt 20) (.val (E5.memory (pl + (88#64)))) [E5.memory (pl + (88#64))]
+      pE5.1 pE5.2 rfl rfl
+      (actual_payload_header_eval_load_one E5 (ofString "pl") pl (88#64) pE5.1.1
+        (by rw [pE5.1.2.2.2.2.1]; exact fullDomain _ (actual_payload_header_pl_add_below pl pointer 88 below cap (by omega)))) (by simp [flattenHOL])
+      (by intro offset bound; exact separation 104 offset (one 104 offset bound) (by omega))) ?_
+  intro E6 pE6
+  refine reaches_trans E6 (actualPayloadHeaderAt 20) (actualPayloadHeaderAt 21) (actualPayloadHeaderAt 24)
+    _ _ 0 0
+    (wordStep E6 20 112 (.op .add [.var .local (ofString "h"), .const (112#64)])
+      (.load .one (.op .add [.var .local (ofString "pl"), .const (96#64)]))
+      (actualPayloadHeaderAt 21) (.val (E6.memory (pl + (96#64)))) [E6.memory (pl + (96#64))]
+      pE6.1 pE6.2 rfl rfl
+      (actual_payload_header_eval_load_one E6 (ofString "pl") pl (96#64) pE6.1.1
+        (by rw [pE6.1.2.2.2.2.1]; exact fullDomain _ (actual_payload_header_pl_add_below pl pointer 96 below cap (by omega)))) (by simp [flattenHOL])
+      (by intro offset bound; exact separation 112 offset (one 112 offset bound) (by omega))) ?_
+  intro E7 pE7
+  refine reaches_trans E7 (actualPayloadHeaderAt 21) (actualPayloadHeaderAt 22) (actualPayloadHeaderAt 24)
+    _ _ 0 0
+    (wordStep E7 21 120 (.op .add [.var .local (ofString "h"), .const (120#64)])
+      (.load .one (.op .add [.var .local (ofString "pl"), .const (104#64)]))
+      (actualPayloadHeaderAt 22) (.val (E7.memory (pl + (104#64)))) [E7.memory (pl + (104#64))]
+      pE7.1 pE7.2 rfl rfl
+      (actual_payload_header_eval_load_one E7 (ofString "pl") pl (104#64) pE7.1.1
+        (by rw [pE7.1.2.2.2.2.1]; exact fullDomain _ (actual_payload_header_pl_add_below pl pointer 104 below cap (by omega)))) (by simp [flattenHOL])
+      (by intro offset bound; exact separation 120 offset (one 120 offset bound) (by omega))) ?_
+  intro E8 pE8
+  refine reaches_trans E8 (actualPayloadHeaderAt 22) (actualPayloadHeaderAt 23) (actualPayloadHeaderAt 24)
+    _ _ 0 0
+    (wordStep E8 22 128 (.op .add [.var .local (ofString "h"), .const (128#64)])
+      (.load .one (.op .add [.var .local (ofString "pl"), .const (16#64)]))
+      (actualPayloadHeaderAt 23) (.val (E8.memory (pl + (16#64)))) [E8.memory (pl + (16#64))]
+      pE8.1 pE8.2 rfl rfl
+      (actual_payload_header_eval_load_one E8 (ofString "pl") pl (16#64) pE8.1.1
+        (by rw [pE8.1.2.2.2.2.1]; exact fullDomain _ (actual_payload_header_pl_add_below pl pointer 16 below cap (by omega)))) (by simp [flattenHOL])
+      (by intro offset bound; exact separation 128 offset (one 128 offset bound) (by omega))) ?_
+  intro E9 pE9
+  exact actual_payload_header_store_136_stage state E9 pl raw pointer
+    (actualPayloadHeaderTxrFloor pointer) extraLen pE9.1
+    (by rw [pE9.1.2.2.2.2.1]; exact fullDomain _ (actual_payload_header_pl_add_below pl pointer 24 below cap (by omega)))
+    (by show E9.memory (pl + (24#64)) = HolWordLab.word extraLen; exact pE9.2)
+    (by rw [pE9.1.2.2.2.2.1]; exact fullDomain _ (actual_payload_header_pointer_add_below pointer 136 room (by omega)))
+
+#print axioms actual_payload_header_stores_14_to_24_watched
+
+
 end InitECandidate.Runtime
