@@ -619,3 +619,25 @@ Local opcode/padding/control bounds must be established from the actual
 encoding, assembled through the checked weighted constructor rules, and
 connected to the fine Word/source cost. The complete native theorem and
 finite score are still unfinished.
+
+### Connecting executed Stack cost to native traces
+
+`StackExecutionNativeBasis.executionCostPrice` places the independent executed
+Stack cost in the weighted native compiler motive. The module proves price
+widening for all three outcomes and connects Skip, actual instruction
+opcode/padding prices, and Halt to that model. Its instruction premise is a
+local encoding-price inequality, not an assumed native run bound.
+
+`StackExecutionNativeSeq` connects the actual sequence cost to native traces
+for normal, control-exiting, and terminal reached suffixes, and for both early
+exit forms. Unexecuted suffixes add no recursive cost.
+`StackExecutionNativeLoop` connects all nine loop rules: normal/Continue0
+reentry to each later outcome, final Break0, and propagated control/terminal
+exits. A reached reentry needs a two-instruction local allowance; a stopped
+iteration does not. The exact original source clock and relations are retained.
+
+All results checked with standard axioms in `stack-execution-native-basis1`,
+`stack-execution-native-seq2`, and `stack-execution-native-loop2`. Full
+recursive compiler assembly, conditional/call integration with this model,
+encoding-price instantiation, fine Word transfer, and the whole-guest bound
+remain open. These results do not yet establish a finite score.
