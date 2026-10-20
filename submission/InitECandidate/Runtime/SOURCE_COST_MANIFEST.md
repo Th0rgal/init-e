@@ -332,3 +332,17 @@ All four modules re-verified `OK` with only `[propext, Classical.choice, Quot.so
 - `payloadHeader43_reaches_entry` — from a single `entry : WdHeader43Entry s …`, statements 43–46 reach
   `actualPayloadHeaderAt 47` with the concrete `WdLoopInv` exit state at cost
   `1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)`.
+
+## LANDED: decoder-provenance entry and prologue frame for the 43 contract (`d71ef64d6`, +)
+
+- `payloadHeader43_reaches_decoder` — the 43 → 47 prefix with the count cell **taken from the actual
+  decoder output**: from a real `RlpSliceEntry s pl 3 (input + wd) nwd` of the decoded payload struct,
+  `wd_slice_count_cell` supplies `memaddrs (pl + 56)` and `memory (pl + 56) = nwd`, `wd_slice_array_cell`
+  supplies the watched `pl + 48` cell whose value is the exported array pointer `input + wd` (so `X` is not
+  assumed but *equals* `input + wd`), and `wd_signed_count_bound` turns the actual
+  `ssz_fixed_list_count` guard (`¬ 2^63 - 1 < nwd`) plus `nwd = (balance - withdrawals) / 44` into
+  `nwd.toNat + 1 < 2^63`. Conclusion: `Reaches s (actualPayloadHeaderAt 43) (WdLoopInv …) … (actualPayloadHeaderAt 47)`.
+- `wdHeader43Entry_frame` — the entry contract is preserved by any prologue frame: equality of the
+  `pl`/`e` locals, of the two globals, of `code` and of the memory domain, preservation of the two watched
+  cells (`pl + 48`, `pl + 56`), and clock monotonicity. This is the hand-over rule for an actual preceding
+  statement (e.g. the statement-42 builder call) into `payloadHeader43_reaches_entry`.

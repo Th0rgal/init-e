@@ -964,4 +964,40 @@ theorem payloadHeader43_reaches_decoder (DF : Nat) {F : Type} (s : PanSemStateFi
       budget⟩
 
 #print axioms payloadHeader43_reaches_decoder
+
+/-- **The statement-43 entry contract is stable under a prologue frame.** A state that agrees with an
+`WdHeader43Entry` state on the `pl`/`e` locals, the two globals, `code`, the memory domain, the two watched
+cells and only gains clock is again a valid entry. This is how an actual preceding statement (a call that
+preserves the payload area and the globals) hands the contract over, without re-proving the arithmetic. -/
+theorem wdHeader43Entry_frame {F : Type} {t s : PanSemStateFiniteExact 64 F}
+    (nwd size loopHeap oldSlices pl read X : BitVec 64) (DF : Nat)
+    (entry : WdHeader43Entry t nwd size loopHeap oldSlices pl read X DF)
+    (atPl : s.locals.lookup (ofString "pl") = t.locals.lookup (ofString "pl"))
+    (freshE : s.locals.lookup (ofString "e") = t.locals.lookup (ofString "e"))
+    (slicesEq : s.globals.lookup (ofString "wd_rlp_slices") =
+      t.globals.lookup (ofString "wd_rlp_slices"))
+    (heapEq : s.globals.lookup (ofString "heap_ptr") = t.globals.lookup (ofString "heap_ptr"))
+    (codeEq : s.code = t.code) (domEq : s.memaddrs = t.memaddrs)
+    (clockLe : t.clock ≤ s.clock)
+    (readCell : s.memory read = t.memory read)
+    (countCell : s.memory (pl + 56#64) = t.memory (pl + 56#64)) :
+    WdHeader43Entry s nwd size loopHeap oldSlices pl read X DF := by
+  obtain ⟨readEq, tPl, tE, tSlices, tHeap, tCode, tClock, tCountAddr, tCountMem, sizeVal, fitSize, al,
+    sizeAl, cap, smallNwd, readBelow, fence, smallDF, bigDF, tAddrRead, tMemRead, tBudget⟩ := entry
+  refine ⟨readEq, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, sizeVal, fitSize, al, sizeAl, cap, smallNwd,
+    readBelow, ?_, smallDF, bigDF, ?_, ?_, ?_⟩
+  · rw [atPl]; exact tPl
+  · rw [freshE]; exact tE
+  · rw [slicesEq]; exact tSlices
+  · rw [heapEq]; exact tHeap
+  · rw [codeEq]; exact tCode
+  · intro h; exact tClock (by omega)
+  · rw [domEq]; exact tCountAddr
+  · rw [countCell]; exact tCountMem
+  · rw [domEq]; exact fence
+  · rw [domEq]; exact tAddrRead
+  · rw [readCell]; exact tMemRead
+  · exact le_trans tBudget clockLe
+
+#print axioms wdHeader43Entry_frame
 end InitECandidate.Runtime
