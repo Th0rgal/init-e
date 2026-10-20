@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.StackNativeGapPrice
+import InitECandidate.Runtime.StackExecutionTerminal
 namespace InitECandidate.Runtime.StackToLab
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Backend.LabLang Flapjack.Compiler.Backend.LabSem
@@ -16,7 +17,6 @@ theorem native_with_gap_of_evaluate {F : Type}
     (gap : Nat) (gapBound : encodedLineWords encoded ≤ gap)
     (hyps : FlattenHyps program source flag (some result) post sectionId labelId continues breaks start)
     (run : StackSemEvaluate.evaluate (program, source) = (some result, post))
-    (valid : ExecutionResultValid source.code (some result))
     (supported : executionSupported program = true)
     (global : ExecutionCodeSupported source.code)
     (scope : ExecutionLabelScope source.code program)
@@ -29,6 +29,7 @@ theorem native_with_gap_of_evaluate {F : Type}
     (tie : Flapjack.Compiler.Backend.LabToTarget.oracleTie mc machine start) :
     ∃ count native, count ≤ stackExecutionCost (fun p _ => nativePriceWithGap gap p) program source + 17 ∧
       evaluateTargetHOL mc start.ffi count machine = (.halt outcome, native, post.ffi) := by
+  have valid : ExecutionResultValid source.code (some result) := executionKindOfResult_terminal_valid terminal
   obtain ⟨count, native, bounded, runNative⟩ := native_of_evaluate nativeLocalPrice_caps
     flag post sectionId labelId continues breaks start encoded hyps run valid supported global scope terminal
     mc labs base asm machine target encoder related tie
