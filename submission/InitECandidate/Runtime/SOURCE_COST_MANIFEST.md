@@ -346,3 +346,19 @@ All four modules re-verified `OK` with only `[propext, Classical.choice, Quot.so
   `pl`/`e` locals, of the two globals, of `code` and of the memory domain, preservation of the two watched
   cells (`pl + 48`, `pl + 56`), and clock monotonicity. This is the hand-over rule for an actual preceding
   statement (e.g. the statement-42 builder call) into `payloadHeader43_reaches_entry`.
+
+## LANDED: dynamic capped-heap 43 → 47 bound (no full-loop arena reservation)
+
+`payloadHeader43_reaches_capped` — the same 43 → 47 `Reaches` (concrete `WdLoopInv` exit state, cost
+`1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)`) with the full-loop room premise
+`loopHeap + 80 * nwd + 80 ≤ cap` **removed**. Room is now:
+
+- `bounded : loopHeap + size ≤ cap` — only the *single* statement-44 slice-array allocation;
+- `room : ∀ k ≤ nwd, (allocationEnd loopHeap size) + 64 * k + 64 ≤ cap` — the dynamic capped-heap invariant
+  on the actual chain, i.e. exactly the fact each successive *normal* encoder return establishes by
+  advancing the pointer with one successful `allocationEnd`. A failed encoder allocation leaves through the
+  loop's `RunBounded` as `StAbort`, so failure paths stay bounded with no future-room oracle.
+
+`fit`, `limit`, `frontier`, `outRead`, `sliceRead`, `heapStep` and `noWrapCells` are all derived from
+`bounded` + `room` + `fitSize`; the watched cells stay below the actual monotone heap and slice array via
+`wd_read_below_arena` / `wd_slice_cells_below`.

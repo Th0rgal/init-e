@@ -1000,4 +1000,75 @@ theorem wdHeader43Entry_frame {F : Type} {t s : PanSemStateFiniteExact 64 F}
   · exact le_trans tBudget clockLe
 
 #print axioms wdHeader43Entry_frame
+
+/-- **Dynamic capped-heap form of the 43 → 47 prefix: no full-loop arena reservation.**
+Instead of reserving `80 * nwd` bytes up front, the only room premises are (a) the *single* statement-44
+slice-array allocation fits under the cap and (b) a per-iteration room invariant on the actual heap chain:
+for every `k ≤ nwd` the `k`-th heap word's 64-byte allocation ends under the cap. The latter is what the
+loop's own normal encoder returns establish (`heapStep` advances the pointer by exactly one successful
+`allocationEnd`), and a failed encoder allocation exits through `StAbort` inside the loop's `RunBounded`,
+so failure paths stay bounded without any future-room oracle. -/
+theorem payloadHeader43_reaches_capped (DF : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (nwd size loopHeap oldSlices pl read X : BitVec 64)
+    (readEq : read = pl + 48#64)
+    (atPl : s.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
+    (freshE : s.locals.lookup (ofString "e") = none)
+    (atSlices : s.globals.lookup (ofString "wd_rlp_slices") =
+      some (ValueHOL.val (HolWordLab.word oldSlices)))
+    (atHeap : s.globals.lookup (ofString "heap_ptr") =
+      some (ValueHOL.val (HolWordLab.word loopHeap)))
+    (code : s.code = originalRuntimeCode) (clock : s.clock ≠ 0)
+    (countAddr : s.memaddrs (pl + 56#64))
+    (countMem : s.memory (pl + 56#64) = HolWordLab.word nwd)
+    (sizeVal : size = nwd * 16#64 + 16#64)
+    (fitSize : nwd.toNat * 16 + 16 < 2 ^ 64)
+    (al : loopHeap.toNat % 8 = 0) (sizeAl : size.toNat % 8 = 0)
+    (bounded : loopHeap.toNat + size.toNat ≤ 33806089496)
+    (room : ∀ k, k ≤ nwd.toNat →
+      (allocationEnd loopHeap size).toNat + 64 * k + 64 ≤ 33806089496)
+    (smallNwd : nwd.toNat + 1 < 2 ^ 63)
+    (readBelowSource : pl.toNat + 136 ≤ loopHeap.toNat)
+    (fence : Fence s.memaddrs DF) (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
+    (addrRead : s.memaddrs read) (memRead : s.memory read = HolWordLab.word X)
+    (budget : 1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1) ≤ s.clock) :
+    Reaches s (actualPayloadHeaderAt 43)
+      (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X
+        (wdHeapWord (allocationEnd loopHeap size)))
+      (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47) := by
+  have sizeEqV : size.toNat = 16 * nwd.toNat + 16 := wd_slice_size_value nwd size sizeVal fitSize
+  have endData := wd_slices_alloc_end loopHeap size al sizeAl bounded
+  have endEq : (allocationEnd loopHeap size).toNat = loopHeap.toNat + size.toNat := endData.1
+  have endAligned : (allocationEnd loopHeap size).toNat % 8 = 0 := endData.2
+  have fit : (allocationEnd loopHeap size).toNat + 64 * nwd.toNat + 64 < 2 ^ 64 := by
+    have h := room nwd.toNat (Nat.le_refl _); omega
+  have limit : (allocationEnd loopHeap size).toNat + 64 * nwd.toNat + 64 ≤ 33806089496 := by
+    have h := room nwd.toNat (Nat.le_refl _); omega
+  have readBelow : read.toNat < loopHeap.toNat :=
+    wd_read_below_arena pl loopHeap read readBelowSource readEq
+  have noWrapCells : loopHeap.toNat + 16 * nwd.toNat + 8 < 2 ^ 64 := by omega
+  have frontier : ∀ k, k ≤ nwd.toNat →
+      (wdHeapWord (allocationEnd loopHeap size) k).toNat ≤ 33806089496 := by
+    intro k hk
+    have h := room k hk
+    have hkfit : (allocationEnd loopHeap size).toNat + 64 * k < 2 ^ 64 := by omega
+    rw [wdHeapWord_toNat (allocationEnd loopHeap size) k hkfit]
+    omega
+  have outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (wdHeapWord (allocationEnd loopHeap size) k) 64 read :=
+    wd_heap_window_below (allocationEnd loopHeap size) read nwd.toNat endAligned (by omega) fit
+  have sliceRead : ∀ j, j ≤ nwd.toNat →
+      read ≠ loopHeap + (BitVec.ofNat 64 j) * 16#64 ∧
+      read ≠ loopHeap + ((BitVec.ofNat 64 j) * 16#64 + 8#64) := by
+    intro j hj
+    have h := wd_slice_cells_below read loopHeap nwd.toNat j readBelow noWrapCells hj
+    exact ⟨h.1, by simpa only [BitVec.add_assoc] using h.2⟩
+  have heapStep : ∀ k, k ≤ nwd.toNat →
+      wdHeapWord (allocationEnd loopHeap size) (k + 1) =
+        allocationEnd (wdHeapWord (allocationEnd loopHeap size) k) 64 := by
+    intro k hk
+    exact wdHeapWord_succ (allocationEnd loopHeap size) k endAligned (by omega) (by omega)
+  exact payloadHeader43_reaches_exit DF s nwd size loopHeap oldSlices pl read X readEq atPl freshE
+    atSlices atHeap code clock countAddr countMem sizeVal al sizeAl bounded fitSize fit limit smallNwd
+    readBelow noWrapCells fence smallDF bigDF addrRead memRead budget frontier outRead sliceRead heapStep
+
+#print axioms payloadHeader43_reaches_capped
 end InitECandidate.Runtime
