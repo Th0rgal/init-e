@@ -208,6 +208,43 @@ theorem compiled_panop_work_bound (context : PanToCrepContextExact 64)
 
 #print axioms compiled_panop_work_bound
 
+theorem crepListWork_take_drop (expressions : List (CrepExpHOL 64)) (count : Nat) :
+    crepListWork (expressions.take count) ≤ crepListWork expressions ∧
+    crepListWork (expressions.drop count) ≤ crepListWork expressions := by
+  have partition := congrArg crepListWork (List.take_append_drop count expressions)
+  rw [crepListWork_append] at partition
+  omega
+
+/-- Field selection only discards scalar expressions. Invalid indices produce
+one fallback constant, already covered by the additive unit. -/
+theorem compField_work_bound (shapes : List ShapeHOL) (index : Nat)
+    (expressions : List (CrepExpHOL 64)) :
+    crepListWork (compFieldHOL index shapes expressions).1 ≤ 1 + crepListWork expressions := by
+  induction shapes generalizing index expressions with
+  | nil => simp [compFieldHOL, crepListWork, crepNodeWork]
+  | cons shape shapes ih =>
+    rw [compFieldHOL]
+    split
+    · exact Nat.le_trans (crepListWork_take_drop expressions (sizeOfShapeHOL shape)).1 (by omega)
+    · have smaller := ih (index - 1) (expressions.drop (sizeOfShapeHOL shape))
+      have discard := (crepListWork_take_drop expressions (sizeOfShapeHOL shape)).2
+      omega
+
+theorem compiled_field_work_bound (context : PanToCrepContextExact 64)
+    (index : Nat) (record : ExpHOL 64) :
+    flattenedExpressionWork context (.rfield index record) ≤
+      1 + flattenedExpressionWork context record := by
+  unfold flattenedExpressionWork
+  generalize hc : compileExpExactHOLW context record = compiled
+  obtain ⟨expressions, shape⟩ := compiled
+  rw [compileExpExactHOLW, hc]
+  cases shape with
+  | one => simp [crepListWork, crepNodeWork]
+  | named name => simp [crepListWork, crepNodeWork]
+  | comb shapes => exact compField_work_bound shapes index expressions
+
+#print axioms compiled_field_work_bound
+
 #print axioms compiled_load_work_bound
 #print axioms loadShape_work_bound
 end InitECandidate.Runtime.FineCost
