@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.ValidateHeadersStoredRootsIteration
+import InitECandidate.Runtime.ValidateHeadersCarryHeapRoom
 import InitECandidate.Runtime.ValidateHeadersParentCarryWorkspace
 import InitECandidate.Runtime.ValidateHeadersFirstTailStoreCell
 import InitECandidate.Runtime.ReachesNormalContinuation
@@ -48,6 +49,7 @@ theorem validate_headers_stored_roots_body_step {F : Type}
       (evaluateHOLFiniteState mid validateHeadersFirstTail))
     (inside : index.toNat < count.toNat) (code : s.code = originalRuntimeCode)
     (frontierAtHeap : frontier = heapStart.toNat) (frontierBound : frontier ≤ 33806089496)
+    (heapCapped : heapStart.toNat + headerCarryRoom ≤ 33806089496)
     (ceilingBelowHeap : ceiling ≤ heapStart.toNat)
     (atArray : s.locals.lookup (ofString "arr") = some (.val (.word array)))
     (atIndex : s.locals.lookup (ofString "i") = some (.val (.word index)))
@@ -72,7 +74,8 @@ theorem validate_headers_stored_roots_body_step {F : Type}
       mid.locals.lookup (ofString "h") = some (.val (.word record)) ∧
       post.globals.lookup (ofString "heap_ptr") = some (.val (.word finalHeap)) ∧
       ValidateHeadersStoredRoots post hs (index.toNat + 1) finalHeap.toNat
-        (hashes.toNat + count.toNat * 32 + 32) := by
+        (hashes.toNat + count.toNat * 32 + 32) ∧
+      finalHeap.toNat < heapStart.toNat + headerCarryRoom := by
   have carriedKeep := carried
   obtain ⟨value,dbody,dcount,drecord,drooted,decodeRun,decodeShape,valueEq,recordEq,nextEq,hLocal,
     rootWord,rootDomain,domain,codeHere,heapPost,scratchPost,framePost,before,room,window,outer⟩ :=
@@ -206,7 +209,7 @@ theorem validate_headers_stored_roots_body_step {F : Type}
     (congrFun memoryPost (drecord + 32#64)).trans (keptRoot.1.trans rootWord)
   have storeDomain : post.memaddrs (drecord + 32#64) :=
     (domainPost.trans tailDomain).symm ▸ rootDomain
-  refine ⟨drecord,finalHeap,hLocal,postHeap,?_⟩
+  refine ⟨drecord,finalHeap,hLocal,postHeap,?_,?_⟩
   exact validateHeadersStoredRoots_store post post hs index drecord drooted finalHeap.toNat
     (hashes.toNat + count.toNat * 32 + 32)
     (ValidateHeadersStoredRoots.mono post hs index.toNat frontier finalHeap.toNat
@@ -216,6 +219,18 @@ theorem validate_headers_stored_roots_body_step {F : Type}
     (fun (slot : BitVec 64) (_ : slot.toNat < index.toNat) (prior : BitVec 64)
       (_ : post.memory (hs + slot * (8#64)) = .word prior) (word : BitVec 64)
       (rooted : post.memory (prior + 32#64) = .word word) => rooted)
+  · -- the iteration's growth, both bindings being the same allocation term
+    obtain ⟨roomRecord,roomLocal,carryHeap,carryBinding,carryBound⟩ :=
+      validate_headers_carry_heap_room s mid heapStart pointer length ceiling older outerInput
+        outerLength olderCount heapCapped carriedKeep
+    have midCarry : carryHeap = allocationEnd (allocationEnd heapStart (dcount * 16)) 248 := by
+      exact HolWordLab.word.inj (ValueHOL.val.inj (Option.some.inj (carryBinding.symm.trans heapPost)))
+    have tailAt := (congrArg (fun g => g.lookup (ofString "heap_ptr")) globalsPost).symm.trans postHeap
+    have same : finalHeap = carryHeap := by
+      rw [show finalHeap = allocationEnd (allocationEnd heapStart (dcount * 16)) 248 from by
+        rw [show finalHeap = allocationEnd drecord 248 from rfl, recordEq], midCarry]
+    rw [same]
+    exact carryBound
 
 #print axioms validate_headers_stored_roots_body_step
 end InitECandidate.Runtime

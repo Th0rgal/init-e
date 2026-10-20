@@ -99,10 +99,10 @@ theorem validate_headers_stored_roots_invariant_step {F : Type} (e : ValidateHea
       (headerDecoderBodyCost e.inputLimit + 1) (e.inputLimit * 20 + 125) reached budget
       (by rw [normal])
   -- one complete iteration, from the entry state through the call and its tail
-  obtain ⟨record,nextHeap,atRecord,postHeap,rootsNext⟩ :=
+  obtain ⟨record,nextHeap,atRecord,postHeap,rootsNext,growth⟩ :=
     validate_headers_stored_roots_body_step s mid post e.array e.count index pointer length e.input
       e.inputLength e.hs e.hashes e.keccakState e.keccakPad heap e.array e.input e.inputLength e.count e.inputLimit e.ceiling
-      heap.toNat roots carried linked inside code rfl heapBoundHere
+      heap.toNat roots carried linked inside code rfl heapBoundHere heapCapped
       (by have := e.tableAbove; have := tableBeforeHere; omega) arr iIndex hs hashes table
       e.tableAbove e.tableBeforeHs bufferBeforeHashes storedFloor (Nat.le_trans e.stateBelow hsAbove)
       (Nat.le_trans e.padBelow hsAbove) e.hsBufferBound
