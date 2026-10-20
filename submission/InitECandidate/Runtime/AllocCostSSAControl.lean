@@ -16,6 +16,68 @@ private theorem reconcile_seq_budget (a b : Nat) (h : b ≤ a + 1) :
     1 + b + 1 ≤ 1 + (a + 4) := by
   omega
 
+theorem ssaCcTrans_break_nodeCost_le (n : Nat) (ssa : Spt Nat) (next : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit))
+    (target : Spt Nat) (names exitNames : Spt Unit)
+    (moves : WordLangProgHOL (BitVec 64))
+    (hlt : lt[n]? = some (target, names, exitNames))
+    (hmoves : ssaReconcile (width := 64) ssa target exitNames = moves)
+    (hcost : wordNodeCost moves ≤ 1 + (sptToAList exitNames).length) :
+    wordNodeCost (ssaCcTrans (width := 64) (.break n) ssa next lt).1 ≤
+      wordNodeCost (WordLangProgHOL.break n) +
+        ((sptToAList exitNames).length + 4) := by
+  rw [ssaCcTrans]
+  rw [hlt]
+  dsimp only
+  rw [hmoves]
+  split
+  · simp only [wordNodeCost]
+    omega
+  · simp only [wordNodeCost]
+    omega
+
+theorem ssaCcTrans_continue_nodeCost_le (n : Nat) (ssa : Spt Nat) (next : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit))
+    (target : Spt Nat) (names exitNames : Spt Unit)
+    (moves : WordLangProgHOL (BitVec 64))
+    (hlt : lt[n]? = some (target, names, exitNames))
+    (hmoves : ssaReconcile (width := 64) ssa target names = moves)
+    (hcost : wordNodeCost moves ≤ 1 + (sptToAList names).length) :
+    wordNodeCost (ssaCcTrans (width := 64) (.continue n) ssa next lt).1 ≤
+      wordNodeCost (WordLangProgHOL.continue n) +
+        ((sptToAList names).length + 4) := by
+  rw [ssaCcTrans]
+  rw [hlt]
+  dsimp only
+  rw [hmoves]
+  split
+  · simp only [wordNodeCost]
+    omega
+  · simp only [wordNodeCost]
+    omega
+
+theorem ssaCcTrans_break_target_nodeCost_le (n : Nat) (ssa : Spt Nat) (next : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit))
+    (target : Spt Nat) (names exitNames : Spt Unit)
+    (hlt : lt[n]? = some (target, names, exitNames)) :
+    wordNodeCost (ssaCcTrans (width := 64) (.break n) ssa next lt).1 ≤
+      wordNodeCost (WordLangProgHOL.break n) +
+        ((sptToAList exitNames).length + 4) :=
+  ssaCcTrans_break_nodeCost_le n ssa next lt target names exitNames
+    (ssaReconcile (width := 64) ssa target exitNames) hlt rfl
+    (ssaReconcile_nodeCost_le ssa target exitNames)
+
+theorem ssaCcTrans_continue_target_nodeCost_le (n : Nat) (ssa : Spt Nat) (next : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit))
+    (target : Spt Nat) (names exitNames : Spt Unit)
+    (hlt : lt[n]? = some (target, names, exitNames)) :
+    wordNodeCost (ssaCcTrans (width := 64) (.continue n) ssa next lt).1 ≤
+      wordNodeCost (WordLangProgHOL.continue n) +
+        ((sptToAList names).length + 4) :=
+  ssaCcTrans_continue_nodeCost_le n ssa next lt target names exitNames
+    (ssaReconcile (width := 64) ssa target names) hlt rfl
+    (ssaReconcile_nodeCost_le ssa target names)
+
 theorem ssaCcTrans_call_none_nodeCost_le (dest : Nat)
     (args : List Nat)
     (h : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
@@ -66,6 +128,10 @@ theorem ssaCcTrans_loop_nodeCost_le (names exitNames : Spt Unit)
   · simp only [wordNodeCost]
     omega
 
+#print axioms ssaCcTrans_break_target_nodeCost_le
+#print axioms ssaCcTrans_continue_target_nodeCost_le
+#print axioms ssaCcTrans_break_nodeCost_le
+#print axioms ssaCcTrans_continue_nodeCost_le
 #print axioms ssaCcTrans_call_none_nodeCost_le
 #print axioms ssaCcTrans_loop_nodeCost_le
 end InitECandidate.Runtime.FineCost
