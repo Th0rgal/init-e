@@ -44,6 +44,33 @@ inductive ExpressionRun {F : Type} (s : PanSemStateFiniteExact 64 F) :
         (.expression :: (events ++ [.copy (((values[index]?).map
           (fun value => (flattenHOL value).length)).getD 0)]))
 
+  | loadByte (addressExp : ExpHOL 64) (address : BitVec 64)
+      (events : List WorkEvent)
+      (child : ExpressionRun s addressExp (some (.val (.word address))) events) :
+      ExpressionRun s (.loadByte addressExp)
+        (expressionValue s (.loadByte (.const address)))
+        (.expression :: (events ++ [.memory 1]))
+  | load32 (addressExp : ExpHOL 64) (address : BitVec 64)
+      (events : List WorkEvent)
+      (child : ExpressionRun s addressExp (some (.val (.word address))) events) :
+      ExpressionRun s (.load32 addressExp)
+        (expressionValue s (.load32 (.const address)))
+        (.expression :: (events ++ [.memory 1]))
+  | loadByteAddressFailure (addressExp : ExpHOL 64) (events : List WorkEvent)
+      (child : ExpressionRun s addressExp none events) :
+      ExpressionRun s (.loadByte addressExp) none (.expression :: events)
+  | load32AddressFailure (addressExp : ExpHOL 64) (events : List WorkEvent)
+      (child : ExpressionRun s addressExp none events) :
+      ExpressionRun s (.load32 addressExp) none (.expression :: events)
+
+  | binaryOp (operator : BinOp) (left right : ExpHOL 64)
+      (a b : BitVec 64) (leftEvents rightEvents : List WorkEvent)
+      (lhs : ExpressionRun s left (some (.val (.word a))) leftEvents)
+      (rhs : ExpressionRun s right (some (.val (.word b))) rightEvents) :
+      ExpressionRun s (.op operator [left, right])
+        ((wordOpHOL operator [a, b]).map (fun word => .val (.word word)))
+        (.expression :: (leftEvents ++ rightEvents ++ [.scalar 1]))
+
 theorem ExpressionRun.sound {F : Type} {s : PanSemStateFiniteExact 64 F}
     {e : ExpHOL 64} {value : Option (ValueHOL 64)} {events : List WorkEvent}
     (run : ExpressionRun s e value events) : expressionValue s e = value := by
@@ -60,6 +87,21 @@ theorem ExpressionRun.sound {F : Type} {s : PanSemStateFiniteExact 64 F}
   | recordField index record values events child ih =>
     simp only [expressionValue] at ih ⊢
     simp only [evalHOLExact, ih]
+  | loadByte addressExp address events child ih =>
+    simp only [expressionValue] at ih ⊢
+    simp only [evalHOLExact, ih]
+  | load32 addressExp address events child ih =>
+    simp only [expressionValue] at ih ⊢
+    simp only [evalHOLExact, ih]
+  | loadByteAddressFailure addressExp events child ih =>
+    simp only [expressionValue] at ih ⊢
+    simp only [evalHOLExact, ih]
+  | load32AddressFailure addressExp events child ih =>
+    simp only [expressionValue] at ih ⊢
+    simp only [evalHOLExact, ih]
+  | binaryOp operator left right a b leftEvents rightEvents lhs rhs ihLeft ihRight =>
+    simp only [expressionValue] at ihLeft ihRight ⊢
+    simp [evalHOLExact, evalListHOLExact, ihLeft, ihRight, valueIsWord, valueWord]
 
 theorem variable_work_score (coeff : Work) (value : ValueHOL 64) :
     coeff.score (executionWork [.expression, .copy (flattenHOL value).length]) =

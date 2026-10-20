@@ -57,8 +57,15 @@ are charged, preserving quadratic worst cases when present.
 5. Bound the resulting work vector from input size, consumed challenge gas and
    algorithm invariants. Compute the final scalar score and verify it end to end.
 
-Current implementation: `PanExecutionWork` is a partial statement trace and
-still needs expression events and size-aware rules. `LabLocalWork`,
+Current implementation: `PanWorkVector` records typed work events and proves
+additive scalarization. `PanExpressionWork` has exact rules for constants,
+variables, comparisons, shifts, binary arithmetic, record projection, and byte/32-bit
+loads (including missing address results). `PanStatementWork` connects guard
+expression events to sequence and conditional execution. These remain partial:
+full expression/statement coverage and completeness are not proved. The memory
+counter currently counts logical scalar reads; its eventual native coefficient
+must cover the alignment and width expansions of all admitted scalar reads.
+Structured access sizes will require separate rules. `LabLocalWork`,
 `LabWeightedInstructionTrace` and `LabWeightedMixedTrace` prove local native
 bounds at the label backend. They do not yet establish the source work vector
 or a complete finite certificate. Native coefficients in the table above remain
