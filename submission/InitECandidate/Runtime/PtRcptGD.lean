@@ -777,4 +777,365 @@ theorem encodeLogs_win (hF : Fence D DF) (hDF : DF + 9 ≤ 2 ^ 62) (Lo : BitVec 
 
 #print axioms encodeLogs_win
 end el
+
+section cw2
+variable {D : BitVec 64 → Prop} {B : Bool} {A : GA → Prop} {w : BitVec 64} {DF : Nat}
+  {RR : ValueHOL 64 → Mem → GA → Prop}
+
+/-- `w = rlp_encode_word(cur, e2)` (result-assigning): `cur + w ≤ DF + 8` after the call. -/
+theorem cew_call {LP : GA → Prop} (cur : MlS) (hcw : cur ≠ ofString "w") (e2 : ExpHOL 64)
+    (hF : Fence D DF) (Lo : BitVec 64) (hLo8 : Lo.toNat % 8 = 0) (hw : w.toNat < Lo.toNat)
+    (hcur : ∀ L, LP L → ∃ Cv : BitVec 64, L.lookup cur = some (.val (.word Cv)) ∧ Lo.toNat ≤ Cv.toNat ∧
+      Cv.toNat + 16 < 2 ^ 64)
+    (hup : ∀ L v, LP L → LP (L.update (ofString "w",v))) :
+    AQGD D B A w (fun _ => False) (fun L _ _ => LP L)
+      (fun L _ _ => LP L ∧ ∃ Cv R : BitVec 64, L.lookup cur = some (.val (.word Cv)) ∧
+        L.lookup (ofString "w") = some (.val (.word R)) ∧ Cv.toNat + R.toNat ≤ DF + 8) RR
+      (.call (some (some (.local,ofString "w"),none)) (ofString "rlp_encode_word") [.var .local cur,e2]) := by
+  refine aqgd_callAssignFS (Vn' := fun _ => False)
+    (Pe := fun (L0 : GA) (_ : Mem) (_ : GA) (L : GA) (_ : Mem) (_ : GA) =>
+      ∃ W : BitVec 64, L.lookup (ofString "dst") = some (.val (.word (wordOf L0 cur))) ∧
+        L.lookup (ofString "w") = some (.val (.word W)))
+    (RRe := fun (L0 : GA) (_ : Mem) (_ : GA) (r : ValueHOL 64) (_ : Mem) (_ : GA) => WRet DF (wordOf L0 cur) r)
+    _ _ _ _ _ _ originalRuntimeCode_rlpEncodeWord_lookup (fun _ _ _ _ _ h => h.elim) (fun h => h) ?_ ?_ ?_
+  · intro L0 _ _ lp
+    obtain ⟨Cv,hc,lo,fit⟩ := hcur L0 lp
+    rw [wordOf_eq hc]
+    exact aqgd_exE (fun W => aqgd_conseq (encodeWord_win (A := A) (B := B) hF Lo hLo8 hw Cv W lo fit)
+      (fun _ _ _ h => h) (fun _ _ _ h => h.elim) (fun _ _ _ h => wret_of_hdr h))
+  · intro F s values callee rs _ G hG lp _ args lookup
+    obtain ⟨Cv,hc,_,_⟩ := hcur _ lp
+    obtain ⟨v1,vs,rfl,ev1,r1⟩ := evalList_cons' s _ _ _ args
+    obtain ⟨v2,vs2,rfl,_,r2⟩ := evalList_cons' s _ _ _ r1
+    have := evalList_nil' s _ r2; subst this
+    simp [EV,evalHOLExact,hc] at ev1; subst ev1
+    obtain ⟨_,c2,_,rfl⟩ := entry2_words originalRuntimeCode_rlpEncodeWord_lookup lookup
+    have e := callee_eq originalRuntimeCode_rlpEncodeWord_lookup lookup
+    rw [wordOf_eq hc]
+    exact ⟨c2,by rw [e]; simp (config := {decide := true}),by rw [e]; simp (config := {decide := true})⟩
+  · intro L _ _ v _ _ lp ⟨R,hr,hb⟩
+    subst hr
+    obtain ⟨Cv,hc,_,_⟩ := hcur _ lp
+    rw [wordOf_eq hc] at hb
+    exact ⟨hup _ _ lp,Cv,R,by rw [lookup_update_ne' _ _ hcw]; exact hc,lookup_update_eq' _ _ _,hb⟩
+
+#print axioms cew_call
+
+/-- `w = encode_logs(cur, e2)` (result-assigning) with `Lo ≤ cur ≤ DF + 8`: `cur + w ≤ DF + 17` after the call. -/
+theorem cel_call {LP : GA → Prop} (cur : MlS) (hcw : cur ≠ ofString "w") (e2 : ExpHOL 64)
+    (hF : Fence D DF) (hDF : DF + 9 ≤ 2 ^ 62) (Lo : BitVec 64) (hLo8 : Lo.toNat % 8 = 0) (hw : w.toNat < Lo.toNat)
+    (hcur : ∀ L, LP L → ∃ Cv : BitVec 64, L.lookup cur = some (.val (.word Cv)) ∧ Lo.toNat ≤ Cv.toNat ∧
+      Cv.toNat ≤ DF + 8)
+    (hup : ∀ L v, LP L → LP (L.update (ofString "w",v))) :
+    AQGD D B A w (fun _ => False) (fun L _ _ => LP L)
+      (fun L _ _ => LP L ∧ ∃ Cv R : BitVec 64, L.lookup cur = some (.val (.word Cv)) ∧
+        L.lookup (ofString "w") = some (.val (.word R)) ∧ Cv.toNat + R.toNat ≤ DF + 9 + 8) RR
+      (.call (some (some (.local,ofString "w"),none)) (ofString "encode_logs") [.var .local cur,e2]) := by
+  refine aqgd_callAssignFS (Vn' := fun _ => False)
+    (Pe := fun (L0 : GA) (_ : Mem) (_ : GA) (L : GA) (_ : Mem) (_ : GA) =>
+      L.lookup (ofString "dst") = some (.val (.word (wordOf L0 cur))))
+    (RRe := fun (L0 : GA) (_ : Mem) (_ : GA) (r : ValueHOL 64) (_ : Mem) (_ : GA) => WRet (DF + 9) (wordOf L0 cur) r)
+    _ _ _ _ _ _ originalRuntimeCode_encodeLogs_lookup (fun _ _ _ _ _ h => h.elim) (fun h => h) ?_ ?_ ?_
+  · intro L0 _ _ lp
+    obtain ⟨Cv,hc,lo,hi⟩ := hcur L0 lp
+    rw [wordOf_eq hc]
+    exact aqgd_conseq (encodeLogs_win (A := A) (B := B) hF hDF Lo hLo8 hw Cv lo hi)
+      (fun _ _ _ h => h) (fun _ _ _ h => h.elim) (fun _ _ _ h => h)
+  · intro F s values callee rs _ G hG lp _ args lookup
+    obtain ⟨Cv,hc,_,_⟩ := hcur _ lp
+    obtain ⟨v1,vs,rfl,ev1,r1⟩ := evalList_cons' s _ _ _ args
+    obtain ⟨v2,vs2,rfl,_,r2⟩ := evalList_cons' s _ _ _ r1
+    have := evalList_nil' s _ r2; subst this
+    simp [EV,evalHOLExact,hc] at ev1; subst ev1
+    have e := callee_eq originalRuntimeCode_encodeLogs_lookup lookup
+    rw [wordOf_eq hc]
+    rw [e]; simp (config := {decide := true})
+  · intro L _ _ v _ _ lp ⟨R,hr,hb⟩
+    subst hr
+    obtain ⟨Cv,hc,_,_⟩ := hcur _ lp
+    rw [wordOf_eq hc] at hb
+    exact ⟨hup _ _ lp,Cv,R,by rw [lookup_update_ne' _ _ hcw]; exact hc,lookup_update_eq' _ _ _,hb⟩
+
+#print axioms cel_call
+end cw2
+
+section rga
+variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {SP0 P0 FM J C SKB Nj : BitVec 64} {G0 : GA}
+  {RR : ValueHOL 64 → Mem → GA → Prop}
+
+/-- `name = alloc(e)` (any size expression) over the pinned-journal arena keeping `RG Lo Sc`: the new block
+`X ≥ Lo`, `X ≤ HEAP_END`, 8-aligned. -/
+theorem rg_alloc {LP LP' : GA → Prop} {Q Q2 : GA → Mem → GA → Prop} (name : MlS) (e : ExpHOL 64) {cont : ProgHOL 64}
+    (Lo Sc : BitVec 64)
+    (he : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) x, EV s e = some x → ∃ y : BitVec 64, x = .val (.word y))
+    (hup : ∀ L (X : BitVec 64), LP L → Lo.toNat ≤ X.toNat → X.toNat ≤ 33806089496 → X.toNat % 8 = 0 →
+      LP' (L.update (name,.val (.word X))))
+    (hcont : AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) (fun L _ G => LP' L ∧ RG Lo Sc G) Q RR cont)
+    (hres : ∀ (L : GA) (M : Mem) (G : GA) (L' : GA) (M' : Mem) (G' : GA), LP L ∧ RG Lo Sc G → Q L' M' G' →
+      Q2 (L'.resVarEq (name,L.lookup name)) M' G') :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) (fun L _ G => LP L ∧ RG Lo Sc G) Q2 RR
+      (.decCall name .one (ofString "alloc") [e] cont) := by
+  refine aqgd_decCallSpec (Vn' := fun _ => True)
+    (Pe := fun (_ : GA) (M0' : Mem) (G0' : GA) (L : GA) (M : Mem) (G : GA) =>
+      (∃ Nn : BitVec 64, L.lookup (ofString "n") = some (.val (.word Nn))) ∧ M = M0' ∧ G = G0')
+    (RRe := fun (_ : GA) (M0' : Mem) (G0' : GA) (v : ValueHOL 64) (M' : Mem) (G' : GA) =>
+      ∃ Nn : BitVec 64, (v = .val (.word (hpOf G0')) ∧ M' = M0' ∧ (hpOf G0').toNat % 8 = 0 ∧
+        ∃ H' : BitVec 64, HeapIs G' H' ∧ (hpOf G0').toNat + Nn.toNat ≤ H'.toNat ∧ H'.toNat ≤ 33806089496) ∧
+          OnlyHeap G0' G')
+    (Pc := fun L _ G => LP' L ∧ RG Lo Sc G) (Qc := Q) _ _ _ _ _ _ _ originalRuntimeCode_allocation_lookup (by simp)
+    ?_ ?_ (fun _ => rfl) ?_ hcont hres
+  · intro L0 M0' G0' ⟨_,⟨H,hH,_⟩,_⟩
+    refine aqgd_conseq (P := fun L M G => ∃ Nn : BitVec 64, (L.lookup (ofString "n") = some (.val (.word Nn)) ∧
+        M = M0' ∧ HeapIs G (hpOf G0')) ∧ G = G0') ?_
+      (fun L M G ⟨⟨Nn,hn⟩,hM,hG⟩ => ⟨Nn,⟨hn,hM,by subst hG; rw [hpOf_eq hH]; exact hH⟩,hG⟩)
+      (fun _ _ _ h => h) (fun _ _ _ h => h)
+    refine aqgd_exE (fun Nn => ?_)
+    exact aqgd_conseq (allocNA_spec (SP0 := SP0) (P0 := P0) (FM := FM) (G0 := G0) (J := J) (C := C) (SKB := SKB)
+      (Nj := Nj) (D := D) (B := B) (w := w) Nn (hpOf G0') M0' G0') (fun _ _ _ h => h) (fun _ _ _ h => h)
+      (fun _ _ _ h => ⟨Nn,h⟩)
+  · intro F s values callee rs _ H _ _ _ args lookup
+    obtain ⟨x,rfl,ex⟩ := evalList_single s _ values args
+    obtain ⟨y,rfl⟩ := he s x ex
+    rw [pan_single_word_lookup _ _ _ _ _ originalRuntimeCode_allocation_lookup] at lookup
+    simp only [Option.some.injEq,Prod.mk.injEq] at lookup
+    obtain ⟨_,rfl,_⟩ := lookup
+    exact ⟨⟨y,by simp [HolFiniteMapExact.lookup_update,FUPDATE]⟩,rfl,rfl⟩
+  · intro L M G v M' G' ⟨lp,⟨H,hH,le⟩,hs⟩ ⟨Nn,⟨ev,_,al,H',hH',c1,c2⟩,oh⟩ _
+    subst ev
+    rw [hpOf_eq hH] at al c1 ⊢
+    exact ⟨hup L H lp le (by omega) al,⟨H',hH',by omega⟩,scrIs_onlyHeap oh hs⟩
+
+#print axioms rg_alloc
+end rga
+def erBody : ProgHOL 64 :=
+  (.decCall (ofString "bound") .one (ofString "logs_encoded_bound") [(.var .local (ofString "logs"))] (.decCall (ofString "buf") .one (ofString "alloc") [(.op .add [(.var .local (ofString "bound")),(.const 400)])] (.dec (ofString "start") .one (.op .add [(.var .local (ofString "buf")),(.const 1)]) (.dec (ofString "p") .one (.op .add [(.var .local (ofString "start")),(.const 9)]) (.dec (ofString "w") .one (.const 0) (.seq (.ite (.cmp .notEqual (.var .local (ofString "succeeded")) (.const 0)) (.seq (.storeByte (.var .local (ofString "p")) (.const 1)) (.assign .local (ofString "w") (.const 1))) (.seq (.storeByte (.var .local (ofString "p")) (.const 128)) (.assign .local (ofString "w") (.const 1)))) (.seq (.assign .local (ofString "p") (.op .add [(.var .local (ofString "p")),(.var .local (ofString "w"))])) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_word") [(.var .local (ofString "p")),(.var .local (ofString "cumulative_gas"))]) (.seq (.assign .local (ofString "p") (.op .add [(.var .local (ofString "p")),(.var .local (ofString "w"))])) (.decCall (ofString "bloom") .one (ofString "alloc") [(.const 256)] (.seq (.call (some (none,none)) (ofString "logs_bloom") [(.var .local (ofString "logs")),(.var .local (ofString "bloom"))]) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_bytes") [(.var .local (ofString "p")),(.var .local (ofString "bloom")),(.const 256)]) (.seq (.assign .local (ofString "p") (.op .add [(.var .local (ofString "p")),(.var .local (ofString "w"))])) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "encode_logs") [(.var .local (ofString "p")),(.var .local (ofString "logs"))]) (.seq (.assign .local (ofString "p") (.op .add [(.var .local (ofString "p")),(.var .local (ofString "w"))])) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_finish_list") [(.var .local (ofString "start")),(.var .local (ofString "p"))]) (.seq (.ite (.cmp .notEqual (.var .local (ofString "tx_type")) (.const 0)) (.seq (.storeByte (.op .sub [(.var .local (ofString "start")),(.const 1)]) (.var .local (ofString "tx_type"))) (.return (.rstruct [(.op .sub [(.var .local (ofString "start")),(.const 1)]),(.op .add [(.var .local (ofString "w")),(.const 1)])]))) .skip) (.return (.rstruct [(.var .local (ofString "start")),(.var .local (ofString "w"))])))))))))))))))))))
+
+theorem erBody_eq : sourceFunctionBody Guest.guestFn_encode_receipt = erBody := by
+  unfold sourceFunctionBody
+  rw [InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  simp only [Guest.guestFn_encode_receipt,InitECandidate.Proofs.FrontendCodecComputation.declToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.funDeclToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.progToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expListToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.shapeToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.shapeListToHOLStructural,List.map_cons,List.map_nil,
+    Option.map_some,Option.map_none]
+  rfl
+
+
+/-- Parameters of `encode_receipt` are words. -/
+def ERP (L : GA) : Prop :=
+  (∃ a : BitVec 64, L.lookup (ofString "tx_type") = some (.val (.word a))) ∧
+  (∃ b : BitVec 64, L.lookup (ofString "succeeded") = some (.val (.word b))) ∧
+  (∃ c : BitVec 64, L.lookup (ofString "cumulative_gas") = some (.val (.word c))) ∧
+  (∃ d : BitVec 64, L.lookup (ofString "logs") = some (.val (.word d)))
+
+theorem erp_upd {L : GA} (h : ERP L) (x : MlS) (v : ValueHOL 64) (h1 : ofString "tx_type" ≠ x)
+    (h2 : ofString "succeeded" ≠ x) (h3 : ofString "cumulative_gas" ≠ x) (h4 : ofString "logs" ≠ x) :
+    ERP (L.update (x,v)) :=
+  let ⟨⟨a,ha⟩,⟨b,hb⟩,⟨c,hc⟩,⟨d,hd⟩⟩ := h
+  ⟨⟨a,by rw [lookup_update_ne' _ _ h1]; exact ha⟩,⟨b,by rw [lookup_update_ne' _ _ h2]; exact hb⟩,
+    ⟨c,by rw [lookup_update_ne' _ _ h3]; exact hc⟩,⟨d,by rw [lookup_update_ne' _ _ h4]; exact hd⟩⟩
+
+section er
+variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {SP0 P0 FM J C SKB Nj : BitVec 64} {G0 : GA}
+  {DF : Nat}
+
+/-- `encode_receipt` locals: parameters, `start = X + 1`. -/
+def ERCS (X : BitVec 64) (L : GA) : Prop :=
+  ERP L ∧ L.lookup (ofString "start") = some (.val (.word (X + 1#64)))
+
+/-- ... and the cursor `p = P` with `X + 10 ≤ P ≤ Bnd`. -/
+def ERCP (X : BitVec 64) (Bnd : Nat) (L : GA) : Prop :=
+  ERCS X L ∧ ∃ P : BitVec 64, L.lookup (ofString "p") = some (.val (.word P)) ∧ X.toNat + 10 ≤ P.toNat ∧ P.toNat ≤ Bnd
+
+theorem ercs_upd {X : BitVec 64} {L : GA} (h : ERCS X L) (x : MlS) (v : ValueHOL 64) (h1 : ofString "tx_type" ≠ x)
+    (h2 : ofString "succeeded" ≠ x) (h3 : ofString "cumulative_gas" ≠ x) (h4 : ofString "logs" ≠ x)
+    (h5 : ofString "start" ≠ x) : ERCS X (L.update (x,v)) :=
+  ⟨erp_upd h.1 x v h1 h2 h3 h4,by rw [lookup_update_ne' _ _ h5]; exact h.2⟩
+
+theorem ercp_upd {X : BitVec 64} {Bnd : Nat} {L : GA} (h : ERCP X Bnd L) (x : MlS) (v : ValueHOL 64)
+    (h1 : ofString "tx_type" ≠ x) (h2 : ofString "succeeded" ≠ x) (h3 : ofString "cumulative_gas" ≠ x)
+    (h4 : ofString "logs" ≠ x) (h5 : ofString "start" ≠ x) (h6 : ofString "p" ≠ x) : ERCP X Bnd (L.update (x,v)) :=
+  let ⟨cs,P,hp,a,b⟩ := h; ⟨ercs_upd cs x v h1 h2 h3 h4 h5,P,by rw [lookup_update_ne' _ _ h6]; exact hp,a,b⟩
+
+theorem ercp_w {X : BitVec 64} {Bnd : Nat} (L : GA) (v : ValueHOL 64) (h : ERCP X Bnd L) :
+    ERCP X Bnd (L.update (ofString "w",v)) :=
+  ercp_upd h _ v (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+
+def erT2 : ProgHOL 64 :=
+  (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "encode_logs") [(.var .local (ofString "p")),(.var .local (ofString "logs"))]) (.seq (.assign .local (ofString "p") (.op .add [(.var .local (ofString "p")),(.var .local (ofString "w"))])) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_finish_list") [(.var .local (ofString "start")),(.var .local (ofString "p"))]) (.seq (.ite (.cmp .notEqual (.var .local (ofString "tx_type")) (.const 0)) (.seq (.storeByte (.op .sub [(.var .local (ofString "start")),(.const 1)]) (.var .local (ofString "tx_type"))) (.return (.rstruct [(.op .sub [(.var .local (ofString "start")),(.const 1)]),(.op .add [(.var .local (ofString "w")),(.const 1)])]))) .skip) (.return (.rstruct [(.var .local (ofString "start")),(.var .local (ofString "w"))]))))))
+
+def erT1 : ProgHOL 64 :=
+  (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_word") [(.var .local (ofString "p")),(.var .local (ofString "cumulative_gas"))]) (.seq (.assign .local (ofString "p") (.op .add [(.var .local (ofString "p")),(.var .local (ofString "w"))])) (.decCall (ofString "bloom") .one (ofString "alloc") [(.const 256)] (.seq (.call (some (none,none)) (ofString "logs_bloom") [(.var .local (ofString "logs")),(.var .local (ofString "bloom"))]) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_bytes") [(.var .local (ofString "p")),(.var .local (ofString "bloom")),(.const 256)]) (.seq (.assign .local (ofString "p") (.op .add [(.var .local (ofString "p")),(.var .local (ofString "w"))])) erT2))))))
+
+section er
+variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {SP0 P0 FM J C SKB Nj : BitVec 64} {G0 : GA}
+  {DF : Nat}
+
+theorem er_kg {Lo Sc : BitVec 64} {p : ProgHOL 64} {P Q : GA → Prop} (hk : keepsGA goodGA p = true)
+    (h : AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) (fun L _ _ => P L) (fun L _ _ => Q L)
+      (fun _ _ _ => True) p) :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) (fun L _ G => P L ∧ RG Lo Sc G)
+      (fun L _ G => Q L ∧ RG Lo Sc G) (fun _ _ G => RG Lo Sc G) p :=
+  aqgd_conseq (aqgd_keepGI (GI := RG Lo Sc) hk h) (fun _ _ _ h => h) (fun _ _ _ h => h) (fun _ _ _ h => h.2)
+
+/-- `p = p + w` after a writer with `p + w ≤ B1`. -/
+theorem er_adv {Lo Sc X : BitVec 64} (B0 B1 : Nat) (hB1 : B1 < 2 ^ 64) :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False)
+      (fun L _ G => (ERCP X B0 L ∧ ∃ Cv R : BitVec 64, L.lookup (ofString "p") = some (.val (.word Cv)) ∧
+        L.lookup (ofString "w") = some (.val (.word R)) ∧ Cv.toNat + R.toNat ≤ B1) ∧ RG Lo Sc G)
+      (fun L _ G => ERCP X B1 L ∧ RG Lo Sc G) (fun _ _ G => RG Lo Sc G)
+      (.assign .local (ofString "p") (.op .add [(.var .local (ofString "p")),(.var .local (ofString "w"))])) :=
+  aqgd_assignLocal _ _ (fun s v _ _ ⟨⟨⟨cs,P,hp,a,b⟩,Cv,R,hc,hw',hb⟩,rg⟩ _ ev => by
+    rw [hp] at hc
+    simp only [Option.some.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq] at hc
+    subst hc
+    simp [EV,evalHOLExact,evalListHOLExact,hp,hw',wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    have e : (P + R).toNat = P.toNat + R.toNat := by simp [BitVec.toNat_add]; omega
+    exact ⟨⟨ercs_upd cs _ _ (by decide) (by decide) (by decide) (by decide) (by decide),P + R,lookup_update_eq' _ _ _,
+      by omega,by omega⟩,rg⟩)
+
+#print axioms er_adv
+
+/-- `encode_receipt` from the `encode_logs` call: logs, finish list, type byte, returns. -/
+theorem erT2_wn (hF : Fence D DF) (hDF : DF + 9 ≤ 2 ^ 62) (hcap : 33806089496 ≤ DF) (Lo Sc X : BitVec 64)
+    (hw : w.toNat < Lo.toNat) (hLo8 : Lo.toNat % 8 = 0) (hXl : Lo.toNat ≤ X.toNat) (hXh : X.toNat ≤ 33806089496) :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) (fun L _ G => ERCP X (DF + 8) L ∧ RG Lo Sc G)
+      (fun _ _ _ => False) (fun _ _ G => RG Lo Sc G) erT2 := by
+  unfold erT2
+  have hF9 : Fence D (DF + 9) := fence_mono hF (by omega)
+  refine aqgd_seq (er_kg (by decide) (cel_call (LP := ERCP X (DF + 8)) (ofString "p") (by decide) _
+    hF hDF Lo hLo8 hw (fun L ⟨_,P,hp,a,b⟩ => ⟨P,hp,by omega,b⟩) ercp_w)) ?_
+  refine aqgd_seq (er_adv (DF + 8) (DF + 9 + 8) (by omega)) ?_
+  refine aqgd_seq (er_kg (by decide) (fl_call (LP := ERCP X (DF + 9 + 8)) (ofString "start") (ofString "p") (by decide)
+    hF9 (by omega) Lo hLo8 hw (fun L ⟨⟨_,hs⟩,P,hp,a,b⟩ => ⟨X + 1#64,P,hs,hp,by simp [BitVec.toNat_add]; omega,
+      by simp [BitVec.toNat_add]; omega,b⟩) ercp_w)) ?_
+  refine aqgd_seq (aqgd_iteT _ (aqgd_seq (r_stbG (LP := fun L G => (ERCP X (DF + 9 + 8) L ∧ ∃ Dv R : BitVec 64,
+      L.lookup (ofString "start") = some (.val (.word Dv)) ∧ L.lookup (ofString "w") = some (.val (.word R)) ∧
+      Dv.toNat + R.toNat ≤ DF + 9 + 8) ∧ RG Lo Sc G) (LQ := fun _ G => RG Lo Sc G) Lo hLo8 hw _ _
+      (fun s _ ⟨⟨⟨⟨_,hs⟩,_⟩,_⟩,rg⟩ => ⟨X + 1#64 - 1#64,by simp [EV,evalHOLExact,evalListHOLExact,hs,wordOpHOL,wordOp,
+        valueIsWord,valueWord],by simp; omega,fun _ => rg⟩))
+    (aqgd_return _ (fun _ _ _ _ _ rg _ _ => rg))) aqgd_skip) ?_
+  exact aqgd_return _ (fun _ _ _ _ _ ⟨_,rg⟩ _ _ => rg)
+
+#print axioms erT2_wn
+
+/-- `encode_receipt` from the `rlp_encode_word` call: gas word, bloom block, bloom bytes, then `erT2`. -/
+theorem erT1_wn (hF : Fence D DF) (hDF : DF + 9 ≤ 2 ^ 62) (hcap : 33806089496 ≤ DF) (Lo Sc K Pd X : BitVec 64)
+    (hK0 : G0.lookup (ofString "keccak_st") = some (.val (.word K)))
+    (hPd0 : G0.lookup (ofString "keccak_pad") = some (.val (.word Pd))) (hw : w.toNat < Lo.toNat)
+    (oK : ¬ MWin K 200 w) (oP : ¬ MWin Pd 136 w) (hLo8 : Lo.toNat % 8 = 0) (hXl : Lo.toNat ≤ X.toNat)
+    (hXh : X.toNat ≤ 33806089496) :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False)
+      (fun L _ G => ERCP X (33806089496 + 11) L ∧ RG Lo Sc G) (fun _ _ _ => False) (fun _ _ G => RG Lo Sc G) erT1 := by
+  unfold erT1
+  have hDF0 : DF ≤ 2 ^ 62 := by omega
+  refine aqgd_seq (er_kg (by decide) (cew_call (LP := ERCP X (33806089496 + 11)) (ofString "p") (by decide) _
+    hF Lo hLo8 hw (fun L ⟨_,P,hp,a,b⟩ => ⟨P,hp,by omega,by omega⟩) ercp_w)) ?_
+  refine aqgd_seq (er_adv (33806089496 + 11) (DF + 8) (by omega)) ?_
+  refine rg_alloc (LP := ERCP X (DF + 8)) (LP' := fun L => ERCP X (DF + 8) L ∧ ∃ Bl : BitVec 64,
+      L.lookup (ofString "bloom") = some (.val (.word Bl)) ∧ Lo.toNat ≤ Bl.toNat ∧ Bl.toNat ≤ 33806089496) _ _ Lo Sc
+    (fun s x ev => ⟨256#64,by simp [EV,evalHOLExact] at ev; exact ev.symm⟩)
+    (fun L Bl lp lo hi _ => ⟨ercp_upd lp _ _ (by decide) (by decide) (by decide) (by decide) (by decide) (by decide),Bl,
+      lookup_update_eq' _ _ _,lo,hi⟩) ?_ (fun _ _ _ _ _ _ _ h => h)
+  refine aqgd_conseq (P := fun L _ G => ∃ Bl : BitVec 64, ((ERCP X (DF + 8) L ∧
+      L.lookup (ofString "bloom") = some (.val (.word Bl))) ∧ RG Lo Sc G) ∧ (Lo.toNat ≤ Bl.toNat ∧
+      Bl.toNat ≤ 33806089496)) ?_ (fun _ _ _ ⟨⟨cp,Bl,hb,lo,hi⟩,rg⟩ => ⟨Bl,⟨⟨cp,hb⟩,rg⟩,lo,hi⟩) (fun _ _ _ h => h)
+    (fun _ _ _ h => h)
+  refine aqgd_exE (fun Bl => aqgd_pureE (fun ⟨hBl,hBlh⟩ => ?_))
+  let CB := fun L : GA => ERCP X (DF + 8) L ∧ L.lookup (ofString "bloom") = some (.val (.word Bl))
+  -- logs_bloom(logs, bloom)
+  refine aqgd_seq (rcallK (GP := RG Lo Sc) (LP := CB) (Rv := fun _ => True)
+    (fun L => L.lookup (ofString "out") = some (.val (.word Bl))) _ _ _ _ _ originalRuntimeCode_logsBloom_lookup
+    (aqgd_conseq (logsBloom_wn Lo Sc K Pd Bl hK0 hPd0 hw oK oP hLo8 hBl (by omega)) (fun _ _ _ h => h)
+      (fun _ _ _ h => h.elim) (fun _ _ _ h => ⟨trivial,h⟩))
+    (fun s values callee rs ⟨_,hb⟩ args lookup => by
+      obtain ⟨v1,vs,rfl,_,r1⟩ := evalList_cons' s _ _ _ args
+      obtain ⟨v2,vs2,rfl,ev2,r2⟩ := evalList_cons' s _ _ _ r1
+      have := evalList_nil' s _ r2; subst this
+      simp [EV,evalHOLExact,hb] at ev2; subst ev2
+      have e := callee_eq originalRuntimeCode_logsBloom_lookup lookup
+      rw [e]; simp (config := {decide := true}))) ?_
+  -- w = rlp_encode_bytes(p, bloom, 256)
+  refine aqgd_seq (Q := fun L _ G => (ERCP X (DF + 8) L ∧ ∃ Cv R : BitVec 64,
+      L.lookup (ofString "p") = some (.val (.word Cv)) ∧ L.lookup (ofString "w") = some (.val (.word R)) ∧
+      Cv.toNat + R.toNat ≤ DF + 8) ∧ RG Lo Sc G)
+    (aqgd_conseq (er_kg (by decide) (cab_call (LP := CB) (ofString "p") (by decide) _ _
+    hF hDF0 Lo hLo8 hw (fun L ⟨⟨_,P,hp,a,b⟩,_⟩ => ⟨P,hp,by omega,by omega⟩)
+    (fun L v h => ⟨ercp_w L v h.1,by rw [lookup_update_ne' _ _ (by decide)]; exact h.2⟩))) (fun _ _ _ h => h)
+    (fun _ _ _ ⟨⟨cb,x⟩,rg⟩ => ⟨⟨cb.1,x⟩,rg⟩) (fun _ _ _ h => h)) ?_
+  refine aqgd_seq (er_adv (DF + 8) (DF + 8) (by omega)) ?_
+  exact erT2_wn hF hDF hcap Lo Sc X hw hLo8 hXl hXh
+
+#print axioms erT1_wn
+
+/-- The actual `encode_receipt(tx_type, succeeded, cumulative_gas, logs)` (watched form): every write in fresh blocks
+at or above the entry heap pointer `≥ Lo` (fenced cursors) or in the Keccak windows; `RG Lo Sc` kept. -/
+theorem encReceipt_wn (hF : Fence D DF) (hDF : DF + 9 ≤ 2 ^ 62) (hcap : 33806089496 ≤ DF)
+    (Lo Sc K Pd : BitVec 64) (hK0 : G0.lookup (ofString "keccak_st") = some (.val (.word K)))
+    (hPd0 : G0.lookup (ofString "keccak_pad") = some (.val (.word Pd))) (hw : w.toNat < Lo.toNat)
+    (oK : ¬ MWin K 200 w) (oP : ¬ MWin Pd 136 w) (hLo8 : Lo.toNat % 8 = 0) :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) (fun L _ G => ERP L ∧ RG Lo Sc G)
+      (fun _ _ _ => False) (fun _ _ G => RG Lo Sc G) (sourceFunctionBody Guest.guestFn_encode_receipt) := by
+  rw [erBody_eq]; unfold erBody
+  -- bound = logs_encoded_bound(logs)
+  refine aqgd_decCall_mf (I' := fun L _ G => ERP L ∧ RG Lo Sc G) _ _ _ _ _ _ _
+    originalRuntimeCode_logsEncodedBound_lookup (by simp)
+    (memoryFrame_of_good originalRuntimeCode_logsEncodedBound_lookup (by decide) (by decide))
+    (by body_check Guest.guestFn_logs_encoded_bound) (by body_check Guest.guestFn_logs_encoded_bound)
+    (fun L M G v pre => ⟨erp_upd pre.1 _ v (by decide) (by decide) (by decide) (by decide),pre.2⟩) ?_
+    (fun _ _ _ _ _ _ _ h => h)
+  -- buf = alloc(bound + 400)
+  refine rg_alloc (LP := ERP) (LP' := fun L => ERP L ∧ ∃ X : BitVec 64, L.lookup (ofString "buf") = some (.val (.word X)) ∧
+      Lo.toNat ≤ X.toNat ∧ X.toNat ≤ 33806089496) _ _ Lo Sc (fun s x ev => ev_op_word s _ _ x ev)
+    (fun L X lp lo hi _ => ⟨erp_upd lp _ _ (by decide) (by decide) (by decide) (by decide),X,lookup_update_eq' _ _ _,
+      lo,hi⟩) ?_ (fun _ _ _ _ _ _ _ h => h)
+  refine aqgd_conseq (P := fun L _ G => ∃ X : BitVec 64, ((ERP L ∧ L.lookup (ofString "buf") = some (.val (.word X))) ∧
+      RG Lo Sc G) ∧ (Lo.toNat ≤ X.toNat ∧ X.toNat ≤ 33806089496)) ?_
+    (fun _ _ _ ⟨⟨ep,X,hb,lo,hi⟩,rg⟩ => ⟨X,⟨⟨ep,hb⟩,rg⟩,lo,hi⟩) (fun _ _ _ h => h) (fun _ _ _ h => h)
+  refine aqgd_exE (fun X => aqgd_pureE (fun ⟨hXl,hXh⟩ => ?_))
+  have e10 : (X + 1#64 + 9#64).toNat = X.toNat + 10 := by simp [BitVec.toNat_add]; omega
+  -- start = buf + 1
+  refine aqgd_dec (Pb := fun L _ G => ERCS X L ∧ RG Lo Sc G) (Qb := fun _ _ _ => False) _ _ _ (fun h => h.elim)
+    (fun s v _ _ _ ⟨⟨ep,hb⟩,rg⟩ _ ev _ => ?_) ?_ (fun _ _ _ _ _ _ _ h => h.elim)
+  · simp [EV,evalHOLExact,evalListHOLExact,hb,wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    exact ⟨⟨erp_upd ep _ _ (by decide) (by decide) (by decide) (by decide),lookup_update_eq' _ _ _⟩,rg⟩
+  -- p = start + 9
+  refine aqgd_dec (Pb := fun L _ G => ERCP X (33806089496 + 10) L ∧ RG Lo Sc G) (Qb := fun _ _ _ => False) _ _ _
+    (fun h => h.elim) (fun s v _ _ _ ⟨cs,rg⟩ _ ev _ => ?_) ?_ (fun _ _ _ _ _ _ _ h => h.elim)
+  · simp [EV,evalHOLExact,evalListHOLExact,cs.2,wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    exact ⟨⟨ercs_upd cs _ _ (by decide) (by decide) (by decide) (by decide) (by decide),X + 1#64 + 9#64,
+      lookup_update_eq' _ _ _,by omega,by omega⟩,rg⟩
+  -- w = 0
+  refine aqgd_dec (Pb := fun L _ G => ERCP X (33806089496 + 10) L ∧ RG Lo Sc G) (Qb := fun _ _ _ => False) _ _ _
+    (fun h => h.elim) (fun s v _ _ _ ⟨cp,rg⟩ _ _ _ => ⟨ercp_w _ _ cp,rg⟩) ?_ (fun _ _ _ _ _ _ _ h => h.elim)
+  -- status byte; w = 1
+  have stp : ∀ (c : ExpHOL 64), AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False)
+      (fun L _ G => ERCP X (33806089496 + 10) L ∧ RG Lo Sc G) (fun L _ G => ERCP X (33806089496 + 10) L ∧ RG Lo Sc G)
+      (fun _ _ G => RG Lo Sc G) (.storeByte (.var .local (ofString "p")) c) := fun c =>
+    r_stbG (LP := fun L G => ERCP X (33806089496 + 10) L ∧ RG Lo Sc G)
+      (LQ := fun L G => ERCP X (33806089496 + 10) L ∧ RG Lo Sc G)
+      Lo hLo8 hw _ _ (fun s _ ⟨⟨cs,P,hp,a,b⟩,rg⟩ => ⟨P,by simp [EV,evalHOLExact,hp],by omega,fun _ => ⟨⟨cs,P,hp,a,b⟩,rg⟩⟩)
+  have asw : AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False)
+      (fun L _ G => ERCP X (33806089496 + 10) L ∧ RG Lo Sc G)
+      (fun L _ G => (ERCP X (33806089496 + 10) L ∧ ∃ Cv R : BitVec 64, L.lookup (ofString "p") = some (.val (.word Cv)) ∧
+        L.lookup (ofString "w") = some (.val (.word R)) ∧ Cv.toNat + R.toNat ≤ 33806089496 + 11) ∧ RG Lo Sc G)
+      (fun _ _ G => RG Lo Sc G) (.assign .local (ofString "w") (.const 1)) :=
+    aqgd_assignLocal _ _ (fun s v _ _ ⟨cp,rg⟩ _ ev => by
+      simp [EV,evalHOLExact] at ev; subst ev
+      obtain ⟨cs,P,hp,a,b⟩ := cp
+      exact ⟨⟨ercp_w _ _ ⟨cs,P,hp,a,b⟩,P,1#64,by rw [lookup_update_ne' _ _ (by decide)]; exact hp,
+        lookup_update_eq' _ _ _,by simp; omega⟩,rg⟩)
+  refine aqgd_seq (aqgd_iteT _ (aqgd_seq (stp _) asw) (aqgd_seq (stp _) asw)) ?_
+  refine aqgd_seq (er_adv (33806089496 + 10) (33806089496 + 11) (by omega)) ?_
+  exact erT1_wn hF hDF hcap Lo Sc K Pd X hK0 hPd0 hw oK oP hLo8 hXl hXh
+
+#print axioms encReceipt_wn
+end er
+end er
 end InitECandidate.Runtime
