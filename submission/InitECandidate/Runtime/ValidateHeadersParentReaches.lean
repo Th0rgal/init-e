@@ -77,7 +77,8 @@ def parentRecordCarry {F : Type} (s next : PanSemStateFiniteExact 64 F) (heapSta
     heapStart.toNat + 21 * 16 ≤ record.toNat ∧ record.toNat + 248 ≤ 33806089496 ∧
     (∀ address : BitVec 64, ceiling ≤ address.toNat → address.toNat < heapStart.toNat →
       next.memory address = s.memory address) ∧
-    RlpSliceInputPrefix post older outerInput outerLength olderCount.toNat
+    RlpSliceInputPrefix post older outerInput outerLength olderCount.toNat ∧
+    count.toNat ≤ 23
 
 /-- The validation loop's actual header-decode call reaches the loop tail with the decoded
 parent record bound to `h`, the record's generated state root word readable at `record + 32`
@@ -182,7 +183,7 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
   have hLocal : continuation.locals.lookup (ofString "h") = some (.val (.word record)) := by
     simp [continuation,validateHeadersContinuation,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
   refine ⟨value,post,count,record,rooted,(by simpa only [source_decode_header_body] using run),checked.1,
-    valueEq,recordEq,?_,?_,?_,?_,?_,?_,?_,?_,?_,beforePost,recordInside,?_,?_⟩
+    valueEq,recordEq,?_,?_,?_,?_,?_,?_,?_,?_,?_,beforePost,recordInside,?_,?_,?_⟩
   · rw [valueEq]
     rfl
   · rw [valueEq]
@@ -215,6 +216,7 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
     change post.memory address = s.memory address
     exact window address above below
   · exact outerRetained
+  · exact countBound
 
 #print axioms validate_headers_parent_reaches
 
