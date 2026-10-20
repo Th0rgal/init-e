@@ -94,6 +94,120 @@ theorem compiled_shift_work_bound (context : PanToCrepContextExact 64)
 
 #print axioms compiled_shift_work_bound
 
+theorem compiled_load32_work_bound (context : PanToCrepContextExact 64)
+    (address : ExpHOL 64) :
+    flattenedExpressionWork context (.load32 address) ≤
+      1 + flattenedExpressionWork context address := by
+  unfold flattenedExpressionWork
+  generalize hc : compileExpExactHOLW context address = compiled
+  obtain ⟨expressions, addressShape⟩ := compiled
+  rw [compileExpExactHOLW, hc]
+  cases expressions <;> cases addressShape <;> simp [crepListWork, crepNodeWork] <;> omega
+
+#print axioms compiled_load32_work_bound
+
+theorem compiled_loadByte_work_bound (context : PanToCrepContextExact 64)
+    (address : ExpHOL 64) :
+    flattenedExpressionWork context (.loadByte address) ≤
+      1 + flattenedExpressionWork context address := by
+  unfold flattenedExpressionWork
+  generalize hc : compileExpExactHOLW context address = compiled
+  obtain ⟨expressions, addressShape⟩ := compiled
+  rw [compileExpExactHOLW, hc]
+  cases expressions <;> cases addressShape <;> simp [crepListWork, crepNodeWork] <;> omega
+
+#print axioms compiled_loadByte_work_bound
+
+theorem crepListWork_append (left right : List (CrepExpHOL 64)) :
+    crepListWork (left ++ right) = crepListWork left + crepListWork right := by
+  induction left with
+  | nil => simp [crepListWork]
+  | cons head tail ih => simp [crepListWork, ih, Nat.add_assoc]
+
+/-- Record construction concatenates scalar fields without repeating them. -/
+theorem compiled_record_work (context : PanToCrepContextExact 64)
+    (fields : List (ExpHOL 64)) :
+    flattenedExpressionWork context (.rstruct fields) =
+      (fields.map (flattenedExpressionWork context)).sum := by
+  unfold flattenedExpressionWork
+  rw [compileExpExactHOLW]
+  induction fields with
+  | nil => simp [compileExpExactHOLWList, crepListWork]
+  | cons head tail ih =>
+    simp only [compileExpExactHOLWList, List.flatMap_cons, crepListWork_append,
+      List.map_cons, List.sum_cons]
+    rw [ih]
+
+#print axioms compiled_record_work
+
+theorem selected_heads_work_bound (arguments : List (List (CrepExpHOL 64)))
+    (heads : List (CrepExpHOL 64)) (selected : cexpHeads arguments = some heads) :
+    crepListWork heads ≤ (arguments.map crepListWork).sum := by
+  induction arguments generalizing heads with
+  | nil => simp [cexpHeads] at selected; subst heads; simp [crepListWork]
+  | cons first rest ih =>
+    cases first with
+    | nil => simp [cexpHeads] at selected
+    | cons head tail =>
+      cases hc : cexpHeads rest with
+      | none => simp [cexpHeads, hc] at selected
+      | some chosen =>
+        simp only [cexpHeads, hc, Option.some.injEq] at selected
+        subst heads
+        have smaller := ih chosen hc
+        simp only [crepListWork, List.map_cons, List.sum_cons]
+        omega
+
+theorem compiled_arguments_work (context : PanToCrepContextExact 64)
+    (arguments : List (ExpHOL 64)) :
+    ((compileExpExactHOLWList context arguments).map
+      (fun pair => crepListWork pair.1)).sum =
+      (arguments.map (flattenedExpressionWork context)).sum := by
+  induction arguments with
+  | nil => simp [compileExpExactHOLWList]
+  | cons head tail ih =>
+    simp only [compileExpExactHOLWList, List.map_cons, List.sum_cons,
+      flattenedExpressionWork, ih]
+
+
+theorem compiled_op_work_bound (context : PanToCrepContextExact 64)
+    (operator : BinOp) (arguments : List (ExpHOL 64)) :
+    flattenedExpressionWork context (.op operator arguments) ≤
+      1 + (arguments.map (flattenedExpressionWork context)).sum := by
+  unfold flattenedExpressionWork
+  rw [compileExpExactHOLW]
+  cases hc : cexpHeads ((compileExpExactHOLWList context arguments).map Prod.fst) with
+  | none => simp [crepListWork, crepNodeWork]
+  | some heads =>
+    have bound := selected_heads_work_bound _ heads hc
+    have total := compiled_arguments_work context arguments
+    simp only [List.map_map, Function.comp_def] at bound
+    simp only [crepListWork, crepNodeWork, Nat.add_zero]
+    change crepListWork heads ≤ _ at bound
+    rw [total] at bound
+    exact Nat.add_le_add_left bound 1
+
+#print axioms compiled_op_work_bound
+
+theorem compiled_panop_work_bound (context : PanToCrepContextExact 64)
+    (operator : PanOp) (arguments : List (ExpHOL 64)) :
+    flattenedExpressionWork context (.panop operator arguments) ≤
+      1 + (arguments.map (flattenedExpressionWork context)).sum := by
+  unfold flattenedExpressionWork
+  rw [compileExpExactHOLW]
+  cases hc : cexpHeads ((compileExpExactHOLWList context arguments).map Prod.fst) with
+  | none => simp [crepListWork, crepNodeWork]
+  | some heads =>
+    have bound := selected_heads_work_bound _ heads hc
+    have total := compiled_arguments_work context arguments
+    simp only [List.map_map, Function.comp_def] at bound
+    simp only [crepListWork, crepNodeWork, Nat.add_zero]
+    change crepListWork heads ≤ _ at bound
+    rw [total] at bound
+    exact Nat.add_le_add_left bound 1
+
+#print axioms compiled_panop_work_bound
+
 #print axioms compiled_load_work_bound
 #print axioms loadShape_work_bound
 end InitECandidate.Runtime.FineCost
