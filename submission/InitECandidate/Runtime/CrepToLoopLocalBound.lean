@@ -58,7 +58,7 @@ mutual
         | (refine ⟨a + b, ?_, ?_⟩
            · simp [compileExpHOLExact, hl, hr, loopExpressionCodesWork_append, ha, hb]
            · simp only [compileExpHOLExact, hl, hr, loopValueWork, crepNodeWork]; omega)
-        | (refine ⟨a + b + loopValueWork lv + loopValueWork rv + 5, ?_, ?_⟩
+        | (refine ⟨a + b + loopValueWork lv + loopValueWork rv + 6, ?_, ?_⟩
            · simpa only [compileExpHOLExact, hl, hr] using
                comparison_materializer_work operator lc rc lv rv (rn+1) (rn+2) rl a b ha hb
            · simp only [compileExpHOLExact, hl, hr, loopValueWork, crepNodeWork]; omega)

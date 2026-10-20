@@ -26,13 +26,13 @@ inductive LoopWorkRun {F : Type} : LoopSemStateFiniteExact 64 F → HolLoopProg 
       (rhs : LoopSemStateFiniteExact.getVarImm right s = some (.word y))
       (chosen : Compiler.Encoders.Asm.wordCmpHOL operator x y = true)
       (child : LoopWorkRun s yes output cost) :
-      LoopWorkRun s (.ite operator register right yes no live) (cutRes live output) (1+cost)
+      LoopWorkRun s (.ite operator register right yes no live) (cutRes live output) (2+cost)
   | iteNo {s operator register right yes no live x y output cost}
       (lhs : sptLookup register s.locals = some (.word x))
       (rhs : LoopSemStateFiniteExact.getVarImm right s = some (.word y))
       (chosen : Compiler.Encoders.Asm.wordCmpHOL operator x y = false)
       (child : LoopWorkRun s no output cost) :
-      LoopWorkRun s (.ite operator register right yes no live) (cutRes live output) (1+cost)
+      LoopWorkRun s (.ite operator register right yes no live) (cutRes live output) (2+cost)
 
   | iteNoWords {s operator register right yes no live}
       (invalid : ¬ ∃ x y, sptLookup register s.locals = some (.word x) ∧
@@ -131,13 +131,13 @@ theorem loop_work_trace_complete {F : Type} (p : HolLoopProg 64)
           cases chosen : Compiler.Encoders.Asm.wordCmpHOL operator x y with
           | true =>
             obtain ⟨cost, run, bound⟩ := loop_work_trace_complete yes s a ha
-            refine ⟨1 + cost, ?_, ?_⟩
+            refine ⟨2 + cost, ?_, ?_⟩
             · simpa [evaluate.eq_13, lhs, rhs, chosen] using
                 (LoopWorkRun.iteYes (no := no) (live := live) lhs rhs chosen run)
             · simp [loopExpressionCodeWork, ha, hb] at supported; omega
           | false =>
             obtain ⟨cost, run, bound⟩ := loop_work_trace_complete no s b hb
-            refine ⟨1 + cost, ?_, ?_⟩
+            refine ⟨2 + cost, ?_, ?_⟩
             · simpa [evaluate.eq_13, lhs, rhs, chosen] using
                 (LoopWorkRun.iteNo (yes := yes) (live := live) lhs rhs chosen run)
             · simp [loopExpressionCodeWork, ha, hb] at supported; omega

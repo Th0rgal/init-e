@@ -253,3 +253,16 @@ lifts that static predicate to all source structure contexts and proves the
 compound source-to-Loop execution bound with coefficient 36. This does not
 establish compiler-artifact agreement, statement execution counts, native
 RISC-V transfer or the final guest score.
+
+`LoopToWordExpressionWork` proves exact preservation of expression work through
+the pinned Loop-to-Word compiler. `topAddr` is charged five nodes locally for
+its heap-base/length expansion; all other nodes preserve their structure.
+`LoopToWordCodeWork` proves exact preservation of the expression-code allowance,
+including the tick emitted after a conditional. Loop conditional work is now
+two units plus the larger branch allowance. The Crep-to-Loop coefficient-six
+proof, executed traces, source expression transfers and guest kernel certificate
+were rebuilt successfully with these calibrated charges.
+`LoopToWordValueCost` pairs the work equality with the existing exact value
+simulation on the same compiler output. Word expression instruction selection,
+register allocation/spills and later native lowering are still outstanding;
+these equalities do not constitute an end-to-end RISC-V runtime bound.

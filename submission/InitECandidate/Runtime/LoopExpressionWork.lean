@@ -5,6 +5,7 @@ open Flapjack
 
 mutual
   def loopValueWork : HolLoopExp 64 → Nat
+    | .topAddr => 5
     | .load address => 1 + loopValueWork address
     | .op _ args => 1 + loopValuesWork args
     | .shift _ left right => 1 + loopValueWork left + loopValueWork right
@@ -34,7 +35,7 @@ mutual
     | .ite _ _ _ yes no _ => do
         let a ← loopExpressionCodeWork yes
         let b ← loopExpressionCodeWork no
-        pure (1 + max a b)
+        pure (2 + max a b)
     | _ => none
   termination_by p => sizeOf p
 
@@ -97,7 +98,7 @@ theorem crepToLoop_load32_expansion (context : CrepToLoopContextExact) (tmp : Na
 #print axioms crepToLoop_load32_expansion
 
 /-- The comparison materializer evaluates both operands, then performs two
-assignments and one branch with a two-unit selected assignment arm. -/
+assignments and one branch with a two-unit selected assignment arm and the subsequent lowered tick. -/
 theorem comparison_materializer_work (operator : Cmp)
     (first second : List (HolLoopProg 64)) (left right : HolLoopExp 64)
     (condition rightRegister : Nat) (live : NumSet) (a b : Nat)
@@ -105,7 +106,7 @@ theorem comparison_materializer_work (operator : Cmp)
     (secondCost : loopExpressionCodesWork second = some b) :
     loopExpressionCodesWork
       (progIfHOLExact operator first second left right condition rightRegister live) =
-      some (a + b + loopValueWork left + loopValueWork right + 5) := by
+      some (a + b + loopValueWork left + loopValueWork right + 6) := by
   unfold progIfHOLExact
   simp only [loopExpressionCodesWork_append, firstCost, secondCost,
     loopExpressionCodesWork, loopExpressionCodeWork, loopValueWork]
