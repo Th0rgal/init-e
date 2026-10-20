@@ -159,4 +159,140 @@ theorem actual_payload_header_pl_cell_byte_separate (pl pointer : BitVec 64) (of
 
 #print axioms actual_payload_header_pl_cell_byte_separate
 
+/-- **The actual memzero leaves the loader's extra-length cell alone.**  The header's window is
+`[pointer, pointer + 248)` and `pl + 24` lies below `pointer`, so the watched extra length survives
+the real call and the prefix facts and the zeroed window are still established. -/
+theorem actual_payload_header_memzero_watched {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F) (pl raw pointer extraLen : BitVec 64)
+    (facts : ActualPayloadHeaderBaseFacts state mid pl raw pointer (allocationEnd pointer (248#64)))
+    (code : state.code = originalRuntimeCode)
+    (guard : pointer.toNat + 248 ≤ 33806089496) (aligned : pointer.toNat % 8 = 0)
+    (cap : pointer.toNat ≤ 33806089496)
+    (wordDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (byteDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (panByteAlignHOL (pointer + BitVec.ofNat 64 offset)))
+    (below : pl.toNat + 136 ≤ pointer.toNat)
+    (watch : WatchWord mid (pl + (24#64)) extraLen)
+    (budget : 249 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 3)
+      (fun post => ActualPayloadHeaderBaseFacts state post pl raw pointer
+          (allocationEnd pointer (248#64)) ∧ ZeroBytePrefix post pointer 248 ∧
+        WatchWord post (pl + (24#64)) extraLen) 249 (actualPayloadHeaderAt 4) := by
+  have sizeNat : (248#64).toNat = 248 := by decide
+  have arguments : evalListHOLFinite mid
+      (h := fun address => Classical.propDecidable (mid.memaddrs address))
+      [.var .local (ofString "h"), .const (248#64)] =
+      (some [ValueHOL.val (HolWordLab.word pointer), ValueHOL.val (HolWordLab.word (248#64))] :
+        Option (List (ValueHOL 64))) := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,facts.1.2.2.1]
+  have codeMid : mid.code = originalRuntimeCode := by
+    rw [facts.1.2.2.2.2.2]; exact code
+  obtain ⟨post, run, zeroed, spent, kept, globals, postCode, domain, be, locals, occupied⟩ :=
+    evaluate_memzero_aligned_call mid (.var .local (ofString "h")) (.const (248#64)) pointer (248#64)
+      arguments codeMid (by omega) guard aligned
+      (fun offset bound => by rw [facts.1.2.2.2.2.1]; exact wordDomain offset bound)
+      (fun offset bound => by rw [facts.1.2.2.2.2.1]; exact byteDomain offset bound)
+  have watched : WatchWord post (pl + (24#64)) extraLen :=
+    WatchWord.memzero mid post (.var .local (ofString "h")) (.const (248#64)) pointer (248#64)
+      (pl + (24#64)) extraLen arguments codeMid (by omega) guard aligned
+      (fun offset bound => by rw [facts.1.2.2.2.2.1]; exact wordDomain offset bound)
+      (fun offset bound => actual_payload_header_pl_cell_word_separate pl pointer offset below cap bound)
+      (fun offset bound => actual_payload_header_pl_cell_byte_separate pl pointer offset below cap aligned bound)
+      (fun offset bound => by rw [facts.1.2.2.2.2.1]; exact byteDomain offset bound)
+      watch run
+  rw [source_actual_payload_header_memzero]
+  refine reaches_seq mid (ProgHOL.call (some (none,none)) (ofString "memzero")
+    [.var .local (ofString "h"), .const (248#64)]) (actualPayloadHeaderAt 4) 249 _ ?_
+  refine Or.inl ⟨post, ?_, by omega, by omega, run⟩
+  refine ⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩,zeroed,watched⟩
+  · rw [locals]; exact facts.1.1
+  · rw [locals]; exact facts.1.2.1
+  · rw [locals]; exact facts.1.2.2.1
+  · rw [globals]; exact facts.1.2.2.2.1
+  · rw [domain]; exact facts.1.2.2.2.2.1
+  · rw [postCode]; exact facts.1.2.2.2.2.2
+  · intro name different
+    rw [globals]
+    exact facts.2 name different
+
+#print axioms actual_payload_header_memzero_watched
+
+/-- The extra-length cell is outside a keccak write window based at an aligned, higher address. -/
+theorem actual_payload_header_pl_cell_not_mwin (pl base : BitVec 64) (width : Nat)
+    (smallWidth : width ≤ 248)
+    (below : pl.toNat + 136 ≤ base.toNat) (cap : base.toNat ≤ 33806089496)
+    (aligned : base.toNat % 8 = 0) : ¬ MWin base width (pl + (24#64)) := by
+  intro window
+  obtain ⟨index, bound, separate | separate⟩ := window
+  · exact actual_payload_header_pl_cell_word_separate pl base index below cap (by omega) separate
+  · exact actual_payload_header_pl_cell_byte_separate pl base index below cap aligned (by omega)
+      separate
+
+#print axioms actual_payload_header_pl_cell_not_mwin
+
+/-- **The actual keccak call leaves the loader's extra-length cell alone.**  The cell lies below the
+header, hence outside the state window and the output window, and below the pad region, so the real
+`keccak256(tmp, 1, oh)` preserves the watched extra length while still establishing the commit. -/
+theorem actual_payload_header_keccak_watched {F : Type} (ref state : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp st pad extraLen : BitVec 64)
+    (facts : ActualPayloadHeaderCommit ref state pl raw pointer heap oh tmp)
+    (code : state.code = originalRuntimeCode)
+    (atState : state.globals.lookup (ofString "keccak_st") = some (.val (.word st)))
+    (atPad : state.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)))
+    (args : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a))
+      [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")] =
+      some [.val (.word tmp),.val (.word (1#64)),.val (.word oh)])
+    (ohAligned : oh.toNat % 8 = 0)
+    (outsideState : ¬ MWin st 200 (pl + (24#64)))
+    (outsidePad : ¬ MWin pad 136 (pl + (24#64)))
+    (outsideOutput : ¬ MWin oh 32 (pl + (24#64)))
+    (watch : WatchWord state (pl + (24#64)) extraLen)
+    (ticks : 145 ≤ state.clock) :
+    Reaches state (actualPayloadHeaderAt 9)
+      (fun post => ActualPayloadHeaderCommit ref post pl raw pointer heap oh tmp ∧
+        WatchWord post (pl + (24#64)) extraLen) 145 (actualPayloadHeaderAt 10) := by
+  have one : (1#64 : BitVec 64).toNat = 1 := by decide
+  have wide := runBounded_keccak_wide_full_call state st pad tmp (1#64) oh none
+    [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")]
+    atState atPad args (by decide) ohAligned code (by omega)
+  rw [source_actual_payload_header_keccak_shape]
+  refine reaches_seq state actualPayloadHeaderKeccak (actualPayloadHeaderAt 10) 145 _ ?_
+  unfold RunBounded at wide
+  change state.clock ≤ (evaluateHOLFiniteState state actualPayloadHeaderKeccak).2.clock + 145 ∧
+    (evaluateHOLFiniteState state actualPayloadHeaderKeccak).2.clock ≤ state.clock ∧
+    (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 ≠ some .timeOut at wide
+  by_cases normal : (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 = none
+  · obtain ⟨post, run⟩ : ∃ post : PanSemStateFiniteExact 64 F,
+        evaluateHOLFiniteState state actualPayloadHeaderKeccak = (none, post) :=
+      ⟨_, by rw [Prod.eq_iff_fst_eq_snd_eq]; exact ⟨normal,rfl⟩⟩
+    refine Or.inl ⟨post, ?_, ?_, ?_, run⟩
+    · exact ⟨actual_payload_header_commit_after_keccak ref state post pl raw pointer heap oh tmp
+        facts code run,
+        WatchWord.keccak state post st pad tmp (1#64) oh (pl + (24#64)) extraLen
+          [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")]
+          atState atPad args (by rw [one]; decide) code (by rw [one]; omega)
+          outsideState outsidePad outsideOutput watch run⟩
+    · have spent := wide.1
+      rw [run] at spent
+      exact spent
+    · have kept := wide.2.1
+      rw [run] at kept
+      exact kept
+  · obtain ⟨x, run⟩ : ∃ result, (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 = some result := by
+      cases placed : (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 with
+      | none => exact absurd placed normal
+      | some result => exact ⟨result,rfl⟩
+    refine Or.inr ⟨x,run,?_,wide.1,wide.2.1,?_⟩
+    · intro value returned
+      have discard := evaluate_discard_call_no_return state (ofString "keccak256")
+        [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")] value
+      exact discard (run.trans (congrArg some returned))
+    · intro clock budget
+      have different := wide.2.2
+      rw [run] at different
+      exact different (congrArg some budget)
+
+#print axioms actual_payload_header_keccak_watched
+
 end InitECandidate.Runtime
