@@ -28,6 +28,7 @@ theorem WitnessTraversalState.after_clock {F : Type} (layout : WitnessTraversalL
     framePositive := valid.framePositive
     scratchLower := valid.scratchLower
     scratchBound := valid.scratchBound
+    scratchAligned := valid.scratchAligned
     scratchBeforeDatabase := valid.scratchBeforeDatabase
     databaseBeforeFloor := valid.databaseBeforeFloor
     floorBeforeHeap := valid.floorBeforeHeap
@@ -37,6 +38,7 @@ theorem WitnessTraversalState.after_clock {F : Type} (layout : WitnessTraversalL
     inputBound := valid.inputBound
     inputLimitBound := valid.inputLimitBound
     inputBeforeFrame := valid.inputBeforeFrame
+    inputBeforeFloor := valid.inputBeforeFloor
     scratchArena := valid.scratchArena
     heapArena := valid.heapArena
     built := by

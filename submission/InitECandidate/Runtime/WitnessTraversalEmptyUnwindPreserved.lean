@@ -38,7 +38,7 @@ set_option maxHeartbeats 0
   exact WitnessTraversalState.after_components layout s post scratch heap 0 mode go scratch heap 0 0 0 valid domain code
     ((other _ (by decide)).trans valid.atDb) atGo ((other _ (by decide)).trans valid.atTop) atMode
     (by rw [postEq];exact valid.atScratch) (by rw [postEq];exact valid.atFrame) (by rw [postEq];exact valid.atHeap)
-    valid.scratchLower valid.scratchBound (Nat.le_refl _) valid.heapBound valid.heapAligned builtPost entriesPost slicesPost
+    valid.scratchLower valid.scratchBound valid.scratchAligned (Nat.le_refl _) valid.heapBound valid.heapAligned builtPost entriesPost slicesPost
     .nil .nil (Or.inl rfl) (Or.inl rfl) (by intro bad;cases bad) (by intro bad;cases bad) (fun _ => delivered)
 #print axioms WitnessTraversalState.empty_unwind_preserves
 end InitECandidate.Runtime

@@ -15,6 +15,7 @@ structure WitnessTraversalEntryPrecondition {F : Type} (layout : WitnessTraversa
   framePositive : 0<layout.frame.toNat
   scratchLower : layout.frame.toNat≤scratch.toNat
   scratchBound : scratch.toNat≤layout.scratchUpper
+  scratchAligned : scratch.toNat%8=0
   scratchBeforeDatabase : layout.scratchUpper≤layout.databaseCeiling
   databaseBeforeFloor : layout.databaseCeiling≤layout.persistentFloor
   floorBeforeHeap : layout.persistentFloor≤heap.toNat
@@ -23,7 +24,8 @@ structure WitnessTraversalEntryPrecondition {F : Type} (layout : WitnessTraversa
   inputRange : layout.input.toNat+layout.inputLength.toNat<2^64
   inputBound : layout.inputLength.toNat≤layout.inputLimit
   inputLimitBound : layout.inputLimit≤134217712
-  inputBeforeFrame : layout.input.toNat+layout.inputLength.toNat≤layout.frame.toNat
+  inputBeforeFrame : layout.input.toNat+layout.inputLength.toNat≤layout.frame.toNat ∨ layout.scratchUpper≤layout.input.toNat
+  inputBeforeFloor : layout.input.toNat+layout.inputLength.toNat≤layout.persistentFloor
   scratchArena : ∀ address : BitVec 64, layout.frame.toNat≤address.toNat → address.toNat<layout.scratchUpper → s.memaddrs address
   heapArena : ∀ address : BitVec 64, layout.persistentFloor≤address.toNat → address.toNat<33806089496 → s.memaddrs address
   built : NodedbTableAt s layout.table layout.dbHeap layout.total
@@ -72,6 +74,7 @@ theorem WitnessTraversalEntryPrecondition.initializes {F : Type} (layout : Witne
     framePositive := valid.framePositive
     scratchLower := valid.scratchLower
     scratchBound := valid.scratchBound
+    scratchAligned := valid.scratchAligned
     scratchBeforeDatabase := valid.scratchBeforeDatabase
     databaseBeforeFloor := valid.databaseBeforeFloor
     floorBeforeHeap := valid.floorBeforeHeap
@@ -81,6 +84,7 @@ theorem WitnessTraversalEntryPrecondition.initializes {F : Type} (layout : Witne
     inputBound := valid.inputBound
     inputLimitBound := valid.inputLimitBound
     inputBeforeFrame := valid.inputBeforeFrame
+    inputBeforeFloor := valid.inputBeforeFloor
     scratchArena := valid.scratchArena
     heapArena := valid.heapArena
     built := built

@@ -123,12 +123,14 @@ theorem WitnessTraversalState.resolve_preserves {F : Type} (layout : WitnessTrav
       framePositive := valid.framePositive
       scratchLower := valid.scratchLower
       scratchBound := valid.scratchBound
+      scratchAligned := valid.scratchAligned
       scratchBeforeDatabase := valid.scratchBeforeDatabase
       databaseBeforeFloor := valid.databaseBeforeFloor
       inputRange := valid.inputRange
       inputBound := valid.inputBound
       inputLimitBound := valid.inputLimitBound
       inputBeforeFrame := valid.inputBeforeFrame
+      inputBeforeFloor := valid.inputBeforeFloor
       tableAboveDatabase := valid.tableAboveDatabase
       arrayAboveDatabase := valid.arrayAboveDatabase
       dbHeapBeforeFloor := valid.dbHeapBeforeFloor

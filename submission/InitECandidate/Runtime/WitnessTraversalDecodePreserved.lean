@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.ScratchAllocationAligned
 import InitECandidate.Runtime.WitnessTraversalStateTransport
 import InitECandidate.Runtime.WitnessDecodeAllocationStack
 import InitECandidate.Runtime.WitnessDecodeResultAboveStack
@@ -26,7 +27,7 @@ theorem WitnessTraversalState.decode_preserves {F : Type} (layout : WitnessTrave
   have db:=valid.scratchBeforeDatabase
   have floor:=valid.databaseBeforeFloor
   have heapLo:=valid.floorBeforeHeap
-  have before:=valid.inputBeforeFrame
+  have before:=valid.inputBeforeFloor
   have ordered : layout.frame≤scratch := by change layout.frame.toNat≤scratch.toNat;exact scratchLo
   have limit64 : layout.inputLimit+9<2^64 := by omega
   have countLimit : layout.inputLimit*16<2^64 := by omega
@@ -34,7 +35,10 @@ theorem WitnessTraversalState.decode_preserves {F : Type} (layout : WitnessTrave
     intro a lo hi;exact valid.scratchArena a lo (by omega)
   have heapArena : ∀ a : BitVec 64, heap.toNat≤a.toNat → a.toNat<33806089496 → s.memaddrs a := by
     intro a lo hi;exact valid.heapArena a (by omega) hi
-  have beforeFrame : pointer.toNat+length.toNat≤layout.frame.toNat ∨ (scratch.toNat%8=0 ∧ scratch.toNat≤pointer.toNat) := Or.inl (by omega)
+  have beforeFrame : pointer.toNat+length.toNat≤layout.frame.toNat ∨ (scratch.toNat%8=0 ∧ scratch.toNat≤pointer.toNat) := by
+    rcases valid.inputBeforeFrame with below | above
+    · exact Or.inl (by omega)
+    · exact Or.inr ⟨valid.scratchAligned,by omega⟩
   have beforeHeap : pointer.toNat+length.toNat≤heap.toNat := by omega
   have arrayAbove : scratch.toNat≤heap.toNat := by omega
   have floorAbove : scratch.toNat≤layout.persistentFloor := by omega
@@ -99,6 +103,7 @@ theorem WitnessTraversalState.decode_preserves {F : Type} (layout : WitnessTrave
       (atTop : post.locals.lookup (ofString "top")=some (.val (.word nextTop)))
       (atMode : post.locals.lookup (ofString "mode")=some (.val (.word nextMode)))
       (scratchLower : layout.frame.toNat≤nextScratch.toNat) (scratchBound : nextScratch.toNat≤layout.scratchUpper)
+      (scratchAligned : nextScratch.toNat%8=0)
       (stackPost : WitnessAllocationStack post layout.input layout.inputLength nextHeap layout.persistentFloor nextScratch.toNat nextTop)
       (chainPost : WitnessScratchChain post layout.scratchUpper nextScratch.toNat nextTop)
       (modes : nextMode=0 ∨ nextMode=1 ∨ nextMode=2)
@@ -111,11 +116,11 @@ theorem WitnessTraversalState.decode_preserves {F : Type} (layout : WitnessTrave
         WitnessResultAboveStack post layout.input layout.inputLength nextTop node layout.persistentFloor nextScratch.toNat) :
       WitnessTraversalState layout post nextScratch nextHeap nextTop nextMode go :=
     WitnessTraversalState.after_components layout s post scratch heap top mode go nextScratch nextHeap nextTop nextMode go
-      valid domain codePost dbPost goPost atTop atMode atScratch framePost heapPost scratchLower scratchBound growth capped aligned
+      valid domain codePost dbPost goPost atTop atMode atScratch framePost heapPost scratchLower scratchBound scratchAligned growth capped aligned
       builtPost entriesPost slicesPost stackPost chainPost valid.goBits modes decodeInput selector delivered
   rcases chainModes with ⟨modePost,topPost,scratchPost,chainPost⟩ | ⟨record,modePost,topPost,scratchPost,identity,recordLo,recordHi,chainPost⟩
   · rcases stackModes with ⟨_,_,stackPost⟩ | ⟨other,pending,_,_⟩
-    · exact ⟨scratch,nextHeap,top,0,go,commonState scratch top 0 scratchPost topPost modePost scratchLo scratchHi stackPost chainPost
+    · exact ⟨scratch,nextHeap,top,0,go,commonState scratch top 0 scratchPost topPost modePost scratchLo scratchHi valid.scratchAligned stackPost chainPost
         (Or.inl rfl) (by intro bad;cases bad) (by intro bad;cases bad) (fun _ => completed modePost)⟩
     · have bad := nodeEq (0#64) (2#64) (modePost.symm.trans pending);cases bad
   · rcases stackModes with ⟨pending,_,_⟩ | ⟨other,_,atOther,stackPost⟩
@@ -134,7 +139,7 @@ theorem WitnessTraversalState.decode_preserves {F : Type} (layout : WitnessTrave
         rw [zero] at recordLo
         change layout.frame.toNat≤0 at recordLo
         omega
-      exact ⟨record,nextHeap,record,2,go,commonState record record 2 scratchPost topPost modePost recordLo (by omega)
+      exact ⟨record,nextHeap,record,2,go,commonState record record 2 scratchPost topPost modePost recordLo (by omega) (by rw [identity]; exact scratchAllocationEnd_aligned scratch 88)
         stackRecord chainPost (Or.inr (Or.inr rfl)) (by intro bad;cases bad) (fun _ => ⟨positive,selectedRecord⟩) (by intro bad;cases bad)⟩
 #print axioms WitnessTraversalState.decode_preserves
 end InitECandidate.Runtime

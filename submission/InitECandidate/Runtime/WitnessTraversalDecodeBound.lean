@@ -11,7 +11,7 @@ theorem WitnessTraversalState.decode_bound {F : Type} (layout : WitnessTraversal
     RunBounded s decodeWitnessNodeDecodeMode (decodeStepBodyCost layout.inputLimit+1) := by
   obtain ⟨pointer,length,atPointer,atLength,spanLo,spanHi,inputRange,lengthBound⟩ := valid.decodeInput decode
   have limit := valid.inputLimitBound
-  have before := valid.inputBeforeFrame
+  have before := valid.inputBeforeFloor
   have scratchLo := valid.scratchLower
   have scratchHi := valid.scratchBound
   have db := valid.scratchBeforeDatabase
@@ -23,6 +23,9 @@ theorem WitnessTraversalState.decode_bound {F : Type} (layout : WitnessTraversal
     (by change layout.frame.toNat≤scratch.toNat;exact scratchLo) valid.framePositive (Nat.le_refl _)
     (by intro address lo hi;exact valid.scratchArena address lo (by omega)) budget valid.atHeap valid.heapBound
     (by omega) (by intro address lo hi;exact valid.heapArena address (by omega) hi)
-    (Or.inl (by omega)) (by omega) (by omega) limit
+    (by
+      rcases valid.inputBeforeFrame with below | above
+      · exact Or.inl (by omega)
+      · exact Or.inr ⟨valid.scratchAligned,by omega⟩) (by omega) (by omega) limit
 #print axioms WitnessTraversalState.decode_bound
 end InitECandidate.Runtime

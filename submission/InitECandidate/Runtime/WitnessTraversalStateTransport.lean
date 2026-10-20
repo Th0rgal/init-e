@@ -18,6 +18,7 @@ theorem WitnessTraversalState.after_components {F : Type} (layout : WitnessTrave
     (atFrame : post.globals.lookup (ofString "frame_mem_ptr")=some (.val (.word layout.frame)))
     (atHeap : post.globals.lookup (ofString "heap_ptr")=some (.val (.word nextHeap)))
     (scratchLower : layout.frame.toNat≤nextScratch.toNat) (scratchBound : nextScratch.toNat≤layout.scratchUpper)
+    (scratchAligned : nextScratch.toNat%8=0)
     (heapGrowth : heap.toNat≤nextHeap.toNat) (heapBound : nextHeap.toNat≤33806089496) (heapAligned : nextHeap.toNat%8=0)
     (built : NodedbTableAt post layout.table layout.dbHeap layout.total)
     (entries : HashTableValuesIn layout.table (NodedbSliceTargets layout.dbArray layout.total) post)
@@ -40,11 +41,12 @@ theorem WitnessTraversalState.after_components {F : Type} (layout : WitnessTrave
   exact {
     code := code.trans valid.code, atDb := atDb, atTop := atTop, atMode := atMode, atGo := atGo,
     atScratch := atScratch, atFrame := atFrame, atHeap := atHeap,
-    framePositive := valid.framePositive, scratchLower := scratchLower, scratchBound := scratchBound,
+    framePositive := valid.framePositive, scratchLower := scratchLower, scratchBound := scratchBound, scratchAligned := scratchAligned,
     scratchBeforeDatabase := valid.scratchBeforeDatabase, databaseBeforeFloor := valid.databaseBeforeFloor,
     floorBeforeHeap := valid.floorBeforeHeap.trans heapGrowth, heapBound := heapBound, heapAligned := heapAligned,
     inputRange := valid.inputRange, inputBound := valid.inputBound, inputLimitBound := valid.inputLimitBound,
-    inputBeforeFrame := valid.inputBeforeFrame,
+    inputBeforeFrame := valid.inputBeforeFrame
+    inputBeforeFloor := valid.inputBeforeFloor,
     scratchArena := by intro address lo hi;rw [domain];exact valid.scratchArena address lo hi,
     heapArena := by intro address lo hi;rw [domain];exact valid.heapArena address lo hi,
     built := built, entries := entries, slices := slices, tableAboveDatabase := valid.tableAboveDatabase,

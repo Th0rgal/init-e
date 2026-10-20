@@ -20,7 +20,7 @@ theorem WitnessTraversalState.decode_decreases {F : Type} (layout : WitnessTrave
   have db:=valid.scratchBeforeDatabase
   have floor:=valid.databaseBeforeFloor
   have heapLo:=valid.floorBeforeHeap
-  have before:=valid.inputBeforeFrame
+  have before:=valid.inputBeforeFloor
   have ordered : layout.frame≤scratch := by change layout.frame.toNat≤scratch.toNat;exact scratchLo
   have limit64 : layout.inputLimit+9<2^64 := by omega
   have countLimit : layout.inputLimit*16<2^64 := by omega
@@ -28,7 +28,10 @@ theorem WitnessTraversalState.decode_decreases {F : Type} (layout : WitnessTrave
     intro a lo hi;exact valid.scratchArena a lo (by omega)
   have heapArena : ∀ a : BitVec 64, heap.toNat≤a.toNat → a.toNat<33806089496 → s.memaddrs a := by
     intro a lo hi;exact valid.heapArena a (by omega) hi
-  have beforeFrame : pointer.toNat+length.toNat≤layout.frame.toNat ∨ (scratch.toNat%8=0 ∧ scratch.toNat≤pointer.toNat) := Or.inl (by omega)
+  have beforeFrame : pointer.toNat+length.toNat≤layout.frame.toNat ∨ (scratch.toNat%8=0 ∧ scratch.toNat≤pointer.toNat) := by
+    rcases valid.inputBeforeFrame with below | above
+    · exact Or.inl (by omega)
+    · exact Or.inr ⟨valid.scratchAligned,by omega⟩
   have beforeHeap : pointer.toNat+length.toNat≤heap.toNat := by omega
   have arrayAbove : scratch.toNat≤heap.toNat := by omega
   have floorAbove : scratch.toNat≤layout.persistentFloor := by omega

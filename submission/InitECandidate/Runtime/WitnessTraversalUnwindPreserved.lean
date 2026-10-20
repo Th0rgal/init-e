@@ -82,7 +82,7 @@ theorem WitnessTraversalState.unwind_preserves {F : Type} (layout : WitnessTrave
           ⟨heap,resultPost,Or.inr ⟨heapLo,by change heap.toNat+56≤(allocationEnd heap 56).toNat at covers;omega⟩,resultAbove⟩
         exact ⟨scratch,allocationEnd heap 56,previous,0,go,
           WitnessTraversalState.after_components layout s post scratch heap top mode go scratch (allocationEnd heap 56) previous 0 go
-            valid domain codePost dbPost goPost topPost modePost scratchPost framePost heapPost scratchLo scratchHi growth capped aligned
+            valid domain codePost dbPost goPost topPost modePost scratchPost framePost heapPost scratchLo scratchHi valid.scratchAligned growth capped aligned
             builtPost entriesPost slicesPost stackPost chainPost valid.goBits (Or.inl rfl)
             (by intro bad;cases bad) (by intro bad;cases bad) (fun _ => delivered)⟩
       · subst stage;subst count
@@ -132,7 +132,7 @@ theorem WitnessTraversalState.unwind_preserves {F : Type} (layout : WitnessTrave
               change index.toNat=15 at same;omega
           exact ⟨scratch,heap,top,2,go,
             WitnessTraversalState.after_components layout s post scratch heap top mode go scratch heap top 2 go
-              valid domain codePost dbPost goPost topPost modePost scratchPost framePost heapPost scratchLo scratchHi (Nat.le_refl _)
+              valid domain codePost dbPost goPost topPost modePost scratchPost framePost heapPost scratchLo scratchHi valid.scratchAligned (Nat.le_refl _)
               heapBound valid.heapAligned builtPost entriesPost slicesPost stackPost chainPost valid.goBits (Or.inr (Or.inr rfl))
               (by intro bad;cases bad) (fun _ => ⟨empty,selected⟩) (by intro bad;cases bad)⟩
         · have last : index=15#64 := BitVec.eq_of_toNat_eq (by change index.toNat=15;omega)
@@ -156,7 +156,7 @@ theorem WitnessTraversalState.unwind_preserves {F : Type} (layout : WitnessTrave
             ⟨br,resultPost,Or.inr ⟨branchFloor,by omega⟩,resultAbove⟩
           exact ⟨scratch,heap,previous,0,go,
             WitnessTraversalState.after_components layout s post scratch heap top mode go scratch heap previous 0 go
-              valid domain codePost dbPost goPost topPost modePost scratchPost framePost heapPost scratchLo scratchHi (Nat.le_refl _)
+              valid domain codePost dbPost goPost topPost modePost scratchPost framePost heapPost scratchLo scratchHi valid.scratchAligned (Nat.le_refl _)
               heapBound valid.heapAligned builtPost entriesPost slicesPost stackPost chainPost valid.goBits (Or.inl rfl)
               (by intro bad;cases bad) (by intro bad;cases bad) (fun _ => delivered)⟩
 #print axioms WitnessTraversalState.unwind_preserves

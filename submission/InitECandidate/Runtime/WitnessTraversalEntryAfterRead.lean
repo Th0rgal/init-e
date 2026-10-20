@@ -23,6 +23,7 @@ theorem WitnessTraversalEntryPrecondition.after_read {F : Type} (layout : Witnes
     framePositive := valid.framePositive
     scratchLower := valid.scratchLower
     scratchBound := valid.scratchBound
+    scratchAligned := valid.scratchAligned
     scratchBeforeDatabase := valid.scratchBeforeDatabase
     databaseBeforeFloor := valid.databaseBeforeFloor
     floorBeforeHeap := valid.floorBeforeHeap
@@ -32,6 +33,7 @@ theorem WitnessTraversalEntryPrecondition.after_read {F : Type} (layout : Witnes
     inputBound := valid.inputBound
     inputLimitBound := valid.inputLimitBound
     inputBeforeFrame := valid.inputBeforeFrame
+    inputBeforeFloor := valid.inputBeforeFloor
     scratchArena := by rw [domain]; exact valid.scratchArena
     heapArena := by rw [domain]; exact valid.heapArena
     built := by
