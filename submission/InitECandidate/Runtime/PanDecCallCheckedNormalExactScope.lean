@@ -2,7 +2,7 @@ import Flapjack.Pancake.Semantics.PanSem.EvaluateClock
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
-/-- A normal declaration-call exposes its actual callee and continuation,
+/-- A returned declaration-call exposes its actual callee and continuation,
 including the callee clock retained after clock clamping and local restoration. -/
 theorem evaluate_decCall_checked_normal_exact_scope {F : Type}
     (state post : PanSemStateFiniteExact 64 F) (name function : MlS)
