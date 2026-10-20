@@ -901,4 +901,35 @@ theorem fixClock_stack_swap {C F : Type} (s : WordSemStateFiniteExact 64 C F)
   cases r <;> (simp only [fixClock]; try rfl)
 
 #print axioms fixClock_stack_swap
+
+#print Flapjack.wordSemLastN
+
+/-- The locals restored by an exception frame are determined by the frame's saved
+environment and by the key- and value-images of the popped environment list.
+This is the algebraic core of the exception-domain argument: on both runs the
+frame that `wordSemLastN` selects is the *same* pushed frame (its handler index
+is the pre-push stack length, and the two stacks have equal length), so `e0` and
+`e` agree, and `lss`/`lss'` agree in keys (`map fst e = map fst lss`) and in
+values (`stackSwapPost`). -/
+theorem sptUnion_env_eq (e0 e0' : List (Nat × WordLocW 64))
+    (lss lss' : List (Nat × WordLocW 64))
+    (he0 : e0 = e0')
+    (hfst : List.map Prod.fst lss = List.map Prod.fst lss')
+    (hsnd : List.map Prod.snd lss = List.map Prod.snd lss') :
+    Flapjack.sptUnion (Flapjack.sptFromAList lss) (Flapjack.sptFromAList e0) =
+      Flapjack.sptUnion (Flapjack.sptFromAList lss') (Flapjack.sptFromAList e0') := by
+  rw [map_fst_snd_eq lss lss' hfst hsnd, he0]
+
+#print axioms sptUnion_env_eq
+
+/-- `wordSemLastN` selects the whole stack when asked for `length + 1` frames;
+in particular the frame pushed by the call is the *same* term in both runs. -/
+theorem wordSemLastN_length_succ_cons {α : Type} (fr : α) (rest : List α) :
+    Flapjack.wordSemLastN (rest.length + 1) (fr :: rest) = fr :: rest := by
+  simp only [Flapjack.wordSemLastN, List.reverse_cons, List.length_append, List.length_cons,
+    List.length_nil]
+  rw [List.take_of_length_le (by simp)]
+  simp
+
+#print axioms wordSemLastN_length_succ_cons
 end InitECandidate.Runtime.WordToStack
