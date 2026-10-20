@@ -1,0 +1,91 @@
+import InitECandidate.Runtime.PtAwCGD
+import InitECandidate.Runtime.PtAwCreateGD
+import InitECandidate.Runtime.PtKoWsLGD
+import InitECandidate.Runtime.PtTxOGD
+/-!
+The actual `create_ether(e1, e2)` call statement in the suffix state over the whole registry keeps the accounts-written
+table side condition `AwR`: the callee runs `createEther_rv_aqgd` over the registry restricted to the other tables, at
+the arena bound raised to the heap pointer at the call; the table's words are off the workspaces by the repaired
+layout-validity premise (`KoWsL`), its cell by the registry cell fact.
+-/
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+section ca
+variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {SP0 P0 FM : BitVec 64} {G0 : GA}
+  {J C SKB Bo U Sc : BitVec 64} {n m : Nat} {c T : Fin n → BitVec 64} {Out Excl : BitVec 64 → Prop}
+  {ko kd kA kB k16 : Fin n} {e : Fin m → Fin n} {ko' kd' kA' kB' : Fin m} {Ts Bs Taw H0 : BitVec 64} {M0 : Mem}
+
+theorem aqgd_call_createEther_aw {LP : GA → Prop} (e1 e2 : ExpHOL 64) (A0 : BitVec 64)
+    (hA : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), LP s.locals → ∀ v, EV s e1 = some v → v = .val (.word A0))
+    (hK : A0.toNat % 8 = 0) (hKE : A0.toNat + 52 ≤ 33806089496)
+    (inj : ∀ i j, e i = e j → i = j) (hko : e ko' = ko) (hne : ∀ i, e i ≠ k16) (hkd : e kd' = kd)
+    (hkA : e kA' = kA) (hkB : e kB' = kB) (hc16 : c k16 = Ts + 16#64)
+    (ne : kd ≠ ko) (hAB : kA ≠ kB) (hAo : kA ≠ ko) (hBo : kB ≠ ko)
+    (hTs : G0.lookup (ofString "ts") = some (.val (.word Ts)))
+    (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
+    (hcA : c kA = Ts + 8) (hcB : c kB = Bs + 72) (hco : c ko = Ts + 32#64) (hcd : c kd = Ts + 24#64)
+    (p0 : P0.toNat ≤ H0.toNat) (jfit : J.toNat + C.toNat * 32 ≤ 33806089496) (hwJ : ¬ InJ J C w)
+    (hwP : w.toNat < P0.toNat) (hOut : Out w) (hwS : ¬ SkWin SKB w) (hJO : ∀ x, InJ J C x → Out x)
+    (hSO : ∀ x, SkWin SKB x → Out x ∧ ∀ i, x ≠ c i)
+    (jsep : ∀ x, InJ J C x → ∀ i, x ≠ c i ∧ ¬ HdrR (T i) x) (K Pd NB : BitVec 64)
+    (hK0 : G0.lookup (ofString "keccak_st") = some (.val (.word K)))
+    (hPd0 : G0.lookup (ofString "keccak_pad") = some (.val (.word Pd)))
+    (hNB0 : G0.lookup (ofString "mpt_nib_scratch") = some (.val (.word NB)))
+    (safe : ∀ x, (∃ i, x = c i ∨ HdrR (T i) x) → WsSafe SP0 FM K Pd NB x)
+    (hOutSafe : ∀ x, Out x → WsSafe SP0 FM K Pd NB x ∧ x.toNat < P0.toNat)
+    (hkoWs : KoWsL SP0 FM K Pd NB (T ko)) (hawWs : KoWsL SP0 FM K Pd NB Taw)
+    (jB : J.toNat + C.toNat * 32 ≤ P0.toNat) (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a) :
+    AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
+      (fun L M G => (LP L ∧ PXR n c T Out ko D B Excl H0 M0 M G) ∧ AwR Out D B J C SKB Ts Taw M G)
+      (fun _ M G => AwR Out D B J C SKB Ts Taw M G) (fun _ _ _ => False)
+      (.call (some (none,none)) (ofString "create_ether") [e1,e2]) := by
+  refine aqgd_callSpecS (Vn' := fun x => x ≠ ofString "amount" ∧ x ≠ ofString "nb")
+    (Pe := fun (_ : GA) (M0' : Mem) (G0' : GA) (L : GA) (M : Mem) (G : GA) =>
+      (L.lookup (ofString "addr") = some (.val (.word A0)) ∧ AmtL L) ∧ M = M0' ∧ G = G0')
+    (RRe := fun (_ : GA) (_ : Mem) (_ : GA) (_ : ValueHOL 64) (M' : Mem) (G' : GA) =>
+      AwR Out D B J C SKB Ts Taw M' G')
+    _ _ _ _ _ originalRuntimeCode_createEther_lookup (fun _ _ _ h => (ce_callee h).1) ?_ ?_
+    (fun _ _ _ _ _ _ _ h => h)
+  · intro L0 M0' G0' ⟨⟨_,H1,Nj,hH,h01,reg,hn,_⟩,la,Hl,H',hH',awc⟩
+    have eH := heapIs_unique hH' hH
+    subst eH
+    have awil := awIL_of_full (m := m) inj hko hne hc16 reg awc
+    have awil1 := awil
+    obtain ⟨⟨rv,hl,_,_,_⟩,reg',sep,_,_⟩ := awil1
+    have lok := (tabAt_of_tabRV rv hl).1
+    have p1 : P0.toNat ≤ H'.toNat := le_trans p0 h01
+    refine aqgd_conseq (aqgd_jwsbus_lower p1 (createEther_rv_aqgd (n := m) (c := fun i => c (e i))
+      (T := fun i => T (e i)) (Out := fun x => Out x ∨ AwFp Ts Taw la x) (ko := ko') (kd := kd') (kA := kA')
+      (kB := kB') (H0 := H') (M0 := M0') (Nj := Nj) (P0 := H') (SKB := SKB) (J := J) (C := C) (U := U) (Sc := Sc)
+      Out Taw A0 Hl la rfl awil hOut hK hKE (by omega)
+      (fun x ho => by have := (hOutSafe x ho).2; omega) Dall
+      (fun h => ne (by rw [← hkd,← hko,h])) (fun h => hAB (by rw [← hkA,← hkB,h]))
+      (fun h => hAo (by rw [← hkA,← hko,h])) (fun h => hBo (by rw [← hkB,← hko,h])) hTs hBs
+      (by rw [hkA]; exact hcA) (by rw [hkB]; exact hcB) (by rw [hko]; exact hco) (by rw [hkd]; exact hcd)
+      (le_refl _) jfit hwJ (by omega) (Or.inl hOut) hwS (fun x hx => Or.inl (hJO x hx))
+      (fun x hx => ⟨Or.inl (hSO x hx).1,fun i => (hSO x hx).2 (e i)⟩) (fun x hx i => jsep x hx (e i)) K Pd NB
+      hK0 hPd0 hNB0 (fun x ⟨i,h⟩ => safe x ⟨e i,h⟩)
+      (fun x hx => by
+        rcases hx with ho | rfl | ht
+        · exact ⟨(hOutSafe x ho).1,by have := (hOutSafe x ho).2; omega⟩
+        · exact ⟨safe _ ⟨k16,Or.inl hc16.symm⟩,(sep _ (Or.inl rfl)).1⟩
+        · exact ⟨hawWs la H' lok x ht,(sep x (Or.inr ht)).1⟩)
+      (koWs_fixed (n := m) (c := fun i => c (e i)) (T := fun i => T (e i)) (ko := ko') (by show KoWsL SP0 FM K Pd NB (T (e ko')); rw [hko]; exact hkoWs) reg')))
+      ?_ (fun _ _ _ _ => trivial) (fun _ M' G' post => awR_of_awPost post)
+    intro L M G ⟨la0,hM,hG⟩
+    subst hM hG
+    exact ⟨⟨la0,reg',rfl,hH,hn⟩,hH⟩
+  · intro F s values callee rs _ H hG ⟨⟨lp,_⟩,_⟩ _ args lookup
+    unfold GIs at hG; subst hG
+    obtain ⟨v1,vs,rfl,ev1,_⟩ := evalList_cons' s _ _ _ args
+    have hv := hA s lp v1 ev1
+    subst hv
+    have ec := callee_eq originalRuntimeCode_createEther_lookup lookup
+    refine ⟨⟨?_,(ce_callee lookup).2.1⟩,rfl,rfl⟩
+    rw [ec]; rcases vs with _ | ⟨v2,vs⟩ <;> simp (config := {decide := true})
+
+#print axioms aqgd_call_createEther_aw
+end ca
+end InitECandidate.Runtime
