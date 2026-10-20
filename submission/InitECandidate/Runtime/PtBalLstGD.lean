@@ -111,5 +111,104 @@ theorem luPushTail {ps : List (MlS × BitVec 64)} (Lh E I P N Cp H : BitVec 64) 
     exact ⟨oh,Pn + N * E,Pn,N + 1#64,Cn,Hc,rfl,hd',hHc',le,by omega,by omega,hbuf',⟨N,by omega,eS⟩,alt,
       Or.inr eN1,fr⟩
 
+#print axioms luPushTail
+
+/-- The actual `lst_upsert_idx(l, esz, idx)` on a valid list header. -/
+theorem lstUpsertIdx_spec (Lh E I P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA)
+    (hL : Lh.toNat + 24 ≤ H.toNat) (hw : w.toNat < H.toNat) (hwh : ¬ HdW Lh w)
+    (hd : LHd Lh P N Cp M0) (hNC : N.toNat ≤ Cp.toNat) (hC0 : 0 < Cp.toNat) (hE1 : 1 ≤ E.toNat)
+    (hbuf : P.toNat + E.toNat * Cp.toNat ≤ H.toNat) (hsz : E.toNat * Cp.toNat * 2 < 2 ^ 64)
+    (hwB : ¬ (P.toNat ≤ w.toNat ∧ w.toNat < P.toNat + E.toNat * Cp.toNat))
+    (hbH : ∀ x : BitVec 64, P.toNat ≤ x.toNat → x.toNat < P.toNat + E.toNat * Cp.toNat → ¬ HdW Lh x) :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => True)
+      (fun L M G => (LK [(ofString "l",Lh),(ofString "esz",E),(ofString "idx",I)] L ∧ M = M0 ∧ HeapIs G H) ∧ G = Gk)
+      (fun _ _ _ => False) (LUPost Lh E P N Cp H M0 Gk) (sourceFunctionBody Guest.guestFn_lst_upsert_idx) := by
+  have hHl : H.toNat < 2 ^ 64 := H.isLt
+  have hCE : Cp.toNat ≤ E.toNat * Cp.toNat := Nat.le_mul_of_pos_left _ hE1
+  unfold sourceFunctionBody
+  rw [InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  simp only [Guest.guestFn_lst_upsert_idx,InitECandidate.Proofs.FrontendCodecComputation.declToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.funDeclToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.progToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expListToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.shapeToHOLStructural,List.map_cons,List.map_nil]
+  refine aqgd_conseq (P := fun L M G => LK [(ofString "l",Lh),(ofString "esz",E),(ofString "idx",I)] L ∧
+      ((M = M0 ∧ HeapIs G H) ∧ G = Gk)) ?_ (fun L M G ⟨⟨lk,hM,hH⟩,hG⟩ => ⟨lk,⟨hM,hH⟩,hG⟩) (fun _ _ _ h => h)
+    (fun _ _ _ h => h)
+  refine aqgd_lhdDec (Lh := Lh) (Qb := fun _ _ _ => False) (ofString "n") 8#64 N (by simp (config := {decide := true}))
+    (by simp) (fun M _ ⟨⟨hM,_⟩,_⟩ => by rw [hM]; exact hd.2.1) ?_ (fun _ _ _ _ _ _ _ h => h.elim)
+  refine aqgd_lhdDec (Lh := Lh) (Qb := fun _ _ _ => False) (ofString "p") 0#64 P (by simp (config := {decide := true}))
+    (by simp) (fun M _ ⟨⟨hM,_⟩,_⟩ => by rw [hM]; simp only [BitVec.add_zero]; exact hd.1) ?_
+    (fun _ _ _ _ _ _ _ h => h.elim)
+  refine aqgd_dec (ofString "i") .one _ (fun _ => rfl)
+    (Pb := fun L M G => ∃ Iv : BitVec 64, (LK (luPs Lh E I N P Iv) L ∧ ((M = M0 ∧ HeapIs G H) ∧ G = Gk)) ∧
+      Iv.toNat ≤ N.toNat)
+    (Qb := fun _ _ _ => False) (fun s v _ _ _ ⟨lk,rm⟩ _ ev _ => by
+      simp [EV,evalHOLExact] at ev; subst ev
+      exact ⟨0#64,⟨lk_cons lk _ _ (by simp (config := {decide := true})),rm⟩,by simp⟩) ?_
+    (fun _ _ _ _ _ _ _ h => h.elim)
+  refine aqgd_seq (aqgd_conseq (aqgd_whileE (Qb := fun _ _ _ => False) (E := fun _ _ _ => True)
+    (C := fun L _ _ => ∀ Iv : BitVec 64, L.lookup (ofString "i") = some (.val (.word Iv)) →
+      N.toNat < 2 ^ 63 ∧ Iv.toNat < N.toNat) _ ?_ (fun _ _ _ _ _ _ _ _ => trivial) ?_)
+    (fun _ _ _ h => h) (fun _ _ _ h => by rcases h with ⟨h,_⟩ | h; exact h; exact h.elim) (fun _ _ _ h => h)) ?_
+  · intro F s x _ _ ⟨Iv,⟨lk,_⟩,le⟩ _ ev hx Iv' hi'
+    have hi := lk (ofString "i",Iv) (by simp [luPs])
+    rw [hi] at hi'
+    simp only [Option.some.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq] at hi'
+    subst hi'
+    simp [EV,evalHOLExact,hi,lk (ofString "n",N) (by simp [luPs]),
+      slt_small (b := N) (show Iv.toNat < 2 ^ 63 by omega)] at ev
+    split at ev
+    · rename_i h; exact ⟨by omega,h.2⟩
+    · exact absurd ev.symm hx
+  · refine aqgb_of_aqgd (aqgd_conseq (P := fun L M G => ∃ Iv : BitVec 64,
+      ((LK (luPs Lh E I N P Iv) L ∧ ((M = M0 ∧ HeapIs G H) ∧ G = Gk)) ∧ Iv.toNat ≤ N.toNat) ∧
+        (N.toNat < 2 ^ 63 ∧ Iv.toNat < N.toNat))
+      (aqgd_exE (fun Iv => aqgd_pureE (fun hg => ?_)))
+      (fun L M G ⟨⟨Iv,h⟩,hc⟩ => ⟨Iv,h,hc Iv (h.1.1 (ofString "i",Iv) (by simp [luPs]))⟩) (fun _ _ _ h => h)
+      (fun _ _ _ h => h))
+    have eIE : (Iv * E).toNat = Iv.toNat * E.toNat := mul_nat (by
+      have := Nat.mul_le_mul_right E.toNat (show Iv.toNat ≤ Cp.toNat by omega); rw [Nat.mul_comm E.toNat] at hbuf; omega)
+    have eS : (P + Iv * E).toNat = P.toNat + Iv.toNat * E.toNat := by
+      rw [BitVec.toNat_add,eIE]; apply Nat.mod_eq_of_lt
+      have := Nat.mul_le_mul_right E.toNat (show Iv.toNat ≤ Cp.toNat by omega); rw [Nat.mul_comm E.toNat] at hbuf; omega
+    refine aqgd_seq (aqgd_ite (CT := fun _ _ _ => True) (CF := fun _ _ _ => True) _
+      (fun _ _ _ _ _ _ _ _ => ⟨fun _ => trivial,fun _ => trivial⟩)
+      (aqgd_return _ (fun s v G _ hG ⟨⟨⟨lk,⟨hM,hH⟩,hG'⟩,_⟩,_⟩ _ ev => ?_))
+      (aqgd_conseq aqgd_skip (fun _ _ _ h => h.1) (fun _ _ _ h => h) (fun _ _ _ h => h))) ?_
+    · unfold GIs at hG; subst hG hG'
+      simp [EV,evalHOLExact,evalListHOLExact,lk (ofString "p",P) (by simp [luPs]),lk (ofString "i",Iv) (by simp [luPs]),
+        lk (ofString "esz",E) (by simp [luPs]),wordOpHOL,wordOp,valueIsWord,valueWord,panOpHOL] at ev
+      subst ev
+      exact ⟨fun _ _ => rfl,P + Iv * E,P,N,Cp,H,rfl,by rw [hM]; exact hd,hH,le_refl _,hNC,hC0,hbuf,⟨Iv,hg.2,eS⟩,
+        Or.inl ⟨rfl,rfl⟩,Or.inl rfl,fun x _ _ _ => by rw [hM]⟩
+    · refine aqgd_assignLocal _ _ (fun s v _ _ ⟨⟨lk,rm⟩,_⟩ _ ev => ?_)
+      simp [EV,evalHOLExact,evalListHOLExact,lk (ofString "i",Iv) (by simp [luPs]),wordOpHOL,wordOp,valueIsWord,
+        valueWord] at ev
+      subst ev
+      have eI : (Iv + 1#64).toNat = Iv.toNat + 1 := by rw [BitVec.toNat_add]; simp; omega
+      refine ⟨Iv + 1#64,⟨fun q hq => ?_,rm⟩,by omega⟩
+      simp only [luPs,List.mem_cons,List.not_mem_nil,or_false] at hq
+      rcases hq with rfl | rfl | rfl | rfl | rfl | rfl
+      · exact lookup_update_eq' _ _ _
+      all_goals (dsimp only; rw [lookup_update_ne' _ _ (by decide)]
+                 first
+                 | exact lk (ofString "p",P) (by simp [luPs])
+                 | exact lk (ofString "n",N) (by simp [luPs])
+                 | exact lk (ofString "l",Lh) (by simp [luPs])
+                 | exact lk (ofString "esz",E) (by simp [luPs])
+                 | exact lk (ofString "idx",I) (by simp [luPs]))
+  · refine aqgd_ex (fun Iv => ?_)
+    refine aqgd_conseq (luPushTail (ps := luPs Lh E I N P Iv) Lh E I P N Cp H M0 Gk (fun q hq => by
+        simp only [List.mem_cons,List.not_mem_nil,or_false] at hq
+        rcases hq with rfl | rfl | rfl <;> simp [luPs])
+      (fun q hq => by
+        simp only [luPs,List.mem_cons,List.not_mem_nil,or_false] at hq
+        rcases hq with rfl | rfl | rfl | rfl | rfl | rfl <;> (dsimp only; decide))
+      hL hw hwh hd hNC hC0 hE1 hbuf hsz hwB hbH) (fun L M G ⟨⟨lk,⟨hM,hH⟩,hG⟩,_⟩ => ⟨⟨lk,hM,hH⟩,hG⟩)
+      (fun _ _ _ h => h) (fun _ _ _ h => h)
+
+#print axioms lstUpsertIdx_spec
 end lu
 end InitECandidate.Runtime
