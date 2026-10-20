@@ -1,4 +1,11 @@
-# encode_withdrawal_rlp window: state of play
+# encode_withdrawal_rlp window: COMPLETE
+
+`rlpEncodeWithdrawal_window` is proved: writing one withdrawal record touches
+no cell outside the freshly allocated 64-byte buffer at the heap pointer.  The
+allocatory step reuses the existing `alloc_memKeep` (`AccountLeafAnyAlloc`) and
+`alloc_body_returned` (`HtabGrowRehash`), so no new allocation theory was needed.
+
+## History
 
 ## Checked green (`pcheck.sh Runtime.RlpWithdrawalWriter`, axioms
 `propext, Classical.choice, Quot.sound`, no `sorry`)

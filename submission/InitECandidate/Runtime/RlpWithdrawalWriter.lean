@@ -6,6 +6,9 @@ import InitECandidate.Runtime.RlpEncodeWordWindow
 import InitECandidate.Runtime.RlpEncodeBytesWindow
 import InitECandidate.Runtime.RlpPutBeWindow
 import InitECandidate.Runtime.RlpCalleeValues
+import InitECandidate.Runtime.AccountLeafAnyAlloc
+import InitECandidate.Runtime.OriginalAllocationCode
+import InitECandidate.Runtime.PanSingleWordLookup
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -1003,5 +1006,75 @@ theorem wdDecP_window {F : Type} (t : PanSemStateFiniteExact 64 F)
   simpa [hbs,setVarHOLFinite] using key
 
 #print axioms wdDecP_window
+
+/-- Writing one withdrawal record touches no cell outside the freshly allocated sixty-four byte
+buffer starting at the heap pointer. -/
+theorem rlpEncodeWithdrawal_window {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (B W w : BitVec 64)
+    (heap : t.globals.lookup (ofString "heap_ptr") = some (.val (.word B)))
+    (hwd : t.locals.lookup (ofString "wd") = some (.val (.word W)))
+    (out : ¬ MWin B 64 w) (hB : B.toNat + 64 < 2 ^ 64)
+    (code : t.code = originalRuntimeCode) :
+    (evaluateHOLFiniteState t (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp)).2.memory w
+      = t.memory w := by
+  rw [source_rlpEncodeWithdrawal_body, rlpEncodeWithdrawal_eq]
+  set callee : HolFiniteMapExact MlS (ValueHOL 64) :=
+    HolFiniteMapExact.empty.update ((ofString "n"), .val (.word (64#64))) with hcallee
+  have args : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+      [.const (64#64)] = some [.val (.word (64#64))] := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact]
+  have installed : t.code.lookup (ofString "alloc") =
+      some ([(ofString "n",.one)],sourceFunctionBody Guest.guestFn_alloc,.one) := by
+    rw [code]; exact originalRuntimeCode_allocation_lookup
+  have lookup := pan_single_word_lookup t.code.lookup (ofString "alloc") (ofString "n")
+    (sourceFunctionBody Guest.guestFn_alloc) (64#64) installed
+  refine decCall_window t (ofString "buf") .one (ofString "alloc") [.const (64#64)] wdDecP w
+    [.val (.word (64#64))] (sourceFunctionBody Guest.guestFn_alloc) callee .one args lookup ?_ ?_
+  · rw [alloc_memKeep (callEntryStateHOLFinite t callee)
+      (by rw [callEntryStateHOLFinite]; exact code)]
+    rfl
+  · intro value base bodyRun hshapeOK hshapeR k
+    have entryHeap : (callEntryStateHOLFinite t callee).globals.lookup (ofString "heap_ptr")
+        = some (.val (.word B)) := by
+      rw [callEntryStateHOLFinite]; exact heap
+    have entrySize : (callEntryStateHOLFinite t callee).locals.lookup (ofString "n")
+        = some (.val (.word (64#64))) := by
+      simp [hcallee,callEntryStateHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    have entryCode : (callEntryStateHOLFinite t callee).code = originalRuntimeCode := by
+      rw [callEntryStateHOLFinite]; exact code
+    obtain ⟨-, -, hval, -, -, -, -, -⟩ := alloc_body_returned (callEntryStateHOLFinite t callee)
+      base B (64#64) entryCode entryHeap entrySize value bodyRun
+    have basemem : base.memory w = t.memory w := by
+      have kept := alloc_memKeep (callEntryStateHOLFinite t callee) entryCode
+      rw [bodyRun] at kept
+      change base.memory = (callEntryStateHOLFinite t callee).memory at kept
+      rw [kept]
+      rfl
+    have basecode : base.code = originalRuntimeCode := by
+      have met := (evaluateHOLFiniteState_metadata (callEntryStateHOLFinite t callee)
+        (sourceFunctionBody Guest.guestFn_alloc)).1
+      rw [bodyRun] at met
+      exact met.trans entryCode
+    rw [hval]
+    set st := setVarHOLFinite (ofString "buf") (.val (.word B))
+      {base with clock := k, locals := t.locals} with hst
+    have hb : st.locals.lookup (ofString "buf") = some (.val (.word B)) := by
+      simp only [hst,setVarHOLFinite]
+      exact lookup_setVar_eq _ _ _
+    have hwdl : st.locals.lookup (ofString "wd") = some (.val (.word W)) := by
+      simp [hst,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,hwd,
+        show ofString "buf" ≠ ofString "wd" by decide]
+    have stcode : st.code = originalRuntimeCode := by
+      simp only [hst,setVarHOLFinite]
+      exact basecode
+    have key := wdDecP_window st B W w out hB hb hwdl stcode
+    have goalEq : st.memory w = t.memory w := by
+      simpa [hst,setVarHOLFinite] using basemem
+    rw [show wdDecP = (.dec (ofString "p") .one
+      (.op .add [.var .local (ofString "buf"), .const (9#64)]) wdCall0) from rfl]
+    rw [key]
+    exact goalEq
+
+#print axioms rlpEncodeWithdrawal_window
 
 end InitECandidate.Runtime
