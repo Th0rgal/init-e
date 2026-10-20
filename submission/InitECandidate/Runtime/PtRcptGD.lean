@@ -305,4 +305,476 @@ theorem addToBloom_wn (Lo Sc K Pd Bl : BitVec 64) (hK0 : G0.lookup (ofString "ke
 
 #print axioms addToBloom_wn
 end atb
+def lbBody : ProgHOL 64 :=
+  (.seq (.call (some (none,none)) (ofString "memzero") [(.var .local (ofString "out")),(.const 256)]) (.dec (ofString "n") .one (.load .one (.op .add [(.var .local (ofString "logs")),(.const 8)])) (.dec (ofString "p") .one (.load .one (.op .add [(.var .local (ofString "logs")),(.const 0)])) (.dec (ofString "i") .one (.const 0) (.seq (.while (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "n"))) (.dec (ofString "log") .one (.load .one (.op .add [(.var .local (ofString "p")),(.panop .mul [(.var .local (ofString "i")),(.const 8)])])) (.seq (.call (some (none,none)) (ofString "add_to_bloom") [(.var .local (ofString "out")),(.load .one (.op .add [(.var .local (ofString "log")),(.const 0)])),(.const 20)]) (.dec (ofString "nt") .one (.load .one (.op .add [(.var .local (ofString "log")),(.const 16)])) (.dec (ofString "j") .one (.const 0) (.seq (.while (.cmp .less (.var .local (ofString "j")) (.var .local (ofString "nt"))) (.seq (.call (some (none,none)) (ofString "add_to_bloom") [(.var .local (ofString "out")),(.op .add [(.load .one (.op .add [(.var .local (ofString "log")),(.const 8)])),(.panop .mul [(.var .local (ofString "j")),(.const 32)])]),(.const 32)]) (.assign .local (ofString "j") (.op .add [(.var .local (ofString "j")),(.const 1)])))) (.assign .local (ofString "i") (.op .add [(.var .local (ofString "i")),(.const 1)])))))))) (.return (.const 0)))))))
+
+theorem lbBody_eq : sourceFunctionBody Guest.guestFn_logs_bloom = lbBody := by
+  unfold sourceFunctionBody
+  rw [InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  simp only [Guest.guestFn_logs_bloom,InitECandidate.Proofs.FrontendCodecComputation.declToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.funDeclToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.progToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expListToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.shapeToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.shapeListToHOLStructural,List.map_cons,List.map_nil,
+    Option.map_some,Option.map_none]
+  rfl
+
+
+section lb
+variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {SP0 P0 FM J C SKB Nj : BitVec 64} {G0 : GA}
+
+/-- `add_to_bloom(out, e, k)` at a call site with `out = Bl`, keeping any locals predicate and `RG Lo Sc`. -/
+theorem atbCall (Lo Sc K Pd Bl : BitVec 64) (hK0 : G0.lookup (ofString "keccak_st") = some (.val (.word K)))
+    (hPd0 : G0.lookup (ofString "keccak_pad") = some (.val (.word Pd))) (hw : w.toNat < Lo.toNat)
+    (oK : ¬ MWin K 200 w) (oP : ¬ MWin Pd 136 w) (hLo8 : Lo.toNat % 8 = 0) (hBl : Lo.toNat ≤ Bl.toNat)
+    (hBlE : Bl.toNat + 2 ^ 61 < 2 ^ 64) {LP : GA → Prop}
+    (hout : ∀ L, LP L → L.lookup (ofString "out") = some (.val (.word Bl))) (e k : ExpHOL 64)
+    {RR : ValueHOL 64 → Mem → GA → Prop} :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) (fun L _ G => LP L ∧ RG Lo Sc G)
+      (fun L _ G => LP L ∧ RG Lo Sc G) RR
+      (.call (some (none,none)) (ofString "add_to_bloom") [.var .local (ofString "out"),e,k]) :=
+  rcallK (GP := RG Lo Sc) (LP := LP) (Rv := fun _ => True)
+    (fun L => L.lookup (ofString "bloom") = some (.val (.word Bl)) ∧
+      (∃ E : BitVec 64, L.lookup (ofString "entry") = some (.val (.word E))) ∧
+      (∃ N : BitVec 64, L.lookup (ofString "n") = some (.val (.word N)))) _ _ _ _ _ originalRuntimeCode_addToBloom_lookup
+    (aqgd_conseq (addToBloom_wn Lo Sc K Pd Bl hK0 hPd0 hw oK oP hLo8 hBl hBlE) (fun _ _ _ h => h) (fun _ _ _ h => h)
+      (fun _ _ _ h => ⟨trivial,h⟩))
+    (fun s values callee rs lp args lookup => by
+      obtain ⟨v1,vs,rfl,ev1,r1⟩ := evalList_cons' s _ _ _ args
+      obtain ⟨v2,vs2,rfl,_,r2⟩ := evalList_cons' s _ _ _ r1
+      obtain ⟨v3,vs3,rfl,_,r3⟩ := evalList_cons' s _ _ _ r2
+      have := evalList_nil' s _ r3; subst this
+      simp [EV,evalHOLExact,hout _ lp] at ev1; subst ev1
+      obtain ⟨_,a,b,_,rfl,rfl⟩ := entry3_words originalRuntimeCode_addToBloom_lookup lookup
+      have e := callee_eq originalRuntimeCode_addToBloom_lookup lookup
+      exact ⟨by rw [e]; simp (config := {decide := true}),⟨a,by rw [e]; simp (config := {decide := true})⟩,
+        ⟨b,by rw [e]; simp (config := {decide := true})⟩⟩)
+
+/-- The actual `logs_bloom(logs, out)`: the 256-byte bloom at `out = Bl` zeroed, then bits set per address and topic;
+writes only at or above `Bl` and in the Keccak windows (watched form); `RG Lo Sc` kept. -/
+theorem logsBloom_wn (Lo Sc K Pd Bl : BitVec 64) (hK0 : G0.lookup (ofString "keccak_st") = some (.val (.word K)))
+    (hPd0 : G0.lookup (ofString "keccak_pad") = some (.val (.word Pd))) (hw : w.toNat < Lo.toNat)
+    (oK : ¬ MWin K 200 w) (oP : ¬ MWin Pd 136 w) (hLo8 : Lo.toNat % 8 = 0) (hBl : Lo.toNat ≤ Bl.toNat)
+    (hBlE : Bl.toNat + 2 ^ 61 < 2 ^ 64) :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False)
+      (fun L _ G => L.lookup (ofString "out") = some (.val (.word Bl)) ∧ RG Lo Sc G)
+      (fun _ _ _ => False) (fun _ _ G => RG Lo Sc G)
+      (sourceFunctionBody Guest.guestFn_logs_bloom) := by
+  rw [lbBody_eq]; unfold lbBody
+  let LO := fun L : GA => L.lookup (ofString "out") = some (.val (.word Bl))
+  let I := fun L (_ : Mem) G => LO L ∧ RG Lo Sc G
+  have ou : ∀ (x : MlS), ofString "out" ≠ x → ∀ L v, LO L → LO (L.update (x,v)) :=
+    fun x hx L v h => by show (L.update (x,v)).lookup _ = _; rw [lookup_update_ne' _ _ hx]; exact h
+  have orr : ∀ (x : MlS), ofString "out" ≠ x → ∀ L o, LO L → LO (L.resVarEq (x,o)) :=
+    fun x hx L o h => by show (L.resVarEq (x,o)).lookup _ = _; rw [resVarEq_lookup_ne' _ _ _ _ hx]; exact h
+  have dk : ∀ (x : MlS), ofString "out" ≠ x → ∀ {body : ProgHOL 64} (init : ExpHOL 64)
+      {Qb Q' : GA → Mem → GA → Prop},
+      (∀ L o M G, Qb L M G → Q' (L.resVarEq (x,o)) M G) →
+      AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) I Qb (fun _ _ G => RG Lo Sc G) body →
+      AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => False) I Q' (fun _ _ G => RG Lo Sc G)
+        (.dec x .one init body) :=
+    fun x hx _ init _ _ hQ hb => aqgd_dec (Pb := I) _ _ _ (fun h => h.elim)
+      (fun s v _ _ _ pre _ _ _ => ⟨ou x hx _ v pre.1,pre.2⟩) hb
+      (fun _ _ _ _ _ _ _ q => hQ _ _ _ _ q)
+  have keepI : ∀ (x : MlS), ofString "out" ≠ x → ∀ L o M G, I L M G → I (L.resVarEq (x,o)) M G :=
+    fun x hx L o M G q => ⟨orr x hx _ _ q.1,q.2⟩
+  have oBl : ¬ MWin Bl (256#64).toNat w := mwin_lo hLo8 hBl (by simp; omega) hw
+  -- memzero(out, 256)
+  refine aqgd_seq (aqgd_callSpec (Vn' := fun _ => False)
+    (Pe := fun (_ : GA) (M0' : Mem) (G0' : GA) (L : GA) (M : Mem) (G : GA) =>
+      (L.lookup (ofString "dst") = some (.val (.word Bl)) ∧ L.lookup (ofString "n") = some (.val (.word 256#64))) ∧
+        M = M0' ∧ G = G0')
+    (RRe := fun (_ : GA) (M0' : Mem) (G0' : GA) (_ : ValueHOL 64) (M' : Mem) (G' : GA) =>
+      G' = G0' ∧ ∀ x, ¬ MWin Bl (256#64).toNat x → M' x = M0' x)
+    (Q := I) _ _ _ _ _ originalRuntimeCode_memzero_lookup (by simp)
+    (fun _ M0' G0' _ => memzero_wn Bl 256#64 (by decide) oBl M0' G0') ?_ ?_) ?_
+  · intro F s values callee rs _ H hG ⟨lo,_⟩ _ args lookup
+    unfold GIs at hG; subst hG
+    obtain ⟨v1,vs,rfl,ev1,r1⟩ := evalList_cons' s _ _ _ args
+    obtain ⟨v2,vs2,rfl,ev2,r2⟩ := evalList_cons' s _ _ _ r1
+    have := evalList_nil' s _ r2; subst this
+    simp [EV,evalHOLExact,lo] at ev1; subst ev1
+    simp [EV,evalHOLExact] at ev2; subst ev2
+    have e := callee_eq originalRuntimeCode_memzero_lookup lookup
+    exact ⟨⟨by rw [e]; simp (config := {decide := true}),by rw [e]; simp (config := {decide := true})⟩,rfl,rfl⟩
+  · intro L M G v M' G' ⟨lo,rg⟩ ⟨hG,_⟩
+    subst hG
+    exact ⟨lo,rg⟩
+  have call := fun (e k : ExpHOL 64) => atbCall (D := D) (B := B) (SP0 := SP0) (P0 := P0) (FM := FM) (J := J)
+    (C := C) (SKB := SKB) (Nj := Nj) (w := w) (RR := fun _ _ G => RG Lo Sc G) Lo Sc K Pd Bl hK0 hPd0 hw oK oP hLo8
+    hBl hBlE (LP := LO) (fun L h => h) e k
+  refine dk (ofString "n") (by decide) _ (Qb := fun _ _ _ => False) (fun _ _ _ _ h => h.elim) ?_
+  refine dk (ofString "p") (by decide) _ (Qb := fun _ _ _ => False) (fun _ _ _ _ h => h.elim) ?_
+  refine dk (ofString "i") (by decide) _ (Qb := fun _ _ _ => False) (fun _ _ _ _ h => h.elim) ?_
+  refine aqgd_seq (aqgd_whileI _ ?_) (aqgd_return _ (fun _ _ _ _ _ pre _ _ => pre.2))
+  refine aqgd_conseq (P := I) ?_ (fun _ _ _ h => h.1) (fun _ _ _ h => h) (fun _ _ _ h => h)
+  refine dk (ofString "log") (by decide) _ (keepI _ (by decide)) ?_
+  refine aqgd_seq (call _ _) ?_
+  refine dk (ofString "nt") (by decide) _ (keepI _ (by decide)) ?_
+  refine dk (ofString "j") (by decide) _ (keepI _ (by decide)) ?_
+  refine aqgd_seq (aqgd_whileI _ ?_) ?_
+  · refine aqgd_conseq (P := I) ?_ (fun _ _ _ h => h.1) (fun _ _ _ h => h) (fun _ _ _ h => h)
+    exact aqgd_seq (call _ _) (aqgd_assignLocal _ _ (fun s v _ _ pre _ _ => ⟨ou _ (by decide) _ v pre.1,pre.2⟩))
+  exact aqgd_assignLocal _ _ (fun s v _ _ pre _ _ => ⟨ou _ (by decide) _ v pre.1,pre.2⟩)
+
+#print axioms logsBloom_wn
+end lb
+
+section cw
+variable {D : BitVec 64 → Prop} {B : Bool} {A : GA → Prop} {w : BitVec 64} {DF : Nat}
+  {RR : ValueHOL 64 → Mem → GA → Prop}
+
+/-- `w = rlp_encode_bytes(cur, e2, e3)` (result-assigning): `cur + w ≤ DF + 8` after the call. -/
+theorem cab_call {LP : GA → Prop} (cur : MlS) (hcw : cur ≠ ofString "w") (e2 e3 : ExpHOL 64)
+    (hF : Fence D DF) (hDF : DF ≤ 2 ^ 62) (Lo : BitVec 64) (hLo8 : Lo.toNat % 8 = 0) (hw : w.toNat < Lo.toNat)
+    (hcur : ∀ L, LP L → ∃ Cv : BitVec 64, L.lookup cur = some (.val (.word Cv)) ∧ Lo.toNat ≤ Cv.toNat ∧
+      Cv.toNat + 16 < 2 ^ 64)
+    (hup : ∀ L v, LP L → LP (L.update (ofString "w",v))) :
+    AQGD D B A w (fun _ => False) (fun L _ _ => LP L)
+      (fun L _ _ => LP L ∧ ∃ Cv R : BitVec 64, L.lookup cur = some (.val (.word Cv)) ∧
+        L.lookup (ofString "w") = some (.val (.word R)) ∧ Cv.toNat + R.toNat ≤ DF + 8) RR
+      (.call (some (some (.local,ofString "w"),none)) (ofString "rlp_encode_bytes") [.var .local cur,e2,e3]) := by
+  refine aqgd_callAssignFS (Vn' := fun _ => False)
+    (Pe := fun (L0 : GA) (_ : Mem) (_ : GA) (L : GA) (_ : Mem) (_ : GA) =>
+      ∃ Nn : BitVec 64, L.lookup (ofString "dst") = some (.val (.word (wordOf L0 cur))) ∧
+        L.lookup (ofString "n") = some (.val (.word Nn)))
+    (RRe := fun (L0 : GA) (_ : Mem) (_ : GA) (r : ValueHOL 64) (_ : Mem) (_ : GA) => WRet DF (wordOf L0 cur) r)
+    _ _ _ _ _ _ originalRuntimeCode_rlpEncodeBytes_lookup (fun _ _ _ _ _ h => h.elim) (fun h => h) ?_ ?_ ?_
+  · intro L0 _ _ lp
+    obtain ⟨Cv,hc,lo,fit⟩ := hcur L0 lp
+    rw [wordOf_eq hc]
+    refine aqgd_exE (fun Nn => ?_)
+    exact aqgd_conseq (encodeBytes_win (A := A) (B := B) hF hDF Lo hLo8 hw Cv Nn lo fit) (fun _ _ _ h => h)
+      (fun _ _ _ h => h.elim) (fun _ _ _ h => h)
+  · intro F s values callee rs _ G hG lp _ args lookup
+    obtain ⟨Cv,hc,_,_⟩ := hcur _ lp
+    obtain ⟨v1,vs,rfl,ev1,r1⟩ := evalList_cons' s _ _ _ args
+    obtain ⟨v2,vs2,rfl,_,r2⟩ := evalList_cons' s _ _ _ r1
+    obtain ⟨v3,vs3,rfl,_,r3⟩ := evalList_cons' s _ _ _ r2
+    have := evalList_nil' s _ r3; subst this
+    simp [EV,evalHOLExact,hc] at ev1; subst ev1
+    obtain ⟨_,_,c3,_,_,rfl⟩ := entry3_words originalRuntimeCode_rlpEncodeBytes_lookup lookup
+    have e := callee_eq originalRuntimeCode_rlpEncodeBytes_lookup lookup
+    rw [wordOf_eq hc]
+    exact ⟨c3,by rw [e]; simp (config := {decide := true}),by rw [e]; simp (config := {decide := true})⟩
+  · intro L _ _ v _ _ lp ⟨R,hr,hb⟩
+    subst hr
+    obtain ⟨Cv,hc,_,_⟩ := hcur _ lp
+    rw [wordOf_eq hc] at hb
+    exact ⟨hup _ _ lp,Cv,R,by rw [lookup_update_ne' _ _ hcw]; exact hc,lookup_update_eq' _ _ _,hb⟩
+
+#print axioms cab_call
+
+/-- `w = rlp_finish_list(d, cur)` (result-assigning) with `d + 9 ≤ cur ≤ DF + 8`: `d + w ≤ DF + 8`. -/
+theorem fl_call {LP : GA → Prop} (d cur : MlS) (hdw : d ≠ ofString "w") (hF : Fence D DF) (hDF : DF ≤ 2 ^ 62)
+    (Lo : BitVec 64) (hLo8 : Lo.toNat % 8 = 0) (hw : w.toNat < Lo.toNat)
+    (hcur : ∀ L, LP L → ∃ Dv Cv : BitVec 64, L.lookup d = some (.val (.word Dv)) ∧
+      L.lookup cur = some (.val (.word Cv)) ∧ Lo.toNat ≤ Dv.toNat ∧ Dv.toNat + 9 ≤ Cv.toNat ∧ Cv.toNat ≤ DF + 8)
+    (hup : ∀ L v, LP L → LP (L.update (ofString "w",v))) :
+    AQGD D B A w (fun _ => False) (fun L _ _ => LP L)
+      (fun L _ _ => LP L ∧ ∃ Dv R : BitVec 64, L.lookup d = some (.val (.word Dv)) ∧
+        L.lookup (ofString "w") = some (.val (.word R)) ∧ Dv.toNat + R.toNat ≤ DF + 8) RR
+      (.call (some (some (.local,ofString "w"),none)) (ofString "rlp_finish_list") [.var .local d,.var .local cur]) := by
+  refine aqgd_callAssignFS (Vn' := fun _ => False)
+    (Pe := fun (L0 : GA) (_ : Mem) (_ : GA) (L : GA) (_ : Mem) (_ : GA) =>
+      L.lookup (ofString "dst") = some (.val (.word (wordOf L0 d))) ∧
+        L.lookup (ofString "payload_end") = some (.val (.word (wordOf L0 cur))))
+    (RRe := fun (L0 : GA) (_ : Mem) (_ : GA) (r : ValueHOL 64) (_ : Mem) (_ : GA) => WRet DF (wordOf L0 d) r)
+    _ _ _ _ _ _ originalRuntimeCode_rlpFinishList_lookup (fun _ _ _ _ _ h => h.elim) (fun h => h) ?_ ?_ ?_
+  · intro L0 _ _ lp
+    obtain ⟨Dv,Cv,hd,hc,lo,h9,hi⟩ := hcur L0 lp
+    rw [wordOf_eq hd,wordOf_eq hc]
+    exact aqgd_conseq (finishList_win (A := A) (B := B) hF hDF Lo hLo8 hw Dv Cv lo h9 hi) (fun _ _ _ h => h)
+      (fun _ _ _ h => h.elim) (fun _ _ _ h => h)
+  · intro F s values callee rs _ G hG lp _ args lookup
+    obtain ⟨Dv,Cv,hd,hc,_⟩ := hcur _ lp
+    obtain ⟨v1,vs,rfl,ev1,r1⟩ := evalList_cons' s _ _ _ args
+    obtain ⟨v2,vs2,rfl,ev2,r2⟩ := evalList_cons' s _ _ _ r1
+    have := evalList_nil' s _ r2; subst this
+    simp [EV,evalHOLExact,hd] at ev1; subst ev1
+    simp [EV,evalHOLExact,hc] at ev2; subst ev2
+    have e := callee_eq originalRuntimeCode_rlpFinishList_lookup lookup
+    rw [wordOf_eq hd,wordOf_eq hc]
+    exact ⟨by rw [e]; simp (config := {decide := true}),by rw [e]; simp (config := {decide := true})⟩
+  · intro L _ _ v _ _ lp ⟨R,hr,hb⟩
+    subst hr
+    obtain ⟨Dv,Cv,hd,_⟩ := hcur _ lp
+    rw [wordOf_eq hd] at hb
+    exact ⟨hup _ _ lp,Dv,R,by rw [lookup_update_ne' _ _ hdw]; exact hd,lookup_update_eq' _ _ _,hb⟩
+
+#print axioms fl_call
+end cw
+
+/-- Outer-loop state of `encode_logs`: `dst = Dst`, `q = Q` with `Dst + 9 ≤ Q ≤ DF + 17`. -/
+def ELO (Dst : BitVec 64) (DF : Nat) (L : GA) : Prop :=
+  L.lookup (ofString "dst") = some (.val (.word Dst)) ∧ ∃ Q : BitVec 64, L.lookup (ofString "q") = some (.val (.word Q)) ∧
+    Dst.toNat + 9 ≤ Q.toNat ∧ Q.toNat ≤ DF + 17
+
+theorem elo_upd {Dst : BitVec 64} {DF : Nat} {L : GA} (h : ELO Dst DF L) (x : MlS) (v : ValueHOL 64)
+    (h1 : ofString "dst" ≠ x) (h2 : ofString "q" ≠ x) : ELO Dst DF (L.update (x,v)) :=
+  let ⟨hd,Q,hq,a,b⟩ := h
+  ⟨by rw [lookup_update_ne' _ _ h1]; exact hd,Q,by rw [lookup_update_ne' _ _ h2]; exact hq,a,b⟩
+
+theorem elo_res {Dst : BitVec 64} {DF : Nat} {L : GA} (h : ELO Dst DF L) (x : MlS) (o : Option (ValueHOL 64))
+    (h1 : ofString "dst" ≠ x) (h2 : ofString "q" ≠ x) : ELO Dst DF (L.resVarEq (x,o)) :=
+  let ⟨hd,Q,hq,a,b⟩ := h
+  ⟨by rw [resVarEq_lookup_ne' _ _ _ _ h1]; exact hd,Q,by rw [resVarEq_lookup_ne' _ _ _ _ h2]; exact hq,a,b⟩
+
+def elBody : ProgHOL 64 :=
+  (.dec (ofString "n") .one (.load .one (.op .add [(.var .local (ofString "logs")),(.const 8)])) (.dec (ofString "p") .one (.load .one (.op .add [(.var .local (ofString "logs")),(.const 0)])) (.dec (ofString "q") .one (.op .add [(.var .local (ofString "dst")),(.const 9)]) (.dec (ofString "i") .one (.const 0) (.seq (.while (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "n"))) (.dec (ofString "log") .one (.load .one (.op .add [(.var .local (ofString "p")),(.panop .mul [(.var .local (ofString "i")),(.const 8)])])) (.dec (ofString "r") .one (.op .add [(.var .local (ofString "q")),(.const 9)]) (.decCall (ofString "w") .one (ofString "rlp_encode_bytes") [(.var .local (ofString "r")),(.load .one (.op .add [(.var .local (ofString "log")),(.const 0)])),(.const 20)] (.seq (.assign .local (ofString "r") (.op .add [(.var .local (ofString "r")),(.var .local (ofString "w"))])) (.dec (ofString "tstart") .one (.var .local (ofString "r")) (.dec (ofString "t") .one (.op .add [(.var .local (ofString "r")),(.const 9)]) (.dec (ofString "nt") .one (.load .one (.op .add [(.var .local (ofString "log")),(.const 16)])) (.dec (ofString "j") .one (.const 0) (.seq (.while (.cmp .less (.var .local (ofString "j")) (.var .local (ofString "nt"))) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_bytes") [(.var .local (ofString "t")),(.op .add [(.load .one (.op .add [(.var .local (ofString "log")),(.const 8)])),(.panop .mul [(.var .local (ofString "j")),(.const 32)])]),(.const 32)]) (.seq (.assign .local (ofString "t") (.op .add [(.var .local (ofString "t")),(.var .local (ofString "w"))])) (.assign .local (ofString "j") (.op .add [(.var .local (ofString "j")),(.const 1)]))))) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_finish_list") [(.var .local (ofString "tstart")),(.var .local (ofString "t"))]) (.seq (.assign .local (ofString "r") (.op .add [(.var .local (ofString "tstart")),(.var .local (ofString "w"))])) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_bytes") [(.var .local (ofString "r")),(.load .one (.op .add [(.var .local (ofString "log")),(.const 24)])),(.load .one (.op .add [(.var .local (ofString "log")),(.const 32)]))]) (.seq (.assign .local (ofString "r") (.op .add [(.var .local (ofString "r")),(.var .local (ofString "w"))])) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_finish_list") [(.var .local (ofString "q")),(.var .local (ofString "r"))]) (.seq (.assign .local (ofString "q") (.op .add [(.var .local (ofString "q")),(.var .local (ofString "w"))])) (.assign .local (ofString "i") (.op .add [(.var .local (ofString "i")),(.const 1)])))))))))))))))))) (.decCall (ofString "total") .one (ofString "rlp_finish_list") [(.var .local (ofString "dst")),(.var .local (ofString "q"))] (.return (.var .local (ofString "total")))))))))
+
+theorem elBody_eq : sourceFunctionBody Guest.guestFn_encode_logs = elBody := by
+  unfold sourceFunctionBody
+  rw [InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  simp only [Guest.guestFn_encode_logs,InitECandidate.Proofs.FrontendCodecComputation.declToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.funDeclToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.progToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expListToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.shapeToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.shapeListToHOLStructural,List.map_cons,List.map_nil,
+    Option.map_some,Option.map_none]
+  rfl
+
+
+section el
+variable {D : BitVec 64 → Prop} {B : Bool} {A : GA → Prop} {w : BitVec 64} {DF : Nat}
+  {RR : ValueHOL 64 → Mem → GA → Prop}
+
+/-- One iteration of the outer `encode_logs` loop keeps `ELO`. -/
+theorem elIter (hF : Fence D DF) (hDF : DF + 9 ≤ 2 ^ 62) (Lo : BitVec 64) (hLo8 : Lo.toNat % 8 = 0)
+    (hw : w.toNat < Lo.toNat) (Dst : BitVec 64) (hLD : Lo.toNat ≤ Dst.toNat) :
+    AQGD D B A w (fun _ => False) (fun L _ _ => ELO Dst DF L ∧ True) (fun L _ _ => ELO Dst DF L) RR
+      (.dec (ofString "log") .one (.load .one (.op .add [(.var .local (ofString "p")),(.panop .mul [(.var .local (ofString "i")),(.const 8)])])) (.dec (ofString "r") .one (.op .add [(.var .local (ofString "q")),(.const 9)]) (.decCall (ofString "w") .one (ofString "rlp_encode_bytes") [(.var .local (ofString "r")),(.load .one (.op .add [(.var .local (ofString "log")),(.const 0)])),(.const 20)] (.seq (.assign .local (ofString "r") (.op .add [(.var .local (ofString "r")),(.var .local (ofString "w"))])) (.dec (ofString "tstart") .one (.var .local (ofString "r")) (.dec (ofString "t") .one (.op .add [(.var .local (ofString "r")),(.const 9)]) (.dec (ofString "nt") .one (.load .one (.op .add [(.var .local (ofString "log")),(.const 16)])) (.dec (ofString "j") .one (.const 0) (.seq (.while (.cmp .less (.var .local (ofString "j")) (.var .local (ofString "nt"))) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_bytes") [(.var .local (ofString "t")),(.op .add [(.load .one (.op .add [(.var .local (ofString "log")),(.const 8)])),(.panop .mul [(.var .local (ofString "j")),(.const 32)])]),(.const 32)]) (.seq (.assign .local (ofString "t") (.op .add [(.var .local (ofString "t")),(.var .local (ofString "w"))])) (.assign .local (ofString "j") (.op .add [(.var .local (ofString "j")),(.const 1)]))))) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_finish_list") [(.var .local (ofString "tstart")),(.var .local (ofString "t"))]) (.seq (.assign .local (ofString "r") (.op .add [(.var .local (ofString "tstart")),(.var .local (ofString "w"))])) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_encode_bytes") [(.var .local (ofString "r")),(.load .one (.op .add [(.var .local (ofString "log")),(.const 24)])),(.load .one (.op .add [(.var .local (ofString "log")),(.const 32)]))]) (.seq (.assign .local (ofString "r") (.op .add [(.var .local (ofString "r")),(.var .local (ofString "w"))])) (.seq (.call (some ((some (.local,ofString "w")),none)) (ofString "rlp_finish_list") [(.var .local (ofString "q")),(.var .local (ofString "r"))]) (.seq (.assign .local (ofString "q") (.op .add [(.var .local (ofString "q")),(.var .local (ofString "w"))])) (.assign .local (ofString "i") (.op .add [(.var .local (ofString "i")),(.const 1)]))))))))))))))))) := by
+  have hF9 : Fence D (DF + 9) := fence_mono hF (by omega)
+  have hDF0 : DF ≤ 2 ^ 62 := by omega
+  -- log
+  refine r_dec (LB := ELO Dst DF) (LQ' := ELO Dst DF) _ _ _ (fun h => h.elim)
+    (fun s v _ h ev => elo_upd h.1 _ v (by decide) (by decide)) ?_
+    (fun _ _ _ q => elo_res q _ _ (by decide) (by decide))
+  -- r = q + 9
+  let S1 := fun L : GA => L.lookup (ofString "dst") = some (.val (.word Dst)) ∧ ∃ Q : BitVec 64,
+    L.lookup (ofString "q") = some (.val (.word Q)) ∧ Dst.toNat + 9 ≤ Q.toNat ∧ Q.toNat ≤ DF + 17 ∧
+    L.lookup (ofString "r") = some (.val (.word (Q + 9#64)))
+  refine r_dec (LB := S1) (LQ' := ELO Dst DF) _ _ _ (fun h => h.elim) (fun s v _ ⟨hd,Q,hq,a,b⟩ ev => ?_) ?_
+    (fun _ _ _ q => elo_res q _ _ (by decide) (by decide))
+  · simp [EV,evalHOLExact,evalListHOLExact,hq,wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    exact ⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q,by rw [lookup_update_ne' _ _ (by decide)]; exact hq,
+      a,b,lookup_update_eq' _ _ _⟩
+  -- w = rlp_encode_bytes(r, lds (log + 0), 20)
+  let S2 := fun L : GA => L.lookup (ofString "dst") = some (.val (.word Dst)) ∧ ∃ Q : BitVec 64,
+    L.lookup (ofString "q") = some (.val (.word Q)) ∧ Dst.toNat + 9 ≤ Q.toNat ∧ Q.toNat ≤ DF + 17 ∧
+    ∃ R1 : BitVec 64, L.lookup (ofString "r") = some (.val (.word R1)) ∧ Q.toNat + 9 ≤ R1.toNat ∧ R1.toNat ≤ DF + 8
+  refine aqgd_decCallSpecF
+    (Pe := fun (L0 : GA) (_ : Mem) (_ : GA) (L : GA) (_ : Mem) (_ : GA) =>
+      ∃ Nn : BitVec 64, L.lookup (ofString "dst") = some (.val (.word (wordOf L0 (ofString "r")))) ∧
+        L.lookup (ofString "n") = some (.val (.word Nn)))
+    (RRe := fun (L0 : GA) (_ : Mem) (_ : GA) (r : ValueHOL 64) (_ : Mem) (_ : GA) => WRet DF (wordOf L0 (ofString "r")) r)
+    (Pc := fun L _ _ => L.lookup (ofString "dst") = some (.val (.word Dst)) ∧ ∃ Q : BitVec 64,
+      L.lookup (ofString "q") = some (.val (.word Q)) ∧ Dst.toNat + 9 ≤ Q.toNat ∧ Q.toNat ≤ DF + 17 ∧
+      ∃ R0 W : BitVec 64, L.lookup (ofString "r") = some (.val (.word R0)) ∧
+        L.lookup (ofString "w") = some (.val (.word W)) ∧ Q.toNat + 9 ≤ R0.toNat ∧ R0.toNat + W.toNat ≤ DF + 8)
+    (Qc := fun L _ _ => ELO Dst DF L) _ _ _ _ _ _ _ originalRuntimeCode_rlpEncodeBytes_lookup ?_ ?_ (fun h => h.elim) ?_ ?_
+    (fun _ _ _ _ _ _ _ q => elo_res q _ _ (by decide) (by decide))
+  · intro L0 _ _ ⟨_,Q,_,a,b,hr⟩
+    rw [wordOf_eq hr]
+    have e : (Q + 9#64).toNat = Q.toNat + 9 := by simp [BitVec.toNat_add]; omega
+    exact aqgd_exE (fun Nn => aqgd_conseq (encodeBytes_win (A := A) (B := B) hF hDF0 Lo hLo8 hw (Q + 9#64) Nn
+      (by omega) (by omega)) (fun _ _ _ h => h) (fun _ _ _ h => h.elim) (fun _ _ _ h => h))
+  · intro F s values callee rs _ G hG ⟨_,Q,_,_,_,hr⟩ _ args lookup
+    obtain ⟨v1,vs,rfl,ev1,r1⟩ := evalList_cons' s _ _ _ args
+    obtain ⟨v2,vs2,rfl,_,r2⟩ := evalList_cons' s _ _ _ r1
+    obtain ⟨v3,vs3,rfl,ev3,r3⟩ := evalList_cons' s _ _ _ r2
+    have := evalList_nil' s _ r3; subst this
+    simp [EV,evalHOLExact,hr] at ev1; subst ev1
+    simp [EV,evalHOLExact] at ev3; subst ev3
+    have e := callee_eq originalRuntimeCode_rlpEncodeBytes_lookup lookup
+    rw [wordOf_eq hr]
+    exact ⟨20#64,by rw [e]; simp (config := {decide := true}),by rw [e]; simp (config := {decide := true})⟩
+  · intro L _ _ v _ _ ⟨hd,Q,hq,a,b,hr⟩ ⟨W,hw',hb⟩ _
+    subst hw'
+    rw [wordOf_eq hr] at hb
+    have e : (Q + 9#64).toNat = Q.toNat + 9 := by simp [BitVec.toNat_add]; omega
+    exact ⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q,by rw [lookup_update_ne' _ _ (by decide)]; exact hq,
+      a,b,Q + 9#64,W,by rw [lookup_update_ne' _ _ (by decide)]; exact hr,lookup_update_eq' _ _ _,by omega,hb⟩
+  -- r = r + w
+  refine aqgd_seq (aqgd_assignLocal (Q := fun L _ _ => S2 L) _ _ (fun s v _ _ ⟨hd,Q,hq,a,b,R0,W,hr,hw',c,d⟩ _ ev => ?_)) ?_
+  · simp [EV,evalHOLExact,evalListHOLExact,hr,hw',wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    have e : (R0 + W).toNat = R0.toNat + W.toNat := by simp [BitVec.toNat_add]; omega
+    exact ⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q,by rw [lookup_update_ne' _ _ (by decide)]; exact hq,
+      a,b,R0 + W,lookup_update_eq' _ _ _,by omega,by omega⟩
+  -- tstart = r; t = r + 9
+  let S4 := fun L : GA => L.lookup (ofString "dst") = some (.val (.word Dst)) ∧ ∃ Q : BitVec 64,
+    L.lookup (ofString "q") = some (.val (.word Q)) ∧ Dst.toNat + 9 ≤ Q.toNat ∧ Q.toNat ≤ DF + 17 ∧
+    ∃ R1 : BitVec 64, L.lookup (ofString "tstart") = some (.val (.word R1)) ∧ Q.toNat + 9 ≤ R1.toNat ∧
+      R1.toNat ≤ DF + 8 ∧ ∃ Tv : BitVec 64, L.lookup (ofString "t") = some (.val (.word Tv)) ∧
+        R1.toNat + 9 ≤ Tv.toNat ∧ Tv.toNat ≤ DF + 17
+  have s4u : ∀ (x : MlS), ofString "dst" ≠ x → ofString "q" ≠ x → ofString "tstart" ≠ x → ofString "t" ≠ x →
+      ∀ L v, S4 L → S4 (L.update (x,v)) := fun x h1 h2 h3 h4 L v ⟨hd,Q,hq,a,b,R1,ht,c,d,Tv,htv,e,f⟩ =>
+    ⟨by rw [lookup_update_ne' _ _ h1]; exact hd,Q,by rw [lookup_update_ne' _ _ h2]; exact hq,a,b,R1,
+      by rw [lookup_update_ne' _ _ h3]; exact ht,c,d,Tv,by rw [lookup_update_ne' _ _ h4]; exact htv,e,f⟩
+  refine r_dec (LB := fun L => S2 L ∧ ∃ R1 : BitVec 64, L.lookup (ofString "r") = some (.val (.word R1)) ∧
+      L.lookup (ofString "tstart") = some (.val (.word R1))) (LQ' := ELO Dst DF) _ _ _ (fun h => h.elim)
+    (fun s v _ ⟨hd,Q,hq,a,b,R1,hr,c,d⟩ ev => ?_) ?_ (fun _ _ _ q => elo_res q _ _ (by decide) (by decide))
+  · simp [EV,evalHOLExact,hr] at ev
+    subst ev
+    exact ⟨⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q,by rw [lookup_update_ne' _ _ (by decide)]; exact hq,
+      a,b,R1,by rw [lookup_update_ne' _ _ (by decide)]; exact hr,c,d⟩,R1,
+      by rw [lookup_update_ne' _ _ (by decide)]; exact hr,lookup_update_eq' _ _ _⟩
+  refine r_dec (LB := S4) (LQ' := ELO Dst DF) _ _ _ (fun h => h.elim)
+    (fun s v _ ⟨⟨hd,Q,hq,a,b,R1,hr,c,d⟩,R1',hr',ht⟩ ev => ?_) ?_ (fun _ _ _ q => elo_res q _ _ (by decide) (by decide))
+  · rw [hr] at hr'
+    simp only [Option.some.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq] at hr'
+    subst hr'
+    simp [EV,evalHOLExact,evalListHOLExact,hr,wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    have e : (R1 + 9#64).toNat = R1.toNat + 9 := by simp [BitVec.toNat_add]; omega
+    exact ⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q,by rw [lookup_update_ne' _ _ (by decide)]; exact hq,
+      a,b,R1,by rw [lookup_update_ne' _ _ (by decide)]; exact ht,c,d,R1 + 9#64,lookup_update_eq' _ _ _,by omega,
+      by omega⟩
+  -- nt, j
+  refine r_dec (LB := S4) (LQ' := ELO Dst DF) _ _ _ (fun h => h.elim)
+    (fun s v _ h _ => s4u _ (by decide) (by decide) (by decide) (by decide) _ _ h) ?_
+    (fun _ _ _ q => elo_res q _ _ (by decide) (by decide))
+  refine r_dec (LB := S4) (LQ' := ELO Dst DF) _ _ _ (fun h => h.elim)
+    (fun s v _ h _ => s4u _ (by decide) (by decide) (by decide) (by decide) _ _ h) ?_
+    (fun _ _ _ q => elo_res q _ _ (by decide) (by decide))
+  -- inner topic loop
+  have lot : ∀ L, S4 L → ∃ Cv : BitVec 64, L.lookup (ofString "t") = some (.val (.word Cv)) ∧ Lo.toNat ≤ Cv.toNat ∧
+      Cv.toNat + 16 < 2 ^ 64 := fun L ⟨_,Q,_,a,b,R1,_,c,d,Tv,ht,e,f⟩ => ⟨Tv,ht,by omega,by omega⟩
+  refine aqgd_seq (r_while (LI := S4) (LC := fun _ => True) _ (fun _ _ _ _ _ _ => trivial) ?_) ?_
+  · refine aqgd_conseq (P := fun L _ _ => S4 L) ?_ (fun _ _ _ h => h.1) (fun _ _ _ h => h) (fun _ _ _ h => h)
+    refine aqgd_seq (cab_call (LP := S4) (ofString "t") (by decide) _ _ hF hDF0 Lo hLo8 hw lot
+      (fun L v h => s4u _ (by decide) (by decide) (by decide) (by decide) _ _ h)) ?_
+    refine aqgd_seq (aqgd_assignLocal (Q := fun L _ _ => S4 L) _ _
+      (fun s v _ _ ⟨⟨hd,Q,hq,a,b,R1,ht,c,d,Tv,htv,e,f⟩,Cv,R,hc,hw',hb⟩ _ ev => ?_)) ?_
+    · simp [EV,evalHOLExact,evalListHOLExact,hc,hw',wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+      subst ev
+      rw [htv] at hc
+      simp only [Option.some.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq] at hc
+      subst hc
+      have e2 : (Tv + R).toNat = Tv.toNat + R.toNat := by simp [BitVec.toNat_add]; omega
+      exact ⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q,by rw [lookup_update_ne' _ _ (by decide)]; exact hq,
+        a,b,R1,by rw [lookup_update_ne' _ _ (by decide)]; exact ht,c,d,Tv + R,lookup_update_eq' _ _ _,by omega,
+        by omega⟩
+    exact aqgd_assignLocal _ _ (fun s v _ _ h _ _ => s4u _ (by decide) (by decide) (by decide) (by decide) _ _ h)
+  -- w = rlp_finish_list(tstart, t) (fence widened by 9)
+  refine aqgd_seq (fl_call (LP := S4) (ofString "tstart") (ofString "t") (by decide) hF9 (by omega) Lo hLo8 hw
+    (fun L ⟨_,Q,_,a,b,R1,ht,c,d,Tv,htv,e,f⟩ => ⟨R1,Tv,ht,htv,by omega,e,by omega⟩)
+    (fun L v h => s4u _ (by decide) (by decide) (by decide) (by decide) _ _ h)) ?_
+  -- r = tstart + w
+  let S5 := fun L : GA => L.lookup (ofString "dst") = some (.val (.word Dst)) ∧ ∃ Q : BitVec 64,
+    L.lookup (ofString "q") = some (.val (.word Q)) ∧ Dst.toNat + 9 ≤ Q.toNat ∧ Q.toNat ≤ DF + 17 ∧
+    ∃ R2 : BitVec 64, L.lookup (ofString "r") = some (.val (.word R2)) ∧ Q.toNat + 9 ≤ R2.toNat ∧ R2.toNat ≤ DF + 17
+  have s5u : ∀ (x : MlS), ofString "dst" ≠ x → ofString "q" ≠ x → ofString "r" ≠ x →
+      ∀ L v, S5 L → S5 (L.update (x,v)) := fun x h1 h2 h3 L v ⟨hd,Q,hq,a,b,R2,hr,c,d⟩ =>
+    ⟨by rw [lookup_update_ne' _ _ h1]; exact hd,Q,by rw [lookup_update_ne' _ _ h2]; exact hq,a,b,R2,
+      by rw [lookup_update_ne' _ _ h3]; exact hr,c,d⟩
+  refine aqgd_seq (aqgd_assignLocal (Q := fun L _ _ => S5 L) _ _
+    (fun s v _ _ ⟨⟨hd,Q,hq,a,b,R1,ht,c,d,_⟩,Dv,R,hdv,hw',hb⟩ _ ev => ?_)) ?_
+  · rw [ht] at hdv
+    simp only [Option.some.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq] at hdv
+    subst hdv
+    simp [EV,evalHOLExact,evalListHOLExact,ht,hw',wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    have e2 : (R1 + R).toNat = R1.toNat + R.toNat := by simp [BitVec.toNat_add]; omega
+    exact ⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q,by rw [lookup_update_ne' _ _ (by decide)]; exact hq,
+      a,b,R1 + R,lookup_update_eq' _ _ _,by omega,by omega⟩
+  -- w = rlp_encode_bytes(r, lds (log + 24), lds (log + 32))
+  refine aqgd_seq (cab_call (LP := S5) (ofString "r") (by decide) _ _ hF hDF0 Lo hLo8 hw
+    (fun L ⟨_,Q,_,a,b,R2,hr,c,d⟩ => ⟨R2,hr,by omega,by omega⟩)
+    (fun L v h => s5u _ (by decide) (by decide) (by decide) _ _ h)) ?_
+  -- r = r + w
+  let S6 := fun L : GA => L.lookup (ofString "dst") = some (.val (.word Dst)) ∧ ∃ Q : BitVec 64,
+    L.lookup (ofString "q") = some (.val (.word Q)) ∧ Dst.toNat + 9 ≤ Q.toNat ∧ Q.toNat ≤ DF + 17 ∧
+    ∃ R3 : BitVec 64, L.lookup (ofString "r") = some (.val (.word R3)) ∧ Q.toNat + 9 ≤ R3.toNat ∧ R3.toNat ≤ DF + 8
+  refine aqgd_seq (aqgd_assignLocal (Q := fun L _ _ => S6 L) _ _
+    (fun s v _ _ ⟨⟨hd,Q,hq,a,b,R2,hr,c,d⟩,Cv,R,hc,hw',hb⟩ _ ev => ?_)) ?_
+  · rw [hr] at hc
+    simp only [Option.some.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq] at hc
+    subst hc
+    simp [EV,evalHOLExact,evalListHOLExact,hr,hw',wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    have e2 : (R2 + R).toNat = R2.toNat + R.toNat := by simp [BitVec.toNat_add]; omega
+    exact ⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q,by rw [lookup_update_ne' _ _ (by decide)]; exact hq,
+      a,b,R2 + R,lookup_update_eq' _ _ _,by omega,by omega⟩
+  -- w = rlp_finish_list(q, r)
+  refine aqgd_seq (fl_call (LP := S6) (ofString "q") (ofString "r") (by decide) hF hDF0 Lo hLo8 hw
+    (fun L ⟨_,Q,hq,a,b,R3,hr,c,d⟩ => ⟨Q,R3,hq,hr,by omega,c,d⟩)
+    (fun L v ⟨hd,Q,hq,a,b,R3,hr,c,d⟩ => ⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q,
+      by rw [lookup_update_ne' _ _ (by decide)]; exact hq,a,b,R3,by rw [lookup_update_ne' _ _ (by decide)]; exact hr,
+      c,d⟩)) ?_
+  -- q = q + w
+  refine aqgd_seq (aqgd_assignLocal (Q := fun L _ _ => ELO Dst DF L) _ _
+    (fun s v _ _ ⟨⟨hd,Q,hq,a,b,_⟩,Dv,R,hdv,hw',hb⟩ _ ev => ?_)) ?_
+  · rw [hq] at hdv
+    simp only [Option.some.injEq,ValueHOL.val.injEq,HolWordLab.word.injEq] at hdv
+    subst hdv
+    simp [EV,evalHOLExact,evalListHOLExact,hq,hw',wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    have e2 : (Q + R).toNat = Q.toNat + R.toNat := by simp [BitVec.toNat_add]; omega
+    exact ⟨by rw [lookup_update_ne' _ _ (by decide)]; exact hd,Q + R,lookup_update_eq' _ _ _,by omega,by omega⟩
+  exact aqgd_assignLocal _ _ (fun s v _ _ h _ _ => elo_upd h _ v (by decide) (by decide))
+
+#print axioms elIter
+
+/-- The actual `encode_logs(dst, logs)` with `Lo ≤ dst ≤ DF + 8`: writes only at or above `dst`, returns `R` with
+`dst + R ≤ DF + 17` (`WRet (DF + 9)`). -/
+theorem encodeLogs_win (hF : Fence D DF) (hDF : DF + 9 ≤ 2 ^ 62) (Lo : BitVec 64) (hLo8 : Lo.toNat % 8 = 0)
+    (hw : w.toNat < Lo.toNat) (Dst : BitVec 64) (hLD : Lo.toNat ≤ Dst.toNat) (hD8 : Dst.toNat ≤ DF + 8) :
+    AQGD D B A w (fun _ => False) (fun L _ _ => L.lookup (ofString "dst") = some (.val (.word Dst)))
+      (fun _ _ _ => False) (fun r _ _ => WRet (DF + 9) Dst r) (sourceFunctionBody Guest.guestFn_encode_logs) := by
+  rw [elBody_eq]; unfold elBody
+  have hF9 : Fence D (DF + 9) := fence_mono hF (by omega)
+  let LD := fun L : GA => L.lookup (ofString "dst") = some (.val (.word Dst))
+  have ldu : ∀ (x : MlS), ofString "dst" ≠ x → ∀ L v, LD L → LD (L.update (x,v)) :=
+    fun x hx L v h => by show (L.update (x,v)).lookup _ = _; rw [lookup_update_ne' _ _ hx]; exact h
+  refine r_dec (LB := LD) (LQ' := fun _ => False) _ _ _ (fun h => h.elim) (fun s v _ h _ => ldu _ (by decide) _ _ h) ?_
+    (fun _ _ _ h => h)
+  refine r_dec (LB := LD) (LQ' := fun _ => False) _ _ _ (fun h => h.elim) (fun s v _ h _ => ldu _ (by decide) _ _ h) ?_
+    (fun _ _ _ h => h)
+  refine r_dec (LB := ELO Dst DF) (LQ' := fun _ => False) _ _ _ (fun h => h.elim) (fun s v _ h ev => ?_) ?_
+    (fun _ _ _ h => h)
+  · have h' : s.locals.lookup (ofString "dst") = some (.val (.word Dst)) := h
+    simp [EV,evalHOLExact,evalListHOLExact,h',wordOpHOL,wordOp,valueIsWord,valueWord] at ev
+    subst ev
+    have e : (Dst + 9#64).toNat = Dst.toNat + 9 := by simp [BitVec.toNat_add]; omega
+    exact ⟨ldu _ (by decide) _ _ h,Dst + 9#64,lookup_update_eq' _ _ _,by omega,by omega⟩
+  refine r_dec (LB := ELO Dst DF) (LQ' := fun _ => False) _ _ _ (fun h => h.elim)
+    (fun s v _ h _ => elo_upd h _ v (by decide) (by decide)) ?_ (fun _ _ _ h => h)
+  refine aqgd_seq (r_while (LI := ELO Dst DF) (LC := fun _ => True) _ (fun _ _ _ _ _ _ => trivial)
+    (elIter hF hDF Lo hLo8 hw Dst hLD)) ?_
+  refine aqgd_decCallSpecF
+    (Pe := fun (L0 : GA) (_ : Mem) (_ : GA) (L : GA) (_ : Mem) (_ : GA) =>
+      L.lookup (ofString "dst") = some (.val (.word Dst)) ∧
+        L.lookup (ofString "payload_end") = some (.val (.word (wordOf L0 (ofString "q")))))
+    (RRe := fun (_ : GA) (_ : Mem) (_ : GA) (r : ValueHOL 64) (_ : Mem) (_ : GA) => WRet (DF + 9) Dst r)
+    (Pc := fun L _ _ => ∃ R : BitVec 64, L.lookup (ofString "total") = some (.val (.word R)) ∧
+      Dst.toNat + R.toNat ≤ DF + 9 + 8)
+    (Qc := fun _ _ _ => False) _ _ _ _ _ _ _ originalRuntimeCode_rlpFinishList_lookup ?_ ?_ (fun h => h.elim) ?_
+    (aqgd_return _ (fun s v _ _ _ ⟨R,hr,hb⟩ _ ev => by
+      simp [EV,evalHOLExact,hr] at ev; subst ev; exact ⟨R,rfl,hb⟩)) (fun _ _ _ _ _ _ _ h => h.elim)
+  · intro L0 _ _ ⟨_,Q,hq,a,b⟩
+    rw [wordOf_eq hq]
+    exact aqgd_conseq (finishList_win (A := A) (B := B) hF9 (by omega) Lo hLo8 hw Dst Q hLD a (by omega))
+      (fun _ _ _ h => h) (fun _ _ _ h => h.elim) (fun _ _ _ h => h)
+  · intro F s values callee rs _ G hG ⟨hd,Q,hq,_⟩ _ args lookup
+    obtain ⟨v1,vs,rfl,ev1,r1⟩ := evalList_cons' s _ _ _ args
+    obtain ⟨v2,vs2,rfl,ev2,r2⟩ := evalList_cons' s _ _ _ r1
+    have := evalList_nil' s _ r2; subst this
+    simp [EV,evalHOLExact,hd] at ev1; subst ev1
+    simp [EV,evalHOLExact,hq] at ev2; subst ev2
+    have e := callee_eq originalRuntimeCode_rlpFinishList_lookup lookup
+    rw [wordOf_eq hq]
+    exact ⟨by rw [e]; simp (config := {decide := true}),by rw [e]; simp (config := {decide := true})⟩
+  · intro L _ _ v _ _ _ ⟨R,hr,hb⟩ _
+    subst hr
+    exact ⟨R,lookup_update_eq' _ _ _,hb⟩
+
+#print axioms encodeLogs_win
+end el
 end InitECandidate.Runtime
