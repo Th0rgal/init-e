@@ -182,3 +182,22 @@ Every obligation of the loop bound is discharged from it, with no oracle and no 
 
 `t.clock ≤ post.clock + (nwd.toNat - I0.toNat) * ((encodeWithdrawalSourceCost DF + 1) + 1)` and
 `post.clock ≤ t.clock` and no timeout, where `post` is the actual result of evaluating `wdSliceLoop`.
+
+## Entry instantiation and 44→45→46 composition (`HeaderWithdrawalLoopEntry`)
+
+`wdHeapWord_frontier` — the concrete heap chain stays inside the allocator limit.
+
+`wdSliceLoop_count_entry` — statement 46 at its **actual entry state**, with every per-iteration
+obligation derived from the source allocation/count facts rather than assumed: the frontier
+(`wdHeapWord_frontier`), the per-iteration windows above the watched cell (`wd_heap_window_below`), the
+slice-cell separation (`wd_slice_cells_below`), and the heap step (`wdHeapWord_succ`). The invariant is
+witnessed at `k = 0` with counter `0`, memory domain `t.memaddrs` and `H = wdHeapWord loopHeap`.
+
+`wdSliceLoop_count_alloc` — statements 44 → 45 → 46 composed at the clock level, from the
+**pre-allocation** header state: the actual statement-44 allocator call (`wd_slices_alloc_entry` +
+`evaluate_alloc_global_call`'s `ready.clock = state.clock - 1`) costs one tick and yields the arena
+(`wd_rlp_slices` and `heap_ptr` at the exact 8-aligned end), statement 45's counter declaration is
+free (`wd_loop_counter_binding`), and then statement 46's loop costs at most
+`nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)`. Result:
+`state.clock ≤ post.clock + 1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)`,
+`post.clock ≤ state.clock`, no timeout.

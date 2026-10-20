@@ -156,9 +156,10 @@ cell are unchanged, and the remaining bindings are untouched. -/
 theorem wdLoopInv_keep (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVec 64)
     (H : Nat → BitVec 64) (readEq : read = pl + 48#64)
     (frontier : ∀ k, k ≤ nwd.toNat → (H k).toNat ≤ 33806089496)
-    (outRead : ∀ k, ¬ MWin (H k) 64 read)
-    (sliceRead : ∀ c : BitVec 64,
-      read ≠ slices + c * 16#64 ∧ read ≠ slices + (c * 16#64 + 8#64))
+    (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (H k) 64 read)
+    (sliceRead : ∀ j, j ≤ nwd.toNat →
+      read ≠ slices + (I0 + BitVec.ofNat 64 j) * 16#64 ∧
+      read ≠ slices + ((I0 + BitVec.ofNat 64 j) * 16#64 + 8#64))
     (heapStep : ∀ k, k ≤ nwd.toNat → H (k + 1) = allocationEnd (H k) 64) :
     ∀ {F : Type} (t : PanSemStateFiniteExact 64 F) (w : BitVec 64),
       WdLoopInv m I0 nwd pl slices read X H t →
@@ -187,7 +188,7 @@ theorem wdLoopInv_keep (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVe
     omega
   have window := wd_slice_step_window t slices (I0 + BitVec.ofNat 64 k)
     (X + (I0 + BitVec.ofNat 64 k) * 44#64) (H k) read atI atSlices atHeap codeEq heapBound
-    (outRead k) (sliceRead _).1 (sliceRead _).2 hargs
+    (outRead k hklt) (sliceRead k hklt).1 (sliceRead k hklt).2 hargs
   have hno : (I0 + BitVec.ofNat 64 k).toNat = I0.toNat + k :=
     wdLoopInv_counter_toNat (by omega) (by omega)
   have hw : I0 + BitVec.ofNat 64 k = w := by
@@ -223,9 +224,10 @@ theorem wdSliceLoop_count (DF : Nat) (m : BitVec 64 → Prop) (I0 nwd pl slices 
     (H : Nat → BitVec 64) (readEq : read = pl + 48#64) (fence : Fence m DF)
     (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
     (frontier : ∀ k, k ≤ nwd.toNat → (H k).toNat ≤ 33806089496)
-    (outRead : ∀ k, ¬ MWin (H k) 64 read)
-    (sliceRead : ∀ c : BitVec 64,
-      read ≠ slices + c * 16#64 ∧ read ≠ slices + (c * 16#64 + 8#64))
+    (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (H k) 64 read)
+    (sliceRead : ∀ j, j ≤ nwd.toNat →
+      read ≠ slices + (I0 + BitVec.ofNat 64 j) * 16#64 ∧
+      read ≠ slices + ((I0 + BitVec.ofNat 64 j) * 16#64 + 8#64))
     (heapStep : ∀ k, k ≤ nwd.toNat → H (k + 1) = allocationEnd (H k) 64)
     (small : nwd.toNat + 1 < 2 ^ 63) :
     ∀ {F : Type} (t : PanSemStateFiniteExact 64 F), WdLoopInv m I0 nwd pl slices read X H t →
