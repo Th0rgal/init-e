@@ -1,0 +1,12 @@
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2412:41: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2496:14: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2498:16: error: Type mismatch
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2511:24: error: Application type mismatch: The argument
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2506:31: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2516:43: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2513:29: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2518:27: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2523:24: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2528:31: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2533:26: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2544:59: error(lean.unknownIdentifier): Unknown identifier `hk`
