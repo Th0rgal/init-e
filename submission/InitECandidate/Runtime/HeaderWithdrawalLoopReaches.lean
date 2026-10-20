@@ -357,10 +357,12 @@ every normally completing iteration, and the counter advances by `step`, then an
 `while counter < K` satisfies `P`. Terminal outcomes (`break`, `timeOut`, `returned`, encoder errors) are
 excluded by the hypothesis that the loop completes normally, so no callee-success oracle is needed. The
 `decrease` premise is the clock-insensitivity of `P` that carries it through the loop's clock handling. -/
-theorem countedWhile_exit (counter : MlS) (op : Cmp) (hop : op = .less ∨ op = .lower)
+theorem countedWhile_exit (counter boundName : MlS) (op : Cmp) (hop : op = .less ∨ op = .lower)
     (K step : BitVec 64) (small : K.toNat + step.toNat < 2 ^ 63) (positive : 0 < step.toNat)
     {body : ProgHOL 64}
     (P : ∀ {F : Type}, PanSemStateFiniteExact 64 F → Prop)
+    (atBound : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F), P state →
+      state.locals.lookup boundName = some (.val (.word K)))
     (keep : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
       state.locals.lookup counter = some (.val (.word w)) →
@@ -382,14 +384,15 @@ theorem countedWhile_exit (counter : MlS) (op : Cmp) (hop : op = .less ∨ op = 
       ∀ w : BitVec 64, state.locals.lookup counter = some (.val (.word w)) →
       w.toNat ≤ K.toNat + step.toNat → K.toNat - w.toNat = n →
       (evaluateHOLFiniteState state
-        (.while (.cmp op (.var .local counter) (.const K)) body)).1 = none →
+        (.while (.cmp op (.var .local counter) (.var .local boundName)) body)).1 = none →
       P (evaluateHOLFiniteState state
-        (.while (.cmp op (.var .local counter) (.const K)) body)).2 := by
+        (.while (.cmp op (.var .local counter) (.var .local boundName)) body)).2 := by
   intro n
   induction n using Nat.strongRecOn with
   | ind n ih =>
     intro F state pstate code w atCounter within distance normal
-    have condition := eval_counted_condition state counter op hop K w (by omega) (by omega) atCounter
+    have condition := eval_var_condition state counter boundName op hop K w (by omega) (by omega)
+      atCounter (atBound state pstate)
     rw [evaluateHOLFiniteState_while_total, condition] at normal ⊢
     by_cases lt : w.toNat < K.toNat
     · rw [if_pos lt] at normal ⊢
@@ -437,4 +440,70 @@ theorem countedWhile_exit (counter : MlS) (op : Cmp) (hop : op = .less ∨ op = 
       exact pstate
 
 #print axioms countedWhile_exit
+
+/-- The loop invariant does not mention the clock, so it descends one clock tick. -/
+theorem wdLoopInv_decClock (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVec 64)
+    (H : Nat → BitVec 64) :
+    ∀ {F : Type} (t : PanSemStateFiniteExact 64 F),
+      WdLoopInv m I0 nwd pl slices read X H t →
+      WdLoopInv m I0 nwd pl slices read X H (decClockHOLFinite t) := by
+  intro F t inv
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩ := inv
+  exact ⟨k, bound, by simpa [decClockHOLFinite] using dom, by simpa [decClockHOLFinite] using atI,
+    by simpa [decClockHOLFinite] using atNwd, by simpa [decClockHOLFinite] using atPl,
+    by simpa [decClockHOLFinite] using freshE, by simpa [decClockHOLFinite] using atSlices,
+    by simpa [decClockHOLFinite] using atHeap, by simpa [decClockHOLFinite] using codeEq,
+    by simpa [decClockHOLFinite] using watched, by simpa [decClockHOLFinite] using cell⟩
+
+/-- **The `WdLoopInv` exit batch.** From the loop-entry invariant, every *normal* exit state of the
+withdrawal slice loop still satisfies the invariant: the `pl`/`nwd` bindings, the `e` slot freshness, the
+`wd_rlp_slices` pointer, `code`, the memory domain and the watched `pl + 48` cell, together with a final
+heap frontier `H k` for some reached `k ≤ nwd.toNat`. No callee-success oracle: the encoder error branch is
+excluded by the normality hypothesis. -/
+theorem wdSliceLoopInv_exit {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (nwd pl slices read X loopHeap : BitVec 64)
+    (frontier : ∀ k, k ≤ nwd.toNat → (wdHeapWord loopHeap k).toNat ≤ 33806089496)
+    (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (wdHeapWord loopHeap k) 64 read)
+    (sliceRead : ∀ j, j ≤ nwd.toNat →
+      read ≠ slices + (BitVec.ofNat 64 j) * 16#64 ∧
+      read ≠ slices + ((BitVec.ofNat 64 j) * 16#64 + 8#64))
+    (heapStep : ∀ k, k ≤ nwd.toNat → wdHeapWord loopHeap (k + 1) = allocationEnd (wdHeapWord loopHeap k) 64)
+    (readEq : read = pl + 48#64)
+    (smallNwd : nwd.toNat + 1 < 2 ^ 63)
+    (code : t.code = originalRuntimeCode)
+    (atCounter0 : t.locals.lookup (ofString "i") = some (ValueHOL.val (HolWordLab.word 0#64)))
+    (entry : WdLoopInv (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap) t)
+    (post : PanSemStateFiniteExact 64 F)
+    (run : evaluateHOLFiniteState t wdSliceLoop = (none, post)) :
+    WdLoopInv (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap) post := by
+  rw [wdSliceLoop] at run
+  have runNone : (evaluateHOLFiniteState t
+      (.while (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "nwd")))
+        wdSliceLoopBody)).1 = none := by
+    simpa [wdSliceLoopCondition] using congrArg Prod.fst run
+  have exitInv := countedWhile_exit (ofString "i") (ofString "nwd") .less (Or.inl rfl) nwd 1#64 smallNwd
+    (by decide) (WdLoopInv (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap))
+    (fun state inv => wdLoopInv_atBound _ _ _ _ _ _ _ _ state inv)
+    (fun state w inv code atCounter lt normal =>
+      wdLoopInv_keep (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap) readEq
+        frontier outRead (fun j hj => by simpa using sliceRead j hj) heapStep state w inv code atCounter
+        (by simpa using lt) normal)
+    (fun state w inv atCounter normal =>
+      wdLoopInv_advance (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap) readEq
+        state w inv atCounter normal)
+    (fun state w inv => (wdSliceLoopBody_noControl state).1)
+    (fun state w inv => (wdSliceLoopBody_noControl state).2)
+    (fun state inv => wdLoopInv_decClock _ _ _ _ _ _ _ _ state inv)
+    (nwd.toNat - 0) t entry code 0#64 atCounter0 (by simp) (by simp)
+    (by simpa using runNone)
+  have postEq : (evaluateHOLFiniteState t
+      (.while (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "nwd")))
+        wdSliceLoopBody)).2 = post := by
+    simpa [wdSliceLoopCondition] using
+      (by rw [run] : (evaluateHOLFiniteState t
+        (.while wdSliceLoopCondition wdSliceLoopBody)).2 = post)
+  exact postEq ▸ exitInv
+
+#print axioms wdLoopInv_decClock
+#print axioms wdSliceLoopInv_exit
 end InitECandidate.Runtime
