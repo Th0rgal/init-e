@@ -475,5 +475,230 @@ theorem ptSufD_rl {Q : GA → Mem → GA → Prop} (Ix Nl Lp L40 L72 X : BitVec 
 
 #print axioms ptSufD_rl
 
+/-- The block lists are kept by a write at a word address at or above `Hb`. -/
+theorem bls_fresh {Hb L40 L72 a : BitVec 64} {M M' : Mem} {G : GA}
+    (h : BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) (ha : Hb.toNat ≤ a.toNat)
+    (keep : ∀ x, x ≠ a → M' x = M x) : BL W40 Hb L40 8#64 M' G ∧ BL W72 Hb L72 8#64 M' G :=
+  ⟨bl_frame h.1 (fun x hx => keep x (fun e => by subst e; have := hdw_lt h.1.2.1 hx; omega))
+      (fun H hH => ⟨H,hH,le_refl _⟩),
+    bl_frame h.2 (fun x hx => keep x (fun e => by subst e; have := hdw_lt h.2.2.1 hx; omega))
+      (fun H hH => ⟨H,hH,le_refl _⟩)⟩
+
+/-- `st stable_logs + 8, nl; stable_lp = lds(stable_logs + 0); i = 0; <second loop>; <rl push>; rest`. -/
+theorem ptSufD_sl {QM : Mem → GA → Prop} (Ix Nl Lp L40 L72 Cs X Pp : BitVec 64) {rest : ProgHOL 64}
+    (hW72 : ∀ x, W72 x → BW n c Out Excl w x) (hdis : ∀ x, W40 x → ¬ W72 x) (hH40 : ∀ x, HdW L40 x → W40 x)
+    (hH72 : ∀ x, HdW L72 x → W72 x) (hOut : Out w)
+    (hB72 : Out (Bo + 72#64) ∧ ¬ Excl (Bo + 72#64) ∧ M0 (Bo + 72#64) = .word L72)
+    (hCs : (Nl = 0#64 ∧ Cs = 1#64) ∨ (Nl ≠ 0#64 ∧ Cs = Nl)) (hbd : Nl.toNat < 2 ^ 63 → 8 * Nl.toNat < 2 ^ 64)
+    (hX : Hb.toNat ≤ X.toNat) (hXP : X.toNat + 24 ≤ Pp.toNat) (hPC : Pp.toNat + (8#64 * Cs).toNat < 2 ^ 64)
+    (hrest : AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
+      (fun L M G => (LDn Ix Nl Lp L ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
+        BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) (fun _ M G => QM M G) RR rest) :
+    AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
+      (fun L M G => ((LDn Ix Nl Lp L ∧ L.lookup (ofString "stable_logs") = some (.val (.word X))) ∧
+        PB n c T Out ko D B Excl Hb Nj M0 M G) ∧ (BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) ∧ M X = .word Pp)
+      (fun _ M G => QM M G) RR
+      (.seq (.store (.op .add [.var .local (ofString "stable_logs"),.const 8#64]) (.var .local (ofString "nl")))
+        (.dec (ofString "stable_lp") .one (.load .one (.op .add [.var .local (ofString "stable_logs"),.const 0#64]))
+          (.seq (.assign .local (ofString "i") (.const 0#64))
+            (.seq (.while (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "nl")))
+                (.seq (.store (.op .add [.var .local (ofString "stable_lp"),
+                    .panop .mul [.var .local (ofString "i"),.const 8#64]])
+                  (.load .one (.op .add [.var .local (ofString "lp"),.panop .mul [.var .local (ofString "i"),.const 8#64]])))
+                  (.assign .local (ofString "i") (.op .add [.var .local (ofString "i"),.const 1#64]))))
+              (.decCall (ofString "rl") .one (ofString "lst_push")
+                [.load .one (.op .add [.var .global (ofString "bo"),.const 72#64]),.const 8#64]
+                (.seq (.store (.var .local (ofString "rl")) (.var .local (ofString "stable_logs"))) rest)))))) := by
+  have e8 : (X + 8#64).toNat = X.toNat + 8 := by
+    rw [BitVec.toNat_add]; have : Pp.toNat < 2 ^ 64 := Pp.isLt; simp; omega
+  have hfit : Nl.toNat < 2 ^ 63 → Pp.toNat + 8 * Nl.toNat < 2 ^ 64 := by
+    intro h
+    rcases hCs with ⟨rfl,_⟩ | ⟨_,rfl⟩
+    · simp; exact Pp.isLt
+    · have := hbd h
+      have e : (8#64 * Cs).toNat = 8 * Cs.toNat := by rw [mul_nat (by simp; omega)]; simp
+      omega
+  refine aqgd_seq (aqgd_store_fresh (LP := fun L => LDn Ix Nl Lp L ∧
+      L.lookup (ofString "stable_logs") = some (.val (.word X)))
+    (R := fun M G => (BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) ∧ M X = .word Pp) _ _ (X + 8#64) hOut
+    (fun s lp => ev_addc s _ X 8#64 lp.2) (by omega)
+    (fun s x lp ev => by simp [EV,evalHOLExact,lp.1.2 (ofString "nl",Nl) (by simp)] at ev; exact ⟨_,ev.symm⟩)
+    (fun M M' G ⟨bls,hp⟩ keep => ⟨bls_fresh bls (by omega) keep,
+      (keep X (fun e => by have := congrArg BitVec.toNat e; omega)).trans hp⟩)) ?_
+  refine aqgd_decD (Qb := fun _ M G => QM M G) (ofString "stable_lp") .one _ (fun h => h.elim)
+    (Pb := fun L M G => ((LDn Ix Nl Lp L ∧ L.lookup (ofString "stable_logs") = some (.val (.word X)) ∧
+      L.lookup (ofString "stable_lp") = some (.val (.word Pp))) ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
+      BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) ?_ ?_ (fun _ _ _ _ _ _ _ h => h)
+  · intro F s v _ _ _ _ ⟨⟨⟨ld,hx⟩,pb⟩,bls,hp⟩ _ ev _
+    rw [ev_load_off s _ X 0#64 v hx ev]
+    simp only [BitVec.add_zero,hp]
+    exact ⟨⟨⟨ldn_upd ld _ _ (by decide) (by decide) (by decide) (by decide),
+      by rw [lookup_update_ne' _ _ (by decide)]; exact hx,lookup_update_eq' _ _ _⟩,pb⟩,bls⟩
+  refine aqgd_seq (aqgd_assignLocal (Q := fun L M G => ∃ Iv : BitVec 64,
+      I2s n c T Out ko D B Excl Hb Nj M0 (fun M G => BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G)
+        (fun L => L.lookup (ofString "stable_logs") = some (.val (.word X))) Ix Nl Lp Pp Iv L M G) _ _
+      (fun s v _ _ ⟨⟨⟨ld,hx,hs⟩,pb⟩,bls⟩ _ ev => ?_)) ?_
+  · simp [EV,evalHOLExact] at ev; subst ev
+    exact ⟨0#64,⟨⟨⟨⟨ldn_upd ld _ _ (by decide) (by decide) (by decide) (by decide),
+      by beta_reduce; rw [lookup_update_ne' _ _ (by decide)]; exact hx,
+      by rw [lookup_update_ne' _ _ (by decide)]; exact hs⟩,
+      lookup_update_eq' _ _ _⟩,Or.inl rfl⟩,pb⟩,bls⟩
+  refine aqgd_seq (loop2 Ix Nl Lp Pp hOut (fun L v h => by rw [lookup_update_ne' _ _ (by decide)]; exact h)
+    (by omega) hfit (fun M M' G a bls ha keep => bls_fresh bls ha keep)) ?_
+  exact aqgd_conseq (ptSufD_rl Ix Nl Lp L40 L72 X hW72 hdis hH40 hH72 hOut hB72 (fun _ _ _ _ q => q) hrest)
+    (fun L M G ⟨Iv,⟨⟨⟨⟨ld,hx,_⟩,_⟩,_⟩,pb⟩,bls⟩ => ⟨⟨⟨ld,hx⟩,pb⟩,bls⟩) (fun _ _ _ h => h) (fun _ _ _ h => h)
+
+#print axioms ptSufD_sl
+
+/-- `stable_log_cap = nl; if stable_log_cap == 0 { stable_log_cap = 1 }; stable_logs = lst_new(8, stable_log_cap);
+...`. -/
+theorem ptSufD_cap {QM : Mem → GA → Prop} (Ix Nl Lp L40 L72 : BitVec 64) {rest : ProgHOL 64}
+    (hW72 : ∀ x, W72 x → BW n c Out Excl w x) (hdis : ∀ x, W40 x → ¬ W72 x) (hH40 : ∀ x, HdW L40 x → W40 x)
+    (hH72 : ∀ x, HdW L72 x → W72 x) (hOut : Out w)
+    (hB72 : Out (Bo + 72#64) ∧ ¬ Excl (Bo + 72#64) ∧ M0 (Bo + 72#64) = .word L72)
+    (hbd : Nl.toNat < 2 ^ 63 → 8 * Nl.toNat < 2 ^ 64)
+    (hrest : AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
+      (fun L M G => (LDn Ix Nl Lp L ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
+        BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) (fun _ M G => QM M G) RR rest) :
+    AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
+      (fun L M G => (LDn Ix Nl Lp L ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
+        BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) (fun _ M G => QM M G) RR
+      (.dec (ofString "stable_log_cap") .one (.var .local (ofString "nl"))
+        (.seq (.ite (.cmp .equal (.var .local (ofString "stable_log_cap")) (.const 0#64))
+            (.assign .local (ofString "stable_log_cap") (.const 1#64)) .skip)
+          (.decCall (ofString "stable_logs") .one (ofString "lst_new")
+            [.const 8#64,.var .local (ofString "stable_log_cap")]
+            (.seq (.store (.op .add [.var .local (ofString "stable_logs"),.const 8#64]) (.var .local (ofString "nl")))
+              (.dec (ofString "stable_lp") .one
+                (.load .one (.op .add [.var .local (ofString "stable_logs"),.const 0#64]))
+                (.seq (.assign .local (ofString "i") (.const 0#64))
+                  (.seq (.while (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "nl")))
+                      (.seq (.store (.op .add [.var .local (ofString "stable_lp"),
+                          .panop .mul [.var .local (ofString "i"),.const 8#64]])
+                        (.load .one (.op .add [.var .local (ofString "lp"),
+                          .panop .mul [.var .local (ofString "i"),.const 8#64]])))
+                        (.assign .local (ofString "i") (.op .add [.var .local (ofString "i"),.const 1#64]))))
+                    (.decCall (ofString "rl") .one (ofString "lst_push")
+                      [.load .one (.op .add [.var .global (ofString "bo"),.const 72#64]),.const 8#64]
+                      (.seq (.store (.var .local (ofString "rl")) (.var .local (ofString "stable_logs"))) rest))))))))) := by
+  refine aqgd_decD (Qb := fun _ M G => QM M G) (ofString "stable_log_cap") .one _ (fun h => h.elim)
+    (Pb := fun L M G => ((LDn Ix Nl Lp L ∧ L.lookup (ofString "stable_log_cap") = some (.val (.word Nl))) ∧
+      PB n c T Out ko D B Excl Hb Nj M0 M G) ∧ BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) ?_ ?_
+    (fun _ _ _ _ _ _ _ h => h)
+  · intro F s v _ _ _ _ ⟨⟨ld,pb⟩,bls⟩ _ ev _
+    simp [EV,evalHOLExact,ld.2 (ofString "nl",Nl) (by simp)] at ev; subst ev
+    exact ⟨⟨⟨ldn_upd ld _ _ (by decide) (by decide) (by decide) (by decide),lookup_update_eq' _ _ _⟩,pb⟩,bls⟩
+  refine aqgd_seq (Q := fun L M G => ∃ Cs : BitVec 64, ((((LDn Ix Nl Lp L ∧
+      L.lookup (ofString "stable_log_cap") = some (.val (.word Cs))) ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
+      BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) ∧ ((Nl = 0#64 ∧ Cs = 1#64) ∨ (Nl ≠ 0#64 ∧ Cs = Nl)))) ?_ ?_
+  · refine aqgd_iteD (CT := fun _ _ _ => Nl = 0#64) (CF := fun _ _ _ => Nl ≠ 0#64) _ ?_ ?_
+      (aqgd_conseq aqgd_skip (fun _ _ _ h => h) (fun L M G ⟨p,ne⟩ => ⟨Nl,p,Or.inr ⟨ne,rfl⟩⟩) (fun _ _ _ h => h))
+    · intro F s x _ _ _ _ ⟨⟨⟨_,hc⟩,_⟩,_⟩ _ ev
+      simp [EV,evalHOLExact,hc] at ev
+      simp only [Compiler.Encoders.Asm.wordCmpHOL] at ev
+      by_cases e : Nl = 0#64
+      · subst e; simp at ev; subst ev; exact ⟨fun _ => rfl,fun h => absurd h (by decide)⟩
+      · simp [e] at ev; subst ev; exact ⟨fun h => absurd rfl h,fun _ => e⟩
+    · exact aqgd_assignLocal _ _ (fun s v _ _ ⟨⟨⟨⟨ld,_⟩,pb⟩,bls⟩,e⟩ _ ev => by
+        simp [EV,evalHOLExact] at ev; subst ev
+        exact ⟨1#64,⟨⟨⟨ldn_upd ld _ _ (by decide) (by decide) (by decide) (by decide),lookup_update_eq' _ _ _⟩,pb⟩,
+          bls⟩,Or.inl ⟨e,rfl⟩⟩)
+  refine aqgd_exE (fun Cs => aqgd_pureE (fun hCs => ?_))
+  refine aqgd_decCall_lstNewC_pb (R := fun M G => BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G)
+    (LP := fun L => LDn Ix Nl Lp L ∧ L.lookup (ofString "stable_log_cap") = some (.val (.word Cs)))
+    (LP' := fun L => LDn Ix Nl Lp L) (Q := fun _ M G => QM M G)
+    (ofString "stable_logs") (ofString "stable_log_cap") 8#64 Cs hOut (fun L lp => lp.2)
+    (fun L v lp => ldn_upd lp.1 _ v (by decide) (by decide) (by decide) (by decide))
+    (fun M M' G G' H H' bls hH hbH hH' le keep => ⟨bl_frame bls.1
+        (fun x hx => keep x (by have := hdw_lt bls.1.2.1 hx; omega))
+        (fun H2 h2 => ⟨H',hH',by have := heapIs_unique hH h2; subst this; exact le⟩),
+      bl_frame bls.2 (fun x hx => keep x (by have := hdw_lt bls.2.2.1 hx; omega))
+        (fun H2 h2 => ⟨H',hH',by have := heapIs_unique hH h2; subst this; exact le⟩)⟩)
+    (fun X Pp => ?_) (fun _ _ _ _ _ _ _ h => h)
+  refine aqgd_of_arenaFact (Φ := Hb.toNat ≤ X.toNat ∧ X.toNat + 24 ≤ Pp.toNat ∧
+      Pp.toNat + (8#64 * Cs).toNat < 2 ^ 64)
+    (fun _ _ _ _ ⟨_,hX,hXP,_,H,_,hPH⟩ => ⟨hX,hXP,by have := H.isLt; omega⟩) ?_
+  intro ⟨hX,hXP,hPC⟩
+  exact aqgd_conseq (ptSufD_sl Ix Nl Lp L40 L72 Cs X Pp hW72 hdis hH40 hH72 hOut hB72 hCs hbd hX hXP hPC hrest)
+    (fun L M G ⟨⟨⟨⟨ld,hx⟩,pb⟩,bls⟩,_,_,hd,_⟩ => ⟨⟨⟨ld,hx⟩,pb⟩,bls,hd.1⟩) (fun _ _ _ h => h) (fun _ _ _ h => h)
+
+#print axioms ptSufD_cap
+
+/-- Spine drop 126 of `process_transaction` up to the block-list pushes, for any continuation `rest` (from
+`del = lds(out + 24)` on): `nl`, `lp` are interpreter data; the suffix state `PB` and both block lists are kept. -/
+theorem ptSufD_head {QM : Mem → GA → Prop} (Ix L40 L72 : BitVec 64) {rest : ProgHOL 64}
+    (hW40 : ∀ x, W40 x → BW n c Out Excl w x) (hW72 : ∀ x, W72 x → BW n c Out Excl w x)
+    (hdis : ∀ x, W40 x → ¬ W72 x) (hH40 : ∀ x, HdW L40 x → W40 x) (hH72 : ∀ x, HdW L72 x → W72 x) (hOut : Out w)
+    (hB40 : Out (Bo + 40#64) ∧ ¬ Excl (Bo + 40#64) ∧ M0 (Bo + 40#64) = .word L40)
+    (hB72 : Out (Bo + 72#64) ∧ ¬ Excl (Bo + 72#64) ∧ M0 (Bo + 72#64) = .word L72)
+    (hrest : ∀ Nl Lp : BitVec 64, AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
+      (fun L M G => (LDn Ix Nl Lp L ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
+        BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) (fun _ M G => QM M G) RR rest) :
+    AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
+      (fun L M G => (LPS Ix L ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
+        BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) (fun _ M G => QM M G) RR
+      (.dec (ofString "nl") .one (.load .one (.op .add [.var .local (ofString "logs"),.const 8#64]))
+        (.dec (ofString "lp") .one (.load .one (.op .add [.var .local (ofString "logs"),.const 0#64]))
+          (.seq (.assign .local (ofString "i") (.const 0#64))
+            (.seq (.while (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "nl")))
+                (.decCall (ofString "slot") .one (ofString "lst_push")
+                  [.load .one (.op .add [.var .global (ofString "bo"),.const 40#64]),.const 8#64]
+                  (.seq (.store (.var .local (ofString "slot"))
+                      (.load .one (.op .add [.var .local (ofString "lp"),
+                        .panop .mul [.var .local (ofString "i"),.const 8#64]])))
+                    (.assign .local (ofString "i") (.op .add [.var .local (ofString "i"),.const 1#64])))))
+              (.dec (ofString "stable_log_cap") .one (.var .local (ofString "nl"))
+        (.seq (.ite (.cmp .equal (.var .local (ofString "stable_log_cap")) (.const 0#64))
+            (.assign .local (ofString "stable_log_cap") (.const 1#64)) .skip)
+          (.decCall (ofString "stable_logs") .one (ofString "lst_new")
+            [.const 8#64,.var .local (ofString "stable_log_cap")]
+            (.seq (.store (.op .add [.var .local (ofString "stable_logs"),.const 8#64]) (.var .local (ofString "nl")))
+              (.dec (ofString "stable_lp") .one
+                (.load .one (.op .add [.var .local (ofString "stable_logs"),.const 0#64]))
+                (.seq (.assign .local (ofString "i") (.const 0#64))
+                  (.seq (.while (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "nl")))
+                      (.seq (.store (.op .add [.var .local (ofString "stable_lp"),
+                          .panop .mul [.var .local (ofString "i"),.const 8#64]])
+                        (.load .one (.op .add [.var .local (ofString "lp"),
+                          .panop .mul [.var .local (ofString "i"),.const 8#64]])))
+                        (.assign .local (ofString "i") (.op .add [.var .local (ofString "i"),.const 1#64]))))
+                    (.decCall (ofString "rl") .one (ofString "lst_push")
+                      [.load .one (.op .add [.var .global (ofString "bo"),.const 72#64]),.const 8#64]
+                      (.seq (.store (.var .local (ofString "rl")) (.var .local (ofString "stable_logs"))) rest))))))))))))) := by
+  refine aqgd_decD (Qb := fun _ M G => QM M G) (ofString "nl") .one _ (fun h => h.elim)
+    (Pb := fun L M G => ∃ Nl : BitVec 64, ((LPS Ix L ∧ L.lookup (ofString "nl") = some (.val (.word Nl))) ∧
+      PB n c T Out ko D B Excl Hb Nj M0 M G) ∧ BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) ?_ ?_
+    (fun _ _ _ _ _ _ _ h => h)
+  · intro F s v _ _ _ _ ⟨⟨lp,pb⟩,bls⟩ _ ev _
+    obtain ⟨y,rfl⟩ := isWord_load s _ v ev
+    exact ⟨y,⟨⟨lps_upd lp _ _ (by decide) (by decide),lookup_update_eq' _ _ _⟩,pb⟩,bls⟩
+  refine aqgd_exE (fun Nl => ?_)
+  refine aqgd_decD (Qb := fun _ M G => QM M G) (ofString "lp") .one _ (fun h => h.elim)
+    (Pb := fun L M G => ∃ Lp : BitVec 64, (LDn Ix Nl Lp L ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
+      BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) ?_ ?_ (fun _ _ _ _ _ _ _ h => h)
+  · intro F s v _ _ _ _ ⟨⟨⟨lp,hn⟩,pb⟩,bls⟩ _ ev _
+    obtain ⟨y,rfl⟩ := isWord_load s _ v ev
+    refine ⟨y,⟨⟨lps_upd lp _ _ (by decide) (by decide),fun p hp => ?_⟩,pb⟩,bls⟩
+    simp only [List.mem_cons,List.not_mem_nil,or_false] at hp
+    rcases hp with rfl | rfl
+    · dsimp only; rw [lookup_update_ne' _ _ (by decide)]; exact hn
+    · dsimp only; exact lookup_update_eq' _ _ _
+  refine aqgd_exE (fun Lp => ?_)
+  refine aqgd_seq (aqgd_assignLocal (Q := fun L M G => ∃ Iv N : BitVec 64,
+      I1s n c T Out ko D B Excl Hb Nj M0 W40 W72 Ix Nl Lp L40 L72 Iv N L M G) _ _
+    (fun s v _ _ ⟨⟨ld,pb⟩,b40,b72⟩ _ ev => ?_)) ?_
+  · simp [EV,evalHOLExact] at ev; subst ev
+    obtain ⟨N,hN⟩ := bl_cnt b40
+    exact ⟨0#64,N,⟨⟨⟨ldn_upd ld _ _ (by decide) (by decide) (by decide) (by decide),lookup_update_eq' _ _ _⟩,
+      ⟨Nat.zero_le _,Or.inl rfl⟩⟩,pb⟩,⟨b40,hN⟩,b72⟩
+  refine aqgd_seq (loop1 Ix Nl Lp L40 L72 hW40 hdis hH40 hOut hB40) ?_
+  exact aqgd_conseq (P := fun L M G => ((LDn Ix Nl Lp L ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
+      BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G) ∧ (Nl.toNat < 2 ^ 63 → 8 * Nl.toNat < 2 ^ 64))
+    (aqgd_pureE (fun hbd => ptSufD_cap Ix Nl Lp L40 L72 hW72 hdis hH40 hH72 hOut hB72 hbd (hrest Nl Lp)))
+    (fun L M G ⟨Iv,N,⟨⟨⟨⟨ld,_⟩,_⟩,pb⟩,⟨b40,_⟩,b72⟩,hb⟩ => ⟨⟨⟨ld,pb⟩,b40,b72⟩,hb⟩) (fun _ _ _ h => h)
+    (fun _ _ _ h => h)
+
+#print axioms ptSufD_head
+
 end l1
 end InitECandidate.Runtime
