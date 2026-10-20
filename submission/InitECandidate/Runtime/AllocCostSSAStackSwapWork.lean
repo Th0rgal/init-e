@@ -193,6 +193,99 @@ theorem wordPathWork_ite_sValEq_variant {C F : Type}
   rw [wordPathWork, wordPathWork, getVar_stack, getVarImm_stack]
   split <;> simp_all
 
+
+/-- Unfolding the loop clause when the body completes normally, with the cut
+state, body result and fixed middle state all named explicitly. -/
+theorem wordPathWork_loop_unfold_of_none {C F : Type}
+    (names : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (exitNames : WordLangNumSetHOL)
+    (t c middle m : WordSemStateFiniteExact 64 C F)
+    (htc : cutState (names, .ln) t = some c)
+    (hev : evaluate body c = (none, middle))
+    (hm : fixClock c (evaluate body c) = (none, m)) :
+    wordPathWork (.loop names body exitNames) t =
+      1 + wordPathWork body c +
+        (if wordSemContLoop (none : Option (WordSemResult 64)) = true then
+           (if m.clock = 0 then 0
+            else wordPathWork (wordSemSTOP (.loop names body exitNames)) m.decClock)
+         else 0) := by
+  rw [wordPathWork]
+  split
+  · rename_i hnone
+    rw [htc] at hnone
+    cases hnone
+  · rename_i cutSource hsome
+    rw [htc] at hsome
+    injection hsome with hcsEq
+    subst hcsEq
+    rw [hev] at hm ⊢
+    split
+    · rename_i r m0 hfix
+      cases (hm.symm.trans hfix)
+      dsimp only
+      rfl
+
+/-- **Loop case, body completes normally.** -/
+theorem wordPathWork_loop_sValEq_variant_of_none {C F : Type}
+    (names : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (exitNames : WordLangNumSetHOL)
+    (s cs middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64))
+    (hs : cutState (names, .ln) s = some cs)
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate body cs = (none, middle))
+    (ihBody : wordPathWork body { cs with stack := xs } = wordPathWork body cs)
+    (ihStop : ∀ (m : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64)),
+      WordSemStackEq.sValEq m.stack st →
+      wordPathWork (wordSemSTOP (.loop names body exitNames)) { m with stack := st } =
+        wordPathWork (wordSemSTOP (.loop names body exitNames)) m) :
+    wordPathWork (.loop names body exitNames) { s with stack := xs } =
+      wordPathWork (.loop names body exitNames) s := by
+  have hcsStack : cs.stack = s.stack := by
+    unfold WordSemStateFiniteExact.cutState at hs
+    cases hce : wordSemCutEnv (names, .ln) s.locals with
+    | none => rw [hce] at hs; cases hs
+    | some env => rw [hce] at hs; cases hs; rfl
+  have hvalCs : WordSemStackEq.sValEq cs.stack xs := by rw [hcsStack]; exact hval
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap body cs
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  dsimp only [WordSemStackEq.stackSwapRel] at hT
+  obtain ⟨-, -, hrun⟩ := hT
+  obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hvalCs
+  have hcs' : cutState (names, .ln) { s with stack := xs } = some { cs with stack := xs } := by
+    rw [cutState_stack (names, .ln) s xs, hs]
+  obtain ⟨m2, hm2⟩ : ∃ m, fixClock cs (evaluate body cs) = (none, m) :=
+    ⟨_, by rw [hev]; rfl⟩
+  obtain ⟨m1, hm1⟩ : ∃ m,
+      fixClock { cs with stack := xs } (evaluate body { cs with stack := xs }) = (none, m) :=
+    ⟨_, by rw [hevT]; rfl⟩
+  have hm2' : fixClock cs ((none : Option (WordSemResult 64)), middle) = (none, m2) := by
+    rw [← hm2, hev]
+  have hm1' : fixClock { cs with stack := xs }
+      ((none : Option (WordSemResult 64)), { middle with stack := st }) = (none, m1) := by
+    rw [← hm1, hevT]
+  have h2s : (fixClock cs ((none : Option (WordSemResult 64)), middle)).2 = m2 := by
+    simpa using congrArg Prod.snd hm2'
+  have hm2s : m2.stack = middle.stack := by
+    rw [← h2s]
+    exact fixClock_stack_proj cs ((none : Option (WordSemResult 64)), middle)
+  have h1s : (fixClock { cs with stack := xs }
+      ((none : Option (WordSemResult 64)), { middle with stack := st })).2 = m1 := by
+    simpa using congrArg Prod.snd hm1'
+  have hmRel : m1 = { m2 with stack := st } := by
+    rw [← h1s, ← h2s]
+    simp only [fixClock]
+  rw [wordPathWork_loop_unfold_of_none names body exitNames s cs middle m2 hs hev hm2,
+    wordPathWork_loop_unfold_of_none names body exitNames { s with stack := xs }
+      { cs with stack := xs } { middle with stack := st } m1 hcs' hevT hm1, ihBody, hmRel]
+  simp only [decClock_stack]
+  rw [ihStop m2.decClock st (by
+    show WordSemStackEq.sValEq m2.stack st
+    rw [hm2s]
+    exact hvalT)]
+
+#print axioms wordPathWork_loop_sValEq_variant_of_none
+
 #print axioms wordPathWork_ite_sValEq_variant
 
 #print axioms wordPathWork_seq_sValEq_variant_none
