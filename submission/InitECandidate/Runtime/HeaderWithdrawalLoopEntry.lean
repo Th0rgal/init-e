@@ -51,9 +51,11 @@ theorem wdSliceLoop_count_entry (DF : Nat) {F : Type} (t : PanSemStateFiniteExac
       (evaluateHOLFiniteState t wdSliceLoop).1 ≠ some .timeOut := by
   have entry : WdLoopInv t.memaddrs 0#64 nwd pl slices read X (wdHeapWord loopHeap) t :=
     ⟨0, by simp, fun a => Iff.rfl, by simpa using atCounter, atNwd, atPl, freshE, atSlices,
-      by simpa [wdHeapWord_zero] using atHeap, code, addrRead, memRead⟩
-  have frontier : ∀ j, j ≤ nwd.toNat → (wdHeapWord loopHeap j).toNat ≤ 33806089496 :=
-    wdHeapWord_frontier loopHeap nwd.toNat (by omega)
+      by simpa [wdHeapWord_zero] using atHeap, code, addrRead, memRead,
+      by simpa [wdHeapWord_zero] using
+        (wdHeapWord_frontier loopHeap nwd.toNat (by omega) 0 (by omega))⟩
+  have frontier : ∀ j, j ≤ nwd.toNat + 1 → (wdHeapWord loopHeap j).toNat ≤ 33806089496 :=
+    wdHeapWord_frontier loopHeap (nwd.toNat + 1) (by omega)
   have outRead : ∀ j, j ≤ nwd.toNat → ¬ MWin (wdHeapWord loopHeap j) 64 read :=
     wd_heap_window_below loopHeap read nwd.toNat al (by omega) (by omega)
   have sliceRead : ∀ j, j ≤ nwd.toNat →
@@ -67,7 +69,9 @@ theorem wdSliceLoop_count_entry (DF : Nat) {F : Type} (t : PanSemStateFiniteExac
     intro j hj
     exact wdHeapWord_succ loopHeap j al (by omega) (by omega)
   have main := wdSliceLoop_count DF t.memaddrs 0#64 nwd pl slices read X (wdHeapWord loopHeap)
-    readEq fence smallDF bigDF frontier outRead sliceRead heapStep smallNwd
+    readEq fence smallDF bigDF frontier outRead sliceRead heapStep
+    (wdLoopInv_capStep t.memaddrs 0#64 nwd pl slices read X (wdHeapWord loopHeap) frontier heapStep)
+    smallNwd
     t entry code (by simpa using atCounter) (by simp) (by simpa using budget)
   exact main
 

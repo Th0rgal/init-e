@@ -399,3 +399,29 @@ carry the full-loop room in per-iteration form.
 `fit`, `limit`, `frontier`, `outRead`, `sliceRead`, `heapStep` and `noWrapCells` are all derived from
 `bounded` + `room` + `fitSize`; the watched cells stay below the actual monotone heap and slice array via
 `wd_read_below_arena` / `wd_slice_cells_below`.
+
+## LANDED: the loop invariant now carries the current heap cap, maintained by actual returned allocations
+
+`WdLoopInv` gained a 13th conjunct — the **current** heap bound `(H k).toNat ≤ 33806089496` (the heap
+pointer of the invariant state; deliberately *not* `heap + 64`, since a heap already at the cap may still
+abort the next allocation). It is maintained as follows:
+
+- `wdLoopInv_keep` no longer proves the successor bound from the all-`k` `frontier`; it takes a
+  per-iteration hypothesis `capStep` — "at an invariant state, a *normal* body return (`… .1 = none`)
+  whose heap pointer is `hp` has `(allocationEnd hp 64).toNat ≤ 33806089496`" — and installs it as the next
+  iterate's cap conjunct. This is exactly the shape the actual returned allocation supplies through
+  `HeapDeclarationReturnedContract.heap_declaration_returned_contract`
+  (`HeaderWithdrawalLoopCapStep.cap_of_returned_allocation`). A failed allocation never produces such a
+  return, so the failure path carries no successor invariant: it leaves through `StAbort`.
+- `wdSliceLoop_count` threads the same per-iteration hypothesis; nothing there reserves room for future
+  iterations.
+- `wdLoopInv_capStep` derives `capStep` from the invariant itself plus the actual allocation chain
+  (`heapStep`): at an invariant state the pointer *is* `H k`, and `H (k+1) = allocationEnd (H k) 64` is the
+  successor produced by the previous normal allocation, so the next end is capped by `frontier (k+1)`.
+- Because that derivation uses the successor index, `frontier` is stated up to `nwd + 1` in
+  `wdLoopInv_keep`/`wdSliceLoop_count` and, correspondingly, at the 43 → 47 endpoints.
+
+All of `HeaderWithdrawalLoopCount`, `HeaderWithdrawalLoopEntry`, `HeaderWithdrawalLoopFence`,
+`HeaderWithdrawalLoopReaches`, `HeaderWithdrawalCountBound`, `HeaderWithdrawalStatement46` (and
+`HeaderWithdrawalLoopWhile`, `HeaderWithdrawalEntryGeometry`) re-verified `OK` with only
+`[propext, Classical.choice, Quot.sound]`.

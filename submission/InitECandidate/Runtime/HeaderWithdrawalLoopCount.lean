@@ -23,16 +23,17 @@ def WdLoopInv (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVec 64) (H 
     t.globals.lookup (ofString "heap_ptr") = some (ValueHOL.val (HolWordLab.word (H k))) ∧
     t.code = originalRuntimeCode ∧
     m read ∧
-    t.memory read = HolWordLab.word X
+    t.memory read = HolWordLab.word X ∧
+    (H k).toNat ≤ 33806089496
 
 /-- The heap pointer value and its cap come from the frontier hypothesis. -/
 theorem wdLoopInv_heapOf (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVec 64)
-    (H : Nat → BitVec 64) (frontier : ∀ k, k ≤ nwd.toNat → (H k).toNat ≤ 33806089496) :
+    (H : Nat → BitVec 64) (frontier : ∀ k, k ≤ nwd.toNat + 1 → (H k).toNat ≤ 33806089496) :
     ∀ {F : Type} (t : PanSemStateFiniteExact 64 F), WdLoopInv m I0 nwd pl slices read X H t →
       ∃ heap : BitVec 64, t.globals.lookup (ofString "heap_ptr") =
         some (ValueHOL.val (HolWordLab.word heap)) ∧ heap.toNat ≤ 33806089496 := by
   intro F t inv
-  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩ := inv
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell, capK⟩ := inv
   exact ⟨H k, atHeap, frontier k (by omega)⟩
 
 /-- The fence is the entry memory domain's fence. -/
@@ -41,7 +42,7 @@ theorem wdLoopInv_fence (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitV
     ∀ {F : Type} (t : PanSemStateFiniteExact 64 F), WdLoopInv m I0 nwd pl slices read X H t →
       Fence t.memaddrs DF := by
   intro F t inv
-  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩ := inv
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell, capK⟩ := inv
   intro a ha
   exact fence a ((dom a).mp ha)
 
@@ -51,7 +52,7 @@ theorem wdLoopInv_atBound (m : BitVec 64 → Prop) (I0 nwd pl slices read X : Bi
     ∀ {F : Type} (t : PanSemStateFiniteExact 64 F), WdLoopInv m I0 nwd pl slices read X H t →
       t.locals.lookup (ofString "nwd") = some (ValueHOL.val (HolWordLab.word nwd)) := by
   intro F t inv
-  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩ := inv
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell, capK⟩ := inv
   exact atNwd
 
 /-- One iteration never continues. -/
@@ -69,12 +70,12 @@ theorem wdLoopInv_decrease (m : BitVec 64 → Prop) (I0 nwd pl slices read X : B
     ∀ {F : Type} (t : PanSemStateFiniteExact 64 F), WdLoopInv m I0 nwd pl slices read X H t →
       WdLoopInv m I0 nwd pl slices read X H (decClockHOLFinite t) := by
   intro F t inv
-  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩ := inv
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell, capK⟩ := inv
   exact ⟨k, bound, by simpa [decClockHOLFinite] using dom,
     by simpa [decClockHOLFinite] using atI, by simpa [decClockHOLFinite] using atNwd,
     by simpa [decClockHOLFinite] using atPl, by simpa [decClockHOLFinite] using freshE,
     by simpa [decClockHOLFinite] using atSlices, by simpa [decClockHOLFinite] using atHeap,
-    by simpa [decClockHOLFinite] using codeEq, watched, by simpa [decClockHOLFinite] using cell⟩
+    by simpa [decClockHOLFinite] using codeEq, watched, by simpa [decClockHOLFinite] using cell, capK⟩
 
 /-- The evaluated encoder argument at every invariant state, from the watched `pl + 48` cell. -/
 theorem wdLoopInv_argsOf (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVec 64)
@@ -86,7 +87,7 @@ theorem wdLoopInv_argsOf (m : BitVec 64 → Prop) (I0 nwd pl slices read X : Bit
             .panop .mul [.var .local (ofString "i"), .const (44#64)]]] =
           some [ValueHOL.val (HolWordLab.word argumentWord)] := by
   intro F t inv
-  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩ := inv
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell, capK⟩ := inv
   have addrOk : t.memaddrs (pl + 48#64) := by
     rw [← readEq]
     exact (dom read).mpr watched
@@ -122,7 +123,7 @@ theorem wdLoopInv_advance (m : BitVec 64 → Prop) (I0 nwd pl slices read X : Bi
         some (ValueHOL.val (HolWordLab.word (w + 1#64))) ∧
       (evaluateHOLFiniteState t wdSliceLoopBody).2.code = t.code := by
   intro F t w inv atCounter normal
-  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩ := inv
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell, capK⟩ := inv
   have hsome : some (ValueHOL.val (HolWordLab.word w)) =
       some (ValueHOL.val (HolWordLab.word (I0 + BitVec.ofNat 64 k))) := by
     rw [← atCounter, atI]
@@ -139,7 +140,7 @@ theorem wdLoopInv_advance (m : BitVec 64 → Prop) (I0 nwd pl slices read X : Bi
       some [ValueHOL.val (HolWordLab.word (X + (I0 + BitVec.ofNat 64 k) * 44#64))] :=
     wd_slice_args t I0 pl X k atPl atI addrOk mem
   obtain ⟨argumentWord, hargsWord⟩ := wdLoopInv_argsOf m I0 nwd pl slices read X H readEq t
-    ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩
+    ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell, capK⟩
   have codeEq' : t.code = originalRuntimeCode := codeEq
   obtain ⟨first, second, st, bodyRun, shapeOk⟩ := wd_slice_step_outcome t argumentWord codeEq' hargsWord normal
   obtain ⟨succI, succNwd, succPl, succE, succSlices, succHeap⟩ :=
@@ -155,12 +156,18 @@ pointer advances to `H (k+1) = allocationEnd (H k) 64`, the memory domain and th
 cell are unchanged, and the remaining bindings are untouched. -/
 theorem wdLoopInv_keep (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVec 64)
     (H : Nat → BitVec 64) (readEq : read = pl + 48#64)
-    (frontier : ∀ k, k ≤ nwd.toNat → (H k).toNat ≤ 33806089496)
+    (frontier : ∀ k, k ≤ nwd.toNat + 1 → (H k).toNat ≤ 33806089496)
     (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (H k) 64 read)
     (sliceRead : ∀ j, j ≤ nwd.toNat →
       read ≠ slices + (I0 + BitVec.ofNat 64 j) * 16#64 ∧
       read ≠ slices + ((I0 + BitVec.ofNat 64 j) * 16#64 + 8#64))
-    (heapStep : ∀ k, k ≤ nwd.toNat → H (k + 1) = allocationEnd (H k) 64) :
+    (heapStep : ∀ k, k ≤ nwd.toNat → H (k + 1) = allocationEnd (H k) 64)
+    (capStep : ∀ {F : Type} (t : PanSemStateFiniteExact 64 F) (hp : BitVec 64),
+      WdLoopInv m I0 nwd pl slices read X H t → t.code = originalRuntimeCode →
+      t.globals.lookup (ofString "heap_ptr") = some (ValueHOL.val (HolWordLab.word hp)) →
+      (evaluateHOLFiniteState t wdSliceLoopBody).1 = none →
+      (allocationEnd hp 64).toNat ≤ 33806089496)
+    :
     ∀ {F : Type} (t : PanSemStateFiniteExact 64 F) (w : BitVec 64),
       WdLoopInv m I0 nwd pl slices read X H t →
       t.code = originalRuntimeCode →
@@ -169,7 +176,7 @@ theorem wdLoopInv_keep (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVe
       (evaluateHOLFiniteState t wdSliceLoopBody).1 = none →
       WdLoopInv m I0 nwd pl slices read X H (evaluateHOLFiniteState t wdSliceLoopBody).2 := by
   intro F t w inv code atCounter lt normal
-  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩ := inv
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell, capK⟩ := inv
   have addrOk : t.memaddrs (pl + 48#64) := by
     rw [← readEq]
     exact (dom read).mpr watched
@@ -182,13 +189,14 @@ theorem wdLoopInv_keep (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVe
   obtain ⟨succI, succNwd, succPl, succE, succSlices, succHeap⟩ :=
     wd_slice_step_successor t (I0 + BitVec.ofNat 64 k) nwd pl slices (H k) (X + (I0 + BitVec.ofNat 64 k) * 44#64)
       first second st atI atNwd atPl freshE atSlices atHeap codeEq hargs bodyRun shapeOk normal
-  have hklt : k ≤ nwd.toNat := by omega
+  have hklt : k ≤ nwd.toNat + 1 := by omega
+  have hkn : k ≤ nwd.toNat := by omega
   have heapBound : (H k).toNat + 64 < 2 ^ 64 := by
     have := frontier k hklt
     omega
   have window := wd_slice_step_window t slices (I0 + BitVec.ofNat 64 k)
     (X + (I0 + BitVec.ofNat 64 k) * 44#64) (H k) read atI atSlices atHeap codeEq heapBound
-    (outRead k hklt) (sliceRead k hklt).1 (sliceRead k hklt).2 hargs
+    (outRead k hkn) (sliceRead k hkn).1 (sliceRead k hkn).2 hargs
   have hno : (I0 + BitVec.ofNat 64 k).toNat = I0.toNat + k :=
     wdLoopInv_counter_toNat (by omega) (by omega)
   have hw : I0 + BitVec.ofNat 64 k = w := by
@@ -205,12 +213,15 @@ theorem wdLoopInv_keep (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVe
   have succCounter : (evaluateHOLFiniteState t wdSliceLoopBody).2.locals.lookup (ofString "i") =
       some (ValueHOL.val (HolWordLab.word (I0 + BitVec.ofNat 64 (k + 1)))) := by
     rw [succI, wdLoopInv_counter_succ (by omega)]
-  refine ⟨k + 1, by omega, ?_, succCounter, succNwd, succPl, succE, succSlices, ?_, ?_, watched, ?_⟩
+  refine ⟨k + 1, by omega, ?_, succCounter, succNwd, succPl, succE, succSlices, ?_, ?_, watched, ?_, ?_⟩
   · simpa [(evaluateHOLFiniteState_metadata t wdSliceLoopBody).2.1] using dom
-  · rw [succHeap, heapStep k hklt]
+  · rw [succHeap, heapStep k hkn]
   · exact (evaluateHOLFiniteState_metadata t wdSliceLoopBody).1.trans code
   · rw [window]
     exact cell
+  · rw [heapStep k hkn]
+    exact capStep t (H k) ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq,
+      watched, cell, capK⟩ code atHeap normal
 
 
 /-- **Statement-46 loop runtime bound, fully discharged.** With the concrete invariant in place —
@@ -223,12 +234,17 @@ frame or fuel oracle is used. -/
 theorem wdSliceLoop_count (DF : Nat) (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVec 64)
     (H : Nat → BitVec 64) (readEq : read = pl + 48#64) (fence : Fence m DF)
     (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
-    (frontier : ∀ k, k ≤ nwd.toNat → (H k).toNat ≤ 33806089496)
+    (frontier : ∀ k, k ≤ nwd.toNat + 1 → (H k).toNat ≤ 33806089496)
     (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (H k) 64 read)
     (sliceRead : ∀ j, j ≤ nwd.toNat →
       read ≠ slices + (I0 + BitVec.ofNat 64 j) * 16#64 ∧
       read ≠ slices + ((I0 + BitVec.ofNat 64 j) * 16#64 + 8#64))
     (heapStep : ∀ k, k ≤ nwd.toNat → H (k + 1) = allocationEnd (H k) 64)
+    (capStep : ∀ {F : Type} (t : PanSemStateFiniteExact 64 F) (hp : BitVec 64),
+      WdLoopInv m I0 nwd pl slices read X H t → t.code = originalRuntimeCode →
+      t.globals.lookup (ofString "heap_ptr") = some (ValueHOL.val (HolWordLab.word hp)) →
+      (evaluateHOLFiniteState t wdSliceLoopBody).1 = none →
+      (allocationEnd hp 64).toNat ≤ 33806089496)
     (small : nwd.toNat + 1 < 2 ^ 63) :
     ∀ {F : Type} (t : PanSemStateFiniteExact 64 F), WdLoopInv m I0 nwd pl slices read X H t →
       t.code = originalRuntimeCode →
@@ -245,7 +261,7 @@ theorem wdSliceLoop_count (DF : Nat) (m : BitVec 64 → Prop) (I0 nwd pl slices 
     (wdLoopInv_fence m I0 nwd pl slices read X H fence)
     (wdLoopInv_argsOf m I0 nwd pl slices read X H readEq)
     smallDF bigDF
-    (wdLoopInv_keep m I0 nwd pl slices read X H readEq frontier outRead sliceRead heapStep)
+    (wdLoopInv_keep m I0 nwd pl slices read X H readEq frontier outRead sliceRead heapStep capStep)
     (wdLoopInv_advance m I0 nwd pl slices read X H readEq)
     (wdLoopInv_noContinue m I0 nwd pl slices read X H)
     (wdLoopInv_decrease m I0 nwd pl slices read X H)
@@ -261,4 +277,28 @@ theorem wdSliceLoop_count (DF : Nat) (m : BitVec 64 → Prop) (I0 nwd pl slices 
 #print axioms wdLoopInv_noContinue
 #print axioms wdLoopInv_decrease
 #print axioms wdLoopInv_argsOf
+
+/-- **Per-iteration successor cap derived from the invariant and the actual allocation chain.** At any
+invariant state whose heap pointer is `hp`, the *next* 64-byte allocation's end is under the cap — so the
+cap conjunct of the invariant is maintained by real successful allocations, with no future-room premise. -/
+theorem wdLoopInv_capStep (m : BitVec 64 → Prop) (I0 nwd pl slices read X : BitVec 64)
+    (H : Nat → BitVec 64)
+    (frontier : ∀ k, k ≤ nwd.toNat + 1 → (H k).toNat ≤ 33806089496)
+    (heapStep : ∀ k, k ≤ nwd.toNat → H (k + 1) = allocationEnd (H k) 64) :
+    ∀ {F : Type} (t : PanSemStateFiniteExact 64 F) (hp : BitVec 64),
+      WdLoopInv m I0 nwd pl slices read X H t → t.code = originalRuntimeCode →
+      t.globals.lookup (ofString "heap_ptr") = some (ValueHOL.val (HolWordLab.word hp)) →
+      (evaluateHOLFiniteState t wdSliceLoopBody).1 = none →
+      (allocationEnd hp 64).toNat ≤ 33806089496 := by
+  intro F t hp inv code atHeap normal
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeapK, codeEq, watched, cell, capK⟩ := inv
+  have hpk : hp = H k := by
+    have hsome : some (ValueHOL.val (HolWordLab.word hp)) =
+        some (ValueHOL.val (HolWordLab.word (H k))) := by rw [← atHeap, atHeapK]
+    exact HolWordLab.word.inj (ValueHOL.val.inj (Option.some.inj hsome))
+  have hs : H (k + 1) = allocationEnd (H k) 64 := heapStep k (by omega)
+  rw [hpk, ← hs]
+  exact frontier (k + 1) (by omega)
+
+#print axioms wdLoopInv_capStep
 end InitECandidate.Runtime

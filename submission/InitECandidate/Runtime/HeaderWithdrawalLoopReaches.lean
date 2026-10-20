@@ -449,12 +449,12 @@ theorem wdLoopInv_decClock (m : BitVec 64 → Prop) (I0 nwd pl slices read X : B
       WdLoopInv m I0 nwd pl slices read X H t →
       WdLoopInv m I0 nwd pl slices read X H (decClockHOLFinite t) := by
   intro F t inv
-  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell⟩ := inv
+  obtain ⟨k, bound, dom, atI, atNwd, atPl, freshE, atSlices, atHeap, codeEq, watched, cell, capK⟩ := inv
   exact ⟨k, bound, by simpa [decClockHOLFinite] using dom, by simpa [decClockHOLFinite] using atI,
     by simpa [decClockHOLFinite] using atNwd, by simpa [decClockHOLFinite] using atPl,
     by simpa [decClockHOLFinite] using freshE, by simpa [decClockHOLFinite] using atSlices,
     by simpa [decClockHOLFinite] using atHeap, by simpa [decClockHOLFinite] using codeEq,
-    by simpa [decClockHOLFinite] using watched, by simpa [decClockHOLFinite] using cell⟩
+    by simpa [decClockHOLFinite] using watched, by simpa [decClockHOLFinite] using cell, capK⟩
 
 /-- **The `WdLoopInv` exit batch.** From the loop-entry invariant, every *normal* exit state of the
 withdrawal slice loop still satisfies the invariant: the `pl`/`nwd` bindings, the `e` slot freshness, the
@@ -463,7 +463,7 @@ heap frontier `H k` for some reached `k ≤ nwd.toNat`. No callee-success oracle
 excluded by the normality hypothesis. -/
 theorem wdSliceLoopInv_exit {F : Type} (t : PanSemStateFiniteExact 64 F)
     (nwd pl slices read X loopHeap : BitVec 64)
-    (frontier : ∀ k, k ≤ nwd.toNat → (wdHeapWord loopHeap k).toNat ≤ 33806089496)
+    (frontier : ∀ k, k ≤ nwd.toNat + 1 → (wdHeapWord loopHeap k).toNat ≤ 33806089496)
     (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (wdHeapWord loopHeap k) 64 read)
     (sliceRead : ∀ j, j ≤ nwd.toNat →
       read ≠ slices + (BitVec.ofNat 64 j) * 16#64 ∧
@@ -487,7 +487,9 @@ theorem wdSliceLoopInv_exit {F : Type} (t : PanSemStateFiniteExact 64 F)
     (fun state inv => wdLoopInv_atBound _ _ _ _ _ _ _ _ state inv)
     (fun state w inv code atCounter lt normal =>
       wdLoopInv_keep (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap) readEq
-        frontier outRead (fun j hj => by simpa using sliceRead j hj) heapStep state w inv code atCounter
+        frontier outRead (fun j hj => by simpa using sliceRead j hj) heapStep
+        (wdLoopInv_capStep (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap)
+          frontier heapStep) state w inv code atCounter
         (by simpa using lt) normal)
     (fun state w inv atCounter normal =>
       wdLoopInv_advance (fun a => t.memaddrs a) 0#64 nwd pl slices read X (wdHeapWord loopHeap) readEq
@@ -524,7 +526,7 @@ theorem payloadHeader46_reaches_exit {F : Type} (t : PanSemStateFiniteExact 64 F
     (readBelow : read.toNat < slices.toNat)
     (noWrapCells : slices.toNat + 16 * nwd.toNat + 8 < 2 ^ 64)
     (fence : Fence t.memaddrs DF) (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
-    (frontier : ∀ k, k ≤ nwd.toNat → (wdHeapWord loopHeap k).toNat ≤ 33806089496)
+    (frontier : ∀ k, k ≤ nwd.toNat + 1 → (wdHeapWord loopHeap k).toNat ≤ 33806089496)
     (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (wdHeapWord loopHeap k) 64 read)
     (sliceRead : ∀ j, j ≤ nwd.toNat →
       read ≠ slices + (BitVec.ofNat 64 j) * 16#64 ∧
@@ -549,7 +551,9 @@ theorem payloadHeader46_reaches_exit {F : Type} (t : PanSemStateFiniteExact 64 F
   have entryInv : WdLoopInv (fun a => t.memaddrs a) 0#64 nwd pl slices read X
       (wdHeapWord loopHeap) t :=
     ⟨0, by simp, fun a => Iff.rfl, atCounter, atNwd, atPl, freshE, atSlices,
-      by rw [wdHeapWord_zero]; exact atHeap, code, addrRead, memRead⟩
+      by rw [wdHeapWord_zero]; exact atHeap, code, addrRead, memRead,
+      by simpa [wdHeapWord_zero] using
+        (wdHeapWord_frontier loopHeap (nwd.toNat + 1) (by omega) 0 (by omega))⟩
   exact payloadHeader46_reaches DF t nwd pl slices loopHeap read X readEq al fit limit smallNwd
     slicesBelow readBelow noWrapCells fence smallDF bigDF atCounter atNwd atPl freshE atSlices atHeap
     code addrRead memRead budget
@@ -582,7 +586,7 @@ theorem payloadHeader43_reaches_exit (DF : Nat) {F : Type} (s : PanSemStateFinit
     (fence : Fence s.memaddrs DF) (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
     (addrRead : s.memaddrs read) (memRead : s.memory read = HolWordLab.word X)
     (budget : 1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1) ≤ s.clock)
-    (frontier : ∀ k, k ≤ nwd.toNat →
+    (frontier : ∀ k, k ≤ nwd.toNat + 1 →
       (wdHeapWord (allocationEnd loopHeap size) k).toNat ≤ 33806089496)
     (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (wdHeapWord (allocationEnd loopHeap size) k) 64 read)
     (sliceRead : ∀ j, j ≤ nwd.toNat →
@@ -787,7 +791,7 @@ theorem payloadHeader43_reaches_exit_heap (DF : Nat) {F : Type} (s : PanSemState
     (fence : Fence s.memaddrs DF) (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
     (addrRead : s.memaddrs read) (memRead : s.memory read = HolWordLab.word X)
     (budget : 1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1) ≤ s.clock)
-    (frontier : ∀ k, k ≤ nwd.toNat →
+    (frontier : ∀ k, k ≤ nwd.toNat + 1 →
       (wdHeapWord (allocationEnd loopHeap size) k).toNat ≤ 33806089496)
     (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (wdHeapWord (allocationEnd loopHeap size) k) 64 read)
     (sliceRead : ∀ j, j ≤ nwd.toNat →
@@ -854,7 +858,7 @@ theorem payloadHeader43_reaches_source (DF : Nat) {F : Type} (s : PanSemStateFin
   have readBelow : read.toNat < loopHeap.toNat :=
     wd_read_below_arena pl loopHeap read readBelowSource readEq
   have noWrapCells : loopHeap.toNat + 16 * nwd.toNat + 8 < 2 ^ 64 := by omega
-  have frontier : ∀ k, k ≤ nwd.toNat → (wdHeapWord (allocationEnd loopHeap size) k).toNat ≤ 33806089496 := by
+  have frontier : ∀ k, k ≤ nwd.toNat + 1 → (wdHeapWord (allocationEnd loopHeap size) k).toNat ≤ 33806089496 := by
     intro k hk
     have fitk : (allocationEnd loopHeap size).toNat + 64 * k < 2 ^ 64 := by omega
     rw [wdHeapWord_toNat (allocationEnd loopHeap size) k fitk]
@@ -1046,10 +1050,9 @@ theorem payloadHeader43_reaches_capped (DF : Nat) {F : Type} (s : PanSemStateFin
   have readBelow : read.toNat < loopHeap.toNat :=
     wd_read_below_arena pl loopHeap read readBelowSource readEq
   have noWrapCells : loopHeap.toNat + 16 * nwd.toNat + 8 < 2 ^ 64 := by omega
-  have frontier : ∀ k, k ≤ nwd.toNat →
+  have frontier : ∀ k, k ≤ nwd.toNat + 1 →
       (wdHeapWord (allocationEnd loopHeap size) k).toNat ≤ 33806089496 := by
     intro k hk
-    have h := room k hk
     have hkfit : (allocationEnd loopHeap size).toNat + 64 * k < 2 ^ 64 := by omega
     rw [wdHeapWord_toNat (allocationEnd loopHeap size) k hkfit]
     omega
