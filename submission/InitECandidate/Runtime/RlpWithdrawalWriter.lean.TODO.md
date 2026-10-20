@@ -85,3 +85,51 @@ Reusable machinery already in the tree:
 ## After the withdrawal statement
 
 Next task: header slices, statement 46 (`wd_rlp_slices + i * 16` stores).
+
+## Handoff: statement 46 (header withdrawal slices loop)
+
+Where it lives: `submission/InitECandidate/Runtime/PayloadHeaderTailSources.lean`,
+`source_actual_payload_header_withdrawal_loop` currently only asserts
+`∃ loop, actualPayloadHeaderAt 46 = .seq loop (actualPayloadHeaderAt 47)`.
+First step is to replace that with the concrete loop body (unfold
+`actualPayloadHeaderAt 46`) mirroring statement 44/45's style:
+
+    while i < nwd {
+      e := encode_withdrawal_rlp(wd + 48*i, si + 4*i);
+      wd_rlp_slices[i*16]     := e.0;
+      wd_rlp_slices[i*16 + 8] := e.1;
+      i := i + 1
+    }
+
+Statement 44 (`source_actual_payload_header_withdrawal_slices`) installs
+`wd_rlp_slices` with `alloc(nwd*16 + 16)`, so the loop's two stores per iteration
+stay inside the slice array.
+
+What `rlpEncodeWithdrawal_window` (now proved, commit `17555b617`) gives: the
+encoder writes only inside the 64-byte buffer it allocates at `heap_ptr`, so any
+cell satisfying `¬ MWin B 64` for the allocation base `B` is untouched, and the
+record's two words are the only values it returns.
+
+Target shape (model: `HeaderWithdrawalsBytesStateRoot.lean`, the analogous
+`decode_header_withdrawals_bytes_keeps_state_root`:
+
+    Reaches s (actualPayloadHeaderAt 46)
+      (fun post => post.memory (record + 32#64) = .word word ∧ frame …)
+      cost (actualPayloadHeaderAt 47)
+
+i.e. the loop leaves the previously written header fields (the state root word at
+record offset 32 and friends) alone, because every store it performs lands in the
+`wd_rlp_slices` array or in the fresh heap window.
+
+Pieces still to build for it:
+
+1. `MemoryFrame`/`MemKeep` of the loop body outside the slice array and the heap
+   window: `MWin` narrowing (`mwin_narrow_shift`, `mwin_mono`) to show
+   `wd_rlp_slices + i*16 ≠ w` for the watched cell, plus
+   `rlpEncodeWithdrawal_window` for the encoder call.
+2. An induction over the loop (`evaluateHOLFiniteState_while_total` or the
+   `Reaches` loop rule already used by the access-list slice loops —
+   see `AccessListInnerSlicesProgress.lean` for the pattern).
+3. Compose with statements 47/48/49 (`build_mpt_indexed`,
+   `encode_execution_requests`, `compute_requests_hash`), then
+   `runAttemptAt 18 → 19`.
