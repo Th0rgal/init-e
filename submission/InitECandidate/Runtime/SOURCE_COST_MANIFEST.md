@@ -314,3 +314,21 @@ base, which is not implied by the source. Generalized:
   not depend on the old value.
 
 All four modules re-verified `OK` with only `[propext, Classical.choice, Quot.sound]`.
+
+## LANDED: statement-43 entry geometry derived, single entry predicate for integration (`70b43527b`, +)
+
+- `payloadHeader43_reaches_source` — the same 43 → 47 `Reaches` endpoint as `payloadHeader43_reaches_exit`
+  but with the heap/slice geometry **derived** rather than assumed: `fit`, `limit`, `readBelow`,
+  `noWrapCells`, and all four loop-geometry premises (`frontier`, `outRead`, `sliceRead`, `heapStep`) come
+  from `wd_slice_size_value`, `wd_slices_alloc_end`, `wd_read_below_arena`, `wd_slice_cells_below`,
+  `wd_heap_window_below`, `wdHeapWord_succ`/`wdHeapWord_toNat`. The only remaining arithmetic premise is
+  the source arena cap `loopHeap.toNat + 80 * nwd.toNat + 80 ≤ 33806089496` (the shape `wd_loop_budget`
+  already uses), the size no-overflow fact `nwd.toNat * 16 + 16 < 2 ^ 64`, and the payload/arena
+  separation `pl.toNat + 136 ≤ loopHeap.toNat`.
+- `WdHeader43Entry` — the whole statement-43 entry contract as **one predicate** (read/pl/e/oldSlices/
+  heap_ptr/code/clock, the `pl+56` count cell and its value, `size`, alignment, the arena cap, the signed
+  count bound, the payload/arena separation, the fence and its two numeric side conditions, the watched
+  cell, and the fuel budget). This is the interface a payload-header prologue hands over.
+- `payloadHeader43_reaches_entry` — from a single `entry : WdHeader43Entry s …`, statements 43–46 reach
+  `actualPayloadHeaderAt 47` with the concrete `WdLoopInv` exit state at cost
+  `1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)`.

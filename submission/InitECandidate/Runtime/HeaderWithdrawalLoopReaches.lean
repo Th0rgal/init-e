@@ -828,14 +828,11 @@ theorem payloadHeader43_reaches_source (DF : Nat) {F : Type} (s : PanSemStateFin
     (countAddr : s.memaddrs (pl + 56#64))
     (countMem : s.memory (pl + 56#64) = HolWordLab.word nwd)
     (sizeVal : size = nwd * 16#64 + 16#64)
-    (al : loopHeap.toNat % 8 = 0) (sizeAl : size.toNat % 8 = 0)
-    (bounded : loopHeap.toNat + size.toNat ≤ 33806089496)
     (fitSize : nwd.toNat * 16 + 16 < 2 ^ 64)
-    (fit : (allocationEnd loopHeap size).toNat + 64 * nwd.toNat + 64 < 2 ^ 64)
-    (limit : (allocationEnd loopHeap size).toNat + 64 * nwd.toNat + 64 ≤ 33806089496)
+    (al : loopHeap.toNat % 8 = 0) (sizeAl : size.toNat % 8 = 0)
+    (cap : loopHeap.toNat + 80 * nwd.toNat + 80 ≤ 33806089496)
     (smallNwd : nwd.toNat + 1 < 2 ^ 63)
     (readBelowSource : pl.toNat + 136 ≤ loopHeap.toNat)
-    (noWrapCells : loopHeap.toNat + 16 * nwd.toNat + 8 < 2 ^ 64)
     (fence : Fence s.memaddrs DF) (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
     (addrRead : s.memaddrs read) (memRead : s.memory read = HolWordLab.word X)
     (budget : 1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1) ≤ s.clock)
@@ -845,15 +842,15 @@ theorem payloadHeader43_reaches_source (DF : Nat) {F : Type} (s : PanSemStateFin
       (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47)
     := by
   have sizeEqV : size.toNat = 16 * nwd.toNat + 16 :=
-    wd_slice_size_value nwd size sizeVal (by omega)
+    wd_slice_size_value nwd size sizeVal fitSize
+  have bounded : loopHeap.toNat + size.toNat ≤ 33806089496 := by omega
   have endData := wd_slices_alloc_end loopHeap size al sizeAl bounded
   have endEq : (allocationEnd loopHeap size).toNat = loopHeap.toNat + size.toNat := endData.1
   have endAligned : (allocationEnd loopHeap size).toNat % 8 = 0 := endData.2
-  have fitSize : nwd.toNat * 16 + 16 < 2 ^ 64 := by omega
   have fit : (allocationEnd loopHeap size).toNat + 64 * nwd.toNat + 64 < 2 ^ 64 := by
-    rw [endEq, sizeEqV]; omega
+    rw [endEq]; omega
   have limit : (allocationEnd loopHeap size).toNat + 64 * nwd.toNat + 64 ≤ 33806089496 := by
-    rw [endEq, sizeEqV]; omega
+    rw [endEq]; omega
   have readBelow : read.toNat < loopHeap.toNat :=
     wd_read_below_arena pl loopHeap read readBelowSource readEq
   have noWrapCells : loopHeap.toNat + 16 * nwd.toNat + 8 < 2 ^ 64 := by omega
@@ -882,4 +879,48 @@ theorem payloadHeader43_reaches_source (DF : Nat) {F : Type} (s : PanSemStateFin
 
 #print axioms payloadHeader43_reaches_source
 
+
+/-- The complete set of statement-43 entry facts, as one predicate: this is what a payload-header
+prologue must hand over so that statements 43–46 run to the statement-47 builder continuation with the
+concrete `WdLoopInv` exit state. `oldSlices` is the pre-existing `wd_rlp_slices` value (the guest global
+is initialized to `0`), independent of the arena base. -/
+def WdHeader43Entry {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (nwd size loopHeap oldSlices pl read X : BitVec 64) (DF : Nat) : Prop :=
+  read = pl + 48#64 ∧
+  s.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)) ∧
+  s.locals.lookup (ofString "e") = none ∧
+  s.globals.lookup (ofString "wd_rlp_slices") = some (ValueHOL.val (HolWordLab.word oldSlices)) ∧
+  s.globals.lookup (ofString "heap_ptr") = some (ValueHOL.val (HolWordLab.word loopHeap)) ∧
+  s.code = originalRuntimeCode ∧ s.clock ≠ 0 ∧
+  s.memaddrs (pl + 56#64) ∧ s.memory (pl + 56#64) = HolWordLab.word nwd ∧
+  size = nwd * 16#64 + 16#64 ∧
+  nwd.toNat * 16 + 16 < 2 ^ 64 ∧
+  loopHeap.toNat % 8 = 0 ∧ size.toNat % 8 = 0 ∧
+  loopHeap.toNat + 80 * nwd.toNat + 80 ≤ 33806089496 ∧
+  nwd.toNat + 1 < 2 ^ 63 ∧
+  pl.toNat + 136 ≤ loopHeap.toNat ∧
+  Fence s.memaddrs DF ∧ DF + 8 ≤ 2 ^ 62 ∧ 33806089496 ≤ DF ∧
+  s.memaddrs read ∧ s.memory read = HolWordLab.word X ∧
+  1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1) ≤ s.clock
+
+/-- **The concrete statement-43 → statement-47 prefix from a single entry predicate.** From the
+`WdHeader43Entry` facts handed over by the payload-header prologue, statements 43–46 reach
+`actualPayloadHeaderAt 47` within `1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)` ticks, with
+the concrete `WdLoopInv` exit state. All heap/slice/alignment/limit geometry is derived here, not assumed;
+the builder callee after 47 is untouched. -/
+theorem payloadHeader43_reaches_entry (DF : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (nwd size loopHeap oldSlices pl read X : BitVec 64)
+    (entry : WdHeader43Entry s nwd size loopHeap oldSlices pl read X DF) :
+    Reaches s (actualPayloadHeaderAt 43)
+      (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X
+        (wdHeapWord (allocationEnd loopHeap size)))
+      (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47) := by
+  obtain ⟨readEq, atPl, freshE, atSlices, atHeap, code, clock, countAddr, countMem, sizeVal, fitSize,
+    al, sizeAl, cap, smallNwd, readBelowSource, fence, smallDF, bigDF, addrRead, memRead,
+    budget⟩ := entry
+  exact payloadHeader43_reaches_source DF s nwd size loopHeap oldSlices pl read X readEq atPl freshE
+    atSlices atHeap code clock countAddr countMem sizeVal fitSize al sizeAl cap smallNwd
+    readBelowSource fence smallDF bigDF addrRead memRead budget
+
+#print axioms payloadHeader43_reaches_entry
 end InitECandidate.Runtime
