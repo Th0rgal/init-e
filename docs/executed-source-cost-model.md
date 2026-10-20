@@ -127,3 +127,16 @@ full residual expression allowances, including when evaluation fails early.
 coefficient-six theorem, so the allowance bounds an actual evaluator trace,
 with residual value work reserved for the enclosing statement. It remains a
 Loop work bound rather than a count of compiled RISC-V steps.
+
+`PanTotalExpressionCost` replaces reliance on the partial expression trace for
+statement accounting. It defines work for every exact Pancake expression,
+including named structure guards, field operations, arbitrary argument lists,
+structured loads and malformed/missing results. `CostedExpressionRun` pairs the
+exact evaluator result with this canonical event list and is total without
+success or syntax assumptions. `PanStatementWork` now uses that relation.
+Expression lists retain all children of the exact evaluator's pair-matched list
+clauses. Structured loads charge requested words even on memory rejection and
+actual output words for copying; failed prechecks skip guarded children.
+Every attempted expression pays its entry cost. The source-cost scalarization
+is still parameterized: its relation to the compiler-aware lowering allowance,
+full statement coverage and native coefficients remain proof obligations.

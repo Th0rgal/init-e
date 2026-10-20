@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.PanExpressionWork
+import InitECandidate.Runtime.PanTotalExpressionCost
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -15,13 +15,13 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (one : StatementRun s first r post left) :
       StatementRun s (.seq first second) r post (.statement :: left)
   | iteYes {s condition yes no value guardEvents r post bodyEvents}
-      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0)
       (body : StatementRun s yes r post bodyEvents) :
       StatementRun s (.ite condition yes no) r post
         (.statement :: (guardEvents ++ bodyEvents))
   | iteNo {s condition yes no guardEvents r post bodyEvents}
-      (guard : ExpressionRun s condition (some (.val (.word 0))) guardEvents)
+      (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents)
       (body : StatementRun s no r post bodyEvents) :
       StatementRun s (.ite condition yes no) r post
         (.statement :: (guardEvents ++ bodyEvents))
@@ -29,39 +29,39 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
   | breakStmt (s) : StatementRun s .break (some .break) s [.statement]
   | continueStmt (s) : StatementRun s .continue (some .continue) s [.statement]
   | whileFalse {s condition body guardEvents}
-      (guard : ExpressionRun s condition (some (.val (.word 0))) guardEvents) :
+      (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents) :
       StatementRun s (.while condition body) none s (.statement :: guardEvents)
   | whileNext {s condition body value guardEvents middle r post bodyEvents restEvents}
-      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       (one : StatementRun (decClockHOLFinite s) body none middle bodyEvents)
       (rest : StatementRun middle (.while condition body) r post restEvents) :
       StatementRun s (.while condition body) r post
         (.statement :: (guardEvents ++ bodyEvents ++ restEvents))
   | whileContinue {s condition body value guardEvents middle r post bodyEvents restEvents}
-      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       (one : StatementRun (decClockHOLFinite s) body (some .continue) middle bodyEvents)
       (rest : StatementRun middle (.while condition body) r post restEvents) :
       StatementRun s (.while condition body) r post
         (.statement :: (guardEvents ++ bodyEvents ++ restEvents))
   | whileBreak {s condition body value guardEvents post bodyEvents}
-      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       (one : StatementRun (decClockHOLFinite s) body (some .break) post bodyEvents) :
       StatementRun s (.while condition body) none post
         (.statement :: (guardEvents ++ bodyEvents))
   | whileTimeout {s condition body value guardEvents}
-      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock = 0) :
       StatementRun s (.while condition body) (some .timeOut) (emptyLocalsHOLFinite s)
         (.statement :: guardEvents)
   | whileMissingGuard {s condition body guardEvents}
-      (guard : ExpressionRun s condition none guardEvents) :
+      (guard : CostedExpressionRun s condition none guardEvents) :
       StatementRun s (.while condition body) (some .error) s (.statement :: guardEvents)
 
   | whilePropagate {s condition body value guardEvents post bodyEvents result}
-      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       (notBreak : result ≠ .break) (notContinue : result ≠ .continue)
       (one : StatementRun (decClockHOLFinite s) body (some result) post bodyEvents) :
@@ -69,67 +69,67 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
         (.statement :: (guardEvents ++ bodyEvents))
 
   | assignValue {s kind name expression value events}
-      (expr : ExpressionRun s expression (some value) events)
+      (expr : CostedExpressionRun s expression (some value) events)
       (valid : isValidValueHOLFinite s kind name value = true) :
       StatementRun s (.assign kind name expression) none (setKvarHOLFinite kind name value s)
         (.statement :: (events ++ [.copy (flattenHOL value).length]))
   | assignInvalid {s kind name expression value events}
-      (expr : ExpressionRun s expression (some value) events)
+      (expr : CostedExpressionRun s expression (some value) events)
       (invalid : isValidValueHOLFinite s kind name value = false) :
       StatementRun s (.assign kind name expression) (some .error) s (.statement :: events)
   | assignFailure {s kind name expression events}
-      (expr : ExpressionRun s expression none events) :
+      (expr : CostedExpressionRun s expression none events) :
       StatementRun s (.assign kind name expression) (some .error) s (.statement :: events)
   | returnValue {s expression value events}
-      (expr : ExpressionRun s expression (some value) events)
+      (expr : CostedExpressionRun s expression (some value) events)
       (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
       StatementRun s (.return expression) (some (.returned value)) (emptyLocalsHOLFinite s)
         (.statement :: (events ++ [.copy (flattenHOL value).length]))
   | returnOversize {s expression value events}
-      (expr : ExpressionRun s expression (some value) events)
+      (expr : CostedExpressionRun s expression (some value) events)
       (size : ¬ sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
       StatementRun s (.return expression) (some .error) s (.statement :: events)
   | returnFailure {s expression events}
-      (expr : ExpressionRun s expression none events) :
+      (expr : CostedExpressionRun s expression none events) :
       StatementRun s (.return expression) (some .error) s (.statement :: events)
 
   | raiseValue {s exceptionId expression value events shape}
-      (expr : ExpressionRun s expression (some value) events)
+      (expr : CostedExpressionRun s expression (some value) events)
       (declared : s.eshapes.lookup exceptionId = some shape)
       (shapeMatches : shapeOfHOLExact value = shape)
       (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
       StatementRun s (.raise exceptionId expression) (some (.exception exceptionId value))
         (emptyLocalsHOLFinite s) (.statement :: (events ++ [.copy (flattenHOL value).length]))
   | raiseFailure {s exceptionId expression events}
-      (expr : ExpressionRun s expression none events) :
+      (expr : CostedExpressionRun s expression none events) :
       StatementRun s (.raise exceptionId expression) (some .error) s (.statement :: events)
 
   | storeValue {s destination source address value memory addressEvents valueEvents}
-      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
-      (src : ExpressionRun s source (some value) valueEvents)
+      (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : CostedExpressionRun s source (some value) valueEvents)
       (write : @panMemStoresHOL 64 _ address (flattenHOL value) s.memaddrs
         (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = some memory) :
       StatementRun s (.store destination source) none { s with memory := memory }
         (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length]))
   | storeRejected {s destination source address value addressEvents valueEvents}
-      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
-      (src : ExpressionRun s source (some value) valueEvents)
+      (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : CostedExpressionRun s source (some value) valueEvents)
       (write : @panMemStoresHOL 64 _ address (flattenHOL value) s.memaddrs
         (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = none) :
       StatementRun s (.store destination source) (some .error) s
         (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length]))
   | storeSourceFailure {s destination source address addressEvents valueEvents}
-      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
-      (src : ExpressionRun s source none valueEvents) :
+      (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : CostedExpressionRun s source none valueEvents) :
       StatementRun s (.store destination source) (some .error) s
         (.statement :: (addressEvents ++ valueEvents))
   | storeAddressFailure {s destination source addressEvents}
-      (dst : ExpressionRun s destination none addressEvents) :
+      (dst : CostedExpressionRun s destination none addressEvents) :
       StatementRun s (.store destination source) (some .error) s (.statement :: addressEvents)
 
   | store32Value {s destination source address value memory addressEvents valueEvents}
-      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
-      (src : ExpressionRun s source (some (.val (.word value))) valueEvents)
+      (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : CostedExpressionRun s source (some (.val (.word value))) valueEvents)
       (write : @panMemStore32HOL 64 _ s.memory s.memaddrs
         (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
         (BitVec.ofNat 32 value.toNat) = some memory) :
@@ -137,8 +137,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
         (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
 
   | store32Rejected {s destination source address value addressEvents valueEvents}
-      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
-      (src : ExpressionRun s source (some (.val (.word value))) valueEvents)
+      (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : CostedExpressionRun s source (some (.val (.word value))) valueEvents)
       (write : @panMemStore32HOL 64 _ s.memory s.memaddrs
         (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
         (BitVec.ofNat 32 value.toNat) = none) :
@@ -146,8 +146,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
         (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
 
   | storeByteValue {s destination source address value memory addressEvents valueEvents}
-      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
-      (src : ExpressionRun s source (some (.val (.word value))) valueEvents)
+      (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : CostedExpressionRun s source (some (.val (.word value))) valueEvents)
       (write : @panMemStoreByteWord8HOL 64 _ s.memory s.memaddrs
         (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
         (BitVec.ofNat 8 value.toNat) = some memory) :
@@ -155,8 +155,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
         (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
 
   | storeByteRejected {s destination source address value addressEvents valueEvents}
-      (dst : ExpressionRun s destination (some (.val (.word address))) addressEvents)
-      (src : ExpressionRun s source (some (.val (.word value))) valueEvents)
+      (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : CostedExpressionRun s source (some (.val (.word value))) valueEvents)
       (write : @panMemStoreByteWord8HOL 64 _ s.memory s.memaddrs
         (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
         (BitVec.ofNat 8 value.toNat) = none) :
@@ -164,7 +164,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
         (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
 
   | declareValue {s name shape initializer body value initEvents bodyEvents result post}
-      (init : ExpressionRun s initializer (some value) initEvents)
+      (init : CostedExpressionRun s initializer (some value) initEvents)
       (shapeMatch : shapeEqHOL shape (shapeOfHOLExact value) = true)
       (bodyRun : StatementRun (setVarHOLFinite name value s) body result post bodyEvents) :
       StatementRun s (.dec name shape initializer body) result
@@ -173,12 +173,12 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
           bodyEvents ++ [.copy (((s.locals.lookup name).map
             (fun previous => (flattenHOL previous).length)).getD 0)]))
   | declareMismatch {s name shape initializer body value initEvents}
-      (init : ExpressionRun s initializer (some value) initEvents)
+      (init : CostedExpressionRun s initializer (some value) initEvents)
       (mismatch : shapeEqHOL shape (shapeOfHOLExact value) = false) :
       StatementRun s (.dec name shape initializer body) (some .error) s
         (.statement :: initEvents)
   | declareFailure {s name shape initializer body initEvents}
-      (init : ExpressionRun s initializer none initEvents) :
+      (init : CostedExpressionRun s initializer none initEvents) :
       StatementRun s (.dec name shape initializer body) (some .error) s
         (.statement :: initEvents)
 
