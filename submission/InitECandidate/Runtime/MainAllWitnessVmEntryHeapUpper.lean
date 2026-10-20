@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.MainDecoderInitializedGlobals
 import InitECandidate.Runtime.MainDecoderCallHeapUpper
 import InitECandidate.Runtime.MainDecoderVmEntryReach
 import InitECandidate.Runtime.MainDecoderCallWitnessHeaderOrigin
@@ -33,6 +34,7 @@ theorem main_all_witness_vm_entry_reaches_heap_upper {F : Type} (state ready dec
           post.locals.lookup (ofString "si") = some (.val (.word si)) ∧
           post.locals.lookup (ofString "root") = some (.val (.word rootHeap)) ∧
           post.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd rootHeap 32))) ∧
+          (∀ key, key≠ofString "heap_ptr"→post.globals.lookup key=(allInitializerGlobals state.globals).lookup key) ∧
           post.memaddrs = decodedState.memaddrs ∧ post.code = originalRuntimeCode)
         (2 + (htrNewPayloadBodyCost + 1)) (mainAt 23) := by
   obtain ⟨length,si,OW,middle,last,array,count,codes,codeCount,headers,headerCount,witnessHeap,
@@ -52,6 +54,7 @@ theorem main_all_witness_vm_entry_reaches_heap_upper {F : Type} (state ready dec
     have padded := (allocationEnd_covers rootHeap 32 (by change rootHeap.toNat+32≤33806089496; omega)).2.1
     change (allocationEnd rootHeap 32).toNat<rootHeap.toNat+32+8 at padded
     omega
+  have initialized := main_decoder_call_initialized_nonheap state ready decodedState code arena valid run
   have heapEq : heap = si := by
     have siLookup : decodedState.locals.lookup (ofString "si") = some (.val (.word si)) := by
       rw [wlocals]; simp [HolFiniteMapExact.lookup_update,FUPDATE]
@@ -99,8 +102,9 @@ theorem main_all_witness_vm_entry_reaches_heap_upper {F : Type} (state ready dec
       ?_ ?_ (by rcases codesOrigin with z | lo; exact Or.inl z; exact Or.inr (by omega)) heapGrowth domain (fun w hi lo => memory w lo hi),
     headersLinked.after_memory_between decodedState post _ _ _ _ _ _ _ _ _ 2713715344
       ?_ ?_ (by rcases headersOrigin with z | lo; exact Or.inl z; exact Or.inr (by omega)) heapGrowth domain (fun w hi lo => memory w lo hi),
-    siKept,rootKept,?_,domain,installed⟩
+    siKept,rootKept,?_,?_,domain,installed⟩
   all_goals first
+    | (intro key different; rw [globals]; simpa [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm different] using initialized key different)
     | (rw [globals]; simp [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE])
     | (constructor <;> rw [BitVec.toNat_add_of_lt (by simp; omega)] <;> simp <;> omega)
 
