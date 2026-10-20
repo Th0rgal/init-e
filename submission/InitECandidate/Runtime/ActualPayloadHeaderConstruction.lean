@@ -812,4 +812,73 @@ theorem actual_payload_header_z8_guarded {F : Type} (state mid : PanSemStateFini
 
 #print axioms actual_payload_header_z8_guarded
 
+/-- **A later allocation floor never moves backwards.**  When the rounded request does not overflow,
+the allocator floor after an allocation is at least the floor before it. -/
+theorem actual_payload_header_floor_lower (pointer size : BitVec 64)
+    (fits : pointer.toNat + size.toNat + 7 < 2^64) :
+    pointer.toNat + size.toNat ≤ (allocationEnd pointer size).toNat := by
+  have seven : (7#64 : BitVec 64).toNat = 7 := by decide
+  have inner : (pointer + size).toNat = pointer.toNat + size.toNat := by
+    rw [BitVec.toNat_add_of_lt (by omega)]
+  have sum : (pointer + size + (7#64)).toNat = pointer.toNat + size.toNat + 7 := by
+    rw [BitVec.toNat_add_of_lt (by rw [inner,seven]; omega),inner,seven]
+  rw [allocationEnd_eq_align,panByteAlign_toNat64]
+  change pointer.toNat + size.toNat ≤ BitVec.toNat (pointer + size + (7#64)) / 8 * 8
+  rw [sum]
+  have split := Nat.div_add_mod (pointer.toNat + size.toNat + 7) 8
+  have small := Nat.mod_lt (pointer.toNat + size.toNat + 7) (by norm_num : 0 < 8)
+  omega
+
+#print axioms actual_payload_header_floor_lower
+
+/-- **The `z8` floor lies past the whole header.**  With the header's own allocation and the two
+allocations that follow it, the floor the `z8` allocation starts from is at or above
+`heap_ptr + 248`, hence strictly past the extra-length cell at `heap_ptr + 136`. -/
+theorem actual_payload_header_z8_lower (heap : BitVec 64)
+    (fits : heap.toNat + 400 ≤ 33806089496) :
+    heap.toNat + 248 ≤ (allocationEnd (allocationEnd (allocationEnd heap (248#64)) (32#64)) (32#64)).toNat := by
+  have one : (248#64 : BitVec 64).toNat = 248 := by decide
+  have two : (32#64 : BitVec 64).toNat = 32 := by decide
+  have upper : ∀ (p n : BitVec 64), p.toNat + n.toNat + 7 < 2^64 →
+      (allocationEnd p n).toNat ≤ p.toNat + n.toNat + 7 := by
+    intro p n bound
+    have seven : (7#64 : BitVec 64).toNat = 7 := by decide
+    have inner : (p + n).toNat = p.toNat + n.toNat := by
+      rw [BitVec.toNat_add_of_lt (by omega)]
+    have sum : (p + n + (7#64)).toNat = p.toNat + n.toNat + 7 := by
+      rw [BitVec.toNat_add_of_lt (by rw [inner,seven]; omega),inner,seven]
+    rw [allocationEnd_eq_align,panByteAlign_toNat64]
+    change BitVec.toNat (p + n + (7#64)) / 8 * 8 ≤ p.toNat + n.toNat + 7
+    rw [sum]
+    have := Nat.div_mul_le_self (p.toNat + n.toNat + 7) 8
+    omega
+  have first := actual_payload_header_floor_lower heap (248#64) (by rw [one]; omega)
+  have firstUp := upper heap (248#64) (by rw [one]; omega)
+  have second := actual_payload_header_floor_lower (allocationEnd heap (248#64)) (32#64)
+    (by rw [two]; omega)
+  have secondUp := upper (allocationEnd heap (248#64)) (32#64) (by rw [two]; omega)
+  have third := actual_payload_header_floor_lower
+    (allocationEnd (allocationEnd heap (248#64)) (32#64)) (32#64) (by rw [two]; omega)
+  omega
+
+#print axioms actual_payload_header_z8_lower
+
+/-- **The extra-length cell is outside the `z8` window.**  The cell `heap_ptr + 136` written by
+statement 23 is strictly below the `z8` floor, so the actual `memzero(z8, 8)` cannot touch it. -/
+theorem actual_payload_header_extra_cell_not_z8 (heap z8 : BitVec 64)
+    (floor : z8 = allocationEnd (allocationEnd (allocationEnd heap (248#64)) (32#64)) (32#64))
+    (fits : heap.toNat + 400 ≤ 33806089496) :
+    heap + (136#64) ≠ z8 := by
+  have lower := actual_payload_header_z8_lower heap fits
+  have cell : (heap + (136#64)).toNat = heap.toNat + 136 := by
+    have h : (136#64 : BitVec 64).toNat = 136 := by decide
+    rw [BitVec.toNat_add_of_lt (by rw [h]; omega),h]
+  intro same
+  rw [floor] at same
+  have values := congrArg BitVec.toNat same
+  rw [cell] at values
+  omega
+
+#print axioms actual_payload_header_extra_cell_not_z8
+
 end InitECandidate.Runtime
