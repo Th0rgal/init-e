@@ -94,3 +94,43 @@ remaining tactic errors (all in the .seq/.loop scaffolding, none semantic):
      no longer finds `evaluate body cs`: use `simp only [fixClock, hev, hevT, ihB]` or
      `dsimp only` immediately after rewriting the scrutinee (root's fix: rw does not
      iota-reduce the outer match; `dsimp only` at the hypothesis/goal right after does).
+
+STATE OF THE INLINE DRIVER (v6, submission/docs/alloc-cost-driver-draft.lean.txt):
+  * `.seq` is FULLY CHECKED (all res kinds), including a new transport lemma
+    `evaluate_stack_swap_result_value` for `.result` runs:
+      have hT := Flapjack.WordSemStackEq.evaluateStackSwap c s
+      rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+      dsimp only [WordSemStackEq.stackSwapRel] at hT
+      obtain ⟨-, -, hrun⟩ := hT ; obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hval
+    (`evaluate_stack_swap_result_nonexception` deliberately EXCLUDES `.result`
+     runs via its h1 hypothesis, so it cannot be used there - that was the
+     `⊢ False` error).
+  * `.ite` is checked.
+  * `.loop` is checked down to three spots: the two clock-zero/stop subgoals of
+    the `none` and `.continue 0` results, and the 22 trivial branches.
+  * `.call` is still the hypothesis `hcall`.
+  Remaining tactics, exactly:
+   (a) trivial branches: `rw [wordPathWork, wordPathWork]` leaves `1 = 1`-shaped
+       goals that rw does not close for some constructors; use
+       `simp only [wordPathWork]` instead.
+   (b) loop stop subgoals: after `simp only [hevT, ihB, wordSemContLoop, if_true]`
+       the goal has `if h : s1.clock = 0 then 0 else wordPathWork (wordSemSTOP ..) (decClock M)`
+       on each side with M = s1 / {s1 with stack := st}. Normalise the swapped
+       clock first (`have hclk : ({s1 with stack := st}).clock = s1.clock := rfl ;
+       rw [hclk]`), then `by_cases hc0 : s1.clock = 0`:
+         positive: `rw [dif_pos trivial, dif_pos trivial] ; simp`
+         negative: `rw [dif_neg hc0, dif_neg hc0]` then the state is
+                   `decClock {s1 with stack := st}` and `decClock_swap_stack`
+                   turns it into `{decClock s1 with stack := st}`, so
+                     have ihStop : wordPathWork (wordSemSTOP (.loop names body exitNames))
+                         { decClock s1 with stack := st } = ... (decClock s1) := by
+                       refine wordPathWork_stack_variant_dispatch hcall _ (decClock s1) st ?_ ?_
+                       · rw [show (decClock s1).stack = s1.stack from rfl]; exact hvalT
+                       · intro hc; exact hne (evaluate_loop_error_stop names body exitNames s cs hs hfixB hc)
+                     rw [decClock_swap_stack]
+                     exact congrArg (fun z => 1 + wordPathWork body cs + z) ihStop
+       NOTE: write the `ihStop` witness with `:= by refine ... ?_ ?_` (explicit type);
+       `have ihStop := f ?_ ?_` followed by `·` bullets mis-scopes the bullets.
+       Plain `simp` DOES reduce `if h : False`/`if h : c = 0` (verified in isolation),
+       so the only reason the dite survives is that the two sides' conditions are
+       syntactically different (hence the `hclk` normalisation).
