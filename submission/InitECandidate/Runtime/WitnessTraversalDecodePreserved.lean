@@ -139,7 +139,7 @@ theorem WitnessTraversalState.decode_preserves {F : Type} (layout : WitnessTrave
         rw [zero] at recordLo
         change layout.frame.toNat≤0 at recordLo
         omega
-      exact ⟨record,nextHeap,record,2,go,commonState record record 2 scratchPost topPost modePost recordLo (by omega) (by rw [identity]; exact scratchAllocationEnd_aligned scratch 88)
+      exact ⟨record,nextHeap,record,2,go,commonState record record 2 scratchPost topPost modePost recordLo (by omega) (by rw [identity]; exact scratchAllocationEnd_mask_aligned scratch 88)
         stackRecord chainPost (Or.inr (Or.inr rfl)) (by intro bad;cases bad) (fun _ => ⟨positive,selectedRecord⟩) (by intro bad;cases bad)⟩
 #print axioms WitnessTraversalState.decode_preserves
 end InitECandidate.Runtime
