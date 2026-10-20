@@ -875,4 +875,97 @@ theorem wdAssign8_window {F : Type} (t : PanSemStateFiniteExact 64 F)
 
 #print axioms wdAssign8_window
 
+/-- The first record word written through the destructuring call, and the whole remaining writer
+chain, keep every cell outside the buffer window. -/
+theorem wdCall0_window {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (B W P w : BitVec 64) (K : Nat)
+    (out : ¬ MWin B 64 w)
+    (hB : B.toNat + 64 < 2 ^ 64)
+    (hP : P = B + BitVec.ofNat 64 K)
+    (hK : K ≤ 9) (hK9 : 9 ≤ K)
+    (hb : t.locals.lookup (ofString "buf") = some (.val (.word B)))
+    (hp : t.locals.lookup (ofString "p") = some (.val (.word P)))
+    (hwdloc : t.locals.lookup (ofString "wd") = some (.val (.word W)))
+    (code : t.code = originalRuntimeCode) :
+    (evaluateHOLFiniteState t wdCall0).2.memory w = t.memory w := by
+  have hdc : wdCall0 = (.decCall (ofString "w") .one (ofString "rlp_encode_word")
+      [.var .local (ofString "p"), withdrawalWord0] wdCall0Tail) := rfl
+  rw [hdc]
+  by_cases h2 : ∃ A2 : ValueHOL 64,
+      @evalHOLExact 64 F _ t.toExact (fun a => Classical.propDecidable (t.memaddrs a))
+        withdrawalWord0 = some A2
+  · obtain ⟨A2, h2⟩ := h2
+    have hargs : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+        [.var .local (ofString "p"), withdrawalWord0] = some [.val (.word P), A2] := by
+      simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,hp,h2]
+    by_cases hlook : ∃ l, PanSemStateFiniteExact.lookupCodeHOLFinite t.code.lookup
+        (ofString "rlp_encode_word") [.val (.word P), A2] = some l
+    · obtain ⟨⟨body, callee, returnShape⟩, hlook⟩ := hlook
+      have hlookO := hlook
+      rw [code] at hlookO
+      obtain ⟨Y, hY⟩ := rlpEncodeWord_second_word (P := P) hlookO
+      have look2 : PanSemStateFiniteExact.lookupCodeHOLFinite originalRuntimeCode.lookup
+          (ofString "rlp_encode_word") [.val (.word P), .val (.word Y)] =
+          some (body,callee,returnShape) := by
+        rw [← hY]; exact hlookO
+      obtain ⟨bodyEq,hshapeEq,hdC,hwC⟩ := rlpEncodeWord_call_facts P Y body callee returnShape look2
+      have hdE : (callEntryStateHOLFinite t callee).locals.lookup (ofString "dst")
+          = some (.val (.word P)) := by
+        rw [callEntryStateHOLFinite]; exact hdC
+      have hwE : (callEntryStateHOLFinite t callee).locals.lookup (ofString "w")
+          = some (.val (.word Y)) := by
+        rw [callEntryStateHOLFinite]; exact hwC
+      have entryCode : (callEntryStateHOLFinite t callee).code = originalRuntimeCode := by
+        rw [callEntryStateHOLFinite]; exact code
+      have hbody : (evaluateHOLFiniteState (callEntryStateHOLFinite t callee) body).2.memory w
+          = t.memory w := by
+        rw [bodyEq]
+        exact rlpEncodeWord_window (callEntryStateHOLFinite t callee) P Y w
+          (by rw [hP]; exact mwin_narrow_shift out (by omega)) hdE hwE entryCode
+      refine decCall_window t (ofString "w") .one (ofString "rlp_encode_word")
+        [.var .local (ofString "p"), withdrawalWord0] wdCall0Tail w [.val (.word P), A2]
+        body callee returnShape hargs hlook hbody ?_
+      intro value base bodyRun hshapeOK hshapeR k
+      obtain ⟨H, hval, hHle⟩ := rlpEncodeWord_returns_le_nine (callEntryStateHOLFinite t callee)
+        Y entryCode value hwE (by rw [← bodyEq,bodyRun])
+      have hbase : base.memory w = t.memory w := by
+        rw [bodyRun] at hbody
+        exact hbody
+      have basecode : base.code = originalRuntimeCode := by
+        have met := (evaluateHOLFiniteState_metadata (callEntryStateHOLFinite t callee)
+          (sourceFunctionBody Guest.guestFn_rlp_encode_word)).1
+        rw [← bodyEq,bodyRun] at met
+        exact met.trans entryCode
+      rw [hval, wdCall0Tail]
+      have key := wdAssign8_window (t := {base with clock := k, locals := t.locals}) B W P H w K
+        out hB hP hK hK9 hHle (by simpa using hb) (by simpa using hp) (by simpa using hwdloc)
+        (by simpa using basecode)
+      have hmem : ({base with clock := k, locals := t.locals} : PanSemStateFiniteExact 64 F).memory w
+          = t.memory w := hbase
+      rw [key]
+      exact hmem
+    · push_neg at hlook
+      have hnone : PanSemStateFiniteExact.lookupCodeHOLFinite t.code.lookup
+          (ofString "rlp_encode_word") [.val (.word P), A2] = none := by
+        cases h : PanSemStateFiniteExact.lookupCodeHOLFinite t.code.lookup
+            (ofString "rlp_encode_word") [.val (.word P), A2] with
+        | none => rfl
+        | some l => exact absurd h (hlook l)
+      rw [evaluateHOLFiniteState_decCall_total,hargs]
+      dsimp only
+      rw [hnone]
+  · push_neg at h2
+    have hnone : @evalHOLExact 64 F _ t.toExact (fun a => Classical.propDecidable (t.memaddrs a))
+        withdrawalWord0 = none := by
+      cases h : @evalHOLExact 64 F _ t.toExact (fun a => Classical.propDecidable (t.memaddrs a))
+          withdrawalWord0 with
+      | none => rfl
+      | some v => exact absurd h (h2 v)
+    have hargs : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+        [.var .local (ofString "p"), withdrawalWord0] = none := by
+      simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,hnone]
+    rw [evaluateHOLFiniteState_decCall_total,hargs]
+
+#print axioms wdCall0_window
+
 end InitECandidate.Runtime
