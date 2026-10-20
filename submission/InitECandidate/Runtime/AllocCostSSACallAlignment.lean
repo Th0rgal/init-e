@@ -318,10 +318,16 @@ theorem ssaCallReturning_pop_alignment {C F : Type}
   subst hEq
   exact ⟨targetPopped, hpopT, hframe, hrelated⟩
 
-/-- The body transfer is not an oracle: a `PERM_STACK`-related target entry with
-the same code makes the callee body work *equal*, by the checked permutation
-driver.  This eliminates the previous `calleeWork` premise (its budget becomes
-zero). -/
+/-- Body transfer for the *stack-permutation* case: a `PERM_STACK`-related
+target entry with the same code makes the callee body work *equal*, by the
+checked permutation driver, so the body budget is zero.
+
+SCOPE (see `permStack_keys_perm`): `permStack` relates frames whose environment
+pair lists are permutations of each other, so it applies when the target stack
+is the source stack up to frame/environment *ordering* (identity renaming).  It
+does NOT apply to the SSA-renamed entry produced by `returningCalleeTransport`,
+whose `applyNummapsKey`-renamed cut environments have different frame contents;
+that case must be discharged by the callee induction hypothesis. -/
 theorem calleeWork_permStack_zero {C F : Type}
     (prog : WordLangProgHOL (BitVec 64))
     (sourceEntry targetEntry : WordSemStateFiniteExact 64 C F)
@@ -334,6 +340,36 @@ theorem calleeWork_permStack_zero {C F : Type}
     wordPathWork prog targetEntry ≤ wordPathWork prog sourceEntry + 0 := by
   rw [href, wordPathWork_permStack_variant prog sourceEntry k xs hxs hna hni hca hci]
   omega
+
+/-- The key list of a stack frame. -/
+def frameKeys (f : WordSemStackFrame 64) : List Nat :=
+  match f with
+  | .stackFrame _ _ env _ => env.map Prod.fst
+
+/-- `PERM_STACK` relates frames whose environments are permutations of the same
+`(key, value)` pairs, so their **key multisets agree**.  This is the exact
+obstruction to using the permutation driver on an SSA-renamed entry: renaming
+the cut environment changes the keys, and `permStack` cannot relate the two
+stacks. -/
+theorem permStack_keys_perm {f1 f2 : WordSemStackFrame 64} (h : permStack f1 f2) :
+    (frameKeys f1).Perm (frameKeys f2) := by
+  rcases f1 with ⟨ss, l, env, hf⟩
+  rcases f2 with ⟨ss', l', env', hf'⟩
+  obtain ⟨-, -, -, hperm, -⟩ := h
+  exact ((holPerm_iff env env').mp hperm).map Prod.fst
+
+/-- Concrete witness that the driver's hypothesis fails under a key renaming:
+two frames with the same value but different keys are never `PERM_STACK`
+related. -/
+theorem not_permStack_singleton_rename (v : WordLocW 64) :
+    ¬ permStack (.stackFrame (some 0) [] [(0, v)] none)
+      (.stackFrame (some 0) [] [(1, v)] none) := by
+  intro h
+  have hp : [0].Perm [1] := by simpa [frameKeys] using permStack_keys_perm h
+  exact absurd hp (by simp)
+
+#print axioms permStack_keys_perm
+#print axioms not_permStack_singleton_rename
 
 #print axioms calleeWork_permStack_zero
 

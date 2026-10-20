@@ -380,3 +380,19 @@ removes the SSA-side premises:
   successfully (the exact `popT` input), the two popped states are
   frame-related, and every target popped lookup is related — derived from the
   public `returningPopCutRelation`.
+
+### Scope of the permutation driver (finding, 9a96048d1+)
+
+`wordPathWork_permStack_variant` needs `List.Forall₂ permStack xs s.stack`.
+`permStack` relates frames whose environment pair lists are *permutations of the
+same pairs* (`holPerm`), so `permStack_keys_perm` shows the key multisets must
+agree.  The SSA-renamed callee entry built by `returningCalleeTransport` pushes
+`applyNummapsKey (optionLookup mapOut)`-renamed cut environments, whose frame
+contents differ, so the two entries are **not** `permStack`-related (witness:
+`not_permStack_singleton_rename`).  Consequently the callee body transfer is
+discharged by the driver only in the stack-permutation case
+(`calleeWork_permStack_zero`, `ssaBody_call_returning_no_body_oracle`, body
+budget zero); the SSA-renamed case must be discharged by the callee induction
+hypothesis at the related entry environments, which is what
+`returningCalleeTransport`/`returningPrepareArguments` expose as
+`strongLocalsRel` on the cut environments.
