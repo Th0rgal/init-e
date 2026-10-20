@@ -276,6 +276,49 @@ theorem ssaBody_call_returning_executed_le {C F : Type}
     stackFixed stackWork argFixedFix argWork getT badT findT domT nodupT cutT clockT runT popT
     locEqT lenEqT domUnionT calleeBudget retBudget calleeWork retWork
 
+/-- Result/pop correspondence on the swapped stack.  From the source successful
+`popEnv` and the callee stack-swap facts (key and value relations produced by
+the body transport), the target stack swapped into the returned state pops
+successfully, the two popped states are frame-related, and the popped source
+cut domain and every target popped lookup are known.  This is the exact input
+`bodyWork_call_returning_result` needs as `popT`, with the domain facts that
+feed the union test. -/
+theorem ssaCallReturning_pop_alignment {C F : Type}
+    (source target returned : WordSemStateFiniteExact 64 C F)
+    (first second targetFirst targetSecond : Spt (WordLocW 64))
+    (handler targetHandler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (targetStack : List (WordSemStackFrame 64)) (f : Nat → Nat)
+    (sourceRoots targetRoots : List (Nat × WordLocW 64))
+    (sourcePerm targetPerm : Nat → Nat → Nat) (popped : WordSemStateFiniteExact 64 C F)
+    (sourcePop : popEnv returned = some popped)
+    (sameStack : source.stack = target.stack)
+    (sourceRootRead : wordSemEnvToList second source.permute = (sourceRoots, sourcePerm))
+    (targetRootRead : wordSemEnvToList targetSecond target.permute = (targetRoots, targetPerm))
+    (rootMap : sourceRoots.map (fun (key, value) => (f key, value)) = targetRoots)
+    (firstRelated : Flapjack.WordAlloc.strongLocalsRel f (sptDomain first) first targetFirst)
+    (injective : ∀ a b, (sptDomain first a ∨ sptDomain second a) →
+      (sptDomain first b ∨ sptDomain second b) → f a = f b → a = b)
+    (sourceKeys : WordSemStackEq.sKeyEq
+      (pushEnv (first, second) handler source).stack returned.stack)
+    (targetKeys : WordSemStackEq.sKeyEq
+      (pushEnv (targetFirst, targetSecond) targetHandler target).stack targetStack)
+    (stackValues : WordSemStackEq.sValEq returned.stack targetStack) :
+    ∃ targetPopped : WordSemStateFiniteExact 64 C F,
+      popEnv {returned with stack := targetStack} = some targetPopped ∧
+      Flapjack.WordAlloc.wordStateEqRel popped targetPopped ∧
+      (∀ live, Flapjack.WordAlloc.strongLocalsRel f live popped.locals targetPopped.locals) := by
+  obtain ⟨popped', targetPopped, hpop, hpopT, hframe, -, hrelated⟩ :=
+    returningPopCutRelation source target returned first second targetFirst
+      targetSecond handler targetHandler targetStack f sourceRoots targetRoots sourcePerm
+      targetPerm sameStack sourceRootRead targetRootRead rootMap firstRelated injective
+      sourceKeys targetKeys stackValues
+  rw [sourcePop] at hpop
+  have hEq : popped = popped' := by simpa using hpop
+  subst hEq
+  exact ⟨targetPopped, hpopT, hframe, hrelated⟩
+
+#print axioms ssaCallReturning_pop_alignment
+
 #print axioms ssaBody_call_returning_executed_le
 
 #print axioms ssaCcTrans_call_returning_none_output
