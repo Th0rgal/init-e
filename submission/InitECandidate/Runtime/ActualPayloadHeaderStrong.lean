@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import InitECandidate.Runtime.ActualPayloadHeaderConstruction
 import InitECandidate.Runtime.KeccakWideFullCallBound
 import InitECandidate.Runtime.HeapDeclarationReturnedContract
+import InitECandidate.Runtime.HeapGlobalsFrame
 
 set_option maxHeartbeats 8000000
 
@@ -24,38 +25,24 @@ namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
-/-- **Every global other than `heap_ptr` is untouched.**  The construction only ever writes the heap
-pointer global, so all other globals of the entry state are still readable with their entry values. -/
-def HeapGlobalsFrame {F : Type} (entry mid : PanSemStateFiniteExact 64 F) : Prop :=
-  ∀ name : MlS, name ≠ ofString "heap_ptr" → mid.globals.lookup name = entry.globals.lookup name
+/-- An allocation rebinds `heap_ptr` only, so it preserves the canonical frame of all other
+globals: the canonical `HeapGlobalsFrame` is reused, not duplicated. -/
+theorem HeapGlobalsFrame.alloc {F : Type} (entry s : PanSemStateFiniteExact 64 F)
+    (frame : HeapGlobalsFrame entry s) (heap size : BitVec 64)
+    (post : PanSemStateFiniteExact 64 F)
+    (globals : post.globals =
+      (setGlobalHOLFinite (ofString "heap_ptr") (.val (.word (allocationEnd heap size))) s).globals) :
+    HeapGlobalsFrame entry post :=
+  (frame.trans (HeapGlobalsFrame.heap_update s (allocationEnd heap size))).trans
+    (HeapGlobalsFrame.of_globals globals)
 
-/-- The frame is reflexive. -/
-theorem HeapGlobalsFrame.refl {F : Type} (state : PanSemStateFiniteExact 64 F) :
-    HeapGlobalsFrame state state := fun _ _ => rfl
-
-#print axioms HeapGlobalsFrame.refl
+#print axioms HeapGlobalsFrame.alloc
 
 /-- **The stronger prefix facts.**  The actual construction prefix facts together with the frame of
 all non-heap globals. -/
 def ActualPayloadHeaderBaseFacts {F : Type} (entry mid : PanSemStateFiniteExact 64 F)
     (pl raw pointer heap : BitVec 64) : Prop :=
   ActualPayloadHeaderPrefix entry mid pl raw pointer heap ∧ HeapGlobalsFrame entry mid
-
-/-- An allocation rebinds `heap_ptr` only, so it preserves the frame of all other globals. -/
-theorem HeapGlobalsFrame.alloc {F : Type} (entry s : PanSemStateFiniteExact 64 F)
-    (frame : HeapGlobalsFrame entry s) (heap size : BitVec 64)
-    (post : PanSemStateFiniteExact 64 F)
-    (globals : post.globals =
-      (setGlobalHOLFinite (ofString "heap_ptr") (.val (.word (allocationEnd heap size))) s).globals) :
-    HeapGlobalsFrame entry post := by
-  intro name different
-  rw [globals]
-  by_cases h : (ofString "heap_ptr" = name)
-  · exact absurd h.symm different
-  · simp (config := {decide := true}) [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,h]
-    exact frame name different
-
-#print axioms HeapGlobalsFrame.alloc
 
 /-- **The stronger prefix through the header allocation.**  The two actual loads and the actual
 `alloc 248` for `h`, with the prefix facts *and* the frame of all non-heap globals. -/
