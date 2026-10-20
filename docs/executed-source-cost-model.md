@@ -305,3 +305,19 @@ and a spilled write), so its path budget is at most 14. The coefficient is
 independent of total frame/code size. All HolInst constructors are covered;
 this is still local to instruction lowering, not a bound for allocator-added
 moves, full selected expressions, or final RISC-V execution.
+
+`WordNativeMoveCost` proves singleton scheduling introduces no temporary and
+lowers to at most two Stack leaves. `WordSelectionNativeCost` covers all selected
+straight-line output: at most four Stack leaves per Word leaf, with actual
+Stack-to-label path budget at most 32 times Word/Loop expression work. Its
+flattening theorem retains original premises. Word allocation/optimization and
+Stack removal remain separate stages; this is not an end-to-end native claim.
+
+`StackAddressCost` bounds the literal up/downshift recursions by
+`addressChunks slots = slots / 255 + 1`. `StackRemovalLocalCost` counts each
+actual spill offset: a direct encodable offset costs one instruction; otherwise
+a load costs at most `addressChunks slots + 2` and a store at most
+`2 * addressChunks slots + 1`, including pointer restoration. Certified
+straight-line removal outputs have actual label-path budget at most four times
+this sum, and the full flattening simulation retains that bound. No global
+frame/code/bitmap multiplier is introduced.
