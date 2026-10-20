@@ -557,4 +557,209 @@ theorem payloadHeader46_reaches_exit {F : Type} (t : PanSemStateFiniteExact 64 F
       heapStep readEq smallNwd code atCounter entryInv post run)
 
 #print axioms payloadHeader46_reaches_exit
+theorem payloadHeader43_reaches_exit (DF : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (nwd size loopHeap pl read X : BitVec 64)
+    (readEq : read = pl + 48#64)
+    (atPl : s.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
+    (freshE : s.locals.lookup (ofString "e") = none)
+    (atSlices : s.globals.lookup (ofString "wd_rlp_slices") =
+      some (ValueHOL.val (HolWordLab.word loopHeap)))
+    (atHeap : s.globals.lookup (ofString "heap_ptr") =
+      some (ValueHOL.val (HolWordLab.word loopHeap)))
+    (code : s.code = originalRuntimeCode) (clock : s.clock ≠ 0)
+    (countAddr : s.memaddrs (pl + 56#64))
+    (countMem : s.memory (pl + 56#64) = HolWordLab.word nwd)
+    (sizeVal : size = nwd * 16#64 + 16#64)
+    (al : loopHeap.toNat % 8 = 0) (sizeAl : size.toNat % 8 = 0)
+    (bounded : loopHeap.toNat + size.toNat ≤ 33806089496)
+    (fitSize : nwd.toNat * 16 + 16 < 2 ^ 64)
+    (fit : (allocationEnd loopHeap size).toNat + 64 * nwd.toNat + 64 < 2 ^ 64)
+    (limit : (allocationEnd loopHeap size).toNat + 64 * nwd.toNat + 64 ≤ 33806089496)
+    (smallNwd : nwd.toNat + 1 < 2 ^ 63)
+    (readBelow : read.toNat < loopHeap.toNat)
+    (noWrapCells : loopHeap.toNat + 16 * nwd.toNat + 8 < 2 ^ 64)
+    (fence : Fence s.memaddrs DF) (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
+    (addrRead : s.memaddrs read) (memRead : s.memory read = HolWordLab.word X)
+    (budget : 1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1) ≤ s.clock)
+    (frontier : ∀ k, k ≤ nwd.toNat →
+      (wdHeapWord (allocationEnd loopHeap size) k).toNat ≤ 33806089496)
+    (outRead : ∀ k, k ≤ nwd.toNat → ¬ MWin (wdHeapWord (allocationEnd loopHeap size) k) 64 read)
+    (sliceRead : ∀ j, j ≤ nwd.toNat →
+      read ≠ loopHeap + (BitVec.ofNat 64 j) * 16#64 ∧
+      read ≠ loopHeap + ((BitVec.ofNat 64 j) * 16#64 + 8#64))
+    (heapStep : ∀ k, k ≤ nwd.toNat →
+      wdHeapWord (allocationEnd loopHeap size) (k + 1) =
+        allocationEnd (wdHeapWord (allocationEnd loopHeap size) k) 64) :
+    Reaches s (actualPayloadHeaderAt 43)
+      (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size)))
+      (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47) := by
+  let declared : PanSemStateFiniteExact 64 F :=
+    setVarHOLFinite (ofString "nwd") (ValueHOL.val (HolWordLab.word nwd)) s
+  have atNwdDeclared : declared.locals.lookup (ofString "nwd") =
+      some (ValueHOL.val (HolWordLab.word nwd)) := by
+    simp [declared, setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE]
+  have declVars : declared.globals = s.globals ∧ declared.memory = s.memory ∧
+      declared.memaddrs = s.memaddrs ∧ declared.code = s.code ∧ declared.clock = s.clock :=
+    ⟨by simp [declared, setVarHOLFinite], by simp [declared, setVarHOLFinite],
+      by simp [declared, setVarHOLFinite], by simp [declared, setVarHOLFinite],
+      by simp [declared, setVarHOLFinite]⟩
+  -- statement 43
+  have h43 : Reaches s (actualPayloadHeaderAt 43) (fun t => t = declared) 0
+      (actualPayloadHeaderAt 44) := by
+    rw [source_actual_payload_header_withdrawal_count]
+    refine reaches_dec s (ofString "nwd")
+      (.load .one (.op .add [.var .local (ofString "pl"), .const (56#64)]))
+      (actualPayloadHeaderAt 44) (fun t => t = declared) ?_
+    intro v hv
+    rw [wd_count_load_eval s pl nwd atPl countAddr countMem] at hv
+    injection hv with hval
+    exact ⟨nwd, hval.symm, rfl⟩
+  -- statements 44..46 from the declaration state
+  have h44 : ∀ E : PanSemStateFiniteExact 64 F, E = declared →
+      Reaches E (actualPayloadHeaderAt 44) (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size)))
+        (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47) := by
+    intro E hE
+    subst hE
+    have args := wd_slice_size_args declared nwd size atNwdDeclared sizeVal fitSize
+    obtain ⟨ready, runAlloc, mainClock, mainLe, mainNoTO⟩ :=
+      wdSliceLoop_count_alloc DF declared nwd size loopHeap pl read X sizeVal readEq atNwdDeclared
+        (by rw [declVars.1]; exact atSlices) (by rw [declVars.1]; exact atHeap)
+        (by rw [declVars.2.2.2.1]; exact code) (by rw [declVars.2.2.2.2]; exact clock) args al
+        sizeAl bounded fit limit smallNwd readBelow noWrapCells (by rw [declVars.2.2.1]; exact fence)
+        smallDF bigDF (by simp [declared, setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE,
+          show (ofString "nwd") ≠ ofString "pl" by decide]; exact atPl)
+        (by simp [declared, setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE,
+          show (ofString "nwd") ≠ ofString "e" by decide]; exact freshE)
+        (by rw [declVars.2.2.1]; exact addrRead) (by rw [declVars.2.1]; exact memRead)
+        (by rw [declVars.2.2.2.2]; omega)
+    obtain ⟨ready2, run2, clocks0, memory0, locals0, postCode0, domain0, _, slicesLookup, heapLookup, _⟩ :=
+      evaluate_alloc_global_call declared _ loopHeap size loopHeap (ofString "wd_rlp_slices") args
+        (by rw [declVars.2.2.2.1]; exact code) (by rw [declVars.2.2.2.2]; exact clock)
+        (by rw [declVars.1]; exact atHeap) (by rw [declVars.1]; exact atSlices) (by decide)
+        (allocationGuard_of_sum_bound loopHeap size bounded)
+        (by rw [allocationEnd_aligned_toNat loopHeap size bounded al sizeAl]; omega)
+    have readyEq : ready = ready2 := by
+      have h : (none, ready) = (none, ready2) := runAlloc.symm.trans run2
+      exact congrArg Prod.snd h
+    have readyClock : ready.clock = declared.clock - 1 := by
+      simpa [readyEq] using clocks0
+    have readyLocals : ready.locals = declared.locals := by
+      simpa [readyEq] using locals0
+    have readySlices : ready.globals.lookup (ofString "wd_rlp_slices") =
+        some (ValueHOL.val (HolWordLab.word loopHeap)) := by
+      simpa [readyEq] using slicesLookup
+    have readyHeap : ready.globals.lookup (ofString "heap_ptr") =
+        some (ValueHOL.val (HolWordLab.word (allocationEnd loopHeap size))) := by
+      simpa [readyEq] using heapLookup
+    have readyMemaddrs : ready.memaddrs = declared.memaddrs := by
+      simpa [readyEq] using domain0
+    have readyMemory : ready.memory = declared.memory := by
+      simpa [readyEq] using memory0
+    -- statement 44: the allocator call, one tick
+    have h44a : Reaches declared (actualPayloadHeaderAt 44) (fun t => t = ready) 1
+        (actualPayloadHeaderAt 45) := by
+      rw [source_actual_payload_header_withdrawal_slices]
+      refine reaches_seq declared _ _ 1 (fun t => t = ready) ?_
+      exact Or.inl ⟨ready, rfl, by omega, by omega, runAlloc⟩
+    -- statement 45: the counter declaration, free
+    let ready' : PanSemStateFiniteExact 64 F :=
+      setVarHOLFinite (ofString "i") (ValueHOL.val (HolWordLab.word 0#64)) ready
+    have h45 : Reaches ready (actualPayloadHeaderAt 45) (fun t => t = ready') 0
+        (actualPayloadHeaderAt 46) := by
+      rw [source_actual_payload_header_loop_counter]
+      refine reaches_dec ready (ofString "i") (.const (0#64)) (actualPayloadHeaderAt 46)
+        (fun t => t = ready') ?_
+      intro v hv
+      obtain rfl : v = ValueHOL.val (HolWordLab.word 0#64) := by
+        simpa [evalHOLExact] using hv.symm
+      exact ⟨0#64, rfl, rfl⟩
+    -- statement 46: the loop
+    have readyVars : ready'.globals = ready.globals ∧ ready'.memory = ready.memory ∧
+        ready'.memaddrs = ready.memaddrs ∧ ready'.code = ready.code ∧
+        ready'.clock = ready.clock :=
+      ⟨by simp [ready', setVarHOLFinite], by simp [ready', setVarHOLFinite],
+        by simp [ready', setVarHOLFinite], by simp [ready', setVarHOLFinite],
+        by simp [ready', setVarHOLFinite]⟩
+    have atCounter' : ready'.locals.lookup (ofString "i") =
+        some (ValueHOL.val (HolWordLab.word 0#64)) := by
+      simp [ready', setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE]
+    have atNwd' : ready'.locals.lookup (ofString "nwd") =
+        some (ValueHOL.val (HolWordLab.word nwd)) := by
+      rw [show ready'.locals.lookup (ofString "nwd") = ready.locals.lookup (ofString "nwd") from by
+        simp [ready', setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE,
+          show ofString "i" ≠ ofString "nwd" by decide]]
+      rw [readyLocals]
+      exact atNwdDeclared
+    have atPl' : ready'.locals.lookup (ofString "pl") =
+        some (ValueHOL.val (HolWordLab.word pl)) := by
+      rw [show ready'.locals.lookup (ofString "pl") = ready.locals.lookup (ofString "pl") from by
+        simp [ready', setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE,
+          show ofString "i" ≠ ofString "pl" by decide]]
+      rw [readyLocals]
+      simpa [declared, setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE,
+        show ofString "nwd" ≠ ofString "pl" by decide] using atPl
+    have freshE' : ready'.locals.lookup (ofString "e") = none := by
+      rw [show ready'.locals.lookup (ofString "e") = ready.locals.lookup (ofString "e") from by
+        simp [ready', setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE,
+          show ofString "i" ≠ ofString "e" by decide]]
+      rw [readyLocals]
+      simpa [declared, setVarHOLFinite, HolFiniteMapExact.lookup_update, FUPDATE,
+        show ofString "nwd" ≠ ofString "e" by decide] using freshE
+    have hfun : (fun a => ready'.memaddrs a) = (fun a => s.memaddrs a) := by
+      funext a
+      rw [show ready'.memaddrs a = ready.memaddrs a from by simp [ready', setVarHOLFinite],
+        readyMemaddrs, declVars.2.2.1]
+    have h46raw : Reaches ready' (actualPayloadHeaderAt 46)
+        (WdLoopInv (fun a => ready'.memaddrs a) 0#64 nwd pl loopHeap read X
+          (wdHeapWord (allocationEnd loopHeap size)))
+        (nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47) :=
+      payloadHeader46_reaches_exit ready' DF nwd pl loopHeap (allocationEnd loopHeap size) read X readEq
+        (by rw [allocationEnd_aligned_toNat loopHeap size bounded al sizeAl]; omega) fit limit smallNwd
+        (by rw [allocationEnd_aligned_toNat loopHeap size bounded al sizeAl]; omega) readBelow
+        noWrapCells (by rw [readyVars.2.2.1]; rw [readyMemaddrs]; exact fence) smallDF bigDF
+        frontier outRead sliceRead heapStep atCounter' atNwd' atPl' freshE'
+        (by rw [readyVars.1]; exact readySlices)
+        (by rw [readyVars.1]; exact readyHeap)
+        (by rw [readyVars.2.2.2.1, readyEq, postCode0, declVars.2.2.2.1]; exact code)
+        (by rw [readyVars.2.2.1]; rw [readyMemaddrs]; rw [declVars.2.2.1]; exact addrRead)
+        (by rw [readyVars.2.1]; rw [readyMemory]; rw [declVars.2.1]; exact memRead)
+        (by rw [readyVars.2.2.2.2]; rw [readyClock]; omega)
+    have h46 : Reaches ready' (actualPayloadHeaderAt 46) (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size)))
+        (nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47) :=
+      reaches_mono ready' (actualPayloadHeaderAt 46) (actualPayloadHeaderAt 47)
+        (WdLoopInv (fun a => ready'.memaddrs a) 0#64 nwd pl loopHeap read X
+          (wdHeapWord (allocationEnd loopHeap size))) (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size)))
+        (nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1))
+        (nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (Nat.le_refl _)
+        (fun _ h => hfun ▸ h) h46raw
+    -- 44 → 45 → 46
+    have hMid : Reaches declared (actualPayloadHeaderAt 44) (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size)))
+        (1 + (0 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)))
+        (actualPayloadHeaderAt 47) := by
+      refine reaches_trans declared (actualPayloadHeaderAt 44) (actualPayloadHeaderAt 45)
+        (actualPayloadHeaderAt 47) (fun t => t = ready) (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size))) 1
+        (0 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) h44a ?_
+      intro E hE
+      rw [hE]
+      exact reaches_trans ready (actualPayloadHeaderAt 45) (actualPayloadHeaderAt 46)
+        (actualPayloadHeaderAt 47) (fun t => t = ready') (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size))) 0
+        (nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) h45
+        (fun E' hE' => by rw [hE']; exact h46)
+    have := mainClock
+    exact reaches_mono declared (actualPayloadHeaderAt 44) (actualPayloadHeaderAt 47)
+      (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size))) (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size)))
+      (1 + (0 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)))
+      (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (by omega)
+      (fun _ h => h) hMid
+  -- 43 → 44..46
+  exact reaches_mono s (actualPayloadHeaderAt 43) (actualPayloadHeaderAt 47)
+    (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size))) (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size)))
+    (0 + (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)))
+    (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (by omega) (fun _ h => h)
+    (reaches_trans s (actualPayloadHeaderAt 43) (actualPayloadHeaderAt 44) (actualPayloadHeaderAt 47)
+      (fun t => t = declared) (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X (wdHeapWord (allocationEnd loopHeap size))) 0
+      (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) h43 h44)
+
+#print axioms payloadHeader43_reaches_exit
+
 end InitECandidate.Runtime
