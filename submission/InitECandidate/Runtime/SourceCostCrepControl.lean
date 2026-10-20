@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SourceCostCrepLeaf
+import InitECandidate.Runtime.SourceCostCrepDec
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -9,15 +9,8 @@ def sourceControlProg : ProgHOL 64 → Bool
   | .seq first second => sourceControlProg first && sourceControlProg second
   | .ite _ yes no => sourceControlProg yes && sourceControlProg no
   | .while _ body => sourceControlProg body
+  | .dec _ _ _ body => sourceControlProg body
   | _ => false
-
-/-- Premises of the pinned Pan-to-Crep simulation, unchanged. -/
-structure SourceCrepRel {F : Type} (context : PanToCrepContextExact 64)
-    (s : PanSemStateFiniteExact 64 F) (t : CrepSemHOLState 64 F) : Prop where
-  state : panToCrepStateRelFiniteExact s t
-  code : codeRelExactHOLW context s.code t.code
-  exceptions : panToCrepExcpRelFiniteExact context.eids s.eshapes
-  locals : panToCrepLocalsRelFiniteExact context s.locals t.locals
 
 /-- The transfer conclusion: an executed Crep work derivation for the compiled
 program from the related target state, paid by the source trace. -/
@@ -389,6 +382,22 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     refine bounded_paid (bounded_raise_compiled context exceptionId expression) ?_
     rw [score_statement_cons, score_append, score_copy, length]
     simp only [sourceCrepWeights] at paid ⊢
+    omega
+  | @declareValue s name shape initializer body value initEvents bodyEvents result post init
+      shapeMatch bodyRun ihBody =>
+    intro t context resultOk rel localised checked control
+    simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
+      at localised checked control
+    have paid := expression_paid init rel checked.1
+    obtain ⟨bodyContext, bodyState, bodyRel, lift⟩ :=
+      dec_transfer init.sound shapeMatch rel localised.1
+    obtain ⟨wb, workBody, boundBody⟩ :=
+      ihBody bodyState bodyContext resultOk bodyRel localised.2 checked.2 control
+    refine ⟨_, lift wb workBody, ?_⟩
+    simp only [List.append_assoc, List.cons_append, List.nil_append]
+    rw [score_statement_cons, score_append, executionWork_score_cons, executionWork_score_cons,
+      score_append]
+    simp only [WorkEvent.units, Work.score, sourceCrepWeights] at paid boundBody ⊢
     omega
   | _ =>
     intro t context result rel localised checked control
