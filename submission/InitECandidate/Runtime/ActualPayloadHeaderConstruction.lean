@@ -2,6 +2,8 @@ import InitECandidate.Runtime.ActualPayloadHeaderPrefix
 import InitECandidate.Runtime.StatelessReach
 import InitECandidate.Runtime.KeccakGlobalsFrame
 import InitECandidate.Runtime.PanEvaluationMetadata
+import InitECandidate.Runtime.DiscardCallNoReturn
+import InitECandidate.Runtime.AllocationFailureTail
 import InitECandidate.Runtime.DecodeRequestsBodyBound
 
 namespace InitECandidate.Runtime
@@ -618,5 +620,196 @@ theorem actual_payload_header_construction_from_keccak {F : Type} (state mid : P
   · exact Or.inr (stAbort_mono mid _ 2 19 (by omega) ab)
 
 #print axioms actual_payload_header_construction_from_keccak
+
+/-- **The actual allocator callee never returns normally once the request overflows.**  When the
+unsigned request guard `cap - heap_ptr < size` fires, the original allocator runs its trap and skips
+the rounding, the heap assignment and the successful return, so it cannot return a value. -/
+theorem actual_payload_header_alloc_body_no_return {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (size heap : BitVec 64)
+    (heapGlobal : s.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)))
+    (code : s.code = originalRuntimeCode)
+    (below : heap.toNat ≤ 33806089496) (over : 33806089496 < heap.toNat + size.toNat)
+    (output : ValueHOL 64) :
+    (evaluateHOLFiniteState (callEntryStateHOLFinite s
+      (HolFiniteMapExact.empty.update (ofString "n",.val (.word size))))
+      (sourceFunctionBody Guest.guestFn_alloc)).1 ≠ some (.returned output) := by
+  have enteredP : (setVarHOLFinite (ofString "p") (.val (.word heap))
+      (callEntryStateHOLFinite s (HolFiniteMapExact.empty.update (ofString "n",.val (.word size))))).locals.lookup
+      (ofString "p") = (some (ValueHOL.val (HolWordLab.word heap)) : Option (ValueHOL 64)) := by
+    change ((HolFiniteMapExact.empty.update (ofString "n",ValueHOL.val (HolWordLab.word size))).update
+      (ofString "p",ValueHOL.val (HolWordLab.word heap))).lookup (ofString "p") = _
+    simp [HolFiniteMapExact.lookup_update,FUPDATE]
+  have enteredN : (setVarHOLFinite (ofString "p") (.val (.word heap))
+      (callEntryStateHOLFinite s (HolFiniteMapExact.empty.update (ofString "n",.val (.word size))))).locals.lookup
+      (ofString "n") = (some (ValueHOL.val (HolWordLab.word size)) : Option (ValueHOL 64)) := by
+    change ((HolFiniteMapExact.empty.update (ofString "n",ValueHOL.val (HolWordLab.word size))).update
+      (ofString "p",ValueHOL.val (HolWordLab.word heap))).lookup (ofString "n") = _
+    simp [HolFiniteMapExact.lookup_update,FUPDATE,show ofString "p" ≠ ofString "n" from by decide]
+  have enteredCode : (setVarHOLFinite (ofString "p") (.val (.word heap))
+      (callEntryStateHOLFinite s (HolFiniteMapExact.empty.update (ofString "n",.val (.word size))))).code =
+      originalRuntimeCode := by
+    show s.code = originalRuntimeCode
+    exact code
+  have heapEval : @evalHOLExact 64 F _
+      (callEntryStateHOLFinite s (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))).toExact
+      (fun a => Classical.propDecidable ((callEntryStateHOLFinite s
+        (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))).memaddrs a))
+      (.var .global (ofString "heap_ptr")) =
+      (some (ValueHOL.val (HolWordLab.word heap)) : Option (ValueHOL 64)) := by
+    simp [evalHOLExact,callEntryStateHOLFinite,heapGlobal]
+  have capNat : (33806089496 : BitVec 64).toNat = 33806089496 := by decide
+  have request : ((33806089496 : BitVec 64) - heap).toNat < size.toNat := by
+    have sub := BitVec.toNat_sub_of_le (x := (33806089496 : BitVec 64)) (y := heap) (by
+      show heap.toNat ≤ (33806089496 : BitVec 64).toNat
+      rw [capNat]
+      exact below)
+    rw [sub, capNat]
+    omega
+  have failed := evaluate_allocationAfterPointer_failure
+    (setVarHOLFinite (ofString "p") (.val (.word heap))
+      (callEntryStateHOLFinite s (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))))
+    heap size enteredCode enteredP enteredN request
+  obtain ⟨failureRun,_,_⟩ := failed
+  have resultRun : (evaluateHOLFiniteState (callEntryStateHOLFinite s
+        (HolFiniteMapExact.empty.update (ofString "n",.val (.word size))))
+      (sourceFunctionBody Guest.guestFn_alloc)).1 =
+      (evaluateHOLFiniteState (setVarHOLFinite (ofString "p") (.val (.word heap))
+        (callEntryStateHOLFinite s (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))))
+        (.call (some (none,none)) (ofString "trap_with") [.const 1])).1 := by
+    rw [source_alloc_body,evaluateHOLFiniteState_dec_total]
+    simp only [heapEval]
+    simp only [shapeOfHOLExact,shapeEqHOL,if_true]
+    rw [failureRun]
+  intro returned
+  rw [resultRun] at returned
+  exact evaluate_discard_call_no_return _ (ofString "trap_with") [.const 1] output returned
+
+#print axioms actual_payload_header_alloc_body_no_return
+
+/-- **The actual `alloc` rejects an excessive request.**  When the request does not fit the memory,
+the real allocator traps, so the allocation statement terminates in the abort branch of the reach
+relation -- no successful allocation is assumed. -/
+theorem actual_payload_header_alloc_rejected {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (name : MlS) (size heap : BitVec 64) (continuation : ProgHOL 64)
+    (P : PanSemStateFiniteExact 64 F → Prop)
+    (heapGlobal : s.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)))
+    (code : s.code = originalRuntimeCode) (budget : 2 ≤ s.clock)
+    (below : heap.toNat ≤ 33806089496) (over : 33806089496 < heap.toNat + size.toNat) :
+    Reaches s (.decCall name .one (ofString "alloc") [(.const size)] continuation) P 2 continuation := by
+  have arguments : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+      [(.const size)] = (some [ValueHOL.val (HolWordLab.word size)] : Option (List (ValueHOL 64))) := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact]
+  refine bounded_decCall_reaches s name (ofString "alloc") .one .one [(.const size)]
+    [ValueHOL.val (HolWordLab.word size)] (sourceFunctionBody Guest.guestFn_alloc) continuation
+    (HolFiniteMapExact.empty.update (ofString "n",.val (.word size))) 1 P arguments ?_ budget ?_ ?_
+  · rw [pan_single_word_lookup _ (ofString "alloc") (ofString "n") (sourceFunctionBody Guest.guestFn_alloc)
+      size (by rw [code]; exact originalRuntimeCode_allocation_lookup)]
+  · have bound := evaluate_source_alloc_uniform_bounded
+      (callEntryStateHOLFinite s (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))) code
+      (by change 1 ≤ s.clock - 1; omega)
+    exact ⟨bound.1,bound.2.1,bound.2.2.1⟩
+  · intro value post returned shapes
+    exact absurd (congrArg Prod.fst returned)
+      (actual_payload_header_alloc_body_no_return s size heap heapGlobal code below over value)
+
+#print axioms actual_payload_header_alloc_rejected
+
+/-- **The guarded actual `alloc` step.**  This is the wrapper that removes the room assumption: the
+allocation either succeeds (the normal branch, carrying the construction facts and the new heap
+floor) or the real allocator rejects the request and the statement ends in its abort branch.  Nothing
+about successful room is assumed; only that the current floor itself is inside the memory. -/
+theorem actual_payload_header_alloc_guarded {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (name : MlS) (size heap : BitVec 64) (continuation : ProgHOL 64)
+    (P : PanSemStateFiniteExact 64 F → Prop)
+    (heapGlobal : s.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)))
+    (code : s.code = originalRuntimeCode) (budget : 2 ≤ s.clock)
+    (below : heap.toNat ≤ 33806089496)
+    (property : ∀ post : PanSemStateFiniteExact 64 F,
+      post.memory = s.memory → post.memaddrs = s.memaddrs → post.code = s.code →
+      post.globals = (setGlobalHOLFinite (ofString "heap_ptr") (.val (.word (allocationEnd heap size))) s).globals →
+      P (setVarHOLFinite name (.val (.word heap)) {post with locals := s.locals})) :
+    Reaches s (.decCall name .one (ofString "alloc") [(.const size)] continuation) P 2 continuation := by
+  by_cases room : heap.toNat + size.toNat ≤ 33806089496
+  · exact actual_payload_header_alloc_step s name size heap continuation P heapGlobal code budget property
+  · exact actual_payload_header_alloc_rejected s name size heap continuation P heapGlobal code budget below
+      (by omega)
+
+#print axioms actual_payload_header_alloc_guarded
+
+/-- **The `z8` allocation with the room question settled by the real allocator.**  No reserve is
+assumed: either the request fits and the allocation succeeds with the new heap floor, or the real
+allocator rejects it and the statement ends in the abort branch.  The success branch records the room
+it earned, which is exactly the guard the following `memzero(z8, 8)` needs. -/
+theorem actual_payload_header_alloc_z8_room {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap : BitVec 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (code : state.code = originalRuntimeCode)
+    (below : heap.toNat ≤ 33806089496)
+    (budget : 2 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 25)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd heap (8#64)) ∧
+        post.locals.lookup (ofString "z8") = some (.val (.word heap)) ∧
+        heap.toNat + (8#64).toNat ≤ 33806089496) 2 (actualPayloadHeaderAt 26) := by
+  rw [source_actual_payload_header_alloc_z8]
+  by_cases room : heap.toNat + (8#64).toNat ≤ 33806089496
+  · have property : ∀ post : PanSemStateFiniteExact 64 F,
+        post.memory = mid.memory → post.memaddrs = mid.memaddrs → post.code = mid.code →
+        post.globals = (setGlobalHOLFinite (ofString "heap_ptr") (.val (.word (allocationEnd heap (8#64)))) mid).globals →
+        (ActualPayloadHeaderPrefix state (setVarHOLFinite (ofString "z8") (.val (.word heap))
+            {post with locals := mid.locals}) pl raw pointer (allocationEnd heap (8#64)) ∧
+          (setVarHOLFinite (ofString "z8") (.val (.word heap)) {post with locals := mid.locals}).locals.lookup
+            (ofString "z8") = some (.val (.word heap)) ∧
+          heap.toNat + (8#64).toNat ≤ 33806089496) := by
+      intro post memory domain postCode globals
+      refine ⟨⟨?_,?_,?_,?_,?_,?_⟩,?_,room⟩
+      · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+          show ofString "z8" ≠ ofString "pl" from by decide,facts.1]
+      · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+          show ofString "z8" ≠ ofString "raw" from by decide,facts.2.1]
+      · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+          show ofString "z8" ≠ ofString "h" from by decide,facts.2.2.1]
+      · simp only [setVarHOLFinite]
+        rw [globals]
+        simp (config := {decide := true}) [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+      · simp only [setVarHOLFinite]
+        rw [domain]
+        exact facts.2.2.2.2.1
+      · simp only [setVarHOLFinite]
+        rw [postCode]
+        exact facts.2.2.2.2.2
+      · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    exact actual_payload_header_alloc_step mid (ofString "z8") (8#64) heap (actualPayloadHeaderAt 26) _
+      facts.2.2.2.1 (by rw [facts.2.2.2.2.2]; exact code) budget property
+  · exact actual_payload_header_alloc_rejected mid (ofString "z8") (8#64) heap (actualPayloadHeaderAt 26)
+      _ facts.2.2.2.1 (by rw [facts.2.2.2.2.2]; exact code) budget below (by omega)
+
+#print axioms actual_payload_header_alloc_z8_room
+
+/-- **The `z8` window and its actual `memzero`.**  From a state holding the construction facts at
+index 25 with `heap + 8` inside the memory and an eight-byte aligned floor, the actual `alloc 8` and
+the actual `memzero(z8, 8)` clear eight bytes at the returned floor and hand on the bumped heap, in
+11 ticks -- or the allocation is rejected and the statement aborts.  No reserve is assumed. -/
+theorem actual_payload_header_z8_guarded {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap : BitVec 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (code : state.code = originalRuntimeCode)
+    (below : heap.toNat ≤ 33806089496) (alignedHeap : heap.toNat % 8 = 0)
+    (fullDomain : ∀ address : BitVec 64, address.toNat < 33806089496 → state.memaddrs address)
+    (budget : 11 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 25)
+      (ActualPayloadHeaderPrefix state · pl raw pointer (allocationEnd heap (8#64))) 11
+      (actualPayloadHeaderAt 27) := by
+  have first := actual_payload_header_alloc_z8_room state mid pl raw pointer heap facts code below (by omega)
+  rcases first with ⟨E1, pE1, c1, c2, sc1⟩ | ab
+  · have second := actual_payload_header_memzero_z8_stage state E1 pl raw pointer
+      (allocationEnd heap (8#64)) heap pE1.1 pE1.2.1 code pE1.2.2 alignedHeap fullDomain (by omega)
+    rcases second with ⟨E2, pE2, d1, d2, sd⟩ | ab2
+    · refine Or.inl ⟨E2, pE2, by omega, by omega, scoped_trans sc1 sd⟩
+    · obtain ⟨x, a1, a2, a3, a4, a5⟩ := ab2
+      have ck := sc1.2.1
+      exact Or.inr ⟨x, sc1.1.trans a1, a2, by omega, by omega, fun t => a5 (by omega)⟩
+  · exact Or.inr (stAbort_mono mid _ 2 11 (by omega) ab)
+
+#print axioms actual_payload_header_z8_guarded
 
 end InitECandidate.Runtime
