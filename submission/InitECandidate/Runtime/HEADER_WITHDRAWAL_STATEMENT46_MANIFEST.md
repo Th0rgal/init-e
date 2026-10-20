@@ -90,3 +90,45 @@ for m in RlpWithdrawalGlobalsFuel HeaderWithdrawalLoopBody HeaderWithdrawalLoopW
 ```
 
 Statements 47/48/49 are untouched by this work.
+
+## Stage 2 — entry geometry from the actual statements 43/44/45 (new module, no edits)
+
+New module `InitECandidate.Runtime.HeaderWithdrawalEntryGeometry` (imports
+`HeaderWithdrawalEntryFacts`, `AllocationAligned`, `AllocationGlobalCall`, `AccountOptionalArena`).
+Checked GREEN with only `[propext, Classical.choice, Quot.sound]`:
+
+- `wd_slices_alloc_end`: statement 44's exact allocation end and its 8-alignment
+  (`allocationEnd slices size` is `slices.toNat + size.toNat`, alignment preserved).
+- `wd_slice_cells_below`: a word strictly below the arena never equals
+  `slices + (ofNat 64 j) * 16#64` nor that `+ 8#64` for any `j ≤ nwd` — this is the per-iteration
+  slice disjointness, **derived** from `slices.toNat + 16 * nwd + 8 < 2^64`, not assumed.
+- `wd_heap_window_below`: a word below the arena is outside every per-iteration 64-byte heap window.
+- `wd_slices_alloc_entry`: running the **actual** statement 44 call
+  `.call (some ((some (.global,"wd_rlp_slices")),none)) "alloc" [nwd * 16 + 16]` through
+  `evaluate_alloc_global_call` yields `wd_rlp_slices = heapBase`, `heap_ptr = allocationEnd heapBase size`,
+  unchanged memory/memaddrs/locals/code, exact end value and 8-alignment.
+- `wd_loop_counter_binding`: statement 45's `dec i := 0` entry binding (`i = 0`), so
+  `I0 = 0` — `initialLe` is then trivial and every slice address is `slices + ofNat j * 16`.
+- `wd_nwd_binding` / `wd_declaration_memory` / `wd_declaration_memaddrs` / `wd_declaration_code`:
+  the declaration plumbing that carries the watched memory words, the aligned-cell address domain
+  and the original runtime code from the statement 43 boundary to the statement 46 boundary.
+- `payloadHeader46_window_geometry`: statement 46's window with **only** real entry geometry:
+  `i` declared `0`, `heapBase` 8-aligned, `slices.toNat ≤ heapBase.toNat`, both watched words strictly
+  below `slices`, `slices.toNat + 16 * nwd.toNat + 8 < 2^64`, the heap range/limit, and the
+  statement 47 tail. Per-iteration slice disjointness and the heap non-wrap facts are no longer
+  inputs.
+
+### Remaining boundary facts (exact, for root)
+
+1. `state.memory (pl + 56#64) = HolWordLab.word nwd` together with the decoded count bound
+   `nwd.toNat < 2^63` (count from the actual decoded withdrawal list; the load shape is
+   `source_actual_payload_header_withdrawal_count`).
+2. The frontier 8-alignment *before* statement 44 (`heapBase.toNat % 8 = 0`) — the allocator invariant
+   of the initialized heap.
+3. The allocation budget: `heapBase.toNat + 80 * nwd.toNat + 80 ≤ 33806089496` (slices array
+   `16·nwd + 16` plus the loop's `64·nwd`), and the no-wrap `slices.toNat + 16 * nwd.toNat + 8 < 2^64`,
+   `heapBase.toNat + 64 * nwd.toNat + 128 < 2^64`.
+4. Address separation: `read.toNat < slices.toNat`, `w.toNat < slices.toNat`,
+   `slices.toNat ≤ heapBase.toNat` (aligned cells above `sourceBase`, arena above the payload area).
+   No all-byte-domain premise is used anywhere: only `memaddrs`-membership of the watched cells.
+5. The statement 47 tail window (root-owned).
