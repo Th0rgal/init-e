@@ -80,7 +80,10 @@ theorem simpOk_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info functi
     omega
   | callArgumentsFailure args => exact ⟨_, .callArgumentsFailure args, SimpWorkLe.refl _⟩
   | callLookupFailure args lookup => exact ⟨_, .callLookupFailure args lookup, SimpWorkLe.refl _⟩
-  | callTimeout args lookup clock => exact ⟨_, .callTimeout args lookup clock, SimpWorkLe.refl _⟩
+  | callTimeout args lookup clock =>
+    refine ⟨_, .callTimeout args lookup clock, ?_⟩
+    rw [callGlobalEvents_simpMapInfo]
+    exact SimpWorkLe.refl _
 
 theorem simpOk_decCall_runs {F : Type} {name shape function arguments} {cont cont' : ProgHOL 64}
     (hc : SimpRunLeOk (F := F) cont cont') :

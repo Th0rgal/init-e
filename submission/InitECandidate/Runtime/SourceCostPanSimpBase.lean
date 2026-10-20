@@ -128,11 +128,10 @@ def simpMapInfo (g : ProgHOL 64 → ProgHOL 64) :
   | some (returns, some (exception, handlerVar, handler)) =>
       some (returns, some (exception, handlerVar, g handler))
 
-theorem callGlobalEvents_simpMapInfo (g : ProgHOL 64 → ProgHOL 64) (info)
-    (result : Option (PanSemResultExact 64)) :
-    callGlobalEvents (simpMapInfo g info) result = callGlobalEvents info result := by
-  rcases info with _ | ⟨_ | ⟨kind, name⟩, _ | ⟨exception, handlerVar, handler⟩⟩ <;>
-    rcases result with _ | (_ | _ | _ | _ | _ | _ | _) <;> rfl
+theorem callGlobalEvents_simpMapInfo {F : Type} (g : ProgHOL 64 → ProgHOL 64) (info)
+    (s : PanSemStateFiniteExact 64 F) :
+    callGlobalEvents s (simpMapInfo g info) = callGlobalEvents s info := by
+  rcases info with _ | ⟨_ | ⟨kind, name⟩, _ | ⟨exception, handlerVar, handler⟩⟩ <;> rfl
 
 theorem simp_plan_map_done {F : Type} (g : ProgHOL 64 → ProgHOL 64)
     {s : PanSemStateFiniteExact 64 F} {info returnShape bodyResult}
@@ -186,7 +185,10 @@ theorem simp_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info function
     omega
   | callArgumentsFailure args => exact ⟨_, .callArgumentsFailure args, SimpWorkLe.refl _⟩
   | callLookupFailure args lookup => exact ⟨_, .callLookupFailure args lookup, SimpWorkLe.refl _⟩
-  | callTimeout args lookup clock => exact ⟨_, .callTimeout args lookup clock, SimpWorkLe.refl _⟩
+  | callTimeout args lookup clock =>
+    refine ⟨_, .callTimeout args lookup clock, ?_⟩
+    rw [callGlobalEvents_simpMapInfo]
+    exact SimpWorkLe.refl _
 
 theorem simp_decCall_runs {F : Type} {name shape function arguments} {cont cont' : ProgHOL 64}
     (hc : SimpRunLe (F := F) cont cont') :

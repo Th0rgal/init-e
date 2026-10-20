@@ -428,7 +428,10 @@ The canonical trace records these accesses with a dedicated event,
 
 - a global read (`expressionEvents`, through `globalEvents kind`);
 - a successful global assignment (`assignValue`);
-- a call whose returned value is stored into a global (`callGlobalEvents`).
+- a call into a global destination (`callGlobalEvents`), sized by the global's
+  current value and charged whenever the call is entered (`callDone` and
+  `callTimeout`). `pan_globals` declares a temporary of the global's shape around
+  such a call, so its frame is paid on exception and timeout exits too.
 
 Local variables emit no extra event, and the prices of all existing events are
 unchanged. `replayUnits` counts `k - 1` for `globalAccess k` as well as for

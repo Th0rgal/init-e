@@ -430,6 +430,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     intro t context resultOk rel localised checked control codeOk
     have checkedArgs : sharpSitesList sharpReplayBound arguments = true := by
       rcases info with _ | ⟨dest, _ | ⟨a, b, c⟩⟩ <;> simp_all [sharpSitesProg]
+    rw [callGlobalEvents_localised localised, List.append_nil]
     exact call_timeout_transfer_sharp args lookup clock rel localised checkedArgs
   | @callHandler s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post args lookup clock bodyRun
