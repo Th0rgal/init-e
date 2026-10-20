@@ -12,7 +12,7 @@ exact Loop prices (`CrepWorkS`). -/
 lowering (`sharp_expression_bound`); statement, memory and frame weights pay
 the Crep statements emitted per executed statement, stored word and frame slot. -/
 def sharpSourceWeights : Work :=
-  { statements := 10, expressions := 5, movedWords := 3, memoryAccesses := 12, frameSlots := 4 }
+  { statements := 10, expressions := 5, movedWords := 5, memoryAccesses := 12, frameSlots := 4 }
 
 /-- Sharp source score of an event list with replay certificate `B`. -/
 def sharpSourceScore (B : Nat) (ev : List WorkEvent) : Nat :=
@@ -44,7 +44,7 @@ theorem sharpSourceScore_cons (B : Nat) (event : WorkEvent) (rest : List WorkEve
   simp [sharpSourceWeights, Work.score, WorkEvent.units, replayUnits]
 
 @[simp] theorem sharpSource_copy (B n : Nat) :
-    sharpSourceWeights.score (WorkEvent.copy n).units + (B + 5) * replayUnits [.copy n] = 3 * n := by
+    sharpSourceWeights.score (WorkEvent.copy n).units + (B + 5) * replayUnits [.copy n] = 5 * n := by
   simp [sharpSourceWeights, Work.score, WorkEvent.units, replayUnits]
 
 @[simp] theorem sharpSource_frame (B n : Nat) :
@@ -103,6 +103,55 @@ theorem compiled_expression_sharp_work {F : Type} (B : Nat) (s : PanSemStateFini
   have weights := sharpExprScore_le_source B (expressionEvents s expression)
   unfold flattenedSharpWork at lowering
   omega
+
+/-- The replay certificate used by the sharp statement transfer: every
+multiword-load address at an executed site has context-free price at most 40. -/
+def sharpReplayBound : Nat := 40
+
+/-- Sharp source score at the fixed replay certificate. -/
+abbrev sharpScore (ev : List WorkEvent) : Nat := sharpSourceScore sharpReplayBound ev
+
+theorem sharpScore_nil : sharpScore [] = 0 := sharpSourceScore_nil _
+
+theorem sharpScore_append (a b : List WorkEvent) :
+    sharpScore (a ++ b) = sharpScore a + sharpScore b := sharpSourceScore_append _ a b
+
+theorem sharpScore_statement (rest : List WorkEvent) :
+    sharpScore (.statement :: rest) = 10 + sharpScore rest := by
+  simp only [sharpScore, sharpSourceScore_cons, sharpSource_statement]
+
+theorem sharpScore_expression (rest : List WorkEvent) :
+    sharpScore (.expression :: rest) = 5 + sharpScore rest := by
+  simp only [sharpScore, sharpSourceScore_cons, sharpSource_expression]
+
+theorem sharpScore_copy (n : Nat) (rest : List WorkEvent) :
+    sharpScore (.copy n :: rest) = 5 * n + sharpScore rest := by
+  simp only [sharpScore, sharpSourceScore_cons, sharpSource_copy]
+
+theorem sharpScore_frame (n : Nat) (rest : List WorkEvent) :
+    sharpScore (.frame n :: rest) = 4 * n + sharpScore rest := by
+  simp only [sharpScore, sharpSourceScore_cons, sharpSource_frame]
+
+theorem sharpScore_scalar (n : Nat) (rest : List WorkEvent) :
+    sharpScore (.scalar n :: rest) = sharpScore rest := by
+  simp only [sharpScore, sharpSourceScore_cons, sharpSource_scalar, Nat.zero_add]
+
+theorem sharpScore_memory (n : Nat) (rest : List WorkEvent) :
+    sharpScore (.memory n :: rest) = 12 * n + 45 * (n - 1) + sharpScore rest := by
+  simp only [sharpScore, sharpSourceScore_cons, sharpSource_memory, sharpReplayBound]
+
+/-- Expression form at the fixed certificate. -/
+theorem compiled_expression_sharp_score {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (context : PanToCrepContextExact 64)
+    (targetLocals : HolFiniteMapExact Nat (HolWordLab 64))
+    (related : panToCrepLocalsRelFiniteExact context s.locals targetLocals)
+    (structs : s.structs = [])
+    (expression : ExpHOL 64) (value : ValueHOL 64)
+    (evaluated : expressionValue s expression = some value)
+    (sites : sharpSites sharpReplayBound expression = true) :
+    sharpCrepList (compileExpExactHOLW context expression).1 ≤ sharpScore (expressionEvents s expression) :=
+  compiled_expression_sharp_work sharpReplayBound s context targetLocals related structs expression value
+    evaluated sites
 
 #print axioms compiled_expression_sharp_work
 end InitECandidate.Runtime.FineCost
