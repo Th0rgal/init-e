@@ -664,3 +664,26 @@ Checks: `stack-execution-native-if3`, `stack-execution-native-ifexit2`,
 axioms are standard. Returning-call/model integration, recursive assembly,
 concrete encoding-price bounds, fine Word transfer, and whole-guest gas/input
 bounds remain open. The submission still claims infinity.
+
+### Returning calls and remaining executed-cost leaves
+
+`StackExecutionNativeReturn.executionCostPrice_call` gives the exact executed
+returning-call cost after the actual callee run. Its six native rules cover
+normal, control-exiting, and terminal return/exception continuations, including
+the normal return continuation's join jump when a handler is installed.
+`StackExecutionNativePropagate` handles terminal/control outcomes that execute
+neither continuation. The propagation rules do not require a join allowance.
+
+`StackExecutionNativeLeaves` connects LocValue, Tick, Break, Continue, normal
+and final FFI/shared memory, and Return/Raise to the executed model. Return
+and Raise retain their original installed-location validity premise; no
+unchecked control destination is introduced. `StackExecutionNativeJump`
+connects taken JumpLower terminal/control paths and its normal fall-through.
+
+Checks: `stack-execution-native-return3` (including propagation),
+`stack-execution-native-leaves2`, and `stack-execution-native-jump2`; all
+printed axioms are standard. These connect constructor proofs to the cost
+model. The complete recursive theorem, compiled-program eligibility and
+return-location invariants, actual price-table instantiation, fine Word
+transfer, and whole-guest gas/input bound still need completion. No finite
+score is claimed.
