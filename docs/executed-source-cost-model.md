@@ -282,8 +282,14 @@ normal-prefix-to-exit Seq joins only the reached traces. The composed exit has
 an actual RISC-V prefix theorem with related state and advanced oracle tie.
 `StackWeightedLoop.normalWeightedFlatten_loop_break` covers the final iteration
 whose body returns Break 0: the break's existing jump reaches the loop exit and
-Loop/labels add no native charge. Continuing iterations, propagated exits and
-terminal/resource outcomes still need their corresponding loop rules.
+Loop/labels add no native charge. `StackWeightedLoopLayout` shares the actual
+body installation, entry/exit locations, back-jump fetch and label-length facts
+across cases. `normalWeightedFlatten_loop_step` and `_loop_continue` compose
+actual normal/Continue 0 iterations with the recursively certified next run,
+at price `bodyPrice + 2 + restPrice`. The back jump consumes the original
+semantic-clock tick while its native work is charged separately; no recursion
+or nesting multiplier is introduced. Propagated exits, terminal/resource
+outcomes and a complete recursive driver still need their remaining rules.
 
 ## Remaining end-to-end obligations
 
