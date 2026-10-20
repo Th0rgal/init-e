@@ -209,3 +209,17 @@ Remaining inputs of the end-to-end theorem: the payload struct's slice entry, th
 `sizeVal`/`sizeFit`, the pre-allocation frontier alignment `alSlices`, the cap, the old global values,
 the clock, the argument evaluation, `pl`/`e` bindings, the original code, the prologue separation and
 `w`'s position — all real source facts; no future heap room, no all-byte-domain premise.
+
+## Stage 6 — statement 46 with no allocator-room cap (new module `HeaderWithdrawalHeapChainFrontier`)
+
+- `wdHeapWord_aligned`: every point of the arithmetic heap chain `heapBase + 64*j` is 8-aligned
+  (the `2^64` truncation preserves divisibility by 8).
+- `wdHeapWord_step_frontier`: `wdHeapWord heapBase (j+1) = allocationEnd (wdHeapWord heapBase j) 64`
+  from **only** the base's 8-alignment and the 64-bit range at the step — via
+  `wd_heap_step_no_cap`, no `HEAP_END` cap.
+- `payloadHeader46_window_frontier`: the frozen `payloadHeader46_window` instantiated with the
+  arithmetic chain. Inputs collapse to: `heapBase` 8-aligned; the no-wrap family
+  `heapBase.toNat + 64*j + 71 < 2^64` for `j ≤ nwd`; `nwd.toNat < 2^63`; `slices.toNat ≤ heapBase.toNat`;
+  both watched words strictly below `slices`; the slice-cell no-wrap; the loop-entry bindings; the
+  watched `read` cell and its domain; the statement 47 tail. **No** total allocator room and no
+  all-byte-domain premise. In particular `H (j+1) = H j + 64` is derived, never assumed.
