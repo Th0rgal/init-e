@@ -152,3 +152,11 @@ continuation and binding restoration. Other `DecCall` outcomes, FFI/shared
 memory/primitive clauses, malformed-control cases and whole-statement
 completeness remain open. Compiler-generated frame/spill costs still require
 layout-sensitive bounds beyond these source argument-slot events.
+
+Declared-call failure/timeout, rejected returns and non-return terminal outcomes
+now have source cost rules. Malformed conditional/loop guards, malformed store
+addresses and narrow-store values, rejected/undeclared exception payloads,
+ticks, annotations and all primitive operation outcomes are also covered by
+the checked soundness theorem. This expands constructor/outcome coverage; it
+does not yet establish whole-statement completeness. External/shared-memory
+operations and that completeness proof are still outstanding.

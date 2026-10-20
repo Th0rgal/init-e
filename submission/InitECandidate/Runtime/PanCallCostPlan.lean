@@ -73,5 +73,11 @@ def callPayloadWords : Option (PanSemResultExact 64) → Nat
   | some (.returned value) | some (.exception _ value) => (flattenHOL value).length
   | _ => 0
 
+def declareCallStopPlan {F : Type} (result : Option (PanSemResultExact 64))
+    (post : PanSemStateFiniteExact 64 F) : Option (PanSemResultExact 64) × PanSemStateFiniteExact 64 F :=
+  match result with
+  | none | some .break | some .continue => (some .error, post)
+  | some other => (some other, emptyLocalsHOLFinite post)
+
 #print axioms evaluate_call_cost_plan
 end InitECandidate.Runtime.FineCost

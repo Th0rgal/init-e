@@ -246,6 +246,134 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
           [.copy (flattenHOL value).length] ++ continuationEvents ++
           [.copy (((s.locals.lookup name).map (fun old => (flattenHOL old).length)).getD 0)]))
 
+  | declareCallArgumentsFailure {s name shape function arguments continuation}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = none) :
+      StatementRun s (.decCall name shape function arguments continuation) (some .error) s
+        (.statement :: expressionListEvents s arguments)
+  | declareCallLookupFailure {s name shape function arguments continuation values}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (lookup : lookupCodeHOLFinite s.code.lookup function values = none) :
+      StatementRun s (.decCall name shape function arguments continuation) (some .error) s
+        (.statement :: expressionListEvents s arguments)
+  | declareCallTimeout {s name shape function arguments continuation values body callee returnShape}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
+      (clock : s.clock = 0) :
+      StatementRun s (.decCall name shape function arguments continuation)
+        (some .timeOut) (emptyLocalsHOLFinite s) (.statement :: expressionListEvents s arguments)
+  | declareCallRejectedReturn {s name shape function arguments continuation values body callee returnShape
+      value bodyPost bodyEvents}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
+      (clock : s.clock ≠ 0)
+      (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body
+        (some (.returned value)) bodyPost bodyEvents)
+      (shapeMismatch : (shapeEqHOL (shapeOfHOLExact value) shape &&
+        shapeEqHOL (shapeOfHOLExact value) returnShape) = false) :
+      StatementRun s (.decCall name shape function arguments continuation) (some .error) bodyPost
+        (.statement :: (expressionListEvents s arguments ++
+          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents))
+  | declareCallStopped {s name shape function arguments continuation values body callee returnShape
+      bodyResult bodyPost bodyEvents}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
+      (clock : s.clock ≠ 0)
+      (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+      (terminal : ∀ value, bodyResult ≠ some (.returned value)) :
+      StatementRun s (.decCall name shape function arguments continuation)
+        (declareCallStopPlan bodyResult bodyPost).1 (declareCallStopPlan bodyResult bodyPost).2
+        (.statement :: (expressionListEvents s arguments ++
+          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+          [.copy (callPayloadWords bodyResult)]))
+
+  | tickStep {s} (clock : s.clock ≠ 0) :
+      StatementRun s .tick none (decClockHOLFinite s) [.statement]
+  | tickTimeout {s} (clock : s.clock = 0) :
+      StatementRun s .tick (some .timeOut) (emptyLocalsHOLFinite s) [.statement]
+  | annotation {s tag text} : StatementRun s (.annot tag text) none s [.statement]
+  | iteInvalidGuard {s condition yes no value events}
+      (guard : CostedExpressionRun s condition value events)
+      (invalid : ∀ word, value ≠ some (.val (.word word))) :
+      StatementRun s (.ite condition yes no) (some .error) s (.statement :: events)
+  | whileInvalidGuard {s condition body value events}
+      (guard : CostedExpressionRun s condition value events)
+      (invalid : ∀ word, value ≠ some (.val (.word word))) :
+      StatementRun s (.while condition body) (some .error) s (.statement :: events)
+
+  | storeInvalidAddress {s destination source value events}
+      (dst : CostedExpressionRun s destination value events)
+      (invalid : ∀ word, value ≠ some (.val (.word word))) :
+      StatementRun s (.store destination source) (some .error) s (.statement :: events)
+
+  | store32InvalidAddress {s destination source value events}
+      (dst : CostedExpressionRun s destination value events)
+      (invalid : ∀ word, value ≠ some (.val (.word word))) :
+      StatementRun s (.store32 destination source) (some .error) s (.statement :: events)
+
+  | storeByteInvalidAddress {s destination source value events}
+      (dst : CostedExpressionRun s destination value events)
+      (invalid : ∀ word, value ≠ some (.val (.word word))) :
+      StatementRun s (.storeByte destination source) (some .error) s (.statement :: events)
+
+  | store32InvalidValue {s destination source address value addressEvents valueEvents}
+      (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : CostedExpressionRun s source value valueEvents)
+      (invalid : ∀ word, value ≠ some (.val (.word word))) :
+      StatementRun s (.store32 destination source) (some .error) s
+        (.statement :: (addressEvents ++ valueEvents))
+
+  | storeByteInvalidValue {s destination source address value addressEvents valueEvents}
+      (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
+      (src : CostedExpressionRun s source value valueEvents)
+      (invalid : ∀ word, value ≠ some (.val (.word word))) :
+      StatementRun s (.storeByte destination source) (some .error) s
+        (.statement :: (addressEvents ++ valueEvents))
+
+  | primitiveValue {s name operator arguments values value}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (operation : panPrimopHOLExact operator values = some value)
+      (valid : isValidValueHOLFinite s .local name value = true) :
+      StatementRun s (.primitive name operator arguments) none (setVarHOLFinite name value s)
+        (.statement :: (expressionListEvents s arguments ++ [.scalar 1] ++ [.copy (flattenHOL value).length]))
+
+  | primitiveInvalid {s name operator arguments values value}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (operation : panPrimopHOLExact operator values = some value)
+      (valid : isValidValueHOLFinite s .local name value = false) :
+      StatementRun s (.primitive name operator arguments) (some .error) s
+        (.statement :: (expressionListEvents s arguments ++ [.scalar 1]))
+
+  | primitiveRejected {s name operator arguments values}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (operation : panPrimopHOLExact operator values = none) :
+      StatementRun s (.primitive name operator arguments) (some .error) s
+        (.statement :: (expressionListEvents s arguments ++ [.scalar 1]))
+
+  | primitiveArgumentsFailure {s name operator arguments}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = none) :
+      StatementRun s (.primitive name operator arguments) (some .error) s
+        (.statement :: expressionListEvents s arguments)
+
+  | raiseUndeclared {s exceptionId expression value events}
+      (expr : CostedExpressionRun s expression value events)
+      (missing : s.eshapes.lookup exceptionId = none) :
+      StatementRun s (.raise exceptionId expression) (some .error) s (.statement :: events)
+  | raiseRejectedValue {s exceptionId expression value events shape}
+      (expr : CostedExpressionRun s expression (some value) events)
+      (declared : s.eshapes.lookup exceptionId = some shape)
+      (invalid : ¬ (shapeOfHOLExact value = shape ∧
+        sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32)) :
+      StatementRun s (.raise exceptionId expression) (some .error) s (.statement :: events)
+
 theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
     (run : StatementRun s p r post events) : evaluateHOLFiniteState s p = (r, post) := by
@@ -448,6 +576,136 @@ theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     rw [evaluateHOLFiniteState_decCall_total]
     simp only [args, lookup, clock, ↓reduceIte, fixClockHOLFinite_evaluateState]
     simp only [ihBody, shapeMatch, ↓reduceIte, ihContinuation]
+
+  | declareCallArgumentsFailure args =>
+    rw [evaluateHOLFiniteState_decCall_total]
+    simp only [args]
+  | declareCallLookupFailure args lookup =>
+    rw [evaluateHOLFiniteState_decCall_total]
+    simp only [args, lookup]
+  | declareCallTimeout args lookup clock =>
+    rw [evaluateHOLFiniteState_decCall_total]
+    simp only [args, lookup, clock, ↓reduceIte]
+  | declareCallRejectedReturn args lookup clock bodyRun shapeMismatch ihBody =>
+    rw [evaluateHOLFiniteState_decCall_total]
+    simp only [args, lookup, clock, ↓reduceIte, fixClockHOLFinite_evaluateState]
+    simp only [ihBody, shapeMismatch, Bool.false_eq_true, ↓reduceIte]
+  | @declareCallStopped state name shape function arguments continuation values body callee returnShape bodyResult bodyPost bodyEvents args lookup clock bodyRun terminal ihBody =>
+    rw [evaluateHOLFiniteState_decCall_total]
+    simp only [args, lookup, clock, ↓reduceIte, fixClockHOLFinite_evaluateState]
+    simp only [ihBody]
+    cases bodyResult with
+    | none => rfl
+    | some result =>
+      cases result <;> try rfl
+      exact False.elim (terminal _ rfl)
+
+
+  | tickStep clock => rw [evaluateHOLFiniteState_tick]; simp only [clock, ↓reduceIte]
+  | tickTimeout clock => rw [evaluateHOLFiniteState_tick]; simp only [clock, ↓reduceIte]
+  | annotation => exact evaluateHOLFiniteState_annot _ _ _
+  | @iteInvalidGuard state condition yes no value events guard invalid =>
+    have hg := guard.sound
+    unfold expressionValue at hg
+    rw [evaluateHOLFiniteState_ite]
+    rw [hg]
+    cases value with
+    | none => rfl
+    | some value =>
+      cases value with
+      | rStruct fields => rfl
+      | nStruct name fields => rfl
+      | val word => cases word; exact False.elim (invalid _ rfl)
+  | @whileInvalidGuard state condition body value events guard invalid =>
+    have hg := guard.sound
+    unfold expressionValue at hg
+    rw [evaluateHOLFiniteState_while_fixClockRewrite]
+    simp only [evalHOLFinite_eq_toExact, hg]
+  | @storeInvalidAddress state destination source value events dst invalid =>
+    have hd := dst.sound
+    unfold expressionValue at hd
+    rw [evaluateHOLFiniteState_store, hd]
+    cases value with
+    | none => rfl
+    | some value =>
+      cases value with
+      | rStruct fields => rfl
+      | nStruct name fields => rfl
+      | val word => cases word; exact False.elim (invalid _ rfl)
+  | @store32InvalidAddress state destination source value events dst invalid =>
+    have hd := dst.sound
+    unfold expressionValue at hd
+    rw [evaluateHOLFiniteState_store32, hd]
+    cases value with
+    | none => rfl
+    | some value =>
+      cases value with
+      | rStruct fields => rfl
+      | nStruct name fields => rfl
+      | val word => cases word; exact False.elim (invalid _ rfl)
+  | @storeByteInvalidAddress state destination source value events dst invalid =>
+    have hd := dst.sound
+    unfold expressionValue at hd
+    rw [evaluateHOLFiniteState_storeByte, hd]
+    cases value with
+    | none => rfl
+    | some value =>
+      cases value with
+      | rStruct fields => rfl
+      | nStruct name fields => rfl
+      | val word => cases word; exact False.elim (invalid _ rfl)
+  | @store32InvalidValue state destination source address value addressEvents valueEvents dst src invalid =>
+    have hd := dst.sound
+    have hs := src.sound
+    unfold expressionValue at hd hs
+    rw [evaluateHOLFiniteState_store32, hd, hs]
+    cases value with
+    | none => rfl
+    | some value =>
+      cases value with
+      | rStruct fields => rfl
+      | nStruct name fields => rfl
+      | val word => cases word; exact False.elim (invalid _ rfl)
+  | @storeByteInvalidValue state destination source address value addressEvents valueEvents dst src invalid =>
+    have hd := dst.sound
+    have hs := src.sound
+    unfold expressionValue at hd hs
+    rw [evaluateHOLFiniteState_storeByte, hd, hs]
+    cases value with
+    | none => rfl
+    | some value =>
+      cases value with
+      | rStruct fields => rfl
+      | nStruct name fields => rfl
+      | val word => cases word; exact False.elim (invalid _ rfl)
+
+  | primitiveValue args operation valid =>
+    rw [evalListHOLFinite_eq_toExact] at args
+    rw [evaluateHOLFiniteState_primitive]
+    simp only [args, operation, valid, Bool.false_eq_true, ↓reduceIte]
+  | primitiveInvalid args operation valid =>
+    rw [evalListHOLFinite_eq_toExact] at args
+    rw [evaluateHOLFiniteState_primitive]
+    simp only [args, operation, valid, Bool.false_eq_true, ↓reduceIte]
+  | primitiveRejected args operation =>
+    rw [evalListHOLFinite_eq_toExact] at args
+    rw [evaluateHOLFiniteState_primitive]
+    simp only [args, operation]
+  | primitiveArgumentsFailure args =>
+    rw [evalListHOLFinite_eq_toExact] at args
+    rw [evaluateHOLFiniteState_primitive]
+    simp only [args]
+
+  | raiseUndeclared expr missing =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_raise]
+    simp only [he, missing]
+  | raiseRejectedValue expr declared invalid =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_raise]
+    simp only [he, declared, invalid, ↓reduceIte]
 
 #print axioms StatementRun.sound
 end InitECandidate.Runtime.FineCost
