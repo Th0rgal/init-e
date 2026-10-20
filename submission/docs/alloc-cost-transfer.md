@@ -96,7 +96,7 @@ Compile order and module stems (checker role `allocation`):
      `≤ 6 + 8 * |dom left ∪ dom right|`.
      This bounds the inserted handler syntax; it counts only the actual
      union of the two branch maps.
-10. `AllocCostSSAControl` — local control-syntax envelopes
+10. `AllocCostSSAControl` — static control-flow syntax envelopes
    - `ssaCcTrans_loop_nodeCost_le`: for a loop whose body transfer
      `wordNodeCost body' ≤ wordNodeCost body + bodyBudget` has already been
      established,
@@ -117,19 +117,47 @@ Compile order and module stems (checker role `allocation`):
      argument move:
      `≤ wordNodeCost (call none dest args h) + (4 + args.length)`.
 
+   These are syntactic `wordNodeCost` envelopes.  In particular the loop
+   theorem counts the body syntax once; it is not an executed-cost theorem for
+   repeated iterations.  The executed per-site charges are in
+   `AllocCostSSAExecuted`.
+11. `AllocCostSSAExecuted` — executed reconciliation charges
+   - `ssaReconcile_straight` / `loopSetup_straight`: the inserted programs stay
+     in the straight-line grammar.
+   - `ssaReconcile_executed_le`: at *every* concrete state,
+     `wordPathWork (ssaReconcile cur target names) state ≤ 1 + |names|`.
+     This is the actual executed charge at an exit, not a syntax count.
+   - `loopSetup_executed_le`: at every concrete state, the executed setup is
+     `≤ 3 + 3 * |names ∪ exitNames|`.
+   - `loopBodyFinal_executed_le`: for one actual iteration,
+     `wordPathWork (bodyFinal) state ≤ wordPathWork body state + (|names| + 2)`.
+     The back-edge move is charged at the actual intermediate state of that
+     iteration; the theorem is per execution and has no whole-loop maximum.
+   - `exitAfterMoves_executed_le`: `break`/`continue` reconciliation is charged
+     at the actual state, given the leaf exit has work one.
+
+   The remaining semantic premise, stated explicitly rather than hidden: the
+   well-founded induction over the actual loop iteration sequence (and the
+   returning-call handler composition) has not yet been mechanized.  The
+   per-iteration work relation above is the local step that such an induction
+   needs.
+
 All modules are checked with only `propext`, `Classical.choice` and
 `Quot.sound` in their axiom closure; there is no `sorry`, `admit`, custom
 axiom, `unsafe`, `native_decide` or `bv_decide`.
 
 ## What is not yet covered
 
-- The new loop/call/break/continue theorems bound `wordNodeCost` of generated
-  syntax. They do not establish an executed-cost simulation for full control
-  flow: a loop syntax contains its body once, while a run can execute it many
-  times. The semantic SSA transfer must charge setup, reconciliation and
-  handler moves at each actual execution, threading the related successor
-  states. Returning-call syntax composition is also still open. The proved
-  local envelopes supply budgets for that transfer; they are not that transfer.
+- The straight-line fragments before allocation are still handled by the
+  earlier theorems.  The reconciliation *budgets* for loops, `break`,
+  `continue` and exception handlers are now proved in `AllocCostReconcile`, and
+  the loop and call-none syntax envelopes are proved in `AllocCostSSAControl`.  The
+  remaining semantic gaps are the whole-loop induction over actual iterations
+  and the returning-call (`call some`) handler composition.  The per-execution
+  reconciliation charges and the `fixInconsistencies` handler budget are
+  proved; what remains is threading them through every actual iteration and
+  through the return/exception symbolic states.  These are exposed as explicit
+  premises, not assumed silently.
 - `WordSimp`/`instSelect` selection is taken as the root participant's
   `selectionLeaves ≤ 2 * wordExpressionWork` bridge.  This note starts from the
   selected straight-line fragment and does not re-prove that bridge.
