@@ -57,7 +57,7 @@ theorem mpt_insert_active_step {F : Type} (s post : PanSemStateFiniteExact 64 F)
  (run : evaluateHOLFiniteState s mptInsertLoopStep=(none,post)) :
  ∃nextRank,nextRank<rank ∧MptInsertActive post live extensions branches size frontier key length valuePointer valueLength nextRank := by
  obtain ⟨node,slot,level,root,a,b,c,d,validNode,validRoot,typed,backlink,inside,rankEq⟩:=active.path
- obtain ⟨child,nextSlot,nextLevel,nextRoot,world,nibbles,atNode,validChild,atSlot,newBacklink,newTyped,atLevel,advanced,fits,atRoot,validNextRoot,go,globals,locals⟩:=
+ obtain ⟨child,nextSlot,nextLevel,nextRoot,world,nibbles,atNode,validChild,atSlot,newBacklink,newTyped,atLevel,advanced,fits,atRoot,validNextRoot,go,globals,locals,_⟩:=
   mpt_insert_step_world s post live extensions branches size frontier active.world node key level length slot root
    validNode validRoot (capacity node) active.nibbles aligned (recordsBefore node) keyExtent active.domain
    a active.atKey c active.atLength b d typed backlink inside short code budget running run

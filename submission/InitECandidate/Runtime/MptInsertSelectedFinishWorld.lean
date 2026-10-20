@@ -53,7 +53,8 @@ theorem mpt_insert_selected_finish_world {F : Type} (s post : PanSemStateFiniteE
  post.locals.lookup (ofString "go")=some (.val (.word (1#64))) ∧
  post.globals=s.globals ∧
  (∀name∈([ofString "key",ofString "klen",ofString "vptr",ofString "vlen"] : List MlS),
-  post.locals.lookup name=s.locals.lookup name) := by
+  post.locals.lookup name=s.locals.lookup name) ∧
+ (∀watched : BitVec 64,watched≠node+8→watched≠node+16→watched≠node+24→post.memory watched=s.memory watched) := by
  unfold mptInsertSelectedFinish at run
  obtain ⟨selected,selectedRun,finishRun⟩:=seq_normal_parts run
  have finishGo : post.locals.lookup (ofString "go")=selected.locals.lookup (ofString "go") := by
@@ -101,15 +102,19 @@ theorem mpt_insert_selected_finish_world {F : Type} (s post : PanSemStateFiniteE
  have same : output=post:=(Prod.mk.inj (actualFinish.symm.trans finishRun)).2
  subst output
  refine ⟨child,nextSlot,nextLevel,nextRoot,outputWorld,outputNibbles,nodeAt,valid,slotAt,backlinkOut,typed,levelAt,
-  advanced,fits,rootAt,validRoot,goOut,globalsOut.trans globals,?_⟩
- intro name member
- have different : name≠ofString "result" ∧name≠ofString "node" ∧name≠ofString "slot" ∧name≠ofString "level" := by
-  simp only [List.mem_cons,List.not_mem_nil,or_false] at member
-  rcases member with rfl|rfl|rfl|rfl <;> decide
- have stable : name∈mptInsertStableNames := by
-  simp only [List.mem_cons,List.not_mem_nil,or_false] at member
-  rcases member with rfl|rfl|rfl|rfl <;> simp [mptInsertStableNames]
- exact (frameOut name different.1 different.2.1 different.2.2.1 different.2.2.2).trans (kept name stable)
+  advanced,fits,rootAt,validRoot,goOut,globalsOut.trans globals,?_,?_⟩
+ ·intro name member
+  have different : name≠ofString "result" ∧name≠ofString "node" ∧name≠ofString "slot" ∧name≠ofString "level" := by
+   simp only [List.mem_cons,List.not_mem_nil,or_false] at member
+   rcases member with rfl|rfl|rfl|rfl <;> decide
+  have stable : name∈mptInsertStableNames := by
+   simp only [List.mem_cons,List.not_mem_nil,or_false] at member
+   rcases member with rfl|rfl|rfl|rfl <;> simp [mptInsertStableNames]
+  exact (frameOut name different.1 different.2.1 different.2.2.1 different.2.2.2).trans (kept name stable)
+ 
+ · intro watched n8 n16 n24
+   rw [memory]
+   exact frame watched n8 n16 n24
 
 #print axioms mpt_insert_selected_finish_world
 end InitECandidate.Runtime

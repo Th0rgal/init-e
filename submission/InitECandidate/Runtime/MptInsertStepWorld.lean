@@ -43,7 +43,8 @@ theorem mpt_insert_step_world {F : Type} (s post : PanSemStateFiniteExact 64 F)
  post.locals.lookup (ofString "go")=some (.val (.word (1#64))) ∧
  post.globals=s.globals ∧
  (∀name∈([ofString "key",ofString "klen",ofString "vptr",ofString "vlen"] : List MlS),
-  post.locals.lookup name=s.locals.lookup name) := by
+  post.locals.lookup name=s.locals.lookup name) ∧
+ (∀watched : BitVec 64,watched≠node+8→watched≠node+16→watched≠node+24→post.memory watched=s.memory watched) := by
  rw [source_mptInsert_step] at run
  obtain ⟨outR,runR,scopeR⟩:=evaluate_zero_dec_normal_scope s post (ofString "r") _ run
  let first:=setVarHOLFinite (ofString "r") (.val (.word (0#64))) s
@@ -83,7 +84,7 @@ theorem mpt_insert_step_world {F : Type} (s post : PanSemStateFiniteExact 64 F)
   simp only [List.mem_cons,List.not_mem_nil,or_false] at member
   rcases member with rfl|rfl|rfl|rfl|rfl <;>
    simp (config:={decide:=true}) [entered,fourth,third,second,first,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
- obtain ⟨child,nextSlot,nextLevel,nextRoot,worldOut,nibblesOut,nodeAt,valid,slotAt,backlink,typed,levelAt,advanced,fits,rootAt,validRoot,go,globals,localFrame⟩:=
+ obtain ⟨child,nextSlot,nextLevel,nextRoot,worldOut,nibblesOut,nodeAt,valid,slotAt,backlink,typed,levelAt,advanced,fits,rootAt,validRoot,go,globals,localFrame,memoryFrame⟩:=
   mpt_insert_selected_finish_world entered output live extensions branches size frontier (world.after_memory_globals rfl rfl)
    node key level length slot root 0 0 0 0 nodeValid rootValid capacity (nibbles.after_frame rfl rfl rfl)
    keyAligned recordBefore keyExtent fullDomain
@@ -106,7 +107,7 @@ theorem mpt_insert_step_world {F : Type} (s post : PanSemStateFiniteExact 64 F)
   (restored _ (by decide) (by decide) (by decide) (by decide)).trans slotAt,?_,?_,
   (restored _ (by decide) (by decide) (by decide) (by decide)).trans levelAt,advanced,fits,
   (restored _ (by decide) (by decide) (by decide) (by decide)).trans rootAt,validRoot,
-  (restored _ (by decide) (by decide) (by decide) (by decide)).trans go,globalsScope.trans globals,?_⟩
+  (restored _ (by decide) (by decide) (by decide) (by decide)).trans go,globalsScope.trans globals,?_,?_⟩
  · rw [memoryScope];exact backlink
  · exact typed.after_length_frame (by intro node registered;rw [memoryScope])
  · intro name member
@@ -115,6 +116,10 @@ theorem mpt_insert_step_world {F : Type} (s post : PanSemStateFiniteExact 64 F)
     rcases member with rfl|rfl|rfl|rfl <;> decide
    exact (restored name different.1 different.2.1 different.2.2.1 different.2.2.2.1).trans
     ((localFrame name member).trans (kept name different.1 different.2.1 different.2.2.1 different.2.2.2.1 different.2.2.2.2))
+
+ · intro watched n8 n16 n24
+   rw [memoryScope]
+   exact memoryFrame watched n8 n16 n24
 
 #print axioms mpt_insert_step_world
 end InitECandidate.Runtime
