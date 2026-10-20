@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SourceCostCrepDecCall
+import InitECandidate.Runtime.SourceCostCrepPrimitive
 import Flapjack.Pancake.Proofs.PanGlobals.SemanticsInitCall
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -14,6 +14,7 @@ def sourceControlProg : ProgHOL 64 → Bool
   | .call none _ _ | .call (some (_, none)) _ _ => true
   | .call (some (_, some (_, _, handler))) _ _ => sourceControlProg handler
   | .decCall _ _ _ _ continuation => sourceControlProg continuation
+  | .primitive _ _ _ => true
   | _ => false
 
 /-- Static premise on every source function body reachable through calls. -/
@@ -485,6 +486,10 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       rcases stop with h | ⟨f, h⟩ | ⟨eid, v, h⟩ <;> rw [h] <;> simp
     exact decCall_stopped_transfer args lookup clock bodyRun stop rel localised checked.1
       (fun t' c' rel' loc' => ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
+  | @primitiveValue s name operator arguments values value args operation valid =>
+    intro t context resultOk rel localised checked control codeOk
+    simp only [bulkLoadSitesProg] at checked
+    exact primitive_transfer args operation valid rel localised checked
   | _ =>
     intro t context result rel localised checked control codeOk
     first
