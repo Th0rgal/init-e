@@ -1,10 +1,12 @@
 import InitECandidate.Runtime.SourceCostLoopIf
+import InitECandidate.Runtime.SourceCostLoopDec
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect
 
 /-- Crep statements covered by the checked Crep-to-Loop transfer. -/
 def crepLoopCovered : CrepProgHOL 64 → Bool
   | .seq first second | .ite _ first second => crepLoopCovered first && crepLoopCovered second
+  | .dec _ _ body => crepLoopCovered body
   | p => (crepLeafWork p).isSome
 
 /-- Crep-to-Loop executed-work transfer, by induction on executed Crep work.
@@ -95,6 +97,15 @@ theorem crep_loop_executed_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepP
     split
     · rename_i w hw; exact absurd hw (invalid w)
     · rfl
+  | @dec t name value body word bodyWork evaluated bodyRun ih =>
+    intro u context live ok rel covered
+    simp only [crepLoopCovered] at covered
+    exact dec_loop_paid evaluated ok rel (fun u' c' l' ok' rel' => ih u' c' l' ok' rel' covered)
+  | @decFailure t name value body failed =>
+    intro u context live ok rel covered
+    exfalso
+    apply ok
+    rw [evalCrepSemHOLProgExact_dec_holShape, failed]
   | _ =>
     intro u context live ok rel covered
     first
