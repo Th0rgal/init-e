@@ -402,4 +402,111 @@ theorem actual_payload_header_prefix_stores {F : Type} (state : PanSemStateFinit
   · exact Or.inr (stAbort_mono state _ 251 251 (by omega) ab)
 #print axioms actual_payload_header_prefix_stores
 
+/-- Statement 6 is the actual `alloc 32` that produces `oh`. -/
+theorem source_actual_payload_header_alloc_output :
+    actualPayloadHeaderAt 6 = .decCall (ofString "oh") .one (ofString "alloc") [(.const (32#64))]
+      (actualPayloadHeaderAt 7) := by
+  unfold actualPayloadHeaderAt
+  rfl
+
+/-- A two-tick actual `alloc` declaration step, uniformly bounded, with the returned pointer bound to
+`name`: every successful return advances the heap pointer to `allocationEnd heap size` and preserves
+memory, domain and code. -/
+theorem actual_payload_header_alloc_step {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (name : MlS) (size heap : BitVec 64) (continuation : ProgHOL 64)
+    (P : PanSemStateFiniteExact 64 F → Prop)
+    (heapGlobal : s.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)))
+    (code : s.code = originalRuntimeCode) (budget : 2 ≤ s.clock)
+    (property : ∀ post : PanSemStateFiniteExact 64 F,
+      post.memory = s.memory → post.memaddrs = s.memaddrs → post.code = s.code →
+      post.globals = (setGlobalHOLFinite (ofString "heap_ptr") (.val (.word (allocationEnd heap size))) s).globals →
+      P (setVarHOLFinite name (.val (.word heap)) {post with locals := s.locals})) :
+    Reaches s (.decCall name .one (ofString "alloc") [(.const size)] continuation) P 2 continuation := by
+  have arguments : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+      [(.const size)] = (some [ValueHOL.val (HolWordLab.word size)] : Option (List (ValueHOL 64))) := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact]
+  refine bounded_decCall_reaches s name (ofString "alloc") .one .one [(.const size)]
+    [ValueHOL.val (HolWordLab.word size)] (sourceFunctionBody Guest.guestFn_alloc) continuation
+    (HolFiniteMapExact.empty.update (ofString "n",.val (.word size))) 1 P arguments ?_ budget ?_ ?_
+  · rw [pan_single_word_lookup _ (ofString "alloc") (ofString "n") (sourceFunctionBody Guest.guestFn_alloc)
+      size (by rw [code]; exact originalRuntimeCode_allocation_lookup)]
+  · have bound := evaluate_source_alloc_uniform_bounded
+      (callEntryStateHOLFinite s (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))) code
+      (by change 1 ≤ s.clock - 1; omega)
+    exact ⟨bound.1,bound.2.1,bound.2.2.1⟩
+  · intro value post returned shapes
+    have sizeLocal : (callEntryStateHOLFinite s
+        (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))).locals.lookup (ofString "n") =
+        (some (ValueHOL.val (HolWordLab.word size)) : Option (ValueHOL 64)) := by
+      change (HolFiniteMapExact.empty.update (ofString "n",
+        ValueHOL.val (HolWordLab.word size))).lookup (ofString "n") = _
+      simp [HolFiniteMapExact.lookup_update,FUPDATE]
+    obtain ⟨request,finish,valueEq,memory,domain,be,postCode,globals⟩ :=
+      alloc_body_returned (callEntryStateHOLFinite s
+        (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))) post heap size
+        (by simpa [callEntryStateHOLFinite] using code)
+        (by simpa [callEntryStateHOLFinite] using heapGlobal) sizeLocal value returned
+    subst valueEq
+    exact property post memory domain postCode globals
+
+#print axioms actual_payload_header_alloc_step
+
+/-- **The actual construction prefix through the `alloc 32` for `oh`.**  Continuing the real entry
+after the two header stores: the actual `alloc 32` declaration call, ending immediately at the actual
+`alloc 8` for `tmp`. -/
+theorem actual_payload_header_prefix_output {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (si pl raw pointer : BitVec 64)
+    (siLocal : state.locals.lookup (ofString "si") = some (.val (.word si)))
+    (siDomain : state.memaddrs (si + (0#64)))
+    (siCell : state.memory (si + (0#64)) = .word pl)
+    (plDomain : state.memaddrs (pl + (0#64)))
+    (plCell : state.memory (pl + (0#64)) = .word raw)
+    (code : state.code = originalRuntimeCode)
+    (heapGlobal : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (aligned : pointer.toNat % 8 = 0)
+    (fits : pointer.toNat + 248 ≤ 33806089496)
+    (wordDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (byteDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (panByteAlignHOL (pointer + BitVec.ofNat 64 offset)))
+    (budget : 253 ≤ state.clock) :
+    Reaches state (actualPayloadHeaderAt 0)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd pointer (248#64)) (32#64)) ∧
+        post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))))
+      253 (actualPayloadHeaderAt 7) := by
+  rcases actual_payload_header_prefix_stores state si pl raw pointer siLocal siDomain siCell plDomain
+    plCell code heapGlobal aligned fits wordDomain byteDomain (by omega) with ⟨mid, facts, c1, c2, sc⟩ | ab
+  · have allocSteps : Reaches mid (actualPayloadHeaderAt 6)
+        (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd pointer (248#64)) (32#64)) ∧
+          post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))))
+        2 (actualPayloadHeaderAt 7) := by
+      rw [source_actual_payload_header_alloc_output]
+      refine actual_payload_header_alloc_step mid (ofString "oh") (32#64) (allocationEnd pointer (248#64))
+        (actualPayloadHeaderAt 7) _ facts.2.2.2.1 (by rw [facts.2.2.2.2.2]; exact code) (by omega) ?_
+      intro post memory domain postCode globals
+      refine ⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩
+      · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+          facts.1]
+      · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+          facts.2.1]
+      · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+          facts.2.2.1]
+      · simp only [setVarHOLFinite]
+        rw [globals]
+        simp (config := {decide := true}) [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+      · simp only [setVarHOLFinite]
+        rw [domain]
+        exact facts.2.2.2.2.1
+      · simp only [setVarHOLFinite]
+        rw [postCode]
+        exact facts.2.2.2.2.2
+      · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    rcases allocSteps with ⟨post, facts', a1, a2, asc⟩ | ab2
+    · exact Or.inl ⟨post, facts', by omega, by omega, scoped_trans sc asc⟩
+    · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
+  · exact Or.inr (stAbort_mono state _ 251 253 (by omega) ab)
+#print axioms actual_payload_header_prefix_output
+
 end InitECandidate.Runtime
