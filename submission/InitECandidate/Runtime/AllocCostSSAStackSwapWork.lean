@@ -179,6 +179,22 @@ theorem wordPathWork_seq_sValEq_variant_result {C F : Type}
     simp [fixClock]
   rw [hL, hR]
 
+
+/-- **Conditional case.**  `getVar`/`getVarImm` read only the locals, so both
+sides take the same branch and the two structural IHs close it. -/
+theorem wordPathWork_ite_sValEq_variant {C F : Type}
+    (cmp : Cmp) (reg : Nat) (operand : WordRegImm (BitVec 64))
+    (first second : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (ih1 : wordPathWork first { s with stack := xs } = wordPathWork first s)
+    (ih2 : wordPathWork second { s with stack := xs } = wordPathWork second s) :
+    wordPathWork (.ite cmp reg operand first second) { s with stack := xs } =
+      wordPathWork (.ite cmp reg operand first second) s := by
+  rw [wordPathWork, wordPathWork, getVar_stack, getVarImm_stack]
+  split <;> simp_all
+
+#print axioms wordPathWork_ite_sValEq_variant
+
 #print axioms wordPathWork_seq_sValEq_variant_none
 #print axioms wordPathWork_seq_sValEq_variant_result
 
