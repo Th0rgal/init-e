@@ -193,7 +193,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post) :
       StatementRun s (.call info function arguments) result post
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+          [.copy (values.flatMap flattenHOL).length, .frame values.length,
+            .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
           [.copy (callPayloadWords bodyResult)]))
   | callHandler {s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post}
@@ -206,7 +207,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       (handlerRun : StatementRun handlerEntry handlerProgram result post handlerEvents) :
       StatementRun s (.call info function arguments) result post
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+          [.copy (values.flatMap flattenHOL).length, .frame values.length,
+            .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
           [.copy (callPayloadWords bodyResult)] ++ handlerEvents))
   | callArgumentsFailure {s info function arguments}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -225,7 +227,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
       (clock : s.clock = 0) :
       StatementRun s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
-        (.statement :: expressionListEvents s arguments)
+        (.statement :: (expressionListEvents s arguments ++
+          [.frame (sizeOfShapeWithContextHOL s.structs returnShape)]))
 
   | declareCallReturn {s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents continuationEvents result post}
@@ -243,7 +246,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       StatementRun s (.decCall name shape function arguments continuation) result
         { post with locals := HolFiniteMapExact.resVarEq post.locals (name, s.locals.lookup name) }
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+          [.copy (values.flatMap flattenHOL).length, .frame values.length,
+            .frame (sizeOfShapeWithContextHOL s.structs shape)] ++ bodyEvents ++
           [.copy (flattenHOL value).length] ++ continuationEvents ++
           [.copy (((s.locals.lookup name).map (fun old => (flattenHOL old).length)).getD 0)]))
 
@@ -264,7 +268,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
       (clock : s.clock = 0) :
       StatementRun s (.decCall name shape function arguments continuation)
-        (some .timeOut) (emptyLocalsHOLFinite s) (.statement :: expressionListEvents s arguments)
+        (some .timeOut) (emptyLocalsHOLFinite s) (.statement :: (expressionListEvents s arguments ++
+          [.frame (sizeOfShapeWithContextHOL s.structs shape)]))
   | declareCallRejectedReturn {s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -277,7 +282,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         shapeEqHOL (shapeOfHOLExact value) returnShape) = false) :
       StatementRun s (.decCall name shape function arguments continuation) (some .error) bodyPost
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents))
+          [.copy (values.flatMap flattenHOL).length, .frame values.length,
+            .frame (sizeOfShapeWithContextHOL s.structs shape)] ++ bodyEvents))
   | declareCallStopped {s name shape function arguments continuation values body callee returnShape
       bodyResult bodyPost bodyEvents}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -289,7 +295,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       StatementRun s (.decCall name shape function arguments continuation)
         (declareCallStopPlan bodyResult bodyPost).1 (declareCallStopPlan bodyResult bodyPost).2
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+          [.copy (values.flatMap flattenHOL).length, .frame values.length,
+            .frame (sizeOfShapeWithContextHOL s.structs shape)] ++ bodyEvents ++
           [.copy (callPayloadWords bodyResult)]))
 
   | tickStep {s} (clock : s.clock â‰  0) :

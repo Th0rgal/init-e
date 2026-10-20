@@ -51,6 +51,18 @@ trace, and `sourceExecutionCost` scores it. `sourceExecutionCost_spec` connects
 this definition to `StatementRun`. Compiler/guest bounds should hold for all
 such traces; trace uniqueness has not been claimed.
 
+## Return-slot frame accounting
+
+After successful callee lookup, call Done/Handler/Timeout traces also charge
+`frame (sizeOfShapeWithContextHOL state.structs returnShape)`. Declaration-call
+Return/RejectedReturn/Stopped/Timeout traces instead charge their declared
+shape. This pays compiler return-slot initialization even before timeout or a
+callee exception; forms that allocate no slots are conservatively charged too.
+Argument/lookup failures remain unchanged. The source compiler transfer can
+therefore pay by the actual requested size instead of a universal return-size
+cap or an inflated coefficient on every statement. Completeness and erasure
+remain exact; adapting the broader statement transfer is still in progress.
+
 ## Checked compiler pieces
 
 | Stage/modules | Proven result | Scope/remaining obligation |
