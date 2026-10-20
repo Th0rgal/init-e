@@ -194,5 +194,38 @@ theorem aqgd_call_unionReg {LP : GA → Prop} {RR : ValueHOL 64 → Mem → GA �
     exact ⟨lp,H',hH',by omega,reg',hn',fun x ho => (fr' x ho).trans (fr x ho)⟩
 
 #print axioms aqgd_call_unionReg
+/-- The head of `merge_tx_into_block`: the five registry unions `bs + k ← ts + k` (`k = 24, 8, 40, 16, 48`). -/
+theorem mergeHead_aqgd {LP : GA → Prop} {Q : GA → Mem → GA → Prop} {RR : ValueHOL 64 → Mem → GA → Prop}
+    {cont : ProgHOL 64} (k24 k8 k40 k16 k48 : Fin n) (n24 : k24 ≠ ko) (n8 : k8 ≠ ko) (n40 : k40 ≠ ko) (n16 : k16 ≠ ko)
+    (n48 : k48 ≠ ko) (Bs : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
+    (h24 : c k24 = Bs + 24#64) (h8 : c k8 = Bs + 8#64) (h40 : c k40 = Bs + 40#64) (h16 : c k16 = Bs + 16#64)
+    (h48 : c k48 = Bs + 48#64) (p0 : P0.toNat ≤ H0.toNat) (hOut : Out w)
+    (hcont : AQGD D B (JWS SP0 P0 FM G0 J C SKB) w (fun _ => False)
+      (fun L M G => LP L ∧ URS n c T Out ko D B H0 Nj M0 M G) Q RR cont) :
+    AQGD D B (JWS SP0 P0 FM G0 J C SKB) w (fun _ => False)
+      (fun L M G => LP L ∧ URS n c T Out ko D B H0 Nj M0 M G) Q RR
+      (.seq (.call (some (none,none)) (ofString "htab_union_into")
+        [.load .one (.op .add [.var .global (ofString "bs"),.const 24#64]),
+         .load .one (.op .add [.var .global (ofString "ts"),.const 24#64])])
+        (.seq (.call (some (none,none)) (ofString "htab_union_into")
+        [.load .one (.op .add [.var .global (ofString "bs"),.const 8#64]),
+         .load .one (.op .add [.var .global (ofString "ts"),.const 8#64])])
+        (.seq (.call (some (none,none)) (ofString "htab_union_into")
+        [.load .one (.op .add [.var .global (ofString "bs"),.const 40#64]),
+         .load .one (.op .add [.var .global (ofString "ts"),.const 40#64])])
+        (.seq (.call (some (none,none)) (ofString "htab_union_into")
+        [.load .one (.op .add [.var .global (ofString "bs"),.const 16#64]),
+         .load .one (.op .add [.var .global (ofString "ts"),.const 16#64])])
+        (.seq (.call (some (none,none)) (ofString "htab_union_into")
+        [.load .one (.op .add [.var .global (ofString "bs"),.const 48#64]),
+         .load .one (.op .add [.var .global (ofString "ts"),.const 48#64])])
+          cont))))) :=
+  aqgd_seq (aqgd_call_unionReg k24 n24 Bs _ _ hBs h24 p0 hOut)
+    (aqgd_seq (aqgd_call_unionReg k8 n8 Bs _ _ hBs h8 p0 hOut)
+    (aqgd_seq (aqgd_call_unionReg k40 n40 Bs _ _ hBs h40 p0 hOut)
+    (aqgd_seq (aqgd_call_unionReg k16 n16 Bs _ _ hBs h16 p0 hOut)
+    (aqgd_seq (aqgd_call_unionReg k48 n48 Bs _ _ hBs h48 p0 hOut) hcont))))
+
+#print axioms mergeHead_aqgd
 end un
 end InitECandidate.Runtime
