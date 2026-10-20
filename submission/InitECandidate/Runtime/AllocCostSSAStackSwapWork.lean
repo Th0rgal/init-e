@@ -890,4 +890,15 @@ theorem wordPathWork_call_exception_sValEq_variant {C F : Type}
       exact hvalMid)]
 
 #print axioms wordPathWork_call_exception_sValEq_variant
+
+/-- `fixClock` on a stack-swapped state: the result is the same, and the state's
+stack is the swapped one (the rest of the record comes from `s`/`m`, unchanged). -/
+theorem fixClock_stack_swap {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64)) (r : Option (WordSemResult 64))
+    (m : WordSemStateFiniteExact 64 C F) :
+    fixClock { s with stack := xs } (r, { m with stack := xs }) =
+      (r, { (fixClock s (r, m)).2 with stack := xs }) := by
+  cases r <;> (simp only [fixClock]; try rfl)
+
+#print axioms fixClock_stack_swap
 end InitECandidate.Runtime.WordToStack
