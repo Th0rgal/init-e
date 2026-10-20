@@ -444,6 +444,15 @@ A final call charges only materialization in its prefix and leaves the final
 allowance to `TerminalWeightedFlatten.native` once. Both cases independently
 checked in `stack-weighted-ffi4`; no native-run or cost premise is assumed.
 
+`StackWeightedShared.sharedStep_of_source` derives exact LabSem dispatch and
+successor state for all eight shared-memory load/store operators from the
+actual Stack run and original compiler relation. It preserves domain/alignment
+checks, access-size encoding, returned values/FFI state and the clock-zero case.
+`normalWeightedFlatten_shared` constructs the returned mixed trace with cost1;
+`terminalWeightedFlatten_shared` supplies a final dispatch with an empty prefix,
+leaving the terminal allowance to the existing extraction theorem. All three
+statements checked with standard axioms in `stack-weighted-shared3`.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
