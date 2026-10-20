@@ -217,7 +217,10 @@ Compile order and module stems (checker role `allocation`):
      outputs and both actual reconciliation programs.
    - `bodyWork_loopFinal`: one executed loop body.  It composes the target body
      child transfer with `loopBodyFinal_executed_le`, so the inserted back-edge
-     reconciliation is paid at the actual intermediate state.  Calls remain.
+     reconciliation is paid at the actual intermediate state.
+   - `ssaCcTrans_loop_output`: the literal SSA `Loop` clause, exposing the
+     actual `loopSetup`, renamed body, `ssaReconcile` back-edge and final loop
+     program.  Calls remain.
 
    The remaining semantic obligation is now narrower: extend the quantitative
    `bodySimulationRun` from these base instructions through the control

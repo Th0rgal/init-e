@@ -464,6 +464,30 @@ theorem bodyWork_loopFinal {C F : Type} {β : Type}
         (bodyBudget + ((sptToAList names).length + 2)) := by
       ac_rfl
 
+/-- The literal SSA `Loop` clause, exposing the actual setup program, renamed
+body, reconciliation back-edge and final loop program. -/
+theorem ssaCcTrans_loop_output
+    (names exits : Spt Unit) (body setup bodyOut back bodyFinal : WordLangProgHOL (BitVec 64))
+    (ssa : Spt Nat) (next : Nat) (ssaRefreshed : Spt Nat) (nextRefreshed : Nat)
+    (ssaNames ssaExit : Spt Unit) (ssa' : Spt Nat) (nextBody : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (setupEq : loopSetup names exits ssa next =
+      (setup, ssaRefreshed, nextRefreshed))
+    (namesEq : ssaNames = Flapjack.WordAlloc.applyNummapKey (optionLookup ssaRefreshed) names)
+    (exitsEq : ssaExit = Flapjack.WordAlloc.applyNummapKey (optionLookup ssaRefreshed) exits)
+    (bodyEq : ssaCcTrans (width := 64) body (sptInter ssaRefreshed names)
+      nextRefreshed ((ssaRefreshed, names, exits) :: tables) =
+        (bodyOut, ssa', nextBody))
+    (bodyFinalEq : (match ssaReconcile (width := 64) ssa' ssaRefreshed names with
+      | .skip => bodyOut
+      | _ => bodyOut.seq (ssaReconcile (width := 64) ssa' ssaRefreshed names)) =
+        bodyFinal) :
+    ssaCcTrans (width := 64) (.loop names body exits) ssa next tables =
+      (.seq setup (.loop ssaNames bodyFinal ssaExit),
+       sptInter ssaRefreshed exits, nextBody) := by
+  simp only [ssaCcTrans, setupEq, bodyEq, namesEq, exitsEq]
+  split <;> simp_all
+
 #print axioms wordControlCost
 #print axioms wordPathWork_le_controlCost_straight
 #print axioms ssaBody_skip_executed_le
@@ -481,4 +505,5 @@ theorem bodyWork_loopFinal {C F : Type} {β : Type}
 #print axioms bodyWork_ite_false
 #print axioms ssaCcTrans_ite_output
 #print axioms bodyWork_loopFinal
+#print axioms ssaCcTrans_loop_output
 end InitECandidate.Runtime.FineCost
