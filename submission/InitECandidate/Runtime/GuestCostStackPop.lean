@@ -259,4 +259,44 @@ theorem stackPop_return_run (s : PanSemStateFiniteExact 64 F) (base w0 w1 w2 w3 
 
 #print axioms stackPop_return_run
 
+
+/-- The empty-stack guard is false when the pointer is a nonzero word. -/
+theorem eval_stackPopGuardNonzero (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64)
+    (hSp : s.locals.lookup (ofString "sp") = some (.val (.word sp)))
+    (nonzero : sp ≠ (0 : BitVec 64)) :
+    expressionValue s stackPopGuard = some (.val (.word 0)) := by
+  rw [eval_stackPopGuard s sp hSp]
+  have hcmp : Flapjack.Compiler.Encoders.Asm.wordCmpHOL Cmp.equal sp 0 = false := by
+    show (sp == (0 : BitVec 64)) = false
+    by_cases h : sp = 0
+    · exact absurd h nonzero
+    · simpa using h
+  rw [hcmp]
+  rfl
+
+/-- Recorded work of one successful `stack_pop`: initialiser, false guard, skip,
+decrement, store, and the four-word return. -/
+noncomputable def stackPopSuccessEvents (s : PanSemStateFiniteExact 64 F) (frame sp base : BitVec 64)
+    (w0 w1 w2 w3 : BitVec 64) : List WorkEvent :=
+  let entry := setVarHOLFinite (ofString "sp") (.val (.word sp)) s
+  let assigned := setKvarHOLFinite VarKind.local (ofString "sp") (.val (.word (sp - 1))) entry
+  let stored := { assigned with memory := writeWordMemory assigned (frame + 16) (sp - 1) }
+  let payload : ValueHOL 64 :=
+    .rStruct [.val (.word w0), .val (.word w1), .val (.word w2), .val (.word w3)]
+  expressionEvents s stackPopSp ++
+    [.copy (flattenHOL (.val (.word sp))).length, .frame 1] ++
+    (.statement :: (.statement :: (expressionEvents entry stackPopGuard ++ [.statement]))) ++
+    (.statement :: (.statement :: (expressionEvents entry
+      (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
+      [.copy (flattenHOL (.val (.word (sp - 1)))).length]))) ++
+    (.statement :: (.statement :: (expressionEvents assigned (fundingAddress 16) ++
+      expressionEvents assigned (.var VarKind.local (ofString "sp")) ++
+      [.memory (flattenHOL (.val (.word (sp - 1)))).length]))) ++
+    (.statement :: (.statement :: (expressionEvents stored (.load comb4Shape stackPopValueAddress) ++
+      [.copy (flattenHOL payload).length]))) ++
+    [.copy (((s.locals.lookup (ofString "sp")).map
+      (fun previous => (flattenHOL previous).length)).getD 0)]
+
+#print axioms eval_stackPopGuardNonzero
+
 end InitECandidate.Runtime.FineCost
