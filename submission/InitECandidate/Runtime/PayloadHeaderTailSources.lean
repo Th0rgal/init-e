@@ -56,13 +56,28 @@ theorem source_actual_payload_header_loop_counter :
   unfold actualPayloadHeaderAt
   rfl
 
-/-- Statement 46: the withdrawal loop `while i < nwd { e := encode_withdrawal_rlp(...);
-wd_rlp_slices[i*16] := e.0; wd_rlp_slices[i*16+8] := e.1; i := i+1 }`.  Only its shape at the top
-level is asserted here: it is a `seq` whose first component is the loop. -/
+/-- Statement 46: the actual withdrawal loop
+`while i < nwd { e := encode_withdrawal_rlp(load [pl + 48] + i*44);
+wd_rlp_slices[i*16] := e.0; wd_rlp_slices[i*16 + 8] := e.1; i := i + 1 }`. -/
 theorem source_actual_payload_header_withdrawal_loop :
-    ∃ loop : ProgHOL 64, actualPayloadHeaderAt 46 = .seq loop (actualPayloadHeaderAt 47) := by
+    actualPayloadHeaderAt 46 = .seq
+      (.while (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "nwd")))
+        (.decCall (ofString "e") (.comb [.one,.one]) (ofString "encode_withdrawal_rlp")
+          [.op .add [.load .one (.op .add [.var .local (ofString "pl"), .const (48#64)]),
+            .panop .mul [.var .local (ofString "i"), .const (44#64)]]]
+          (.seq
+            (.store (.op .add [.var .global (ofString "wd_rlp_slices"),
+              .panop .mul [.var .local (ofString "i"), .const (16#64)]])
+              (.rfield 0 (.var .local (ofString "e"))))
+            (.seq
+              (.store (.op .add [.var .global (ofString "wd_rlp_slices"),
+                .panop .mul [.var .local (ofString "i"), .const (16#64)], .const (8#64)])
+                (.rfield 1 (.var .local (ofString "e"))))
+              (.assign .local (ofString "i")
+                (.op .add [.var .local (ofString "i"), .const (1#64)]))))))
+      (actualPayloadHeaderAt 47) := by
   unfold actualPayloadHeaderAt
-  exact ⟨_,rfl⟩
+  rfl
 
 /-- Statement 47: the actual `build_mpt_indexed(wd_rlp_slices, nwd, wr)` call on the withdrawals. -/
 theorem source_actual_payload_header_withdrawal_trie :
