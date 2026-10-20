@@ -68,6 +68,42 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       StatementRun s (.while condition body) (some result) post
         (.statement :: (guardEvents ++ bodyEvents))
 
+  | assignValue {s kind name expression value events}
+      (expr : ExpressionRun s expression (some value) events)
+      (valid : isValidValueHOLFinite s kind name value = true) :
+      StatementRun s (.assign kind name expression) none (setKvarHOLFinite kind name value s)
+        (.statement :: (events ++ [.copy (flattenHOL value).length]))
+  | assignInvalid {s kind name expression value events}
+      (expr : ExpressionRun s expression (some value) events)
+      (invalid : isValidValueHOLFinite s kind name value = false) :
+      StatementRun s (.assign kind name expression) (some .error) s (.statement :: events)
+  | assignFailure {s kind name expression events}
+      (expr : ExpressionRun s expression none events) :
+      StatementRun s (.assign kind name expression) (some .error) s (.statement :: events)
+  | returnValue {s expression value events}
+      (expr : ExpressionRun s expression (some value) events)
+      (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
+      StatementRun s (.return expression) (some (.returned value)) (emptyLocalsHOLFinite s)
+        (.statement :: (events ++ [.copy (flattenHOL value).length]))
+  | returnOversize {s expression value events}
+      (expr : ExpressionRun s expression (some value) events)
+      (size : ¬ sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
+      StatementRun s (.return expression) (some .error) s (.statement :: events)
+  | returnFailure {s expression events}
+      (expr : ExpressionRun s expression none events) :
+      StatementRun s (.return expression) (some .error) s (.statement :: events)
+
+  | raiseValue {s exceptionId expression value events shape}
+      (expr : ExpressionRun s expression (some value) events)
+      (declared : s.eshapes.lookup exceptionId = some shape)
+      (shapeMatches : shapeOfHOLExact value = shape)
+      (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
+      StatementRun s (.raise exceptionId expression) (some (.exception exceptionId value))
+        (emptyLocalsHOLFinite s) (.statement :: (events ++ [.copy (flattenHOL value).length]))
+  | raiseFailure {s exceptionId expression events}
+      (expr : ExpressionRun s expression none events) :
+      StatementRun s (.raise exceptionId expression) (some .error) s (.statement :: events)
+
 theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
     (run : StatementRun s p r post events) : evaluateHOLFiniteState s p = (r, post) := by
@@ -142,6 +178,47 @@ theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     change _ ≠ (0#64) at nonzero
     simp only [evalHOLFinite_eq_toExact, hg]
     simp [nonzero, clock, ihOne, notBreak, notContinue]
+
+  | assignValue expr valid =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_assign, he]
+    simp only [valid, ↓reduceIte]
+  | assignInvalid expr invalid =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_assign, he]
+    simp only [invalid, Bool.false_eq_true, ↓reduceIte]
+  | assignFailure expr =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_assign, he]
+  | returnValue expr size =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_return, he]
+    simp [size]
+  | returnOversize expr size =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_return, he]
+    simp [size]
+  | returnFailure expr =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_return, he]
+
+  | raiseValue expr declared shapeMatches size =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_raise, he, declared]
+    simp only [shapeMatches, size, and_self, ↓reduceIte]
+    simp_all
+  | raiseFailure expr =>
+    have he := expr.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_raise, he]
+    split <;> simp_all
 
 #print axioms StatementRun.sound
 end InitECandidate.Runtime.FineCost
