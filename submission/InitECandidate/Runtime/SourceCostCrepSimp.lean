@@ -217,7 +217,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
     obtain ⟨w1, h1, b1⟩ := ihOne (by rw [run]; simp)
     obtain ⟨w2, h2, b2⟩ := ihTwo okTwo
     have run' := crepArithSimpProgCorrect first t none middle run (by simp)
-    exact ⟨1 + w1 + w2, by simp only [crepSimpProgHOL]; exact .seqNext h1 run' h2, by omega⟩
+    exact ⟨w1 + w2, by simp only [crepSimpProgHOL]; exact .seqNext h1 run' h2, by omega⟩
   | @seqStop t first second result middle firstWork one run ihOne =>
     intro ok
     have okOne : (evalCrepSemHOLProgExact t first).1 ≠ some .error := by
@@ -227,7 +227,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
     obtain ⟨w1, h1, b1⟩ := ihOne okOne
     have run' := crepArithSimpProgCorrect first t (some result) middle run
       (by rw [run] at okOne; exact okOne)
-    exact ⟨1 + w1, by simp only [crepSimpProgHOL]; exact .seqStop h1 run', by omega⟩
+    exact ⟨w1, by simp only [crepSimpProgHOL]; exact .seqStop h1 run', by omega⟩
   | @iteBranch t condition yes no word branchWork guard branch ihBranch =>
     intro ok
     have okBranch : (evalCrepSemHOLProgExact t (if word ≠ 0 then yes else no)).1 ≠ some .error := by

@@ -354,7 +354,18 @@ declared calls, primitives, FFI and shared memory. No whole-program size enters
 the bound. `source_execution_cost_pays_crep` restates it for the selected
 canonical trace.
 
-## Crep-to-Loop executed transfer (conditional on `LoopOptimiseWork`)
+## Seq-free epoch
+
+`Seq` is structural composition with no native operation, so it emits no
+event of its own. `StatementRun.seqNext` charges `left ++ right` and `seqStop`
+charges `left`. `CrepWork` `Seq` likewise has no local charge (`w1 + w2`, `w1`).
+Every executable statement, expression, loop guard, call and size event is
+still charged. Without this change, `pan_simp$seq_assoc`, which left-nests
+sequences, would pay one extra `Seq` statement per enclosing sequence node on
+every early exit. That is a program-size factor. With `Seq` free, association
+never changes cost (`SourceCostPanSimpAssoc.simp_seqAssoc_run`).
+
+## Crep-to-Loop executed transfer
 
 `SourceCostLoopWork.LoopWork s p out w` counts executed Loop work rule by rule
 on the exact Loop evaluator (leaf costs, selected branches, every loop
@@ -371,10 +382,13 @@ factor is 7, not 6, because a call that times out at clock zero pays Crep
 `1 + crepListWork args`, while its compiled code also moves each argument
 (`<= 6 * crepListWork + 1 + |args|`).
 
-The call case (`SourceCostLoopCall.call_loop_paid`) is conditional on the
-named contract `SourceCostLoopCallBase.LoopOptimiseWork`. The contract says
+The call case (`SourceCostLoopCall.call_loop_paid`) takes the named contract
+`SourceCostLoopCallBase.LoopOptimiseWork`. Root discharges it with
+`loop_optimise_executed_work` (coefficient one), via
+`SourceCostLoopSource.loop_optimise_work`. `crep_loop_installed_work` and
+`source_simp_loop_installed_work` are therefore unconditional. The contract says
 that the per-function `optimiseHOL` pass does not increase executed work for
-non-error, non-break and non-continue results. Root is proving it separately.
+non-error, non-break and non-continue results.
 `SourceCostLoopSource.source_loop_executed_work` composes the two transfers
 for one statement.
 
@@ -385,6 +399,12 @@ extension, and holds for every non-error run. It uses the pinned lockstep
 work (`crepSimp_node_work`). `source_simp_loop_executed_work` composes all
 three passes for one statement: source → `pan_to_crep` → `simp_prog` →
 `crep_to_loop` compile. It runs against the `simp_prog`-mapped Crep state,
-which is how `compile_prog` installs function bodies. Still remaining: the
-source preprocessing passes (`pan_simp`, `pan_structs`, `pan_globals`),
-whole-program entry composition, and the `LoopOptimiseWork` contract (root).
+which is how `compile_prog` installs function bodies. 
+`pan_simp` statement transforms are covered for the same code map.
+`simp_seqAssoc_run` handles `seq_assoc` on every run, and `simp_retToTail_run`
+handles `ret_to_tail` on non-error runs. Under every coefficient vector, the
+work is no more than the source run's.
+
+Still remaining: transporting runs across the `pan_simp` code map (callee
+bodies compiled), the `pan_structs` and `pan_globals` transfers, and
+whole-program entry composition.

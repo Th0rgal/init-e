@@ -151,7 +151,7 @@ theorem simpOk_seq_runs {F : Type} {a a' b b' : ProgHOL 64}
     obtain ⟨e1, r1, l1⟩ := ha one ok
     refine ⟨_, .seqStop terminal r1, fun c => ?_⟩
     have := l1 c
-    simp only [executionWork_score_cons] at *
+    try simp only [executionWork_score_cons] at *
     omega
 
 /-- A call without handler has a `done` plan. -/
@@ -186,10 +186,11 @@ theorem simp_tail_run {F : Type} (returnName : MlStringHOL) (function : MlString
     cases run with
     | seqNext one two =>
       refine ⟨_, _, _, one, by simp, fun c => ?_⟩
-      simp only [executionWork_score_cons, executionWork_score_append]; omega
+      simp only [executionWork_score_append]; omega
     | seqStop terminal one =>
       refine ⟨_, _, _, one, ok, fun c => ?_⟩
-      simp only [executionWork_score_cons]; omega
+      try simp only [executionWork_score_cons]
+      omega
   obtain ⟨r1, post1, left, one, ok1, le⟩ := callPart
   cases one with
   | callDone args lookup clock bodyRun plan =>

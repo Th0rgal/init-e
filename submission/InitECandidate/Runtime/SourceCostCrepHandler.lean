@@ -163,7 +163,7 @@ theorem handler_entry_work {F : Type} {s bodyPost : PanSemStateFiniteExact 64 F}
       hsetE⟩
   obtain ⟨we, workExp, boundExp⟩ := bounded_load_globals nsE 0 F { t1 with locals := targetLocals }
   rw [← hexp] at workExp hrunExp
-  refine ⟨1 + we + wh, CrepWork.seqNext workExp hrunExp workHandler, ?_⟩
+  refine ⟨we + wh, CrepWork.seqNext workExp hrunExp workHandler, ?_⟩
   rw [hnsE] at boundExp
   omega
 
