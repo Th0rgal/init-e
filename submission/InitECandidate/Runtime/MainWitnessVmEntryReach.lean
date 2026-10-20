@@ -75,9 +75,9 @@ theorem main_witness_vm_entry_reaches {F : Type} (state ready decodedState : Pan
     change rootHeap.toNat ≤ ((rootHeap + (32#64)) + (7#64)).toNat / 8 * 8
     rw [pad]
     omega
-  refine ⟨stateLinked.after_memory_between decodedState post _ _ _ _ _ _ _ _ _ 2713715344
+  refine ⟨stateLinked.after_memory_between_cells decodedState post _ _ _ _ _ _ _ _ _ 2713715344
       ?_ ?_ (by rcases origin with z | lo; exact Or.inl z; exact Or.inr (by omega)) heapGrowth domain (fun w hi lo => memory w lo hi),
-    codesLinked.after_memory_between decodedState post _ _ _ _ _ _ _ _ _ 2713715344
+    codesLinked.after_memory_between_cells decodedState post _ _ _ _ _ _ _ _ _ 2713715344
       ?_ ?_ (by rcases codesOrigin with z | lo; exact Or.inl z; exact Or.inr (by omega)) heapGrowth domain (fun w hi lo => memory w lo hi),
     siKept,rootKept,?_,domain,installed⟩
   all_goals first

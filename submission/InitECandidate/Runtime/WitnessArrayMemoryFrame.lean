@@ -4,7 +4,7 @@ open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 /-- A linked witness array survives a memory frame covering its two record
 cells and its nonempty slice array, while the heap grows. -/
-theorem WitnessArrayLinked.after_memory_between {F : Type} (s post : PanSemStateFiniteExact 64 F)
+theorem WitnessArrayLinked.after_memory_between_cells {F : Type} (s post : PanSemStateFiniteExact 64 F)
     (si first second array count input length heap nextHeap : BitVec 64) (lower : Nat)
     (valid : WitnessArrayLinked s si first second array count input length heap)
     (firstInside : lower ≤ (si + first).toNat ∧ (si + first).toNat < heap.toNat)
@@ -27,5 +27,5 @@ theorem WitnessArrayLinked.after_memory_between {F : Type} (s post : PanSemState
       omega
     · exact valid.slices.after_memory_between s post array count input length heap lower above valid.arrayEnd domain memory
 
-#print axioms WitnessArrayLinked.after_memory_between
+#print axioms WitnessArrayLinked.after_memory_between_cells
 end InitECandidate.Runtime
