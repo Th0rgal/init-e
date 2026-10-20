@@ -286,6 +286,37 @@ theorem wordPathWork_loop_sValEq_variant_of_none {C F : Type}
 
 #print axioms wordPathWork_loop_sValEq_variant_of_none
 
+
+/-- **Call entry shape (the pinned `hPx` core).**  Pushing the callee frame over a
+value-equal stack yields the same frame `fr` on top, and the callee entry state
+`callEnv args1 ss (pushEnv envs handler (decClock ·))` differs only in its stack
+(`fr :: xs` versus `fr :: s.stack`).  This is the first ingredient of the `.call`
+case, taken verbatim from `EvaluateStackSwap/Call.lean`'s `hPx`/`hvP`. -/
+theorem callEntry_stack_swap {C F : Type}
+    (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack xs) :
+    ∃ fr, (WordSemStateFiniteExact.callEnv args1 ss
+        (pushEnv envs handler (decClock s))).stack = fr :: s.stack ∧
+      WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (decClock { s with stack := xs })) =
+        { WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (decClock s)) with stack := fr :: xs } := by
+  obtain ⟨fr, hfr, hpush⟩ :=
+    WordSemStackEq.pushEnv_withStack envs handler
+      (Flapjack.WordSemStateFiniteExact.decClock s) xs (by rw [decClock_stack]; exact hval)
+  refine ⟨fr, ?_, ?_⟩
+  · exact hfr
+  · rw [decClock_stack, hpush]
+    exact WordSemStackEq.callEnv_withStack args1 ss
+      (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock s)) (fr :: xs) (by
+        rw [hfr]
+        exact ⟨hval, by simp [WordSemStackEq.sFrameValEqRefl]⟩)
+
+#print axioms callEntry_stack_swap
+
 #print axioms wordPathWork_ite_sValEq_variant
 
 #print axioms wordPathWork_seq_sValEq_variant_none
