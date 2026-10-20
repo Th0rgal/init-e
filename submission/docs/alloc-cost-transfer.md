@@ -205,6 +205,17 @@ Compile order and module stems (checker role `allocation`):
    The whole-loop induction and per-iteration charging are mechanized; no
    cost oracle is assumed.
 
+   A concrete structural point: the original loop context carries `ssa`,
+   `next` and the loop tables, and `bodySimulationRun` returns a *new*
+   `nextOut`/`mapOut` relation for the body result.  A fixed-relation
+   `SsaLoopStep` can therefore only be instantiated directly for bodies whose
+   SSA context is invariant (for example a body compiled to itself).  The
+   genuinely missing original lemma is a context-indexed one-step relation
+   that threads `nextOut`/`mapOut` through the actual iteration.  The fixed
+   relation above is kept because the whole-loop induction and charging are
+   independent of that context threading; the base quantitative cases do not
+   assume it.
+
 All modules are checked with only `propext`, `Classical.choice` and
 `Quot.sound` in their axiom closure; there is no `sorry`, `admit`, custom
 axiom, `unsafe`, `native_decide` or `bv_decide`.
