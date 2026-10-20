@@ -113,6 +113,25 @@ theorem pipeline_eids_domain (code : List (DeclHOL 64)) (key : MlS) :
   simp only
   rw [List.map_fst_zip (by simp)]
 
+/-- The generated entry is the first compiled function, with no parameters. -/
+theorem pipeline_start_lookup (code : List (DeclHOL 64)) (main : MlS) (body : ProgHOL 64)
+    (rshape : ShapeHOL) (hl : List.lookup main (functionsHOL code) = some ([], body, rshape)) :
+    ∃ program, holAlookup (compileProgDeclsHOLW (compileTopExactHOL code main)) main =
+      some ([], program) := by
+  have hfun : ∃ b' rest, functionsHOL (compileTopExactHOL code main) =
+      (main, [], b', rshape) :: rest := by
+    unfold compileTopExactHOL
+    rw [compileTopFunctionLookup_eq_lookup, hl]
+    simp only
+    rw [PanGlobalsCompileDecsStructural.compile_decs_exns_are_exnsHOL _ _ _ _ _ _ rfl,
+      functionsHOL_append, functionsFilterNilHOL]
+    exact ⟨_, _, rfl⟩
+  obtain ⟨b', rest, hf⟩ := hfun
+  simp only [compileProgDeclsHOLW, compileToCrepExactHOLW, hf, List.map_cons,
+    CrepInlineCanonical.compileInlTopHOLExact, CrepInlineCanonical.compileInlProgHOLExactWithSupport]
+  simp [holAlookup, crepVarsHOL, sizeOfShapeHOL]
+
+#print axioms pipeline_start_lookup
 #print axioms pipeline_code_reverse
 #print axioms pipeline_eids_domain
 end InitECandidate.Runtime.FineCost
