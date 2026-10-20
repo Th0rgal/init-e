@@ -168,8 +168,13 @@ ordinary blocks remain open.
 `SourceCostLoopMark` proves that the actual `markAllHOL` pass preserves exact
 Loop work for every trace, including loops and reached handlers/continuations.
 The callee code table stays unchanged; only handler/continuation syntax is
-marked. Full `optimiseHOL` still needs call simplification and liveness-shrink
-work transfer before this marking result can close the installed-callee gap.
+marked. `SourceCostLoopCallInputs` and `SourceCostLoopCallPass` prove that the actual
+known-label call pass never increases work for any non-error trace under its
+original known-labels relation. Indirect-to-direct rewriting retains the same
+callee/environment and all body/handler/continuation traces, removing only the
+target argument charge; full sequences, branches and loops are covered.
+Full `optimiseHOL` still needs liveness-shrink work transfer to close the
+installed-callee gap.
 
 ## Remaining end-to-end obligations
 
