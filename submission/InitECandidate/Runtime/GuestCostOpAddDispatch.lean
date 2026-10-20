@@ -103,4 +103,29 @@ theorem opAdd_dispatch_arm_score (coeff : Work)
 
 #print axioms opAdd_dispatch_arm_score
 
+
+/-- The `op == 1` case of the dispatcher selects the `op_add` arm. -/
+theorem opAdd_dispatch_ite_run (d : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent)
+    (armRun : StatementRun d (.seq (.call (some (none, none)) (ofString "op_add") [])
+        (.return (.const (0 : BitVec 64))))
+      (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
+      (opAddDispatchArmEvents d bodyPost bodyEvents))
+    (opValue : d.locals.lookup (ofString "op") = some (.val (.word (1 : BitVec 64)))) :
+    StatementRun d (.ite (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+        (.const (1 : BitVec 64)))
+        (.seq (.call (some (none, none)) (ofString "op_add") [])
+          (.return (.const (0 : BitVec 64)))) .skip)
+      (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
+      (.statement :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+        (.const (1 : BitVec 64))) ++ opAddDispatchArmEvents d bodyPost bodyEvents)) := by
+  have guardValue : expressionValue d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+      (.const (1 : BitVec 64))) = some (.val (.word 1)) := by
+    unfold expressionValue
+    simp [evalHOLExact, toExact, opValue, Flapjack.Compiler.Encoders.Asm.wordCmpHOL,
+      BitVec.lt_def]
+  exact StatementRun.iteYes (costedExpression_events d _ _ guardValue) (by decide) armRun
+
+#print axioms opAdd_dispatch_ite_run
+
 end InitECandidate.Runtime.FineCost
