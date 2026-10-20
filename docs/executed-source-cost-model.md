@@ -435,6 +435,15 @@ and `mixed-stack-controls2` checked the support lemmas and all twelve affected
 native composition/geometry modules. Actual Stack FFI/shared leaf construction,
 remaining conditional layouts and the complete recursive driver remain open.
 
+`StackWeightedFfi` constructs the actual compiler-produced external-call trace
+from `FlattenHyps`. Successful source evaluation supplies operand reads, byte
+reads and the returned FFI response; the original ABI relation protects the
+argument registers during return-label materialization. A returning call costs
+`controlWork 2 encoded pc + 17` and preserves the exact returned memory/FFI state.
+A final call charges only materialization in its prefix and leaves the final
+allowance to `TerminalWeightedFlatten.native` once. Both cases independently
+checked in `stack-weighted-ffi4`; no native-run or cost premise is assumed.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
