@@ -5,18 +5,29 @@ The challenge fixes `sourceInitialState.memaddrs = ordinaryDomain` in
 8-aligned ordinary word cells above `sourceBase`; it is preserved by evaluation.
 It does not contain every byte address below the heap limit.
 
-Existing generic runtime/world lemmas with premises such as
-`∀ a, a.toNat < 33806089496 → state.memaddrs a`, or word-domain membership for
-every consecutive byte offset of a key, cannot be instantiated at the actual
-challenge state. Their generic proofs do not establish that applicability.
-They must not be used as a completed actual source bound until these premises
-are weakened to the accessed aligned cells, or a domain-extension simulation
-and the required transfer back to the actual evaluator are proved.
+Generic runtime/world lemmas requiring every byte address below 33806089496
+must be instantiated on `expandedRuntimeEntry`, rather than directly on the
+ordinary challenge state. `expanded_runtime_bounded_arena` in `ExpandedRuntimeDomain`
+provides this premise, and `expanded_runtime_domain_contains` proves inclusion
+of the actual domain in the expanded domain.
 
-Byte reads require the containing aligned cell. Unaligned input keys also need
-the original hash/memeq byte fallback proofs. Neither an unaligned word's value
-nor its accessibility can be inferred from the assembled bytes alone.
+The existing `evaluateHOLFiniteState_memaddrs_mono` in `PanDomainEvaluation` theorem
+preserves every non-error evaluation when its memory domain is enlarged.
+`sourceBound_of_expanded_non_timeout` in `SourceBoundFromExpanded` uses this theorem
+by contradiction: a timeout on the actual state would also be a timeout on the
+expanded state. `ExpandedMainCallBoundReduction` reduces the source certificate
+to a no-timeout bound on `mainAt 0`, adding the main-call entry tick. Thus a
+complete domain bridge already exists; the remaining obligation is a concrete
+bound for the entire expanded main body. Its 16-module bridge/reduction closure
+was independently replayed in `work/existing-domain-bridge-root-review`.
+
+Byte reads require the containing aligned cell. Unaligned input keys still need
+the original hash/memeq byte fallback proofs; domain enlargement alone does not
+prove alignment or an unaligned word value from assembled bytes. Separately,
+old unsatisfiable `hkoWs` premises must be replaced by the applicable repaired
+workspace invariants before their bounds can contribute to the certificate.
 
 The statement-46 withdrawal-loop window theorem has no all-byte-domain premise,
 but still requires its concrete entry geometry and the statement-47 tail.
-`Solution.claimedScore` remains infinity; the finite certificate is unfinished.
+`Solution.claimedScore` remains infinity; the full runtime bound, quantitative
+compiler transfer, and finite certificate are unfinished.
