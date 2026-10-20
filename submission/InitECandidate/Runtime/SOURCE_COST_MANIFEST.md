@@ -370,6 +370,14 @@ form.
 - `wdHeapWord_frontier_of_cap` — the `frontier` fact at iteration `k` follows from the capped heap at `k`
   plus the cap, so no future iteration's room is needed.
 
+The cap fact itself is now extracted from the *actual returned allocation* rather than assumed anywhere:
+`cap_of_returned_allocation` applies `HeapDeclarationReturnedContract.heap_declaration_returned_contract`
+to a body `decCall … "alloc"` that returned normally (`some (.returned value)`) and yields both real guards
+`size ≤ 33806089496 - pointer` and `(allocationEnd pointer size).toNat ≤ 33806089496` — with **no** room or
+minfuel premise. A rejected allocation never has this shape (it raises), so the loop's failure path needs no
+successor invariant, exactly as required. This is the missing ingredient for the in-loop cap preservation;
+the invariant itself must carry `heap_ptr.toNat ≤ cap` (current heap only, not `heap + 64`).
+
 Remaining restructure (not yet done): add the cap conjunct `heap_ptr.toNat ≤ cap` to `WdLoopInv`, preserve
 it in `wdLoopInv_keep` via `wdHeapWord_cap_step`, and replace `wdSliceLoop_count`'s all-`k` `frontier`
 input with the per-iteration derivation. That is the interface change in

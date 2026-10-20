@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.HeaderWithdrawalEntryFacts
+import InitECandidate.Runtime.HeapDeclarationReturnedContract
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -42,4 +43,26 @@ theorem wdHeapWord_frontier_of_cap (base : BitVec 64) (j cap : Nat)
 #print axioms allocationEnd_cap_step
 #print axioms wdHeapWord_cap_step
 #print axioms wdHeapWord_frontier_of_cap
+
+/-- **The cap fact comes from the actual returned allocation, never from a room premise.** When the body's
+`decCall … "alloc"` returns normally (`some (.returned value)`), the real allocator declaration extracts
+both of its guards: the request fits (`size ≤ cap - pointer`) and, decisively for the loop, the resulting
+heap pointer satisfies `(allocationEnd pointer size).toNat ≤ cap`. A rejected allocation never reaches this
+shape at all (it raises), so the loop's failed-allocation path needs no successor invariant. -/
+theorem cap_of_returned_allocation {F : Type} (s post : PanSemStateFiniteExact 64 F)
+    (name : MlS) (argument : ExpHOL 64) (tail : ProgHOL 64) (pointer size : BitVec 64)
+    (value : ValueHOL 64)
+    (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+      [argument] = some [.val (.word size)])
+    (heapGlobal : s.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (code : s.code = originalRuntimeCode)
+    (run : evaluateHOLFiniteState s (.decCall name .one (ofString "alloc") [argument] tail) =
+      (some (.returned value), post)) :
+    size ≤ (33806089496 : BitVec 64) - pointer ∧ (allocationEnd pointer size).toNat ≤ 33806089496 := by
+  obtain ⟨_, _, _, _, _, _, _, _, _, guard, endBound⟩ :=
+    heap_declaration_returned_contract s post name argument tail pointer size value args heapGlobal
+      code run
+  exact ⟨guard, endBound⟩
+
+#print axioms cap_of_returned_allocation
 end InitECandidate.Runtime
