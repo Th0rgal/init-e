@@ -453,6 +453,15 @@ checks, access-size encoding, returned values/FFI state and the clock-zero case.
 leaving the terminal allowance to the existing extraction theorem. All three
 statements checked with standard axioms in `stack-weighted-shared3`.
 
+`StackWeightedNoRetIf` completes the two conditional layouts that place a
+statically nonreturning arm first and emit no join jump. It derives actual code
+positions and selected mixed traces for exits/terminal outcomes on the first
+arm and all three outcomes on the second. The two layout theorems and ten
+composition theorems checked in `stack-no-ret-if` with only standard axioms.
+Together with the empty-arm and general-layout modules, all six compiler
+conditional layouts now have checked local composition rules. A complete
+recursive compiler driver still needs to instantiate these rules.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
