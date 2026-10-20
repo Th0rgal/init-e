@@ -593,3 +593,49 @@ The proof proceeds as follows:
 - The payload bound comes from `GuestCostEntryShapes`. It certifies that every
   `main` entry returns one well-formed word and that every declared exception
   carries one.
+
+## Loop to Word
+
+`LoopWordCost.loop_to_word_cost` is the transfer theorem. It applies to every
+`LoopWork` run and every Word state related to the Loop state as in the
+pinned `loop_to_word` `compile_correct`. It bounds the executed Word work of
+`compHOL ctxt p l` under `wordExecutionCost loopWordPrice` by the `LoopWork`
+of the same run, with coefficient 1. The proof is an induction on `LoopWork`.
+The pinned `compileCorrect` supplies the Word successor states, and the
+pinned call support supplies the callee context, the cut, the pop and the
+handler jump.
+
+`loopWordPrice` is the price of each Word node:
+
+| Word node | Price |
+|---|---|
+| `Skip`, `Seq`, `MustTerminate` | 0 (`MustTerminate`'s body is recursed) |
+| `Tick` | 1 (lowered to a native `Skip`) |
+| `Assign` | its expression work (the root node is the move) |
+| `Set`, `Store`, `ShareInst` | 1 + expression work |
+| `Return` | 1 + values |
+| Tail call | its arguments, including the return location |
+| Returning call | its arguments, plus its return names only when the callee body actually returns a value of that arity with the clock nonzero |
+| Other leaves | 1 |
+
+The returning-call price depends on the state. The native return suffix of
+`WordToStack` runs only on the return path, so the call pays for it only
+there.
+
+The literal `RiscV/WordToStack` lowering ignores Word cutsets, so the price has
+no cutset component.
+
+### Price changes in `LoopWork` and Crep work
+
+A compiled Loop `loop` is `Tick; loop; Tick`. To pay for it, a `LoopWork`
+loop iteration now costs 3, and a `CrepWorkP` `while` iteration costs one more
+unit. The coarse and sharp Pan-to-Crep `while` proofs absorb this with their
+existing slack, so `sharpScore` is unchanged.
+
+### Production route
+
+The runtime image is built in `RiscV/SourceRuntimeBackendOutput.lean`, lines
+40–60. It lowers `panToWordCompileProg loop` directly. `wordProgDCE` there
+builds only `discoveryWords`, which are used for FFI-name discovery and are
+never lowered. The executed Word code is therefore exactly the
+`loop_to_word` output, and no DCE cost step is needed.

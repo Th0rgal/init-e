@@ -109,17 +109,22 @@ theorem source_loop_top {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
             (compileHOLExact (entryLoopContext target (compileTopExactHOL (panSimpDeclsHOL decls) start)) .ln
               (crepSimpProgHOL (compileProgExactHOLW
                 (entryPanContext (compileTopExactHOL (panSimpDeclsHOL decls) start)) (.call none start []))))
-            { u with clock := T.clock + 1 + extra }) := by
+            { u with clock := T.clock + 1 + extra }) ∧
+        (evaluate
+            (compileHOLExact (entryLoopContext target (compileTopExactHOL (panSimpDeclsHOL decls) start)) .ln
+              (crepSimpProgHOL (compileProgExactHOLW
+                (entryPanContext (compileTopExactHOL (panSimpDeclsHOL decls) start)) (.call none start []))))
+            { u with clock := T.clock + 1 + extra }).1 ≠ some .error := by
   obtain ⟨T, hT, r', post', ev', run', ok', le'⟩ := source_top_entry decls start s0 t clock mgs freeAddrs
     tmem tlocals h structFree body rshape hstartLookup ready constGlobals hs1 run ok
   rw [structFree] at hT
   have p := pipeline T hT
-  obtain ⟨extra, wl, work, bound, runRel⟩ := entry_loop_sharp_work target
+  obtain ⟨extra, wl, work, bound, runRel, loopOk⟩ := entry_loop_sharp_work target
     (compileTopExactHOL (panSimpDeclsHOL decls) start) start startProgram T tc u (T.clock + 1)
     p.state p.distinct p.sourceCode p.noInline p.emptyLocals p.localised p.eidsSize p.eidsDomain
     p.memaddrs p.be p.shMemaddrs p.ffi p.baseAddr p.topAddr p.memory p.globals p.crepDistinct
     p.crepCode p.loopCode p.crepLocals p.startLookup p.sites run' (by rw [ok']; exact ok)
-  exact ⟨T, hT, extra, wl, work, by omega, runRel⟩
+  exact ⟨T, hT, extra, wl, work, by omega, runRel, loopOk⟩
 
 #print axioms source_loop_top
 end InitECandidate.Runtime.FineCost

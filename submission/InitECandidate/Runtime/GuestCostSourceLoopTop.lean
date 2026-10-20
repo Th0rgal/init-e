@@ -72,7 +72,8 @@ theorem guest_source_loop (input : Guest.InputBlob) {C : Type}
         wl ≤ sharpScore ev + 5330 ∧
         LoopRunRel (entryLoopContext arch panCode) .ln
           (evalCrepSemHOLProgExact (crepSimpMapcsHOL { crepState with clock := T.clock + 1 }) program)
-          (evaluate loopProgram { loopState with clock := T.clock + 1 + extra }) := by
+          (evaluate loopProgram { loopState with clock := T.clock + 1 + extra }) ∧
+        (evaluate loopProgram { loopState with clock := T.clock + 1 + extra }).1 ≠ some .error := by
   intro start G panCode crepState loopState program loopProgram
   -- The compiler's main-first declarations evaluate to the same state.
   have hs1' : @evaluateDeclsHOLFinite 64 Guest.HostMemory _ { sourceInitialState input with structs := [] }
@@ -97,13 +98,13 @@ theorem guest_source_loop (input : Guest.InputBlob) {C : Type}
     rw [guest_entry_program] at mem
     obtain ⟨f, hf, rfl⟩ := guest_mem_functions mem
     exact List.all_eq_true.1 guest_pass2_sharp_sites _ hf
-  obtain ⟨T, hT, extra, wl, work, bound, rel⟩ := source_loop_initial (sourceInitialState input) target arch
+  obtain ⟨T, hT, extra, wl, work, bound, rel, loopOk⟩ := source_loop_initial (sourceInitialState input) target arch
     InitE.sourceDeclarations start guestGlobalsSize clock hmem hnolabels guest_source_struct_context rfl
     hmdomain guest_source_distinct (guest_source_aligned input) (source_globals_allocatable input)
     rfl rfl rfl guest_source_eids rfl (Or.inr rfl)
     (compileTop_structFree _ guest_simplified_struct_free) body rshape hmain ready constGlobals noInline
     sites hs1' run ok
-  refine ⟨T, hT, extra, wl, work, ?_, rel⟩
+  refine ⟨T, hT, extra, wl, work, ?_, rel, loopOk⟩
   have payload := guest_entry_payload hs1' run ok
   have count : ((panSimpDeclsHOL InitE.sourceDeclarations).filter isDeclHOL).length = 93 := by
     rw [guest_simplified_eq_pass1]; exact guest_pass1_global_count

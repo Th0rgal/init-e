@@ -127,7 +127,8 @@ theorem entry_loop_sharp_work {F : Type} (target : Compiler.Encoders.Asm.AsmArch
       wl ≤ sharpScore events ∧
       LoopRunRel (entryLoopContext target panCode) .ln
         (evalCrepSemHOLProgExact (crepSimpMapcsHOL { t with clock := clock }) program)
-        (evaluate loopProgram { u with clock := clock + extra }) := by
+        (evaluate loopProgram { u with clock := clock + extra }) ∧
+      (evaluate loopProgram { u with clock := clock + extra }).1 ≠ some .error := by
   have targetCode : t.code = HolFiniteMapExact.empty.updateList (compileProgDeclsHOLW panCode).reverse := by
     rw [crepCode]; rfl
   have rel := entry_source_crep_rel panCode s t clock state distinct sourceCode targetCode noInline
@@ -141,11 +142,11 @@ theorem entry_loop_sharp_work {F : Type} (target : Compiler.Encoders.Asm.AsmArch
     rw [show ({ s with clock := clock } : PanSemStateFiniteExact 64 F).code = s.code from rfl,
       sourceCode] at found
     exact sites _ (entry_code_mem found)
-  obtain ⟨extra, wl, work, bound, runRel⟩ := source_loop_sharp_work run { t with clock := clock }
+  obtain ⟨extra, wl, work, bound, runRel, loopOk⟩ := source_loop_sharp_work run { t with clock := clock }
     (entryPanContext panCode) ok rel (by simp [localisedProgHOL, everyExpListHOL])
     (by simp [sharpSitesProg, sharpSitesList]) codeChecked { u with clock := clock }
     (entryLoopContext target panCode) .ln loopRel
-  exact ⟨extra, wl, work, bound, runRel⟩
+  exact ⟨extra, wl, work, bound, runRel, loopOk⟩
 
 #print axioms entry_loop_sharp_work
 end InitECandidate.Runtime.FineCost
