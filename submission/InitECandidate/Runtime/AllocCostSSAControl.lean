@@ -144,6 +144,92 @@ theorem ssaCcTrans_call_some_ret_nodeCost_le
   simp only [wordNodeCost, List.length_map, List.length_zip, List.length_range]
   omega
 
+/-- Returning-call local syntax composition with both the return and the
+exception handler.  The two handler transfers and the `fixInconsistencies`
+pair are supplied as actual outputs with their budgets; no cost oracle is
+assumed. -/
+theorem ssaCcTrans_call_some_nodeCost_le
+    (ret : List Nat) (numset : WordLangCutsetsHOL)
+    (retHandler handler : WordLangProgHOL (BitVec 64))
+    (l1 l2 hl1 hl2 dest : Nat) (args : List Nat)
+    (ssa : Spt Nat) (next : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit))
+    (ls : List Nat)
+    (hls : ls = (sptToAList (sptUnion numset.1 numset.2)).map Prod.fst)
+    (stackMov : WordLangProgHOL (BitVec 64)) (ssa' : Spt Nat) (na' : Nat)
+    (hstack : listNextVarRenameMove (width := 64) ssa (next + 2) ls =
+      (stackMov, ssa', na'))
+    (retMov : WordLangProgHOL (BitVec 64)) (ssa'' : Spt Nat) (na'' : Nat)
+    (hretMov : listNextVarRenameMove (width := 64)
+      (sptInter ssa' (sptUnion numset.1 numset.2)) (na' + 2) ls =
+      (retMov, ssa'', na''))
+    (ret' : List Nat) (ssa2p : Spt Nat) (na2p : Nat)
+    (hret : listNextVarRename ret ssa'' na'' = (ret', ssa2p, na2p))
+    (renRet : WordLangProgHOL (BitVec 64)) (ssa2 : Spt Nat) (na2 : Nat)
+    (hren : ssaCcTrans (width := 64) retHandler ssa2p na2p lt =
+      (renRet, ssa2, na2))
+    (returnBudget : Nat)
+    (hreturn : wordNodeCost renRet ≤ wordNodeCost retHandler + returnBudget)
+    (n' : Nat) (ssa3p : Spt Nat) (na3p : Nat)
+    (hn : nextVarRename n ssa'' na2 = (n', ssa3p, na3p))
+    (renExc : WordLangProgHOL (BitVec 64)) (ssa3 : Spt Nat) (na3 : Nat)
+    (hrenExc : ssaCcTrans (width := 64) handler ssa3p na3p lt =
+      (renExc, ssa3, na3))
+    (exceptionBudget : Nat)
+    (hexception : wordNodeCost renExc ≤ wordNodeCost handler + exceptionBudget)
+    (retCons excCons : WordLangProgHOL (BitVec 64))
+    (naFin : Nat) (ssaFin : Spt Nat)
+    (hfix : fixInconsistencies (width := 64)
+      (mkPrio
+        (WordLangProgHOL.seq retMov
+          (.seq (.move 1 (ret'.zip ((List.range ret.length).map fun x => 2 * (x + 1))))
+            renRet))
+        (WordLangProgHOL.seq retMov
+          (.seq (.move 1 [(n', 2)]) renExc)))
+      ssa2 ssa3 na3 = (retCons, excCons, naFin, ssaFin)) :
+    wordNodeCost (ssaCcTrans (width := 64)
+      (.call (some (ret, numset, retHandler, l1, l2)) dest args
+        (some (n, handler, hl1, hl2))) ssa next lt).1 ≤
+      wordNodeCost (.call (some (ret, numset, retHandler, l1, l2)) dest args
+        (some (n, handler, hl1, hl2))) +
+        (24 + 3 * ls.length + args.length + ret.length + returnBudget +
+          exceptionBudget + 8 * (sptToAList (sptUnion ssa2 ssa3)).length) := by
+  rw [ssaCcTrans]
+  dsimp only
+  rw [← hls]
+  rw [hstack, hretMov, hret, hren]
+  dsimp only
+  rw [hn, hrenExc]
+  dsimp only
+  rw [hfix]
+  dsimp only
+  have stackCost := listNextVarRenameMove_nodeCost ssa (next + 2) ls
+  rw [hstack] at stackCost
+  dsimp only at stackCost
+  have retMovCost := listNextVarRenameMove_nodeCost
+    (sptInter ssa' (sptUnion numset.1 numset.2)) (na' + 2) ls
+  rw [hretMov] at retMovCost
+  dsimp only at retMovCost
+  have fixBound := fixInconsistencies_nodeCost_le
+    (mkPrio
+      (WordLangProgHOL.seq retMov
+        (.seq (.move 1 (ret'.zip ((List.range ret.length).map fun x => 2 * (x + 1))))
+          renRet))
+      (WordLangProgHOL.seq retMov
+        (.seq (.move 1 [(n', 2)]) renExc)))
+    ssa2 ssa3 na3
+  rw [hfix] at fixBound
+  dsimp only at fixBound
+  have retLen : ret'.length = ret.length := by
+    have := listNextVarRename_length ret ssa'' na''
+    rw [hret] at this
+    dsimp only at this
+    exact this
+  have singleLen : ([(n', 2)] : List (Nat × Nat)).length = 1 := rfl
+  simp only [wordNodeCost, List.length_map, List.length_zip, List.length_range,
+    retLen, singleLen]
+  omega
+
 /-- A loop costs its setup plus the already bounded body and the back-edge
 reconciliation. -/
 theorem ssaCcTrans_loop_nodeCost_le (names exitNames : Spt Unit)
@@ -180,6 +266,7 @@ theorem ssaCcTrans_loop_nodeCost_le (names exitNames : Spt Unit)
 #print axioms ssaCcTrans_continue_target_nodeCost_le
 #print axioms ssaCcTrans_break_nodeCost_le
 #print axioms ssaCcTrans_continue_nodeCost_le
+#print axioms ssaCcTrans_call_some_nodeCost_le
 #print axioms ssaCcTrans_call_some_ret_nodeCost_le
 #print axioms ssaCcTrans_call_none_nodeCost_le
 #print axioms ssaCcTrans_loop_nodeCost_le

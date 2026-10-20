@@ -121,8 +121,13 @@ Compile order and module stems (checker role `allocation`):
      stack/return move lists and the return handler budget `B` and proves
      `≤ wordNodeCost (call (some ...) ... none)`
      `  + (10 + 2 * |ls| + args.length + ret.length + B)`.
-     This is the syntactic call-site composition; it does not claim executed
-     handler transfer.
+   - `ssaCcTrans_call_some_nodeCost_le`: the full returning-call composition
+     with both return and exception handlers.  It takes the actual return and
+     exception handler budgets and the actual `fixInconsistencies` outputs, and
+     proves
+     `≤ input + (24 + 3 * |ls| + args.length + ret.length + B_ret + B_exc`
+     `  + 8 * |dom ssa2 ∪ dom ssa3|)`.
+     No cost oracle is assumed; the handler budgets are explicit.
 
    These are syntactic `wordNodeCost` envelopes.  In particular the loop
    theorem counts the body syntax once; it is not an executed-cost theorem for
@@ -131,11 +136,18 @@ Compile order and module stems (checker role `allocation`):
 11. `AllocCostSSAExecuted` — executed reconciliation charges
    - `ssaReconcile_straight` / `loopSetup_straight`: the inserted programs stay
      in the straight-line grammar.
+   - `fakeMoves_straight` / `fixInconsistencies_straight`: both exception
+     handler reconciliation programs are straight, so their actual execution
+     is covered by the static move/fake-move grammar.
    - `ssaReconcile_executed_le`: at *every* concrete state,
      `wordPathWork (ssaReconcile cur target names) state ≤ 1 + |names|`.
      This is the actual executed charge at an exit, not a syntax count.
    - `loopSetup_executed_le`: at every concrete state, the executed setup is
      `≤ 3 + 3 * |names ∪ exitNames|`.
+   - `fixInconsistencies_executed_le`: at every concrete state, both exception
+     handler reconciliation programs together cost
+     `≤ 6 + 8 * |dom left ∪ dom right|`.  This is the executed exception-handler
+     charge, not a syntax count.
    - `loopBodyFinal_executed_le`: for one actual iteration,
      `wordPathWork (bodyFinal) state ≤ wordPathWork body state + (|names| + 2)`.
      The back-edge move is charged at the actual intermediate state of that
@@ -143,11 +155,25 @@ Compile order and module stems (checker role `allocation`):
    - `exitAfterMoves_executed_le`: `break`/`continue` reconciliation is charged
      at the actual state, given the leaf exit has work one.
 
-   The remaining semantic premise, stated explicitly rather than hidden: the
-   well-founded induction over the actual loop iteration sequence (and the
-   returning-call handler composition) has not yet been mechanized.  The
-   per-iteration work relation above is the local step that such an induction
-   needs.
+   - `ssaLoopExtra`: the recursive extra budget that follows the actual source
+     iterations, charging `bodyBudget + backBudget` on every iteration whose
+     body runs and continues.
+   - `SsaLoopStep`: the explicit one-step semantic premise.  It gives the same
+     source/target body result, related successor states (also after
+     `decClock`), clock agreement, and one-execution body work transfer.  It is
+     an original SSA-state-relation obligation, not a cost oracle.
+   - `ssaLoop_executed_transfer`: by strong induction on the source clock,
+     `wordPathWork (loop targetBody) t`
+     `≤ wordPathWork (loop body) s + ssaLoopExtra ... s`.
+     Every executed back edge is charged at its actual iteration.
+   - `ssaLoop_compiled_executed_transfer`: includes the actual successful
+     `loopSetup` run and its executed setup budget, covering
+     `seq setup loop`, not only the inner loop.
+
+   The remaining semantic premise, stated explicitly rather than hidden, is
+   the derivation of `SsaLoopStep` from `ssaCcTransCorrectLoop` for the actual
+   source/target states.  The whole-loop induction and per-iteration charging
+   are mechanized; the one-step relation is not assumed as a cost oracle.
 
 All modules are checked with only `propext`, `Classical.choice` and
 `Quot.sound` in their axiom closure; there is no `sorry`, `admit`, custom
