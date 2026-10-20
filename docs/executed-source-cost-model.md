@@ -478,6 +478,20 @@ global initializers, so the store subtotal is 5301. Independent root replays
 (strengthened non-error result and six affected modules) passed with standard
 axioms. This is not the final native budget or a complete guest gas bound.
 
+`SourceCostInitial.source_loop_initial` discharges `EntryPipeline` at the
+pinned compiler initial states: it constructs the globals state, installed Crep
+state and installed Loop state, deriving their code/domain/exception relations
+from the original compiler initialization premises. The cost remains the
+original source trace plus the one-time initialization allowance. Root replay
+`source-initial-independent` checked this and its pipeline facts module with
+standard axioms. Instantiating the remaining Word-target initialization premises
+and all guest certificates for the concrete input is still required.
+
+`StackWeightedLeaves` grounds the recursive native motives for Skip, literal
+instructions, location materialization and Tick. The prices retain each visited
+opcode/padding cost. Tick uses its original source clock tick, with no added
+label clock. All four leaf theorems checked in `stack-weighted-leaves2`.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
