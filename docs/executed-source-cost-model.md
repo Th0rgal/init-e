@@ -595,3 +595,27 @@ Checks: `stack-call-propagate2`, `stack-raw-call1`, `stack-call-exits1`,
 printed axioms are standard. Full recursive compiler assembly and the transfer
 from fine Word prices remain open; these constructor rules do not yet prove
 a finite submission score.
+
+### Price-parametric executed Stack cost
+
+`StackExecutionCost.stackExecutionCost` follows the actual Stack execution
+tree: a sequence charges only its reached suffix; a conditional its selected
+arm; a loop its executed iterations; calls their reached callees and valid
+return/exception continuations. RawCall skips the prologue. A tail call with
+an invalid installed handler does not invent a callee execution. The local
+price can depend on the operation and source state, permitting variable-size
+operations to be charged by their actual size and structural nodes to be free.
+
+`StackExecutionCostProps` proves the exact sequence equation, pointwise
+monotonicity, zero-price identity, and additive decomposition for the same
+execution. `StackExecutionCostAlgebra` proves scaling and a two-component
+linear envelope. Neither loops nor calls multiply the coefficients. The
+definition checked in `stack-execution-cost1`; all six laws checked with
+standard axioms in `stack-execution-props8`.
+
+This is the independent executed Stack cost model for recursive compiler
+assembly. It does not assert that an arbitrary local price is a native cost.
+Local opcode/padding/control bounds must be established from the actual
+encoding, assembled through the checked weighted constructor rules, and
+connected to the fine Word/source cost. The complete native theorem and
+finite score are still unfinished.
