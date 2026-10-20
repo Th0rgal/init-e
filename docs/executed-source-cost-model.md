@@ -285,3 +285,14 @@ selector, with `selectedLeaves + 1 ≤ 2 * expressionWork`, including pulling an
 binary normalization. The Loop-expression version composes with exact work
 preservation through Loop-to-Word. Selected-code runtime simulation, allocation/
 spills and later native transfer remain separate unfinished obligations.
+
+`WordSelectionStraightLine` certifies that every raw selector output consists
+only of supported straight-line leaves and sequences. Skips count as one leaf,
+matching the conservative execution budget. `WordSelectedPathCost` proves
+`wordPathWork p state + 1 ≤ 2 * selectedLeaves p` for this grammar, following
+actual successor states and allowing early termination. The full preprocessed
+assignment therefore has selected-path work at most `4 * expressionWork`.
+`WordSelectedStackCost` retains the full pinned Word-to-Stack simulation
+premises and resource/result postconditions with that same budget for additional
+Stack clock. This is not yet a RISC-V instruction bound: allocation/spill costs
+and the remaining native transfer must still be composed.

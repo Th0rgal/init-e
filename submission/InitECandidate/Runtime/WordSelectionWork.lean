@@ -5,7 +5,7 @@ open Flapjack Flapjack.Compiler.Backend.WordInst Flapjack.Compiler.Encoders.Asm
 /-- Syntactic count of selected leaves. Only straight-line selector outputs
 will be related to execution; this function alone is not a loop/call bound. -/
 def selectionLeaves : WordLangProgHOL (BitVec 64) → Nat
-  | .skip => 0
+  | .skip => 1
   | .seq first second => selectionLeaves first + selectionLeaves second
   | .move _ moves => moves.length
   | _ => 1
