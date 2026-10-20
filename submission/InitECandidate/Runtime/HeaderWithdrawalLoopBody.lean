@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.HeaderWithdrawalLoopStep
 import InitECandidate.Runtime.RlpWindowCalls
 import InitECandidate.Runtime.PanSingleWordLookup
+import InitECandidate.Runtime.CountedLoop
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -104,6 +105,33 @@ theorem wd_slice_step_window {F : Type} (t : PanSemStateFiniteExact 64 F)
       slice0 slice8'
     rw [stores]
     exact baseMemory
+
+/-- The statement-46 loop condition `i < nwd` is the *signed* comparison: for two words below
+`2^63` it means exactly the unsigned comparison of their values. -/
+theorem cond_less_small {F : Type} (s : PanSemStateFiniteExact 64 F) (I N v : BitVec 64)
+    (hi : s.locals.lookup (ofString "i") = some (.val (.word I)))
+    (hn : s.locals.lookup (ofString "nwd") = some (.val (.word N)))
+    (smallI : I.toNat < 2 ^ 63) (smallN : N.toNat < 2 ^ 63)
+    (hv : evalHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+      (.cmp .less (.var .local (ofString "i")) (.var .local (ofString "nwd"))) =
+        some (.val (.word v))) :
+    (v ≠ 0 ↔ I.toNat < N.toNat) := by
+  rw [evalHOLFinite_eq_toExact] at hv
+  have signed := holAsmSignedLess_small I N smallI smallN
+  simp [evalHOLExact,hi,hn,Compiler.Encoders.Asm.wordCmpHOL,signed] at hv
+  constructor
+  · intro nz
+    by_cases c : I.toNat < N.toNat
+    · exact c
+    · simp [c] at hv
+      exfalso
+      exact nz hv.symm
+  · intro lt
+    simp [lt] at hv
+    rw [← hv]
+    decide
+
+#print axioms cond_less_small
 
 #print axioms wd_slice_step_window
 end InitECandidate.Runtime
