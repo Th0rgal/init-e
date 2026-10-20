@@ -296,3 +296,12 @@ assignment therefore has selected-path work at most `4 * expressionWork`.
 premises and resource/result postconditions with that same budget for additional
 Stack clock. This is not yet a RISC-V instruction bound: allocation/spill costs
 and the remaining native transfer must still be composed.
+
+`StackStraightLineCost` bounds actual selected Stack-to-label path work by
+`4 * stackLeaves - 2` for certified straight-line fragments, including early
+exits. `WordNativeInstructionCost` proves each pinned native integer instruction
+lowering is such a fragment with at most four leaves (two reloads, an operation,
+and a spilled write), so its path budget is at most 14. The coefficient is
+independent of total frame/code size. All HolInst constructors are covered;
+this is still local to instruction lowering, not a bound for allocator-added
+moves, full selected expressions, or final RISC-V execution.
