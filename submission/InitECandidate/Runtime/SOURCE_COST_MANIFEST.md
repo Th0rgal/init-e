@@ -232,3 +232,22 @@ its `RunBounded` projections plus `≠ some .timeOut`; the error branch must the
 `Reaches`' second disjunct (`StAbort`) — i.e. one of (a) an error-free loop hypothesis (the header block
 assumes the encoder succeeds), or (b) a `StAbort`-of-loop lemma. The rest is `reaches_trans`/`reaches_mono`
 plumbing with `Q` the loop-exit predicate (`WdLoopInv` at exit, `i = nwd`).
+
+## LANDED: statements 43 → 46 as `Reaches` to `actualPayloadHeaderAt 47` (`HeaderWithdrawalLoopReaches`)
+
+- `not_returned_of_control`, `decCall_noReturn`, `wdSliceLoopBody_noReturn`, `wdSliceLoop_noReturn` —
+  the loop (and its `decCall` body) never returns a value out of the enclosing function, by the same
+  case analysis as `decCall_noControl` with `.returned` in place of `.continue`.
+- `wd_slice_size_args` — the statement-44 allocator argument `nwd * 16 + 16` evaluates to the size.
+- `wdSliceLoop_reaches` / `payloadHeader46_reaches` — the statement-46 `Reaches` seam:
+  `Reaches t (.seq wdSliceLoop (actualPayloadHeaderAt 47)) Q (nwd.toNat * ((cost + 1) + 1)) 47`,
+  by `reaches_seq_of_runBounded` with `bound := wdSliceLoop_count_entry` (the `RunBounded` projections)
+  and `noReturn := wdSliceLoop_noReturn`. Non-returning outcomes go to `StAbort`; only normal exit
+  states must satisfy `Q`. No encoder-success premise.
+- **`payloadHeader43_reaches`** — the composition:
+  `Reaches s (actualPayloadHeaderAt 43) (fun _ => True)
+     (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47)`
+  built from `reaches_dec` for 43 (`wd_count_load_eval`, `K = 0`), `reaches_seq` for 44 (the allocator
+  call with `ready.clock = state.clock - 1`, `K = 1`), `reaches_dec` for 45 (`K = 0`), and the 46 seam,
+  glued by `reaches_trans`/`reaches_mono`. `scoped_restore` absorbs the `resVarEq`/locals difference of
+  the `.dec` steps, which is why no pair equality is needed. The builder callee after 47 is untouched.
