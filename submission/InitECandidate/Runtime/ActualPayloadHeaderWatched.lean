@@ -5,6 +5,7 @@ import InitECandidate.Runtime.AlignedCellDomains
 import InitECandidate.Runtime.ByteStoreMemoryFrame
 import InitECandidate.Runtime.WordStoreMemoryFrame
 import InitECandidate.Runtime.AllocationRoundNoWrap
+import InitECandidate.Runtime.RunBoundedReaches
 
 set_option maxHeartbeats 8000000
 
@@ -1423,5 +1424,211 @@ theorem actual_payload_header_store_step_load_watched {F : Type}
     separate
 
 #print axioms actual_payload_header_store_step_load_watched
+
+/-- Statement 28 is the actual struct declaration with the four-field word shape. -/
+theorem source_actual_payload_header_dec_bf_shape :
+    ∃ initializer, actualPayloadHeaderAt 28 = .dec (ofString "bf")
+      (ShapeHOL.comb [ShapeHOL.one,ShapeHOL.one,ShapeHOL.one,ShapeHOL.one]) initializer
+      (actualPayloadHeaderAt 29) := ⟨_,rfl⟩
+
+#print axioms source_actual_payload_header_dec_bf_shape
+
+/-- The loader pointer's watched cell in terms of the header pointer. -/
+theorem actual_payload_header_pointer_cell_separate (pointer : BitVec 64) (k : Nat)
+    (kBound : k < 248) (different : 136 ≠ k) :
+    pointer + (136#64) ≠ pointer + BitVec.ofNat 64 k := by
+  intro same
+  have cancel : (136#64) = BitVec.ofNat 64 k := by
+    have step := congrArg (fun value => value - pointer) same
+    simpa using step
+  have levels := congrArg BitVec.toNat cancel
+  have small : (BitVec.ofNat 64 k).toNat = k := by
+    rw [BitVec.toNat_ofNat]
+    exact Nat.mod_eq_of_lt (by omega)
+  rw [show (136#64).toNat = 136 from by decide,small] at levels
+  exact different levels
+
+#print axioms actual_payload_header_pointer_cell_separate
+
+
+
+
+
+/-- A local holding an arbitrary value evaluates to it. -/
+theorem actual_payload_header_eval_local_value {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (name : MlS) (value : ValueHOL 64)
+    (held : state.locals.lookup name = some value) :
+    @evalHOLExact 64 F _ state.toExact (fun a => Classical.propDecidable (state.memaddrs a))
+      (.var .local name) = some value := by
+  simp [evalHOLExact,held]
+
+#print axioms actual_payload_header_eval_local_value
+
+
+
+
+/-- **The actual header construction tail, with the watched extra-length cell.**  Statements 24 to 39
+of `payload_header`: the word stores, the actual allocations, memzero and declaration of the tail, the
+loading stores, and finally the `h+240` load; 17 ticks, or abort.  The loader's extra-length cell,
+already copied to `h+136`, survives the whole tail. -/
+theorem actual_payload_header_construction_24_to_40_watched {F : Type}
+    (state entry : PanSemStateFiniteExact 64 F) (pl raw pointer extraLen : BitVec 64)
+    (facts : ActualPayloadHeaderPrefix state entry pl raw pointer (actualPayloadHeaderTxrFloor pointer))
+    (code : state.code = originalRuntimeCode)
+    (watch : WatchWord entry (pointer + (136#64)) extraLen)
+    (fullDomain : ∀ address : BitVec 64, address.toNat < 33806089496 → state.memaddrs address)
+    (below : pl.toNat + 136 ≤ pointer.toNat) (cap : pointer.toNat ≤ 33806089496)
+    (h0Aligned : (actualPayloadHeaderTxrFloor pointer).toNat % 8 = 0) (h0Above : pointer.toNat + 248 ≤ (actualPayloadHeaderTxrFloor pointer).toNat)
+    (h0Small : (actualPayloadHeaderTxrFloor pointer).toNat + 8 ≤ 33806089496)
+    (budget : 17 ≤ entry.clock) :
+    Reaches entry (actualPayloadHeaderAt 24) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 17 (actualPayloadHeaderAt 40) := by
+  obtain ⟨bfInitializer, decSpine⟩ := source_actual_payload_header_dec_bf_shape
+  have storeWord : ∀ (start : PanSemStateFiniteExact 64 F) (heap : BitVec 64) (index k : Nat)
+      (destination value : ExpHOL 64) (tail : ProgHOL 64) (payload : ValueHOL 64)
+      (words : List (HolWordLab 64)),
+      ActualPayloadHeaderPrefix state start pl raw pointer heap →
+      WatchWord start (pointer + (136#64)) extraLen →
+      actualPayloadHeaderAt index = .seq (.store destination value) tail →
+      destination = .op .add [.var .local (ofString "h"), .const (BitVec.ofNat 64 k)] →
+      @evalHOLExact 64 F _ start.toExact (fun a => Classical.propDecidable (start.memaddrs a))
+        value = some payload →
+      flattenHOL payload = words →
+      (∀ offset, offset < words.length → (pointer + (136#64)) ≠
+        pointer + BitVec.ofNat 64 k + BitVec.ofNat 64 (8 * offset)) →
+      Reaches start (actualPayloadHeaderAt index)
+        (fun post => ActualPayloadHeaderPrefix state post pl raw pointer heap ∧
+          WatchWord post (pointer + (136#64)) extraLen) 0 tail :=
+    fun start heap index k destination value tail payload words startFacts kept shape destShape
+      valueEval flat untouched =>
+      actual_payload_header_store_step_prefix_watched_flat state start pl raw pointer heap
+        (pointer + (136#64)) extraLen index k destination value tail payload words shape destShape startFacts
+        valueEval flat untouched kept
+  have storeLoad : ∀ (start : PanSemStateFiniteExact 64 F) (heap : BitVec 64) (index k : Nat)
+      (address : ExpHOL 64) (tail : ProgHOL 64),
+      ActualPayloadHeaderPrefix state start pl raw pointer heap →
+      WatchWord start (pointer + (136#64)) extraLen →
+      actualPayloadHeaderAt index = .seq (.store (.op .add [.var .local (ofString "h"),
+        .const (BitVec.ofNat 64 k)]) (.load .one address)) tail →
+      (pointer + (136#64)) ≠ pointer + BitVec.ofNat 64 k →
+      Reaches start (actualPayloadHeaderAt index)
+        (fun post => ActualPayloadHeaderPrefix state post pl raw pointer heap ∧
+          WatchWord post (pointer + (136#64)) extraLen) 0 tail :=
+    fun start heap index k address tail startFacts kept shape separate =>
+      actual_payload_header_store_step_load_watched state start pl raw pointer heap (pointer + (136#64)) extraLen
+        index k address tail shape startFacts separate kept
+  have single : ∀ (offset : Nat), offset < 1 → offset = 0 := by
+    intro offset bound
+    omega
+
+  refine reaches_trans_budget entry (actualPayloadHeaderAt 24) (actualPayloadHeaderAt 25) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (actualPayloadHeaderTxrFloor pointer) ∧
+      WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 17 ?_ (storeWord entry (actualPayloadHeaderTxrFloor pointer) 24 144
+      (.op .add [.var .local (ofString "h"), .const (144#64)]) (.op .add [.var .local (ofString "raw"), .const (372#64)])
+      (actualPayloadHeaderAt 25) (.val (.word (raw + (372#64)))) [HolWordLab.word (raw + (372#64))] facts watch rfl rfl
+      (actual_payload_header_eval_word_add entry (ofString "raw") raw (372#64) facts.2.1) (by simp [flattenHOL]) (by intro offset bound; have zero := single offset bound; subst zero; simpa using actual_payload_header_pointer_cell_separate pointer 144 (by omega) (by omega))) ?_
+  · omega
+  intro n1 p1 h1
+  refine reaches_trans_budget n1 (actualPayloadHeaderAt 25) (actualPayloadHeaderAt 26) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) ∧
+        post.locals.lookup (ofString "z8") = some (.val (.word (actualPayloadHeaderTxrFloor pointer))) ∧
+        WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 2 15 ?_ (actual_payload_header_alloc_next_watched state n1 pl raw pointer (actualPayloadHeaderTxrFloor pointer) (pointer + (136#64)) extraLen (ofString "z8") (8#64) (actualPayloadHeaderAt 26) p1.1 code (by decide) (by decide) (by decide) p1.2 (by omega)) ?_
+  · omega
+  intro n2 p2 h2
+  refine reaches_trans_budget n2 (actualPayloadHeaderAt 26) (actualPayloadHeaderAt 27) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) ∧
+        post.locals.lookup (ofString "z8") = some (.val (.word (actualPayloadHeaderTxrFloor pointer))) ∧
+        WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 9 6 ?_ (actual_payload_header_memzero_z8_watched state n2 pl raw pointer (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (actualPayloadHeaderTxrFloor pointer) extraLen p2.1 p2.2.1 code h0Small h0Aligned h0Above cap fullDomain p2.2.2 (by omega)) ?_
+  · omega
+  intro n3 p3 h3
+  refine reaches_trans_budget n3 (actualPayloadHeaderAt 27) (actualPayloadHeaderAt 28) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) ∧
+      WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 6 ?_ (storeWord n3 (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) 27 152
+      (.op .add [.var .local (ofString "h"), .const (152#64)]) (.var .local (ofString "z8"))
+      (actualPayloadHeaderAt 28) (.val (.word (actualPayloadHeaderTxrFloor pointer))) [HolWordLab.word (actualPayloadHeaderTxrFloor pointer)] p3.1 p3.2.2 rfl rfl
+      (actual_payload_header_eval_local n3 (ofString "z8") (actualPayloadHeaderTxrFloor pointer) p3.2.1) (by simp [flattenHOL]) (by intro offset bound; have zero := single offset bound; subst zero; simpa using actual_payload_header_pointer_cell_separate pointer 152 (by omega) (by omega))) ?_
+  · omega
+  intro n4 p4 h4
+  refine reaches_trans_budget n4 (actualPayloadHeaderAt 28) (actualPayloadHeaderAt 29) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) ∧
+        WatchWord post (pointer + (136#64)) extraLen ∧
+        ∃ value, post.locals.lookup (ofString "bf") = some value ∧
+          (flattenHOL value).length = 4) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 6 ?_ (by
+      rw [decSpine]
+      exact actual_payload_header_dec_four_watched state n4 pl raw pointer (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (pointer + (136#64)) extraLen (ofString "bf") (ShapeHOL.comb [ShapeHOL.one,ShapeHOL.one,ShapeHOL.one,ShapeHOL.one]) bfInitializer (actualPayloadHeaderAt 29) p4.1 (by decide) (by decide) (by decide) p4.2 (by decide) (by decide)) ?_
+  · omega
+  intro n5 p5 h5
+  refine reaches_trans_budget n5 (actualPayloadHeaderAt 29) (actualPayloadHeaderAt 30) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) ∧
+      WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 6 ?_ (by
+      obtain ⟨bfValue, bfLocal, bfLength⟩ := p5.2.2
+      refine storeWord n5 (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) 29 160
+        (.op .add [.var .local (ofString "h"), .const (160#64)]) (.var .local (ofString "bf"))
+        (actualPayloadHeaderAt 30) bfValue (flattenHOL bfValue) p5.1 p5.2.1 rfl rfl
+        (actual_payload_header_eval_local_value n5 (ofString "bf") bfValue bfLocal) rfl ?_
+      intro offset bound
+      rw [bfLength] at bound
+      interval_cases offset <;> bv_omega) ?_
+  · omega
+  intro n6 p6 h6
+  refine reaches_trans_budget n6 (actualPayloadHeaderAt 30) (actualPayloadHeaderAt 31) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) ∧
+        post.locals.lookup (ofString "wr") = some (.val (.word (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)))) ∧
+        WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 2 4 ?_ (actual_payload_header_alloc_next_watched state n6 pl raw pointer (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (pointer + (136#64)) extraLen (ofString "wr") (32#64) (actualPayloadHeaderAt 31) p6.1 code (by decide) (by decide) (by decide) p6.2 (by omega)) ?_
+  · omega
+  intro n7 p7 h7
+  refine reaches_trans_budget n7 (actualPayloadHeaderAt 31) (actualPayloadHeaderAt 32) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) ∧
+      WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 4 ?_ (storeWord n7 (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) 31 192
+      (.op .add [.var .local (ofString "h"), .const (192#64)]) (.var .local (ofString "wr"))
+      (actualPayloadHeaderAt 32) (.val (.word (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)))) [HolWordLab.word (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64))] p7.1 p7.2.2 rfl rfl
+      (actual_payload_header_eval_local n7 (ofString "wr") (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) p7.2.1) (by simp [flattenHOL]) (by intro offset bound; have zero := single offset bound; subst zero; simpa using actual_payload_header_pointer_cell_separate pointer 192 (by omega) (by omega))) ?_
+  · omega
+  intro n8 p8 h8
+  refine reaches_trans_budget n8 (actualPayloadHeaderAt 32) (actualPayloadHeaderAt 33) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) ∧
+      WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 4 ?_ (storeLoad n8 (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) 32 200 (.op .add [.var .local (ofString "pl"), .const (112#64)]) (actualPayloadHeaderAt 33) p8.1 p8.2 rfl (actual_payload_header_pointer_cell_separate pointer 200 (by omega) (by omega))) ?_
+  · omega
+  intro n9 p9 h9
+  refine reaches_trans_budget n9 (actualPayloadHeaderAt 33) (actualPayloadHeaderAt 34) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) ∧
+      WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 4 ?_ (storeLoad n9 (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) 33 208 (.op .add [.var .local (ofString "pl"), .const (120#64)]) (actualPayloadHeaderAt 34) p9.1 p9.2 rfl (actual_payload_header_pointer_cell_separate pointer 208 (by omega) (by omega))) ?_
+  · omega
+  intro n10 p10 h10
+  refine reaches_trans_budget n10 (actualPayloadHeaderAt 34) (actualPayloadHeaderAt 35) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) ∧
+      WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 4 ?_ (storeLoad n10 (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) 34 216 (.op .add [.var .local (ofString "si"), .const (24#64)]) (actualPayloadHeaderAt 35) p10.1 p10.2 rfl (actual_payload_header_pointer_cell_separate pointer 216 (by omega) (by omega))) ?_
+  · omega
+  intro n11 p11 h11
+  refine reaches_trans_budget n11 (actualPayloadHeaderAt 35) (actualPayloadHeaderAt 36) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) ∧
+        post.locals.lookup (ofString "rh") = some (.val (.word (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)))) ∧
+        WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 2 2 ?_ (actual_payload_header_alloc_next_watched state n11 pl raw pointer (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (pointer + (136#64)) extraLen (ofString "rh") (32#64) (actualPayloadHeaderAt 36) p11.1 code (by decide) (by decide) (by decide) p11.2 (by omega)) ?_
+  · omega
+  intro n12 p12 h12
+  refine reaches_trans_budget n12 (actualPayloadHeaderAt 36) (actualPayloadHeaderAt 37) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) ∧
+      WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 2 ?_ (storeWord n12 (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) 36 224
+      (.op .add [.var .local (ofString "h"), .const (224#64)]) (.var .local (ofString "rh"))
+      (actualPayloadHeaderAt 37) (.val (.word (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)))) [HolWordLab.word (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64))] p12.1 p12.2.2 rfl rfl
+      (actual_payload_header_eval_local n12 (ofString "rh") (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) p12.2.1) (by simp [flattenHOL]) (by intro offset bound; have zero := single offset bound; subst zero; simpa using actual_payload_header_pointer_cell_separate pointer 224 (by omega) (by omega))) ?_
+  · omega
+  intro n13 p13 h13
+  refine reaches_trans_budget n13 (actualPayloadHeaderAt 37) (actualPayloadHeaderAt 38) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧
+        post.locals.lookup (ofString "bh") = some (.val (.word (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)))) ∧
+        WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 2 0 ?_ (actual_payload_header_alloc_next_watched state n13 pl raw pointer (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (pointer + (136#64)) extraLen (ofString "bh") (32#64) (actualPayloadHeaderAt 38) p13.1 code (by decide) (by decide) (by decide) p13.2 (by omega)) ?_
+  · omega
+  intro n14 p14 h14
+  refine reaches_trans_budget n14 (actualPayloadHeaderAt 38) (actualPayloadHeaderAt 39) (actualPayloadHeaderAt 40)
+    (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧
+      WatchWord post (pointer + (136#64)) extraLen) (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) ∧ WatchWord post (pointer + (136#64)) extraLen) 0 0 ?_ (storeWord n14 (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) 38 232
+      (.op .add [.var .local (ofString "h"), .const (232#64)]) (.var .local (ofString "bh"))
+      (actualPayloadHeaderAt 39) (.val (.word (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)))) [HolWordLab.word (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64))] p14.1 p14.2.2 rfl rfl
+      (actual_payload_header_eval_local n14 (ofString "bh") (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) p14.2.1) (by simp [flattenHOL]) (by intro offset bound; have zero := single offset bound; subst zero; simpa using actual_payload_header_pointer_cell_separate pointer 232 (by omega) (by omega))) ?_
+  · omega
+  intro n15 p15 h15
+  exact (storeLoad n15 (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)) (32#64)) 39 240 (.op .add [.var .local (ofString "pl"), .const (128#64)]) (actualPayloadHeaderAt 40) p15.1 p15.2 rfl (actual_payload_header_pointer_cell_separate pointer 240 (by omega) (by omega)))
+
+#print axioms actual_payload_header_construction_24_to_40_watched
 
 end InitECandidate.Runtime
