@@ -512,3 +512,24 @@ label clock. All four leaf theorems checked in `stack-weighted-leaves2`.
 See `cost-theorem-audit.md` for retained/removed theorem families. Obsolete
 whole-program affine certificate wrappers have been deleted; useful semantic,
 geometry, ownership and progress lemmas remain available.
+
+### Actual call entry and terminal tail calls
+
+`StackWeightedCall.compileJumpEnter_weighted` enters the actual installed callee
+with the original state relation and consumes the original source call clock
+unit. It supplies an actual mixed trace costing two native instructions for a
+direct target or one for an indirect target. `StackWeightedCallTerminal` composes
+that jump with a reached terminal callee, adding its recursive budget once.
+`StackWeightedCallEntry.callEnter_weighted` handles returning-call entry: it adds
+only the visited return-location materialization price and the actual target
+jump. The materialization needs one extra label clock unit; the jump uses the
+source call unit. These results checked with standard axioms in
+`stack-weighted-call4` (entry), `stack-weighted-call5` (terminal tail call), and
+`stack-weighted-call-entry2` (returning entry). Returning continuations/handlers,
+raw calls, and the complete recursive native driver remain open.
+
+The original/generated entry correspondence now preserves the exact result,
+not only non-error status. Concrete guest main signature, struct context, and
+pass2 no-inline/localisation certificates checked in
+`source-outcome-independent` and `guest-entry-syntax3`. This does not yet provide
+the whole guest gas bound or a finite submission score.
