@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SourceCostCrepCall
+import InitECandidate.Runtime.SourceCostCrepHandler
 import Flapjack.Pancake.Proofs.PanGlobals.SemanticsInitCall
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -12,6 +12,7 @@ def sourceControlProg : ProgHOL 64 → Bool
   | .while _ body => sourceControlProg body
   | .dec _ _ _ body => sourceControlProg body
   | .call none _ _ | .call (some (_, none)) _ _ => true
+  | .call (some (_, some (_, _, handler))) _ _ => sourceControlProg handler
   | _ => false
 
 /-- Static premise on every source function body reachable through calls. -/
@@ -432,7 +433,22 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       plan handlerRun ihBody ihHandler =>
     intro t context resultOk rel localised checked control codeOk slots
     obtain ⟨dest, exceptionId, handlerVar, rfl⟩ := handler_plan_info plan
-    simp [sourceControlProg] at control
+    obtain ⟨exn, _, bodyException, _, _, _, entryEq, _⟩ := handler_plan_inv plan
+    simp only [bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true] at checked control
+    obtain ⟨vshapes, hsrc, _, _, _⟩ :=
+      lookupCodeHOLFinite_some_inv s.code.lookup function values body callee returnShape lookup
+    have bodyStatic := codeOk function vshapes body returnShape hsrc
+    have bodyOk : bodyResult ≠ some .error := by rw [bodyException]; simp
+    have handlerCode : CodeCovered handlerEntry.code := by
+      rw [entryEq]
+      show CodeCovered bodyPost.code
+      rw [run_code bodyRun]
+      exact codeOk
+    exact call_handler_transfer args lookup clock bodyRun plan rel localised checked.1 slots
+      (fun t' c' rel' loc' slots' =>
+        ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk slots')
+      (fun t' c' rel' loc' slots' =>
+        ihHandler t' c' resultOk rel' loc' checked.2 control handlerCode slots')
   | _ =>
     intro t context result rel localised checked control codeOk slots
     first
