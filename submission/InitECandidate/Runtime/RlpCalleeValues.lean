@@ -5,6 +5,26 @@ open Flapjack.Basis.Pure.MlString
 set_option maxRecDepth 100000
 set_option maxHeartbeats 4000000
 
+/-- A successful exact code lookup yields a successful finite code lookup with the same body and
+return shape; only the callee-local map is re-rendered with its finite-support witness. -/
+theorem lookupCodeHOLFinite_of_exact (code : MlS → Option (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL))
+    (fname : MlS) (values : List (ValueHOL 64)) (body : ProgHOL 64)
+    (calleeLocals : MlS → Option (ValueHOL 64)) (returnShape : ShapeHOL)
+    (exact : lookupCodeHOLExact code fname values = some (body,calleeLocals,returnShape)) :
+    ∃ callee, PanSemStateFiniteExact.lookupCodeHOLFinite code fname values =
+      some (body,callee,returnShape) := by
+  unfold PanSemStateFiniteExact.lookupCodeHOLFinite
+  split
+  · rename_i hnone
+    rw [exact] at hnone
+    cases hnone
+  · rename_i hsome
+    rw [exact] at hsome
+    cases hsome
+    exact ⟨_,rfl⟩
+
+#print axioms lookupCodeHOLFinite_of_exact
+
 /-- The exact code lookup of `rlp_be_len` binds its single parameter `v`. -/
 theorem rlpBeLen_exact_lookup (N : BitVec 64) :
     lookupCodeHOLExact originalRuntimeCode.lookup (ofString "rlp_be_len") [.val (.word N)] =
