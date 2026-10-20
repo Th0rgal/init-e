@@ -401,6 +401,13 @@ oracle. Independent root replays checked all 63 affected modules and both
 canonical corollaries with standard axioms. Installed-entry initialization and
 the downstream native composition remain open.
 
+`StackFlattenShape` proves the exact emitted instruction length and
+nonreturning flag for every Stack constructor, including calls and all six
+conditional layouts, independent of section/label numbers and loop labels.
+This supplies static PC offsets for compositional native proofs without adding
+unselected code to runtime costs. Its recursion and three geometry corollaries
+checked in `stack-flatten-shape8` with only standard axioms.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
