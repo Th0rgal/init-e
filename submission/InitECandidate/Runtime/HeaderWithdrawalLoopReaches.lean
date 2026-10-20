@@ -923,4 +923,45 @@ theorem payloadHeader43_reaches_entry (DF : Nat) {F : Type} (s : PanSemStateFini
     readBelowSource fence smallDF bigDF addrRead memRead budget
 
 #print axioms payloadHeader43_reaches_entry
+
+/-- **The statement-43 → 47 prefix from the actual decoder output.** The withdrawal-count cell `pl + 56`
+and the watched array-pointer cell `pl + 48` are read off a real `RlpSliceEntry` of the decoded payload
+struct, and the signed-count guard of the actual `ssz_fixed_list_count` run supplies `nwd < 2 ^ 63`. The
+watched word is the exported array pointer `input + wd`, so no cell value is assumed. Everything else is
+the payload-header prologue's hand-over (`pl`, `e`, globals, code, clock, arena alignment/cap, payload
+separation, fence, fuel budget). -/
+theorem payloadHeader43_reaches_decoder (DF : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (nwd size loopHeap oldSlices pl input wd balance withdrawals : BitVec 64)
+    (entry : RlpSliceEntry s pl (3#64) (input + wd) nwd)
+    (countVal : nwd = (balance - withdrawals) / 44)
+    (within : ¬ (9223372036854775807 : BitVec 64) < nwd)
+    (atPl : s.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
+    (freshE : s.locals.lookup (ofString "e") = none)
+    (atSlices : s.globals.lookup (ofString "wd_rlp_slices") =
+      some (ValueHOL.val (HolWordLab.word oldSlices)))
+    (atHeap : s.globals.lookup (ofString "heap_ptr") =
+      some (ValueHOL.val (HolWordLab.word loopHeap)))
+    (code : s.code = originalRuntimeCode) (clock : s.clock ≠ 0)
+    (sizeVal : size = nwd * 16#64 + 16#64)
+    (fitSize : nwd.toNat * 16 + 16 < 2 ^ 64)
+    (al : loopHeap.toNat % 8 = 0) (sizeAl : size.toNat % 8 = 0)
+    (cap : loopHeap.toNat + 80 * nwd.toNat + 80 ≤ 33806089496)
+    (readBelowSource : pl.toNat + 136 ≤ loopHeap.toNat)
+    (fence : Fence s.memaddrs DF) (smallDF : DF + 8 ≤ 2 ^ 62) (bigDF : 33806089496 ≤ DF)
+    (budget : 1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1) ≤ s.clock) :
+    Reaches s (actualPayloadHeaderAt 43)
+      (WdLoopInv (fun a => s.memaddrs a) 0#64 nwd pl loopHeap (pl + 48#64) (input + wd)
+        (wdHeapWord (allocationEnd loopHeap size)))
+      (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47) := by
+  have countCell := wd_slice_count_cell s pl input wd nwd entry
+  have arrayCell := wd_slice_array_cell s pl input wd nwd entry
+  have smallNwd : nwd.toNat + 1 < 2 ^ 63 := by
+    have := wd_signed_count_bound nwd withdrawals balance countVal within
+    omega
+  exact payloadHeader43_reaches_entry DF s nwd size loopHeap oldSlices pl (pl + 48#64) (input + wd)
+    ⟨rfl, atPl, freshE, atSlices, atHeap, code, clock, countCell.2, countCell.1, sizeVal, fitSize, al,
+      sizeAl, cap, smallNwd, readBelowSource, fence, smallDF, bigDF, arrayCell.2, arrayCell.1,
+      budget⟩
+
+#print axioms payloadHeader43_reaches_decoder
 end InitECandidate.Runtime
