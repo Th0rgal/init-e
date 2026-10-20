@@ -61,7 +61,7 @@ theorem if_guard_locals {F : Type} {context : CrepToLoopContextExact} {live nl :
 
 /-- Conditional transfer: guard materialization, the comparison, the selected
 compiled branch (with the original relations) and the join. -/
-theorem ite_loop_paid {F : Type} {context : CrepToLoopContextExact} {live : NumSet}
+theorem ite_loop_paid (P : LoopPricing) {F : Type} {context : CrepToLoopContextExact} {live : NumSet}
     {t : CrepSemHOLState 64 F} {u : LoopSemStateFiniteExact 64 F}
     {condition : CrepExpHOL 64} {yes no : CrepProgHOL 64} {word : BitVec 64} {wb : Nat}
     (guard : evalCrepSemHOLExp t condition = some (.word word))
@@ -69,7 +69,8 @@ theorem ite_loop_paid {F : Type} {context : CrepToLoopContextExact} {live : NumS
     (rel : CrepLoopRel context live t u)
     (ih : ∀ u', CrepLoopRel context live t u' →
       LoopPaid context live t u' (if word ≠ 0 then yes else no) wb) :
-    LoopPaid context live t u (.ite condition yes no) (1 + crepNodeWork condition + wb) := by
+    LoopPaid context live t u (.ite condition yes no) (P.unit + P.price condition + wb) := by
+  have unitOk := P.unitOk
   classical
   have crepRun : evalCrepSemHOLProgExact t (.ite condition yes no) =
       evalCrepSemHOLProgExact t (if word ≠ 0 then yes else no) := by
@@ -80,7 +81,7 @@ theorem ite_loop_paid {F : Type} {context : CrepToLoopContextExact} {live : NumS
       live np le tmp nl ⟨guard, rel.state, rel.memory, rel.globals, rel.code, rel.locals, hC,
         Nat.lt_succ_self _⟩
   obtain ⟨codeCost, codeSupported, codeBound⟩ :=
-    crep_to_loop_local_work context (context.vmax + 1) live condition
+    P.exprOk context (context.vmax + 1) live condition
   rw [hC] at codeSupported codeBound
   simp only [] at codeSupported codeBound
   have hl' := if_guard_locals (w := word) hC rel.locals h1l
@@ -147,10 +148,10 @@ theorem ite_loop_paid {F : Type} {context : CrepToLoopContextExact} {live : NumS
       LoopWork { LoopSemStateFiniteExact.setVar tmp (.word word) st with
         clock := (LoopSemStateFiniteExact.setVar tmp (.word word) st).clock + k }
         (compileHOLExact context live (if word ≠ 0 then yes else no)) output wc →
-      wc ≤ 7 * wb →
+      wc ≤ wb →
       LoopRunRel context live (evalCrepSemHOLProgExact t (if word ≠ 0 then yes else no))
         (LoopSemStateFiniteExact.cutRes live output) →
-      LoopPaid context live t u (.ite condition yes no) (1 + crepNodeWork condition + wb) := by
+      LoopPaid context live t u (.ite condition yes no) (P.unit + P.price condition + wb) := by
     intro E k output wc hE child childBound runRel
     obtain ⟨wt, tWork, tBound⟩ := tailWork k output wc child
     obtain ⟨wTotal, totalWork, totalBound⟩ := loopWork_codes_append np _ codeCost

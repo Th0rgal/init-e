@@ -23,7 +23,7 @@ inductive CrepWorkP (price : CrepExpHOL 64 → Nat) (priceList : List (CrepExpHO
   | tick (t) : CrepWorkP price priceList unit t .tick unit
   | breakStmt (t label) : CrepWorkP price priceList unit t (.break label) unit
   | continueStmt (t label) : CrepWorkP price priceList unit t (.continue label) unit
-  | raise (t code) : CrepWorkP price priceList unit t (.raise code) unit
+  | raise (t code) : CrepWorkP price priceList unit t (.raise code) (unit + 1)
   | assign (t name value) : CrepWorkP price priceList unit t (.assign name value) (unit + price value)
   | storeGlob (t address value) :
       CrepWorkP price priceList unit t (.storeGlob address value) (unit + price value)
@@ -65,11 +65,11 @@ inductive CrepWorkP (price : CrepExpHOL 64 → Nat) (priceList : List (CrepExpHO
       CrepWorkP price priceList unit t (.ite condition yes no) (unit + price condition)
   | whileExit {t condition body}
       (exit : ∀ word, evalCrepSemHOLExp t condition = some (.word word) → word = 0) :
-      CrepWorkP price priceList unit t (.while condition body) (unit + price condition)
+      CrepWorkP price priceList unit t (.while condition body) (unit + unit + price condition)
   | whileTimeout {t condition body word}
       (guard : evalCrepSemHOLExp t condition = some (.word word)) (nonzero : word ≠ 0)
       (clock : t.clock = 0) :
-      CrepWorkP price priceList unit t (.while condition body) (unit + price condition)
+      CrepWorkP price priceList unit t (.while condition body) (unit + unit + price condition)
   | whileLoop {t condition body word bodyWork result middle restWork}
       (guard : evalCrepSemHOLExp t condition = some (.word word)) (nonzero : word ≠ 0)
       (clock : t.clock ≠ 0)
@@ -77,21 +77,22 @@ inductive CrepWorkP (price : CrepExpHOL 64 → Nat) (priceList : List (CrepExpHO
       (run : evalCrepSemHOLProgExact (decClockCrepSemHOL t) body = (result, middle))
       (again : result = none ∨ result = some (.continue 0))
       (rest : CrepWorkP price priceList unit middle (.while condition body) restWork) :
-      CrepWorkP price priceList unit t (.while condition body) (unit + price condition + bodyWork + restWork)
+      CrepWorkP price priceList unit t (.while condition body) (unit + unit + price condition + bodyWork + restWork)
   | whileStop {t condition body word bodyWork result middle}
       (guard : evalCrepSemHOLExp t condition = some (.word word)) (nonzero : word ≠ 0)
       (clock : t.clock ≠ 0)
       (one : CrepWorkP price priceList unit (decClockCrepSemHOL t) body bodyWork)
       (run : evalCrepSemHOLProgExact (decClockCrepSemHOL t) body = (result, middle))
       (stop : result ≠ none ∧ result ≠ some (.continue 0)) :
-      CrepWorkP price priceList unit t (.while condition body) (unit + price condition + bodyWork)
+      CrepWorkP price priceList unit t (.while condition body) (unit + unit + price condition + bodyWork)
   /-- Argument failure, lookup failure, return-name rejection or timeout. -/
   | callShort {t returnInfo function arguments}
       (short : arguments.mapM (evalCrepSemHOLExp t) = none ∨
         ∃ values, arguments.mapM (evalCrepSemHOLExp t) = some values ∧
           (lookupCodeFiniteHOL t.code function values values.length = none ∨
             crepReturnInfoNodupError returnInfo ∨ t.clock = 0)) :
-      CrepWorkP price priceList unit t (.call returnInfo function arguments) (unit + priceList arguments)
+      CrepWorkP price priceList unit t (.call returnInfo function arguments)
+        (unit + unit + unit + priceList arguments)
   | callBody {t returnInfo function arguments values body locals bodyWork result post}
       (args : arguments.mapM (evalCrepSemHOLExp t) = some values)
       (lookup : lookupCodeFiniteHOL t.code function values values.length = some (body, locals))
@@ -103,7 +104,8 @@ inductive CrepWorkP (price : CrepExpHOL 64 → Nat) (priceList : List (CrepExpHO
       (unhandled : ∀ code rts handler, result = some (.exception code) →
         returnInfo ≠ some (rts, some (code, handler))) :
       CrepWorkP price priceList unit t (.call returnInfo function arguments)
-        (unit + priceList arguments + values.length + bodyWork + crepCallPayloadWords result)
+        (unit + unit + unit + priceList arguments + values.length + bodyWork +
+          crepCallPayloadWords result)
   | callHandler {t rts code handler function arguments values body locals bodyWork post
       handlerWork}
       (args : arguments.mapM (evalCrepSemHOLExp t) = some values)
@@ -115,7 +117,7 @@ inductive CrepWorkP (price : CrepExpHOL 64 → Nat) (priceList : List (CrepExpHO
         (some (.exception code), post))
       (handlerRun : CrepWorkP price priceList unit { post with locals := t.locals } handler handlerWork) :
       CrepWorkP price priceList unit t (.call (some (rts, some (code, handler))) function arguments)
-        (unit + priceList arguments + values.length + bodyWork + handlerWork)
+        (unit + unit + unit + priceList arguments + values.length + bodyWork + handlerWork)
 
 
 /-- Executed Crep work at the node-count price used by the Pan-to-Crep transfer. -/

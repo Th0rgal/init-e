@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.SourceCostCrepControl
-import InitECandidate.Runtime.SourceCostLoopControl
+import InitECandidate.Runtime.SourceCostLoopPricing
 import InitECandidate.Runtime.SourceCostCrepSimp
 import InitECandidate.Runtime.SourceCostLoopOptimise
 namespace InitECandidate.Runtime.FineCost
@@ -57,7 +57,7 @@ theorem source_loop_executed_work {F : Type} (opt : LoopOptimiseWork)
   have ok : (evalCrepSemHOLProgExact t (compileProgExactHOLW context p)).1 ≠ some .error := by
     rw [crepRun]; exact resultRel_not_error resultRel
   obtain ⟨extra, wl, work, bound, runRel⟩ :=
-    crep_loop_executed_work opt crepWork u loopContext live ok loopRel
+    crep_loop_coarse_work opt crepWork u loopContext live ok loopRel
   exact ⟨extra, wl, work, by omega, runRel⟩
 
 /-- As `source_loop_executed_work`, but through the `crep_arith$simp_prog`
@@ -98,7 +98,7 @@ theorem source_simp_loop_executed_work {F : Type} (opt : LoopOptimiseWork)
     rw [crepArithSimpProgCorrect _ t r1 t1 crepRun (resultRel_not_error resultRel)]
     exact resultRel_not_error resultRel
   obtain ⟨extra, wl, work, bound, runRel⟩ :=
-    crep_loop_executed_work opt simpWork u loopContext live simpOk loopRel
+    crep_loop_coarse_work opt simpWork u loopContext live simpOk loopRel
   exact ⟨extra, wl, work, by omega, runRel⟩
 
 /-- The temporary `LoopOptimiseWork` contract, discharged by root's
@@ -112,8 +112,16 @@ theorem crep_loop_installed_work {F : Type} {t : CrepSemHOLState 64 F} {p : Crep
     {w : Nat} (work : CrepWork t p w) (u : LoopSemStateFiniteExact 64 F)
     (context : CrepToLoopContextExact) (live : NumSet)
     (ok : (evalCrepSemHOLProgExact t p).1 ≠ some .error) (rel : CrepLoopRel context live t u) :
+    LoopPaid context live t u p (7 * w) :=
+  crep_loop_coarse_work loop_optimise_work work u context live ok rel
+
+/-- Unconditional Crep-to-Loop transfer at exact Loop prices, factor one. -/
+theorem crep_loop_installed_sharp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64}
+    {w : Nat} (work : CrepWorkL sharpPricing t p w) (u : LoopSemStateFiniteExact 64 F)
+    (context : CrepToLoopContextExact) (live : NumSet)
+    (ok : (evalCrepSemHOLProgExact t p).1 ≠ some .error) (rel : CrepLoopRel context live t u) :
     LoopPaid context live t u p w :=
-  crep_loop_executed_work loop_optimise_work work u context live ok rel
+  crep_loop_sharp_work loop_optimise_work work u context live ok rel
 
 /-- Unconditional statement-level composition source -> pan_to_crep ->
 simp_prog -> crep_to_loop, against the installed-code Crep state. The source
@@ -145,6 +153,7 @@ theorem source_simp_loop_installed_work {F : Type}
 
 #print axioms loop_optimise_work
 #print axioms crep_loop_installed_work
+#print axioms crep_loop_installed_sharp_work
 #print axioms source_simp_loop_installed_work
 #print axioms resultRel_not_error
 #print axioms source_simp_loop_executed_work

@@ -16,8 +16,8 @@ theorem CrepBounded.mono {program : CrepProgHOL 64} {small large : Nat}
 
 theorem bounded_skip : CrepBounded .skip 1 := fun _ t => ⟨1, CrepWork.skip t, Nat.le_refl _⟩
 
-theorem bounded_raise (code : BitVec 64) : CrepBounded (.raise code) 1 :=
-  fun _ t => ⟨1, CrepWork.raise t code, Nat.le_refl _⟩
+theorem bounded_raise (code : BitVec 64) : CrepBounded (.raise code) 2 :=
+  fun _ t => ⟨2, CrepWork.raise t code, Nat.le_refl _⟩
 
 theorem bounded_assign (name : Nat) (value : CrepExpHOL 64) :
     CrepBounded (.assign name value) (1 + crepNodeWork value) :=
