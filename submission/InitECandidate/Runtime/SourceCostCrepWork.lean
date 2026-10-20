@@ -13,7 +13,8 @@ evaluated expression pays its scalar node work. Recursive rules follow the
 exact evaluator's successor states: only the selected branch, every loop guard,
 the actual callee body and a matched handler are charged. Failing guards and
 operations keep the work of the expressions already evaluated. This is a count
-of Crep execution events, not yet of RISC-V instructions. -/
+of Crep execution events, not yet of RISC-V instructions. `Seq` is structural
+composition and carries no local charge. -/
 inductive CrepWork {σ : Type} : CrepSemHOLState 64 σ → CrepProgHOL 64 → Nat → Prop where
   | skip (t) : CrepWork t .skip 1
   | tick (t) : CrepWork t .tick 1
@@ -47,11 +48,11 @@ inductive CrepWork {σ : Type} : CrepSemHOLState 64 σ → CrepProgHOL 64 → Na
       (one : CrepWork t first firstWork)
       (run : evalCrepSemHOLProgExact t first = (none, middle))
       (two : CrepWork middle second secondWork) :
-      CrepWork t (.seq first second) (1 + firstWork + secondWork)
+      CrepWork t (.seq first second) (firstWork + secondWork)
   | seqStop {t first second result middle firstWork}
       (one : CrepWork t first firstWork)
       (run : evalCrepSemHOLProgExact t first = (some result, middle)) :
-      CrepWork t (.seq first second) (1 + firstWork)
+      CrepWork t (.seq first second) firstWork
   | iteBranch {t condition yes no word branchWork}
       (guard : evalCrepSemHOLExp t condition = some (.word word))
       (branch : CrepWork t (if word ≠ 0 then yes else no) branchWork) :
@@ -116,7 +117,7 @@ inductive CrepWork {σ : Type} : CrepSemHOLState 64 σ → CrepProgHOL 64 → Na
 /-- Every executed Crep statement pays at least its entry unit. -/
 theorem CrepWork.entry {σ : Type} {t : CrepSemHOLState 64 σ} {p : CrepProgHOL 64} {w : Nat}
     (run : CrepWork t p w) : 1 ≤ w := by
-  cases run <;> omega
+  induction run <;> omega
 
 #print axioms CrepWork.entry
 end InitECandidate.Runtime.FineCost

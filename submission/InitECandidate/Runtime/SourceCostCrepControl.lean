@@ -147,8 +147,8 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     obtain ⟨w2, work2, bound2⟩ :=
       ihTwo t1 context result ⟨state1, code1, exceptions1, locals1⟩ localised.2 checked.2
         control.2 (by rw [run_code one]; exact codeOk)
-    refine ⟨1 + w1 + w2, by simp only [compileProgExactHOLW]; exact CrepWork.seqNext work1 run1 work2, ?_⟩
-    rw [score_statement_cons, score_append]
+    refine ⟨w1 + w2, by simp only [compileProgExactHOLW]; exact CrepWork.seqNext work1 run1 work2, ?_⟩
+    rw [score_append]
     simp only [sourceCrepWeights] at bound1 bound2 ⊢
     omega
   | @seqStop s first second r post left terminal one ihOne =>
@@ -162,10 +162,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
         rel.locals localised.1
     obtain ⟨r0, rfl⟩ := Option.ne_none_iff_exists'.mp terminal
     obtain ⟨c1, rfl⟩ := Option.ne_none_iff_exists'.mp (resultRel_some_ne_none rel1)
-    refine ⟨1 + w1, by simp only [compileProgExactHOLW]; exact CrepWork.seqStop work1 run1, ?_⟩
-    rw [score_statement_cons]
-    simp only [sourceCrepWeights] at bound1 ⊢
-    omega
+    exact ⟨w1, by simp only [compileProgExactHOLW]; exact CrepWork.seqStop work1 run1, bound1⟩
   | @iteYes s condition yes no value guardEvents r post bodyEvents guard nonzero body ihBody =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]

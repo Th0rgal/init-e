@@ -16,7 +16,10 @@ coefficient vector. Both compose additively over trace concatenation.
 Coefficients must be justified by compiler/runtime proofs; a source unit does
 not automatically equal one native instruction.
 
-Each actually executed statement and expression pays one entry event. Children
+Each executable statement and evaluated expression pays one entry event.
+Structural `Seq` emits no event: its children concatenate their actual traces,
+so preprocessing reassociation cannot change the cost. Crep and Loop sequencing
+are also free; Loop `Skip` costs zero because it emits no operation. Children
 are charged separately, only the chosen branch runs, and every loop guard
 (including the final false guard) is charged. Calls include actual argument
 work, body, selected handler/continuation and argument/result copies. Errors,
@@ -72,7 +75,8 @@ without a universal return-slot bound.
 | `AllocCostModel`, `AllocCostSSA`, `AllocCostPasses`, `AllocCostCompose`, `AllocCostExecuted` | SSA prologue/instruction moves, three-to-two rewrite-site costs, nonamplifying allocation/colouring, and actual path budget for their composed output | Certified straight-line fragments; recursive call/loop reconciliation remains open |
 | `AllocCostOptimizer`, `AllocCostCse`, `AllocCostUnreach` | Local static envelopes for must-terminate/dead-code removal, copy propagation, CSE, sequence cleanup and unreachable removal; expansion charged by rewrite sites | Straight-line fragment bounds; grammar/composed optimizer and dynamic control transfer remain separate |
 | `AllocCostReconcile`, `AllocCostSSAControl` | Static local syntax envelopes for renaming, reconciliation, loop setup/back-edges, break/continue targets and tail-call argument moves, using actual live sets | Dynamic semantic execution transfer must still charge each occurrence; returning-call composition remains open |
-| `SourceCostLoopWork` | Output-indexed exact Loop execution work, soundness and equal-work lifting to a larger clock for non-timeout runs; selected branches, each loop iteration, callees/continuations/handlers exposed | Actual Crep-to-Loop transfer and simplification/live-optimization work proofs remain open |
+| `SourceCostLoopWork` | Output-indexed exact Loop execution work, soundness and equal-work lifting to a larger clock for non-timeout runs; selected branches, each loop iteration, callees/continuations/handlers exposed | Actual Crep-to-Loop transfer is a separate stage |
+| `SourceCostLoopOptimise` and `SourceCostLoopLive*` | Full actual call rewrite, liveness shrink and marking preserve or decrease executed work at coefficient ONE, under original terminal-result guards and exact original initial/final states | Discharges `LoopOptimiseWork`; no recursive optimizer multiplier |
 | `AllocCostSSAExecuted` | Actual-state executed budgets for reconciliation and setup fragments, back-edge work at each reached intermediate state, and break/continue exit moves | Whole-loop SSA semantic iteration induction and returning-call exception composition remain open |
 | `CrepExpressionWork`, `PanLoweringAllowance` | Full local source expression expansion; context-width and repeated address work retained | Generated syntax, not complete statement execution transfer |
 | `CrepToLoopLocalBound` | Generated code plus residual expression work <=6 times Crep expression work; list materialization potential | Local expression lowering |
@@ -161,24 +165,51 @@ ordinary-instruction sequence under the original flattening hypotheses. It
 proves source trace existence from successful Stack evaluation, erases only
 zero-step labels from the installed pattern, and obtains an actual RISC-V
 prefix bounded by the sum of each visited opcode/padding cost. Related states,
-program counters, code and the oracle tie are retained. Branch/call/loop
-composition and the bridge from generated expression fragments to these
-ordinary blocks remain open.
+program counters, code and the oracle tie are retained.
 
-`SourceCostLoopMark` proves that the actual `markAllHOL` pass preserves exact
-Loop work for every trace, including loops and reached handlers/continuations.
-The callee code table stays unchanged; only handler/continuation syntax is
-marked. `SourceCostLoopCallInputs` and `SourceCostLoopCallPass` prove that the actual
-known-label call pass never increases work for any non-error trace under its
-original known-labels relation. Indirect-to-direct rewriting retains the same
-callee/environment and all body/handler/continuation traces, removing only the
-target argument charge; full sequences, branches and loops are covered.
-`SourceCostLoopLiveLeaf` checks all atomic liveness cases under the original
-locals-projection premise. It reuses existing semantic correctness for the
-actual successor/locals relation and proves the retained-or-deleted statement's
-local cost does not increase. The remaining liveness composition covers
-sequences, branches, loops and returning calls; full `optimiseHOL` still needs
-that transfer to close the installed-callee gap.
+`StackWeightedControl` supplies real flattened Break and LocValue prefixes under
+the original `FlattenHyps`: direct jump allowance2, local materialization/padding
+for LocValue. Returning to an explicitly valid installed location uses one
+native indirect jump. `StackWeightedBranch` proves the actual compiled layout
+of two nonempty ordinary instruction arms. `StackWeightedIf` covers both actual
+conditions and composes the selected arm with its branch and, only when reached,
+its join jump. `flatten_instructionBlock_if_native` yields the RISC-V prefix and
+retains the original related successor, PC, code and oracle. General branches
+with returning arms, loops/calls, and the bridge from generated expression
+fragments to these instruction blocks still need composition.
+
+
+`SourceCostLoopOptimise.loop_optimise_executed_work` proves the full pinned
+optimizer nonamplifying at coefficient ONE. `LoopWork.live_paid` covers every
+non-error shrink constructor, including actual loops, return continuations,
+exception handlers and early-call timeouts. The original semantic correctness
+theorem identifies successors of independently constructed costed traces; it
+supplies no quantitative oracle. Saved-local projection lemmas extend ownership
+by actual returned values or exception bindings. Known-label call rewriting
+retains callee/environment and removes only the target argument charge.
+Marking preserves exact work. The original terminal guards and original initial
+and final states are retained by the combined theorem.
+
+The sequencing refinement was independently checked through global source trace
+completeness and all existing localized source-to-Crep modules. Guest helper
+modules last checked under the previous event model need their exact Seq event
+lists migrated and independently replayed; this is pending. The source worker
+has a complete source-to-simp-Crep-to-Loop per-statement transfer with the
+optimizer premise discharged, but that larger snapshot is awaiting independent
+review/replay and integration. Source preprocessing remains open.
+
+## Numerical budget audit
+
+The generic `sourceCrepWeights` followed by the factor-seven Loop bound is a
+coverage envelope, not a usable final numeric route. The guest worker reports
+the Seq-free `u256_add` vector as 9 statements, 44 expressions, 102 moved words,
+4 scalar operations and 4 frame slots. Under `sourceCrepWeights` it scores 1976,
+hence the generic Loop envelope is 13,832 units. A gas-3 ADD has only 13,500
+native steps per execution at the overall 900-billion/200-million ratio, before
+other helpers and overhead. This already rules out multiplying the generic
+stage envelopes as the final certificate. Sharper local/vector inequalities
+are required, especially avoiding a bulk-load allowance on load-free helper
+expressions. Preserve semantic coverage proofs while refining those inequalities.
 
 ## Remaining end-to-end obligations
 
@@ -199,55 +230,3 @@ that transfer to close the installed-callee gap.
 See `cost-theorem-audit.md` for retained/removed theorem families. Obsolete
 whole-program affine certificate wrappers have been deleted; useful semantic,
 geometry, ownership and progress lemmas remain available.
-
-Liveness control checkpoint: SourceCostLoopLiveBase factors the original
-result-indexed locals relation and uses semantic correctness only to identify
-the output of an independently constructed costed target trace. Sequence,
-branch, mark, and all four loop-exit constructors now preserve or decrease
-actual executed work. Loop fixed-point metadata is derived from the actual
-shrink compiler, not assumed. SourceCostLoopLiveCall preserves successful
-argument reads and reuses unchanged callee traces exactly for tail calls and
-returning calls without handlers. Handler/continuation composition, early call
-exits, and the global liveness induction remain open; LoopOptimiseWork is not
-yet discharged. These facts introduce no final native coefficient or score.
-
-Full optimizer checkpoint: LoopWork.live_paid covers every non-error executed
-LoopWork constructor through the actual shrinkHOL compiler, including returning
-continuations, exception handlers and early-call timeouts. Shared saved-local
-projection lemmas extend ownership by returned tuples or exception bindings.
-LoopWork.live_comp combines shrink with mark_all, retaining the original terminal
-result guards and exact original initial/final states. Finally
-loop_optimise_executed_work composes the actual known-label call rewrite with
-liveness and marking at coefficient ONE. This discharges the quantitative
-LoopOptimiseWork interface used by the source-to-Loop work transfer; installed
-source preprocessing and the remaining downstream compiler/guest bounds are
-still separate obligations.
-
-Model refinement agreed with source/guest workers: Seq is structural composition
-and should emit no statement event, matching its lack of a native instruction.
-Otherwise pan_simp association changes can add arbitrarily many charged Seq
-entries before an early exit. The corresponding shared-core epoch is being
-implemented and must be independently replayed before integration. The optimizer
-checkpoint is independent of it: LoopWork sequencing was already free.
-
-Native control checkpoint: StackWeightedControl derives costed prefixes for
-actual flattened Break and LocValue under the original FlattenHyps. Break uses
-a local allowance of two native instructions; LocValue uses the visited line's
-materialization/padding allowance. A flattened return to an explicitly valid
-installed location uses a one-instruction indirect jump, preserving the original
-state relation. Full conditional/loop/call backend composition remains open.
-
-Loop Skip now costs zero, matching its absence of emitted operations and the
-source worker's lowering model. SourceCostLoopWork and all eighteen optimizer
-modules were independently replayed against this change; the factor-one theorem
-continues to hold. The separate PanStatementWork Seq-free epoch remains pending.
-
-Budget audit: the generic sourceCrepWeights followed by factor-seven Loop
-transfer is a coverage bound, not yet a usable final numeric bound. The currently
-reported Seq-free u256_add vector (9 statements, 44 expressions, 102 moved words,
-4 frame slots) evaluates to 1976 under sourceCrepWeights, hence 13,832 Loop units
-under that envelope. A gas-3 ADD has only 13,500 native steps per execution at
-the overall 900-billion/200-million ratio, before other helpers and overhead.
-The final route therefore needs sharper local/vector transfer inequalities,
-especially avoiding the bulk-load allowance on load-free helper expressions;
-multiplying existing generic stage envelopes cannot establish the target score.

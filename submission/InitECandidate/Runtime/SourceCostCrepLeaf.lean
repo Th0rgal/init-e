@@ -52,8 +52,8 @@ theorem bounded_seq {first second : CrepProgHOL 64} {a b : Nat}
   obtain ⟨w1, work1, bound1⟩ := one σ t
   rcases run : evalCrepSemHOLProgExact t first with ⟨_ | result, middle⟩
   · obtain ⟨w2, work2, bound2⟩ := two σ middle
-    exact ⟨1 + w1 + w2, CrepWork.seqNext work1 run work2, by omega⟩
-  · exact ⟨1 + w1, CrepWork.seqStop work1 run, by omega⟩
+    exact ⟨w1 + w2, CrepWork.seqNext work1 run work2, by omega⟩
+  · exact ⟨w1, CrepWork.seqStop work1 run, by omega⟩
 
 /-- Nested declarations pay each attempted initializer; a failed initializer
 stops before the body. Mismatched lists compile to `Skip`. -/

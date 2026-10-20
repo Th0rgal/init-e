@@ -4,17 +4,19 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 /-- Size-aware statement traces. Recursive control rules expose every guard
-expression and only the statements on the executed branch. -/
+expression and only the statements on the executed branch. `Seq` is structural
+composition: it emits no event of its own (no native operation), so actual
+association never changes cost. -/
 inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 →
     Option (PanSemResultExact 64) → PanSemStateFiniteExact 64 F → List WorkEvent → Prop where
   | skip (s) : StatementRun s .skip none s [.statement]
   | seqNext {s first middle second r post left right}
       (one : StatementRun s first none middle left)
       (two : StatementRun middle second r post right) :
-      StatementRun s (.seq first second) r post (.statement :: (left ++ right))
+      StatementRun s (.seq first second) r post (left ++ right)
   | seqStop {s first second r post left} (terminal : r ≠ none)
       (one : StatementRun s first r post left) :
-      StatementRun s (.seq first second) r post (.statement :: left)
+      StatementRun s (.seq first second) r post left
   | iteYes {s condition yes no value guardEvents r post bodyEvents}
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0)
