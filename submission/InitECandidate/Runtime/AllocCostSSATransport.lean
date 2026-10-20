@@ -192,6 +192,83 @@ theorem wordPathWork_call_returning_result_variant {C F : Type}
       (by rw [fix_clock_evaluate]; exact runS) popS locEq lenEq domUnion]
   rw [hsv, ihBody, ihRet]
 
+
+/-- Non-dependent unfolding of `wordPathWork` at a loop: the cut state and the
+body's raw `evaluate` result are exposed (the `fixClock` wrapper is removed by
+`fix_clock_evaluate`), keeping the actual `cutState`/`contLoop`/clock guards as
+equation guards.  This is the loop analogue of `wordPathWork_seq`. -/
+theorem wordPathWork_loop {width : Nat} [NeZero width] {C F : Type}
+    (names : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec width))
+    (exitNames : WordLangNumSetHOL) (s : WordSemStateFiniteExact width C F) :
+    wordPathWork (.loop names body exitNames) s =
+      match cutState (names, .ln) s with
+      | none => 1
+      | some cutSource =>
+          1 + wordPathWork body cutSource +
+            (match evaluate body cutSource with
+             | (result, middle) =>
+                if wordSemContLoop result then
+                  (if _hc : middle.clock = 0 then 0
+                   else wordPathWork (wordSemSTOP (.loop names body exitNames))
+                     (decClock middle))
+                else 0) := by
+  rw [wordPathWork]
+  all_goals try simp
+  cases hs : cutState (names, .ln) s with
+  | none => rfl
+  | some cs =>
+      dsimp only
+      rw [fix_clock_evaluate]
+      try (cases run : evaluate body cs with
+        | mk result middle =>
+            dsimp only
+            rfl)
+
+/-- Loop step of the work transport: the cut state transports pointwise, the
+body's actual transported run returns the same result, and the STOP self-call
+transports at the decremented clock (both are induction hypotheses of the
+driver).  The `contLoop` guard and the clock guard read the same values. -/
+theorem wordPathWork_loop_variant {C F : Type}
+    (names : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (exitNames : WordLangNumSetHOL) (s : WordSemStateFiniteExact 64 C F)
+    (k : Nat → Nat → Nat) (xs : List (WordSemStackFrame 64))
+    (cs : WordSemStateFiniteExact 64 C F)
+    (hcs : cutState (names, .ln) s = some cs)
+    (hcsT : cutState (names, .ln) ({ s with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F) = some ({ cs with permute := k, stack := xs } :
+        WordSemStateFiniteExact 64 C F))
+    (res : Option (WordSemResult 64)) (s1 : WordSemStateFiniteExact 64 C F)
+    (k1 : Nat → Nat → Nat) (xs1 : List (WordSemStackFrame 64))
+    (runS : evaluate body cs = (res, s1))
+    (runT : evaluate body ({ cs with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F) = (res, { s1 with permute := k1, stack := xs1 }))
+    (ihBody : wordPathWork body ({ cs with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F) = wordPathWork body cs)
+    (ihStop : wordPathWork (.loop names body exitNames)
+      ({ decClock s1 with permute := k1, stack := xs1 } : WordSemStateFiniteExact 64 C F) =
+      wordPathWork (.loop names body exitNames) (decClock s1)) :
+    wordPathWork (.loop names body exitNames) ({ s with permute := k, stack := xs } :
+      WordSemStateFiniteExact 64 C F) =
+      wordPathWork (.loop names body exitNames) s := by
+  have hclock : ({ s1 with permute := k1, stack := xs1 } :
+      WordSemStateFiniteExact 64 C F).clock = s1.clock := rfl
+  have hdec : decClock ({ s1 with permute := k1, stack := xs1 } :
+      WordSemStateFiniteExact 64 C F) =
+      ({ decClock s1 with permute := k1, stack := xs1 } :
+        WordSemStateFiniteExact 64 C F) := rfl
+  rw [wordPathWork_loop, wordPathWork_loop, hcsT, hcs]
+  dsimp only
+  rw [runT, runS, ihBody, hclock, hdec]
+  simp only [wordSemSTOP]
+  by_cases hc : wordSemContLoop res
+  · rw [if_pos hc, if_pos hc]
+    by_cases hz : s1.clock = 0
+    · rw [dif_pos hz, dif_pos hz]
+    · rw [dif_neg hz, dif_neg hz, ihStop]
+  · rw [if_neg hc, if_neg hc]
+
+#print axioms wordPathWork_loop
+#print axioms wordPathWork_loop_variant
 #print axioms wordPathWork_mustTerminate_variant
 #print axioms wordPathWork_seq_variant
 #print axioms wordPathWork_ite_variant
