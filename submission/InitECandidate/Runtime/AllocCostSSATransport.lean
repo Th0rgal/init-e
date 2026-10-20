@@ -490,6 +490,357 @@ theorem wordPathWork_call_returning_other_variant {C F : Type}
 #print axioms wordPathWork_call_returning_other
 #print axioms wordPathWork_call_returning_exception_variant
 #print axioms wordPathWork_call_returning_other_variant
+
+/-! ### Terminal call paths, structure-exposing call lemma, and the driver -/
+
+/-- Any call whose argument read fails costs one node. -/
+theorem wordPathWork_call_getVars_none {C F : Type}
+    (ret : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (get : getVars args s = none) :
+    wordPathWork (.call ret dest args handler) s = 1 := by
+  rw [wordPathWork]
+  simp [get]
+
+/-- Any call with a bad destination/argument shape costs one node. -/
+theorem wordPathWork_call_badDest {C F : Type}
+    (ret : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (get : getVars args s = some xs) (bad : wordSemBadDestArgs dest args = true) :
+    wordPathWork (.call ret dest args handler) s = 1 := by
+  rw [wordPathWork]
+  simp [get, bad]
+
+/-- Any call whose code lookup fails costs one node. -/
+theorem wordPathWork_call_findCode_none {C F : Type}
+    (ret : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (get : getVars args s = some xs) (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest (wordSemAddRetLoc ret xs) s.code s.stackSize = none) :
+    wordPathWork (.call ret dest args handler) s = 1 := by
+  rw [wordPathWork]
+  simp [get, bad, find]
+
+/-- A returning call with a trivial cut-set name domain costs one node. -/
+theorem wordPathWork_call_returning_dom {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (get : getVars args s = some xs) (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (hdom : sptDomainEmpty names.1 ∨ ¬ values.Nodup) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s = 1 := by
+  rw [wordPathWork]
+  simp [get, bad, find, hdom]
+
+/-- A returning call whose cut-set environment lookup fails costs one node. -/
+theorem wordPathWork_call_returning_cut_none {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (get : getVars args s = some xs) (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (hcut : wordSemCutEnvs names s.locals = none) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s = 1 := by
+  rw [wordPathWork]
+  simp [get, bad, find, dom, nodup, hcut]
+
+/-- A returning call at zero clock costs one node. -/
+theorem wordPathWork_call_returning_clock_zero {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (get : getVars args s = some xs) (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock = 0) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s = 1 := by
+  rw [wordPathWork]
+  simp [get, bad, find, dom, nodup, cut, clock]
+
+
+/-- Fall-through of a returning call whose result lists do not line up: one
+node plus the callee body work. -/
+theorem wordPathWork_call_returning_result_fall {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (some (.result location returned), middle))
+    (hfall : location ≠ .loc l1 l2 ∨ returned.length ≠ values.length) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      1 + wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) := by
+  rw [wordPathWork]
+  simp only [get]
+  rw [bad, if_neg (by simp)]
+  rw [find]
+  dsimp only
+  rw [if_neg (by simp [dom, nodup])]
+  rw [cut]
+  dsimp only
+  rw [dif_neg clock]
+  rw [run]
+  dsimp only
+  rw [if_pos hfall]
+  omega
+
+/-- Fall-through of a returning call whose environment pop fails. -/
+theorem wordPathWork_call_returning_result_pop_none {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (some (.result location returned), middle))
+    (popS : popEnv middle = none)
+    (locEq : location = .loc l1 l2) (lenEq : returned.length = values.length) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      1 + wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) := by
+  rw [wordPathWork]
+  simp only [get]
+  rw [bad, if_neg (by simp)]
+  rw [find]
+  dsimp only
+  rw [if_neg (by simp [dom, nodup])]
+  rw [cut]
+  dsimp only
+  rw [dif_neg clock]
+  rw [run]
+  dsimp only
+  rw [if_neg (by simp [locEq, lenEq])]
+  split <;> simp_all
+
+/-- Fall-through of a returning call whose return environment is not related
+to the cut environments. -/
+theorem wordPathWork_call_returning_result_union_false {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle popped : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (some (.result location returned), middle))
+    (popS : popEnv middle = some popped)
+    (locEq : location = .loc l1 l2) (lenEq : returned.length = values.length)
+    (hunion : ¬ sptDomainEqUnion popped.locals envs.1 envs.2) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      1 + wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) := by
+  rw [wordPathWork]
+  simp only [get]
+  rw [bad, if_neg (by simp)]
+  rw [find]
+  dsimp only
+  rw [if_neg (by simp [dom, nodup])]
+  rw [cut]
+  dsimp only
+  rw [dif_neg clock]
+  rw [run]
+  dsimp only
+  rw [if_neg (by simp [locEq, lenEq])]
+  split <;> simp_all
+
+/-- Fall-through of a returning call whose exception has no handler. -/
+theorem wordPathWork_call_returning_exception_unhandled {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (location value : WordLocW 64)
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (some (.exception location value), middle))
+    (handl : handler = none) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      1 + wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) := by
+  rw [wordPathWork]
+  simp only [get]
+  rw [bad, if_neg (by simp)]
+  rw [find]
+  dsimp only
+  rw [if_neg (by simp [dom, nodup])]
+  rw [cut]
+  dsimp only
+  rw [dif_neg clock]
+  rw [run]
+  dsimp only
+  rw [handl]
+  try dsimp only
+  omega
+
+/-- Fall-through of a returning call whose exception location does not match
+its handler. -/
+theorem wordPathWork_call_returning_exception_fall {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (location value : WordLocW 64)
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (some (.exception location value), middle))
+    (handl : handler = some (reg, handlerCode, h1, h2))
+    (hloc : location ≠ .loc h1 h2) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      1 + wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) := by
+  rw [wordPathWork]
+  simp only [get]
+  rw [bad, if_neg (by simp)]
+  rw [find]
+  dsimp only
+  rw [if_neg (by simp [dom, nodup])]
+  rw [cut]
+  dsimp only
+  rw [dif_neg clock]
+  rw [run]
+  dsimp only
+  rw [handl]
+  try dsimp only
+  rw [if_pos hloc]
+  omega
+
+/-- Fall-through of a returning call whose handler environment is not related
+to the cut environments. -/
+theorem wordPathWork_call_returning_exception_union_false {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (location value : WordLocW 64)
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (some (.exception location value), middle))
+    (handl : handler = some (reg, handlerCode, h1, h2))
+    (locEq : location = .loc h1 h2)
+    (hunion : ¬ sptDomainEqUnion middle.locals envs.1 envs.2) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      1 + wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) := by
+  rw [wordPathWork]
+  simp only [get]
+  rw [bad, if_neg (by simp)]
+  rw [find]
+  dsimp only
+  rw [if_neg (by simp [dom, nodup])]
+  rw [cut]
+  dsimp only
+  rw [dif_neg clock]
+  rw [run]
+  dsimp only
+  rw [handl]
+  try dsimp only
+  rw [if_neg (by simp [locEq])]
+  try dsimp only
+  rw [if_neg hunion]
+  omega
+
+#print axioms wordPathWork_call_getVars_none
+#print axioms wordPathWork_call_badDest
+#print axioms wordPathWork_call_findCode_none
+#print axioms wordPathWork_call_returning_dom
+#print axioms wordPathWork_call_returning_cut_none
+#print axioms wordPathWork_call_returning_clock_zero
+#print axioms wordPathWork_call_returning_result_fall
+#print axioms wordPathWork_call_returning_result_pop_none
+#print axioms wordPathWork_call_returning_result_union_false
+#print axioms wordPathWork_call_returning_exception_unhandled
+#print axioms wordPathWork_call_returning_exception_fall
+#print axioms wordPathWork_call_returning_exception_union_false
 #print axioms wordPathWork_mustTerminate_variant
 #print axioms wordPathWork_seq_variant
 #print axioms wordPathWork_ite_variant
