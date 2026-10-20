@@ -35,5 +35,54 @@ theorem validate_headers_stored_roots_roomed_dec_clock {F : Type}
   · intro heap' binding
     exact room heap' binding
 
+
+/-- **The conditional ranked first loop.** Every outcome is bounded by the runtime body bound on
+the pointer-invariant projection, which needs no room; only normal iterations use the roomed
+preservation step; continue and break cannot occur.  The rank strictly decreases and the roomed
+invariant is preserved, so the ranked outcome follows with the invariant as its predicate. -/
+theorem validate_headers_stored_roots_roomed_loop_ranked (e : ValidateHeadersFirstEnvironment)
+    (hsAbove : e.ceiling ≤ e.hs.toNat)
+    (bufferBeforeHashes : e.hs.toNat + e.count.toNat * 8 ≤ e.hashes.toNat) :
+    ∀ rank, ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.code = originalRuntimeCode →
+      ValidateHeadersStoredRootsRoomedInvariant e s rank →
+      rank * (validateHeadersFirstIterationCost e.inputLimit + 1) ≤ s.clock →
+      RankedOutcome s validateHeadersFirstCondition
+        (rank * (validateHeadersFirstIterationCost e.inputLimit + 1))
+        (ValidateHeadersStoredRootsRoomedInvariant e) False
+        (evaluateHOLFiniteState s (.while validateHeadersFirstCondition validateHeadersFirstBody)) := by
+  apply rankedWhile_run validateHeadersFirstCondition validateHeadersFirstBody
+    (validateHeadersFirstIterationCost e.inputLimit) (ValidateHeadersStoredRootsRoomedInvariant e) False
+  · intro F s valid w condition
+    exact validate_headers_first_invariant_exit e s valid.1.1.1 w condition
+  · intro F s n w code valid condition nonzero budget
+    have ticked := validate_headers_first_invariant_dec_clock e s (n+1) valid.1.1.1
+    have tickedRoom := validate_headers_stored_roots_roomed_dec_clock e s (n+1) valid
+    have tickCondition : evalHOLFinite (decClockHOLFinite s)
+        (h := fun a => Classical.propDecidable ((decClockHOLFinite s).memaddrs a))
+        validateHeadersFirstCondition = some (.val (.word w)) := by
+      rw [evalHOLFinite_eq_toExact] at condition ⊢
+      simpa [validateHeadersFirstCondition,evalHOLExact,decClockHOLFinite] using condition
+    have bodyBudget : validateHeadersFirstIterationCost e.inputLimit ≤ (decClockHOLFinite s).clock := by
+      change validateHeadersFirstIterationCost e.inputLimit ≤ s.clock - 1
+      omega
+    have bounded := runBounded_validate_headers_first_invariant_body e (decClockHOLFinite s) (n+1)
+      ticked code w tickCondition nonzero bodyBudget
+    have controls := validate_headers_first_body_no_loop_control (decClockHOLFinite s)
+    refine ⟨bounded.1,bounded.2.1,bounded.2.2,?_,?_⟩
+    · intro flow
+      have normal := flow.resolve_right controls.1
+      have run : evaluateHOLFiniteState (decClockHOLFinite s) validateHeadersFirstBody =
+          (none,(evaluateHOLFiniteState (decClockHOLFinite s) validateHeadersFirstBody).2) :=
+        Prod.ext normal rfl
+      obtain ⟨m,smaller,nextInvariant⟩ := validate_headers_stored_roots_roomed_step e
+        (decClockHOLFinite s) _ (n+1) hsAbove bufferBeforeHashes tickedRoom code w tickCondition
+        nonzero bodyBudget run
+      exact ⟨m,by omega,nextInvariant,
+        (evaluateHOLFiniteState_metadata (decClockHOLFinite s) validateHeadersFirstBody).1⟩
+    · intro broken
+      exact (controls.2 broken).elim
+
+#print axioms validate_headers_stored_roots_roomed_loop_ranked
+
 #print axioms validate_headers_stored_roots_roomed_dec_clock
 end InitECandidate.Runtime
