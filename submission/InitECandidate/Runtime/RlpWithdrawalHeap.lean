@@ -120,7 +120,9 @@ theorem rlpEncodeWithdrawal_other_globals {F : Type} (t base : PanSemStateFinite
       (some (.returned value),base)) :
     base.globals.lookup name = t.globals.lookup name := by
   rw [rlpEncodeWithdrawal_returned_globals t base B value heap code clock run]
-  simp only [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,apart]
+  by_cases same : ofString "heap_ptr" = name
+  · exact absurd same.symm apart
+  · simp [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,same]
 
 #print axioms rlpEncodeWithdrawal_returned_globals
 #print axioms rlpEncodeWithdrawal_heap
