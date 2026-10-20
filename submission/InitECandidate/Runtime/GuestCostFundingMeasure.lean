@@ -97,21 +97,26 @@ theorem charge_gas_call_positive_progress (state : PanSemStateFiniteExact 64 Gue
     arguments installed clock hFrame leftDomain usedDomain memory budget enough
   omega
 
-/-- Amortized loop budget stated directly in the guest's consumed-gas measure:
+/-- Amortized loop budget stated directly in the guest's consumed-gas measure,
+restricted to the allowed (funded, laid-out, reachable) states `I`:
 the loop's executed work is at most `(C + B + D) * (used increase) + (B + D)`,
 where `B` is the per-run terminal/rejection prefix that need not have charged
 gas, and the global funding budget turns the increase into a uniform ceiling. -/
 theorem guest_loop_gas_budget (coeff : Work) (C B D : Nat) (frame : BitVec 64)
+    (I : PanSemStateFiniteExact 64 Guest.HostMemory → Prop)
+    (clockStep : ∀ state : PanSemStateFiniteExact 64 Guest.HostMemory,
+      I state → I (decClockHOLFinite state))
     {s : PanSemStateFiniteExact 64 Guest.HostMemory} {condition : ExpHOL 64} {body : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 Guest.HostMemory}
     {events : List WorkEvent}
     (run : StatementRun s (.while condition body) r post events)
-    (amortized : @GasAmortizedBody Guest.HostMemory coeff condition body
+    (initial : I s)
+    (amortized : @GasAmortizedBody Guest.HostMemory coeff condition body I
       (fun state => guestFrameUsed state frame) C B D) :
     coeff.score (executionWork events) ≤
       (C + B + D) * (guestFrameUsed post frame - guestFrameUsed s frame) + (B + D) ∧
     guestFrameUsed s frame ≤ guestFrameUsed post frame :=
-  while_gas_budget_memory coeff (guestUsedRead frame) C B D run amortized
+  while_gas_budget_memory coeff (guestUsedRead frame) I C B D clockStep run initial amortized
 
 #print axioms charge_gas_call_progress
 #print axioms charge_gas_call_positive_progress

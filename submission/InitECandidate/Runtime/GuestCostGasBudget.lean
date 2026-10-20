@@ -59,18 +59,27 @@ and every body run costs at most `C` per consumed unit plus one fixed prefix `B`
 
 The second record is the fixed per-iteration overhead: the loop statement entry
 together with the guard expression's own events costs at most `D`. The guard is
-charged on every evaluation, including the final false one. -/
+charged on every evaluation, including the final false one.
+
+Both records are restricted to the allowed states `I` — the funded, laid-out,
+code-installed and reachable states the real guest actually runs in. An
+all-states contract is not dischargeable from the funded-state lemmas: on an
+arbitrary memory the `used` cell can wrap, the code table need not contain
+`charge_gas`, and the typed cells need not exist. `I` is preserved on every
+continuing successor, so the recursive loop run stays inside it. -/
 def GasAmortizedBody (coeff : Work) (condition : ExpHOL 64) (loopBody : ProgHOL 64)
+    (I : PanSemStateFiniteExact 64 F → Prop)
     (μ : PanSemStateFiniteExact 64 F → Nat) (C B D : Nat) : Prop :=
   (∀ (state middle : PanSemStateFiniteExact 64 F)
       (result : Option (PanSemResultExact 64)) (events : List WorkEvent),
-      StatementRun state loopBody result middle events →
+      I state → StatementRun state loopBody result middle events →
         μ state ≤ μ middle ∧
         (result = none ∨ result = some .continue → μ state + 1 ≤ μ middle) ∧
+        (result = none ∨ result = some .continue → I middle) ∧
         coeff.score (executionWork events) ≤ C * (μ middle - μ state) + B) ∧
   (∀ (state : PanSemStateFiniteExact 64 F) (value : Option (ValueHOL 64))
       (events : List WorkEvent),
-      CostedExpressionRun state condition value events →
+      I state → CostedExpressionRun state condition value events →
         coeff.score (executionWork (WorkEvent.statement :: events)) ≤ D)
 
 /-- Program-indexed loop budget: the amortized statement for a loop program, and
@@ -93,7 +102,8 @@ no program, frame, ROM or bitmap size, and no `2^64` fallback, appears. Terminal
 paths (break, propagating result, timeout, malformed guard) keep their executed
 prefix. -/
 theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F → Nat)
-    (C B D : Nat)
+    (I : PanSemStateFiniteExact 64 F → Prop) (C B D : Nat)
+    (clockStep : ∀ state : PanSemStateFiniteExact 64 F, I state → I (decClockHOLFinite state))
     (clockInvariant : ∀ state : PanSemStateFiniteExact 64 F,
       μ (decClockHOLFinite state) = μ state)
     (resetInvariant : ∀ state : PanSemStateFiniteExact 64 F,
@@ -101,8 +111,9 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
     {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F}
     {events : List WorkEvent} (run : StatementRun s p r post events)
+    (initial : I s)
     (amortized : ∀ (condition : ExpHOL 64) (body : ProgHOL 64), p = .while condition body →
-      GasAmortizedBody coeff condition body μ C B D) :
+      GasAmortizedBody coeff condition body I μ C B D) :
     LoopBudget coeff μ C B D s post events p := by
   induction run with
   | skip => trivial
@@ -115,7 +126,7 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
   | @whileFalse state condition body guardEvents guard =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
-    have guardBound := guards _ _ _ guard
+    have guardBound := guards _ _ _ initial guard
     have splitGuard := executionWork_score_cons coeff .statement guardEvents
     refine ⟨?_, Nat.le_refl _⟩
     rw [Nat.sub_self, Nat.mul_zero]
@@ -124,11 +135,12 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
       guard nonzero clock one rest ihOne ihRest =>
     simp only [LoopBudget]
     obtain ⟨steps, guards⟩ := amortized _ _ rfl
-    obtain ⟨stepMono, stepProgress, stepCost⟩ := steps _ _ _ _ one
-    obtain ⟨restBound, restMono⟩ := ihRest amortized
+    obtain ⟨stepMono, stepProgress, stepPreserve, stepCost⟩ :=
+      steps _ _ _ _ (clockStep state initial) one
+    obtain ⟨restBound, restMono⟩ := ihRest (stepPreserve (by simp)) amortized
     simp only [clockInvariant] at stepMono stepProgress stepCost
-    have progress : μ state + 1 ≤ μ middle := stepProgress (Or.inl trivial)
-    have guardBound := guards _ _ _ guard
+    have progress : μ state + 1 ≤ μ middle := stepProgress (by simp)
+    have guardBound := guards _ _ _ initial guard
     have splitGuard := executionWork_score_cons coeff .statement guardEvents
     have splitStatement := executionWork_score_cons coeff .statement (guardEvents ++ bodyEvents ++ restEvents)
     have splitFirst := executionWork_score_append coeff guardEvents (bodyEvents ++ restEvents)
@@ -143,11 +155,12 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
       guard nonzero clock one rest ihOne ihRest =>
     simp only [LoopBudget]
     obtain ⟨steps, guards⟩ := amortized _ _ rfl
-    obtain ⟨stepMono, stepProgress, stepCost⟩ := steps _ _ _ _ one
-    obtain ⟨restBound, restMono⟩ := ihRest amortized
+    obtain ⟨stepMono, stepProgress, stepPreserve, stepCost⟩ :=
+      steps _ _ _ _ (clockStep state initial) one
+    obtain ⟨restBound, restMono⟩ := ihRest (stepPreserve (by simp)) amortized
     simp only [clockInvariant] at stepMono stepProgress stepCost
-    have progress : μ state + 1 ≤ μ middle := stepProgress (Or.inr trivial)
-    have guardBound := guards _ _ _ guard
+    have progress : μ state + 1 ≤ μ middle := stepProgress (by simp)
+    have guardBound := guards _ _ _ initial guard
     have splitGuard := executionWork_score_cons coeff .statement guardEvents
     have splitStatement := executionWork_score_cons coeff .statement (guardEvents ++ bodyEvents ++ restEvents)
     have splitFirst := executionWork_score_append coeff guardEvents (bodyEvents ++ restEvents)
@@ -161,9 +174,10 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
   | @whileBreak state condition body value guardEvents post bodyEvents guard nonzero clock one =>
     simp only [LoopBudget]
     obtain ⟨steps, guards⟩ := amortized _ _ rfl
-    obtain ⟨stepMono, stepProgress, stepCost⟩ := steps _ _ _ _ one
+    obtain ⟨stepMono, stepProgress, stepPreserve, stepCost⟩ :=
+      steps _ _ _ _ (clockStep state initial) one
     simp only [clockInvariant] at stepMono stepCost
-    have guardBound := guards _ _ _ guard
+    have guardBound := guards _ _ _ initial guard
     have splitGuard := executionWork_score_cons coeff .statement guardEvents
     have splitStatement := executionWork_score_cons coeff .statement (guardEvents ++ bodyEvents)
     have splitFirst := executionWork_score_append coeff guardEvents bodyEvents
@@ -176,7 +190,7 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
   | @whileTimeout state condition body value guardEvents guard nonzero clock =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
-    have guardBound := guards _ _ _ guard
+    have guardBound := guards _ _ _ initial guard
     have splitGuard := executionWork_score_cons coeff .statement guardEvents
     refine ⟨?_, by simpa only [resetInvariant] using Nat.le_refl (μ state)⟩
     simp only [resetInvariant]
@@ -185,7 +199,7 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
   | @whileMissingGuard state condition body guardEvents guard =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
-    have guardBound := guards _ _ _ guard
+    have guardBound := guards _ _ _ initial guard
     have splitGuard := executionWork_score_cons coeff .statement guardEvents
     refine ⟨?_, Nat.le_refl _⟩
     rw [Nat.sub_self, Nat.mul_zero]
@@ -194,9 +208,10 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
       guard nonzero clock notBreak notContinue one =>
     simp only [LoopBudget]
     obtain ⟨steps, guards⟩ := amortized _ _ rfl
-    obtain ⟨stepMono, stepProgress, stepCost⟩ := steps _ _ _ _ one
+    obtain ⟨stepMono, stepProgress, stepPreserve, stepCost⟩ :=
+      steps _ _ _ _ (clockStep state initial) one
     simp only [clockInvariant] at stepMono stepCost
-    have guardBound := guards _ _ _ guard
+    have guardBound := guards _ _ _ initial guard
     have splitGuard := executionWork_score_cons coeff .statement guardEvents
     have splitStatement := executionWork_score_cons coeff .statement (guardEvents ++ bodyEvents)
     have splitFirst := executionWork_score_append coeff guardEvents bodyEvents
@@ -243,7 +258,7 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
   | @whileInvalidGuard state condition body value events guard invalid =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
-    have guardBound := guards _ _ _ guard
+    have guardBound := guards _ _ _ initial guard
     have splitGuard := executionWork_score_cons coeff .statement events
     refine ⟨?_, Nat.le_refl _⟩
     rw [Nat.sub_self, Nat.mul_zero]
@@ -265,7 +280,8 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
 
 /-- Gas amortization for one complete loop run. -/
 theorem while_gas_budget (coeff : Work) (μ : PanSemStateFiniteExact 64 F → Nat)
-    (C B D : Nat)
+    (I : PanSemStateFiniteExact 64 F → Prop) (C B D : Nat)
+    (clockStep : ∀ state : PanSemStateFiniteExact 64 F, I state → I (decClockHOLFinite state))
     (clockInvariant : ∀ state : PanSemStateFiniteExact 64 F,
       μ (decClockHOLFinite state) = μ state)
     (resetInvariant : ∀ state : PanSemStateFiniteExact 64 F,
@@ -273,14 +289,12 @@ theorem while_gas_budget (coeff : Work) (μ : PanSemStateFiniteExact 64 F → Na
     {s : PanSemStateFiniteExact 64 F} {condition : ExpHOL 64} {body : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F}
     {events : List WorkEvent} (run : StatementRun s (.while condition body) r post events)
-    (amortized : GasAmortizedBody coeff condition body μ C B D) :
+    (initial : I s)
+    (amortized : GasAmortizedBody coeff condition body I μ C B D) :
     coeff.score (executionWork events) ≤ (C + B + D) * (μ post - μ s) + (B + D) ∧
     μ s ≤ μ post :=
-  while_gas_budget_core coeff μ C B D clockInvariant resetInvariant run
-    (fun condition body same => by
-      cases same
-      exact amortized)
-
+  while_gas_budget_core coeff μ I C B D clockStep clockInvariant resetInvariant run initial
+    (fun condition' body' same => by cases same; exact amortized)
 
 /-- A measure read from memory is untouched by the two state edits the exact
 loop semantics performs: `dec_clock` (clock only) and `empty_locals` (locals
@@ -298,23 +312,26 @@ theorem memory_measure_reset_invariant {σ : Type} [NeZero 64]
 which the guest's `GasFunding.used` counter enters the loop bound. -/
 theorem while_gas_budget_memory {σ : Type} [NeZero 64] (coeff : Work)
     (read : (RiscV.Word 64 → HolWordLab 64) → Nat)
-    (C B D : Nat)
+    (I : PanSemStateFiniteExact 64 σ → Prop) (C B D : Nat)
+    (clockStep : ∀ state : PanSemStateFiniteExact 64 σ, I state → I (decClockHOLFinite state))
     {s : PanSemStateFiniteExact 64 σ} {condition : ExpHOL 64} {body : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 σ}
     {events : List WorkEvent}
     (run : StatementRun s (.while condition body) r post events)
-    (amortized : @GasAmortizedBody σ coeff condition body (fun state => read state.memory) C B D) :
+    (initial : I s)
+    (amortized : @GasAmortizedBody σ coeff condition body I (fun state => read state.memory) C B D) :
     coeff.score (executionWork events) ≤
       (C + B + D) * (read post.memory - read s.memory) + (B + D) ∧
     read s.memory ≤ read post.memory :=
-  while_gas_budget coeff (fun state => read state.memory) C B D
-    (memory_measure_clock_invariant read) (memory_measure_reset_invariant read) run amortized
+  while_gas_budget coeff (fun state => read state.memory) I C B D clockStep
+    (memory_measure_clock_invariant read) (memory_measure_reset_invariant read) run initial amortized
 
 /-- Numeric ceiling: the run's executed work is at most `N` whenever the funding
 measure it consumed is at most `G` and `(C + D) * G + D ≤ N`. No program, frame,
 ROM or bitmap size appears, so this is a genuine per-site ceiling. -/
 theorem while_gas_ceiling (coeff : Work) (μ : PanSemStateFiniteExact 64 F → Nat)
-    (C B D G N : Nat)
+    (I : PanSemStateFiniteExact 64 F → Prop) (C B D G N : Nat)
+    (clockStep : ∀ state : PanSemStateFiniteExact 64 F, I state → I (decClockHOLFinite state))
     (clockInvariant : ∀ state : PanSemStateFiniteExact 64 F,
       μ (decClockHOLFinite state) = μ state)
     (resetInvariant : ∀ state : PanSemStateFiniteExact 64 F,
@@ -322,10 +339,12 @@ theorem while_gas_ceiling (coeff : Work) (μ : PanSemStateFiniteExact 64 F → N
     {s : PanSemStateFiniteExact 64 F} {condition : ExpHOL 64} {body : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F}
     {events : List WorkEvent} (run : StatementRun s (.while condition body) r post events)
-    (amortized : GasAmortizedBody coeff condition body μ C B D)
+    (initial : I s)
+    (amortized : GasAmortizedBody coeff condition body I μ C B D)
     (budget : μ post ≤ G) (ceiling : (C + B + D) * G + (B + D) ≤ N) :
     coeff.score (executionWork events) ≤ N := by
-  obtain ⟨bound, mono⟩ := while_gas_budget coeff μ C B D clockInvariant resetInvariant run amortized
+  obtain ⟨bound, mono⟩ := while_gas_budget coeff μ I C B D clockStep clockInvariant
+    resetInvariant run initial amortized
   have consumed : μ post - μ s ≤ G := by omega
   have monoCost : (C + B + D) * (μ post - μ s) ≤ (C + B + D) * G :=
     Nat.mul_le_mul_left _ consumed
