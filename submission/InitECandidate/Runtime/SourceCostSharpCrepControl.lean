@@ -201,7 +201,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       compiled_guard guard.sound rel.state rel.code rel.locals localised.1
     have guardBound := guard_paid_sharp guard rel checked.1 compiled
     rw [compile_while_eq_sharp context compiled]
-    refine ⟨2 + 2 + loopNodePrice ce, CrepWorkS.whileExit ?_, ?_⟩
+    refine ⟨2 + 2 + 2 + loopNodePrice ce, CrepWorkS.whileExit ?_, ?_⟩
     · intro word hw
       rw [guardValue] at hw
       simp only [Option.some.injEq, HolWordLab.word.injEq] at hw
@@ -218,7 +218,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     have guardBound := guard_paid_sharp guard rel checked.1 compiled
     have targetClock : t.clock = 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
     rw [compile_while_eq_sharp context compiled]
-    refine ⟨2 + 2 + loopNodePrice ce, CrepWorkS.whileTimeout guardValue nonzero targetClock, ?_⟩
+    refine ⟨2 + 2 + 2 + loopNodePrice ce, CrepWorkS.whileTimeout guardValue nonzero targetClock, ?_⟩
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_nil]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound ⊢
     omega
@@ -246,7 +246,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       ihRest t1 context result ⟨state1, code1, exceptions1, locals1⟩ localisedWhole
         checkedWhole controlWhole (by rw [run_code_sharp one]; exact codeOk)
     rw [compile_while_eq_sharp context compiled] at workRest ⊢
-    refine ⟨2 + 2 + loopNodePrice ce + wb + wr,
+    refine ⟨2 + 2 + 2 + loopNodePrice ce + wb + wr,
       CrepWorkS.whileLoop guardValue nonzero targetClock workBody run1 (Or.inl rfl) workRest, ?_⟩
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_nil]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody boundRest ⊢
@@ -275,7 +275,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       ihRest t1 context result ⟨state1, code1, exceptions1, locals1⟩ localisedWhole
         checkedWhole controlWhole (by rw [run_code_sharp one]; exact codeOk)
     rw [compile_while_eq_sharp context compiled] at workRest ⊢
-    refine ⟨2 + 2 + loopNodePrice ce + wb + wr,
+    refine ⟨2 + 2 + 2 + loopNodePrice ce + wb + wr,
       CrepWorkS.whileLoop guardValue nonzero targetClock workBody run1 (Or.inr rfl) workRest, ?_⟩
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_nil]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody boundRest ⊢
@@ -298,7 +298,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
         relBody.code relBody.exceptions relBody.locals localised.2
     obtain ⟨rfl, _⟩ := rel1
     rw [compile_while_eq_sharp context compiled]
-    refine ⟨2 + 2 + loopNodePrice ce + wb,
+    refine ⟨2 + 2 + 2 + loopNodePrice ce + wb,
       CrepWorkS.whileStop guardValue nonzero targetClock workBody run1 (by simp), ?_⟩
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_nil]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody ⊢
@@ -320,7 +320,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       compiled_source_run (decClockCrepSemHOL t) context one.sound result relBody.state
         relBody.code relBody.exceptions relBody.locals localised.2
     rw [compile_while_eq_sharp context compiled]
-    refine ⟨2 + 2 + loopNodePrice ce + wb,
+    refine ⟨2 + 2 + 2 + loopNodePrice ce + wb,
       CrepWorkS.whileStop guardValue nonzero targetClock workBody run1
         ⟨resultRel_some_ne_none rel1, resultRel_not_continue notContinue rel1⟩, ?_⟩
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_nil]

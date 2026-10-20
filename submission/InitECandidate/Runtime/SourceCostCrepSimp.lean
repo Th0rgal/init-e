@@ -257,7 +257,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
         have hw := exit w0 hev
         have hev' := crepSimp_exp t condition _ hev
         have := crepSimp_node_work condition
-        refine ⟨1 + 1 + crepNodeWork (crepSimpExpHOL condition), ?_, by omega⟩
+        refine ⟨1 + 1 + 1 + crepNodeWork (crepSimpExpHOL condition), ?_, by omega⟩
         simp only [crepSimpProgHOL]
         refine .whileExit (fun word h => ?_)
         rw [hev'] at h
@@ -266,7 +266,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
   | @whileTimeout t condition body word guard nonzero clock =>
     intro _
     have := crepSimp_node_work condition
-    exact ⟨1 + 1 + crepNodeWork (crepSimpExpHOL condition),
+    exact ⟨1 + 1 + 1 + crepNodeWork (crepSimpExpHOL condition),
       by simp only [crepSimpProgHOL]; exact .whileTimeout (crepSimp_exp t condition _ guard) nonzero clock,
       by omega⟩
   | @whileLoop t condition body word bodyWork result middle restWork guard nonzero clock one run
@@ -292,7 +292,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
     have run' := crepArithSimpProgCorrect body _ result middle run bodyOk
     simp only [crepSimpProgHOL] at hr
     have := crepSimp_node_work condition
-    exact ⟨1 + 1 + crepNodeWork (crepSimpExpHOL condition) + wb + wr,
+    exact ⟨1 + 1 + 1 + crepNodeWork (crepSimpExpHOL condition) + wb + wr,
       by simp only [crepSimpProgHOL]
          exact .whileLoop (crepSimp_exp t condition _ guard) nonzero clock hb run' again hr,
       by omega⟩
@@ -309,7 +309,7 @@ theorem crep_simp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64
     obtain ⟨wb, hb, bb⟩ := ihOne (by rw [run]; exact bodyOk)
     have run' := crepArithSimpProgCorrect body _ result middle run bodyOk
     have := crepSimp_node_work condition
-    exact ⟨1 + 1 + crepNodeWork (crepSimpExpHOL condition) + wb,
+    exact ⟨1 + 1 + 1 + crepNodeWork (crepSimpExpHOL condition) + wb,
       by simp only [crepSimpProgHOL]
          exact .whileStop (crepSimp_exp t condition _ guard) nonzero clock hb run' stop,
       by omega⟩

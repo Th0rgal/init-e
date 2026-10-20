@@ -75,7 +75,7 @@ theorem while_false_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCon
     {v1 : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64}
     (hev : evalCrepSemHOLExp v1 e = some (.word 0)) (rel : CrepLoopRel ctxt l v1 t) :
-    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.price e) := by
+    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.unit + P.price e) := by
   have unitOk := P.unitOk
   classical
   obtain ⟨hs, hm, hg, hc, hl⟩ := rel
@@ -133,7 +133,7 @@ theorem while_false_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCon
     simp [LoopSemStateFiniteExact.decClock, LoopSemStateFiniteExact.setVar]
   rw [hexit, ← hcomp] at loopWork
   have sound := LoopWork.sound loopWork
-  refine ⟨ck + 2, 1 + wB, ?_, by omega, ?_⟩
+  refine ⟨ck + 2, 3 + wB, ?_, by omega, ?_⟩
   · rw [sound]; exact loopWork
   · rw [sound, crepRun]
     refine ⟨h1s, h1m, h1g, h1c, rfl, ?_⟩
@@ -146,7 +146,7 @@ theorem while_timeout_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopC
     {e : CrepExpHOL 64} {c : CrepProgHOL 64} {w : BitVec 64}
     (hev : evalCrepSemHOLExp v1 e = some (.word w)) (hw : w ≠ 0) (hz : v1.clock = 0)
     (rel : CrepLoopRel ctxt l v1 t) :
-    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.price e) := by
+    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.unit + P.price e) := by
   have unitOk := P.unitOk
   classical
   obtain ⟨hs, hm, hg, hc, hl⟩ := rel
@@ -171,7 +171,7 @@ theorem while_timeout_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopC
          (.seq (compileHOLExact ctxt l c) (.continue 0)) (.break 0) l])) (liveOut := l) hcut
   rw [← hcomp] at loopWork
   have sound := LoopWork.sound loopWork
-  refine ⟨0, 1, ?_, by omega, ?_⟩
+  refine ⟨0, 3, ?_, by omega, ?_⟩
   · rw [sound]; exact loopWork
   · rw [sound, crepRun]
     exact ⟨hs, hm, hg, hc, rfl, trivial⟩
@@ -267,7 +267,7 @@ theorem while_loop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCont
     (ihBody : ∀ u', CrepLoopRel ctxt l (decClockCrepSemHOL v1) u' →
       LoopPaid ctxt l (decClockCrepSemHOL v1) u' c wb)
     (ihRest : ∀ u', CrepLoopRel ctxt l middle u' → LoopPaid ctxt l middle u' (.while e c) wr) :
-    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.price e + wb + wr) := by
+    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.unit + P.price e + wb + wr) := by
   have unitOk := P.unitOk
   classical
   have crepRun : evalCrepSemHOLProgExact v1 (.while e c) =
@@ -305,7 +305,7 @@ theorem while_loop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCont
   have loopWork := LoopWork.loopNext (hentryK (ck' + ck'')) workB (Or.inr rfl) workRest
   rw [← hcomp] at loopWork
   have sound := LoopWork.sound loopWork
-  refine ⟨ck + (ck' + ck''), 1 + wB + wr', ?_, by omega, ?_⟩
+  refine ⟨ck + (ck' + ck''), 3 + wB + wr', ?_, by omega, ?_⟩
   · rw [sound]; exact loopWork
   · rw [sound, crepRun]
     rw [hcomp]
@@ -323,7 +323,7 @@ theorem while_stop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCont
     (rel : CrepLoopRel ctxt l v1 t)
     (ihBody : ∀ u', CrepLoopRel ctxt l (decClockCrepSemHOL v1) u' →
       LoopPaid ctxt l (decClockCrepSemHOL v1) u' c wb) :
-    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.price e + wb) := by
+    LoopPaid ctxt l v1 t (.while e c) (P.unit + P.unit + P.unit + P.price e + wb) := by
   have unitOk := P.unitOk
   classical
   obtain ⟨r, rfl⟩ := Option.ne_none_iff_exists'.mp stop.1
@@ -385,7 +385,7 @@ theorem while_stop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCont
       simp [LoopSemStateFiniteExact.decClock]
     rw [hexit, ← hcomp] at loopWork
     have sound := LoopWork.sound loopWork
-    refine ⟨ck + (ck' + 1), 1 + wB, ?_, by omega, ?_⟩
+    refine ⟨ck + (ck' + 1), 3 + wB, ?_, by omega, ?_⟩
     · rw [sound]; exact loopWork
     · rw [sound, crepRun, if_pos rfl]
       exact ⟨h2s, h2m, h2g, h2c, rfl, loopWhile_locals_rel_inter ctxt l middle.locals t1.locals h2l'⟩
@@ -411,7 +411,7 @@ theorem while_stop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCont
       ⟨by simp, by simpa using hx0, by simpa using hx1⟩
     rw [← hcomp] at loopWork
     have sound := LoopWork.sound loopWork
-    refine ⟨ck + ck', 1 + wB, ?_, by omega, ?_⟩
+    refine ⟨ck + ck', 3 + wB, ?_, by omega, ?_⟩
     · simpa using (by rw [sound]; exact loopWork : _)
     · rw [sound, crepRun, if_neg hr1]
       refine ⟨h2s, h2m, h2g, h2c, ?_, loopWhile_localsResultRel_exitLoop ctxt l _ _ r h2l⟩
