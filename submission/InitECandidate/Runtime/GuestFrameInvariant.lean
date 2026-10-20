@@ -176,6 +176,21 @@ theorem opAddYEntry_clock (s : PanSemStateFiniteExact 64 Guest.HostMemory)
     emptyLocalsHOLFinite, setVarHOLFinite, setKvarHOLFinite, callEntryStateHOLFinite]
   omega
 
+
+/-- A pointer store never touches an operand word below the frame. -/
+theorem stackPopStored_memory_below {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (frame sp address : BitVec 64) (below : address.toNat < frame.toNat)
+    (extent : frame.toNat + 280 ≤ 2 ^ 64) :
+    (stackPopStored s frame sp).memory address = s.memory address := by
+  apply stackPopStored_memory_ne
+  intro equal
+  rw [equal] at below
+  have hframe : frame.toNat + 16 < 2 ^ 64 := by omega
+  have natural : (frame + 16).toNat = frame.toNat + 16 :=
+    BitVec.toNat_add_of_lt hframe
+  omega
+
+#print axioms stackPopStored_memory_below
 #print axioms opAddXEntry_memory_ne
 #print axioms opAddYEntry_memory_ne
 #print axioms opAddXEntry_clock
