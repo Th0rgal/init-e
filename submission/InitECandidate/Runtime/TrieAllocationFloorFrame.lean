@@ -22,6 +22,18 @@ theorem TrieAllocationFloor.after_record_fields {F : Type} {s post : PanSemState
  · exact (headerFrame 32 (Or.inl rfl)).symm.trans keyAt
  · exact (headerFrame 40 (Or.inr rfl)).symm.trans lenAt
 
+/-- Clock and lexical-scope restoration do not change allocation ownership. -/
+theorem TrieAllocationFloor.after_memory {F : Type} {s post : PanSemStateFiniteExact 64 F}
+ {live branches : Set (BitVec 64)} {floor : Nat}
+ (lower : TrieAllocationFloor s live branches floor) (memory : post.memory=s.memory) :
+ TrieAllocationFloor post live branches floor := by
+ refine ⟨lower.records,?_⟩
+ intro node member nonBranch key len keyAt lenAt
+ rw [memory] at keyAt lenAt
+ exact lower.keys node member nonBranch key len keyAt lenAt
+
+#print axioms TrieAllocationFloor.after_memory
+
 /-- Slicing a real path inside its nonwrapping extent cannot move its start
 below the original allocation floor. -/
 theorem trie_path_slice_above_floor (key len : BitVec 64) (floor offset : Nat)
