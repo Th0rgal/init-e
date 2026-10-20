@@ -186,3 +186,26 @@ success assumption; a failed allocation leaves the frontier unchanged, and each 
 justified by `wd_alloc_success_nowrap` from the allocator's own request guard. In that reading `cap` is
 the arithmetic form of "the frontier stays under `HEAP_END` while it advances", not a future-room
 assumption.
+
+### Stage 5 — end-to-end source endpoint
+
+New in `HeaderWithdrawalCountBound` (all checked, `[propext, Classical.choice, Quot.sound]`):
+- `wd_slice_size_value`: statement 44's request size `nwd * 16 + 16` has machine value
+  `16 * nwd + 16` when the product does not wrap.
+- `wd_slice_loop_entry_kit`: the loop-entry state is the statement 43 entry state plus `nwd` and
+  `i := 0`, with memory, address domain, code and globals untouched.
+- `WdSliceArena`: the state statement 44's allocator call produces (same locals/memory/domain/code,
+  new `wd_rlp_slices` and `heap_ptr`).
+- `payloadHeader46_window_from_entry_state`: statement 46's window from the statement 43 entry state
+  plus an explicitly allocated `ready` state — the `i`/`nwd`/`pl`/`e` bindings, arena globals, code,
+  the count bound, the arena alignment and `sizeEq` are all derived.
+- `payloadHeader46_window_from_source`: the end-to-end theorem. Running the **actual** statement 44
+  call on the declaration state yields `∃ ready, WdSliceArena … ∧ tail ∧ window`; the statement 47
+  tail is supplied as a hypothesis uniformly over every allocated state
+  (`tailOk : ∀ ready, WdSliceArena … → tail`), which is exactly what the root statement 47 lemma
+  proves for the post-allocation state.
+
+Remaining inputs of the end-to-end theorem: the payload struct's slice entry, the count value/guard,
+`sizeVal`/`sizeFit`, the pre-allocation frontier alignment `alSlices`, the cap, the old global values,
+the clock, the argument evaluation, `pl`/`e` bindings, the original code, the prologue separation and
+`w`'s position — all real source facts; no future heap room, no all-byte-domain premise.
