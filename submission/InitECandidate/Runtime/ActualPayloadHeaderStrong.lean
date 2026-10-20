@@ -59,7 +59,8 @@ theorem actual_payload_header_strong_prefix_reaches {F : Type}
     (pointerBound : pointer.toNat ≤ 33806089496)
     (budget : 2 ≤ state.clock) :
     Reaches state (actualPayloadHeaderAt 0)
-      (ActualPayloadHeaderBaseFacts state · pl raw pointer (allocationEnd pointer (248#64))) 2
+      (fun post => ActualPayloadHeaderBaseFacts state post pl raw pointer
+          (allocationEnd pointer (248#64)) ∧ pointer.toNat + 248 ≤ 33806089496) 2
       (actualPayloadHeaderAt 3) := by
   have first : Reaches state (actualPayloadHeaderAt 0)
       (fun next => next = setVarHOLFinite (ofString "pl") (.val (.word pl)) state) 0
@@ -131,7 +132,16 @@ theorem actual_payload_header_strong_prefix_reaches {F : Type}
         (by simpa [callEntryStateHOLFinite] using code2)
         (by simpa [callEntryStateHOLFinite] using heap2) sizeLocal value returned
     subst valueEq
-    refine ⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩
+    have capNat : (33806089496 : BitVec 64).toNat = 33806089496 := by decide
+    have fits : pointer.toNat + 248 ≤ 33806089496 := by
+      have le : (248#64).toNat ≤ ((33806089496 : BitVec 64) - pointer).toNat := BitVec.le_def.1 request
+      have sub := BitVec.toNat_sub_of_le (x := (33806089496 : BitVec 64)) (y := pointer) (by
+        show pointer.toNat ≤ (33806089496 : BitVec 64).toNat
+        rw [capNat]; exact pointerBound)
+      have sizeNat : (248#64).toNat = 248 := by decide
+      rw [sub, capNat, sizeNat] at le
+      omega
+    refine ⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩,fits⟩
     · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
     · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
     · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
@@ -166,7 +176,7 @@ theorem actual_payload_header_strong_memzero {F : Type} (state : PanSemStateFini
     (code : state.code = originalRuntimeCode)
     (heapGlobal : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
     (aligned : pointer.toNat % 8 = 0)
-    (fits : pointer.toNat + 248 ≤ 33806089496)
+    (pointerBound : pointer.toNat ≤ 33806089496)
     (wordDomain : ∀ offset : Nat, offset < 248 →
       state.memaddrs (pointer + BitVec.ofNat 64 offset))
     (byteDomain : ∀ offset : Nat, offset < 248 →
@@ -177,8 +187,8 @@ theorem actual_payload_header_strong_memzero {F : Type} (state : PanSemStateFini
           (allocationEnd pointer (248#64)) ∧ ZeroBytePrefix post pointer 248) 251
       (actualPayloadHeaderAt 4) := by
   rcases actual_payload_header_strong_prefix_reaches state si pl raw pointer siLocal siDomain siCell
-    plDomain plCell code heapGlobal (by omega) (by omega) with ⟨mid, typed, c1, c2, sc⟩ | ab
-  · obtain ⟨baseFacts, frame⟩ := typed
+    plDomain plCell code heapGlobal pointerBound (by omega) with ⟨mid, typed, c1, c2, sc⟩ | ab
+  · obtain ⟨⟨baseFacts, frame⟩, guard⟩ := typed
     have sizeNat : (248#64).toNat = 248 := by decide
     have arguments : evalListHOLFinite mid
         (h := fun address => Classical.propDecidable (mid.memaddrs address))
@@ -190,7 +200,7 @@ theorem actual_payload_header_strong_memzero {F : Type} (state : PanSemStateFini
       rw [baseFacts.2.2.2.2.2]; exact code
     obtain ⟨post, run, zeroed, spent, kept, globals, postCode, domain, be, locals, occupied⟩ :=
       evaluate_memzero_aligned_call mid (.var .local (ofString "h")) (.const (248#64)) pointer (248#64)
-        arguments codeMid (by omega) fits aligned
+        arguments codeMid (by omega) guard aligned
         (fun offset below => by rw [baseFacts.2.2.2.2.1]; exact wordDomain offset below)
         (fun offset below => by rw [baseFacts.2.2.2.2.1]; exact byteDomain offset below)
     have stage : Reaches mid (actualPayloadHeaderAt 3)
@@ -408,7 +418,7 @@ theorem actual_payload_header_strong_prefix_0_to_9 {F : Type}
     (code : state.code = originalRuntimeCode)
     (heapGlobal : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
     (aligned : pointer.toNat % 8 = 0)
-    (fits : pointer.toNat + 248 ≤ 33806089496)
+    (pointerBound : pointer.toNat ≤ 33806089496)
     (wordDomain : ∀ offset : Nat, offset < 248 →
       state.memaddrs (pointer + BitVec.ofNat 64 offset))
     (byteDomain : ∀ offset : Nat, offset < 248 →
@@ -419,7 +429,7 @@ theorem actual_payload_header_strong_prefix_0_to_9 {F : Type}
         post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))) ∧
         post.locals.lookup (ofString "tmp") = some (.val (.word (allocationEnd (allocationEnd pointer (248#64)) (32#64))))) 255 (actualPayloadHeaderAt 9) := by
   rcases actual_payload_header_strong_memzero state si pl raw pointer siLocal siDomain siCell
-    plDomain plCell code heapGlobal aligned fits wordDomain byteDomain (by omega) with
+    plDomain plCell code heapGlobal aligned pointerBound wordDomain byteDomain (by omega) with
     ⟨E, ⟨prefixFacts, zeroed⟩, c1, c2, sc⟩ | ab
   · rcases actual_payload_header_strong_stores state E pl raw pointer prefixFacts with
       ⟨G, pG, d1, d2, sd⟩ | ab2
@@ -737,7 +747,7 @@ theorem actual_payload_header_construction_0_to_40 {F : Type}
     (code : state.code = originalRuntimeCode)
     (heapGlobal : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
     (aligned : pointer.toNat % 8 = 0)
-    (fits : pointer.toNat + 248 ≤ 33806089496)
+    (pointerBound : pointer.toNat ≤ 33806089496)
     (wordDomain : ∀ offset : Nat, offset < 248 →
       state.memaddrs (pointer + BitVec.ofNat 64 offset))
     (byteDomain : ∀ offset : Nat, offset < 248 →
@@ -751,7 +761,7 @@ theorem actual_payload_header_construction_0_to_40 {F : Type}
         (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer)
           (8#64)) (32#64)) (32#64)) (32#64))) 419 (actualPayloadHeaderAt 40) := by
   rcases actual_payload_header_strong_prefix_0_to_9 state si pl raw pointer siLocal siDomain siCell
-    plDomain plCell code heapGlobal aligned fits wordDomain byteDomain (by omega) with
+    plDomain plCell code heapGlobal aligned pointerBound wordDomain byteDomain (by omega) with
     ⟨E, ⟨baseFacts, ohE, tmpE⟩, c1, c2, sc⟩ | ab
   · obtain ⟨baseE, frameE⟩ := baseFacts
     have commitE : ActualPayloadHeaderCommit state E pl raw pointer
