@@ -104,7 +104,8 @@ theorem aqgd_decCall_lstPush_pb {LP LP' : GA → Prop} {Q Q2 : GA → Mem → GA
     {cont : ProgHOL 64} (hWb : ∀ x, Wb x → BW n c Out Excl w x)
     (hOut : Out w) (hBk : Out (Bo + k) ∧ ¬ Excl (Bo + k) ∧ M0 (Bo + k) = .word Lh)
     (hE1 : 1 ≤ E.toNat) (hup : ∀ L v, LP L → LP' (L.update (name,v)))
-    (hR : ∀ (M M' : Mem) (G G' : GA) (H H' : BitVec 64), R M G → HeapIs G H → HeapIs G' H' → H.toNat ≤ H'.toNat →
+    (hR : ∀ (M M' : Mem) (G G' : GA) (H H' : BitVec 64), R M G → HeapIs G H → Hb.toNat ≤ H.toNat → HeapIs G' H' →
+      H.toNat ≤ H'.toNat →
       (∀ x, x.toNat < H.toNat → ¬ HdW Lh x → M' x = M x) → R M' G')
     (hcont : ∀ S : BitVec 64, AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
       (fun L M G => ((LP' L ∧ L.lookup name = some (.val (.word S))) ∧ PB n c T Out ko D B Excl Hb Nj M0 M G) ∧
@@ -195,7 +196,7 @@ theorem aqgd_decCall_lstPush_pb {LP LP' : GA → Prop} {Q Q2 : GA → Mem → GA
       (fun x hx => let b := hWb x (hW x hx); ⟨b.1,b.2.1,b.2.2.1⟩) (fun x hx hn => fr x (by omega) hn))
         ⟨Hc,hHc,by omega⟩ hn'⟩,
       ⟨⟨hW,hLb,Pn,N + 1#64,Cn,Hc,hd',hHc,by omega,by omega,hbuf',?_⟩,hd'.2.1,by omega⟩,⟨by omega,?_⟩,
-      hR M M' G G' H Hc r hH hHc le fr⟩,trivial⟩
+      hR M M' G G' H Hc r hH hbH hHc le fr⟩,trivial⟩
     · rcases alt with ⟨rfl,rfl⟩ | ⟨hp,_⟩
       · exact alt0
       · exact Or.inr (by omega)
