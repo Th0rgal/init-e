@@ -2277,4 +2277,41 @@ theorem evaluate_stack_swap_result_exception {C F : Type}
   rw [show (fun ys => evaluate c { s with stack := ys }) xs = evaluate c { s with stack := xs }
     from rfl] at hevT
   exact hevT
+
+/-! ### Driver cases (concrete reached states, pointwise IHs) -/
+
+theorem wordPathWork_seq_sValEq_stack_variant {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (res : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (st : List (WordSemStackFrame 64))
+    (hev : evaluate first s = (res, middle))
+    (hevT : evaluate first { s with stack := xs } = (res, { middle with stack := st }))
+    (hval : WordSemStackEq.sValEq middle.stack st)
+    (ihF : wordPathWork first { s with stack := xs } = wordPathWork first s)
+    (ihS : wordPathWork second
+        { (fixClock s ((none : Option (WordSemResult 64)), middle)).2 with stack := st } =
+      wordPathWork second (fixClock s ((none : Option (WordSemResult 64)), middle)).2)
+    (hne : (evaluate (.seq first second) s).1 ≠ some (WordSemResult.error)) :
+    wordPathWork (.seq first second) { s with stack := xs } =
+      wordPathWork (.seq first second) s := by
+  rw [wordPathWork, wordPathWork, ihF, hev, hevT, fixClock_swap_stack]
+  simp only [fixClock, Prod.fst]
+  cases res with
+  | none =>
+      exact congrArg (fun z => 1 + wordPathWork first s + z) ihS
+  | some r => rfl
+
+theorem wordPathWork_ite_sValEq_stack_variant {C F : Type}
+    (cmp : Cmp) (reg : Nat) (operand : WordRegImm (BitVec 64))
+    (first second : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (ih1 : wordPathWork first { s with stack := xs } = wordPathWork first s)
+    (ih2 : wordPathWork second { s with stack := xs } = wordPathWork second s) :
+    wordPathWork (.ite cmp reg operand first second) { s with stack := xs } =
+      wordPathWork (.ite cmp reg operand first second) s := by
+  rw [wordPathWork, wordPathWork, getVar_stack, getVarImm_stack]
+  split <;> simp_all
+
 end InitECandidate.Runtime.WordToStack
