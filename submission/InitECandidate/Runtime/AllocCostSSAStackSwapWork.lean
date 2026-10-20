@@ -1701,4 +1701,223 @@ theorem evaluate_loop_error_stop {C F : Type} (names : WordLangNumSetHOL)
       rw [hc]
       rw [dif_neg hz]
       exact h
+
+theorem evaluate_call_error_body {C F : Type}
+    (dest : Option Nat) (args : List Nat) (values : List Nat)
+    (names : WordLangCutsetsHOL) (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (middle : WordSemStateFiniteExact 64 C F)
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+        t.code t.stackSize = some (args1, prog, ss))
+    (hnd : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcut : wordSemCutEnvs names t.locals = some envs)
+    (hclk : t.clock ≠ 0)
+    (hfix : fixClock
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock t)))
+        (evaluate prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock t))))
+        = (some (WordSemResult.error), middle)) :
+    (evaluate (.call (some (values, names, retCode, l1, l2)) dest args handler) t).1 =
+      some (WordSemResult.error) := by
+  rw [evaluate]
+  try split
+  · rename_i h1
+    rw [hget] at h1
+    try cases h1
+  · rename_i locs1 h1
+    rw [hget] at h1
+    injection h1 with hx
+    try cases hx
+    rw [if_neg (by rw [hbad]; simp)]
+    try split
+    · rename_i h2
+      rw [hfind] at h2
+      try cases h2
+    · rename_i a1 p1 ss1 h2
+      have hinj : some (args1, prog, ss) = some (a1, p1, ss1) := hfind.symm.trans h2
+      simp only [Option.some.injEq, Prod.mk.injEq] at hinj
+      obtain ⟨rfl, rfl, rfl⟩ := hinj
+      try split
+      · rename_i hsome
+        simp at hsome
+      · rename_i v1 n1 rc1 m1 q1 hsome
+        have hinj2 : some (values, names, retCode, l1, l2) = some (v1, n1, rc1, m1, q1) := hsome
+        simp only [Option.some.injEq, Prod.mk.injEq] at hinj2
+        obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hinj2
+        rw [if_neg hnd]
+        try split
+        · rename_i h3
+          rw [hcut] at h3
+          try cases h3
+        · rename_i envs1 h3
+          rw [hcut] at h3
+          injection h3 with hx3
+          try cases hx3
+          rw [dif_neg hclk]
+          rw [hfix]
+
+theorem evaluate_call_error_ret {C F : Type}
+    (dest : Option Nat) (args : List Nat) (values : List Nat)
+    (names : WordLangCutsetsHOL) (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (middle popped : WordSemStateFiniteExact 64 C F)
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+        t.code t.stackSize = some (args1, prog, ss))
+    (hnd : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcut : wordSemCutEnvs names t.locals = some envs)
+    (hclk : t.clock ≠ 0)
+    (hfix : fixClock
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock t)))
+        (evaluate prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock t))))
+        = (some (.result location returned), middle))
+    (hnl : ¬ (location ≠ .loc l1 l2 ∨ returned.length ≠ values.length))
+    (hpop : popEnv middle = some popped)
+    (hdom : sptDomainEqUnion popped.locals envs.1 envs.2)
+    (h : (evaluate retCode (WordSemStateFiniteExact.setVars values returned popped)).1
+      = some (WordSemResult.error)) :
+    (evaluate (.call (some (values, names, retCode, l1, l2)) dest args handler) t).1 =
+      some (WordSemResult.error) := by
+  rw [evaluate]
+  try split
+  · rename_i h1
+    rw [hget] at h1
+    try cases h1
+  · rename_i locs1 h1
+    rw [hget] at h1
+    injection h1 with hx
+    try cases hx
+    rw [if_neg (by rw [hbad]; simp)]
+    try split
+    · rename_i h2
+      rw [hfind] at h2
+      try cases h2
+    · rename_i a1 p1 ss1 h2
+      have hinj : some (args1, prog, ss) = some (a1, p1, ss1) := hfind.symm.trans h2
+      simp only [Option.some.injEq, Prod.mk.injEq] at hinj
+      obtain ⟨rfl, rfl, rfl⟩ := hinj
+      try split
+      · rename_i hsome
+        simp at hsome
+      · rename_i v1 n1 rc1 m1 q1 hsome
+        have hinj2 : some (values, names, retCode, l1, l2) = some (v1, n1, rc1, m1, q1) := hsome
+        simp only [Option.some.injEq, Prod.mk.injEq] at hinj2
+        obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hinj2
+        rw [if_neg hnd]
+        try split
+        · rename_i h3
+          rw [hcut] at h3
+          try cases h3
+        · rename_i envs1 h3
+          rw [hcut] at h3
+          injection h3 with hx3
+          try cases hx3
+          rw [dif_neg hclk]
+          rw [hfix]
+          try dsimp only
+          try split
+          all_goals (try simp only [Prod.mk.injEq, Option.some.injEq, WordSemResult.result.injEq,
+            WordSemResult.exception.injEq] at *)
+          all_goals (try rw [if_neg hnl])
+          all_goals (try rw [hpop])
+          all_goals (try rw [if_pos hdom])
+          all_goals (try dsimp only [])
+          all_goals (try exact h)
+          all_goals simp_all
+
+theorem evaluate_call_error_handler {C F : Type}
+    (dest : Option Nat) (args : List Nat) (values : List Nat)
+    (names : WordLangCutsetsHOL) (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (location value : WordLocW 64)
+    (middle : WordSemStateFiniteExact 64 C F)
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+        t.code t.stackSize = some (args1, prog, ss))
+    (hnd : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcut : wordSemCutEnvs names t.locals = some envs)
+    (hclk : t.clock ≠ 0)
+    (hfix : fixClock
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock t)))
+        (evaluate prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock t))))
+        = (some (.exception location value), middle))
+    (hhand : handler = some (reg, handlerCode, h1, h2))
+    (hloc : location = .loc h1 h2)
+    (hdom : sptDomainEqUnion middle.locals envs.1 envs.2)
+    (h : (evaluate handlerCode (WordSemStateFiniteExact.setVar reg value middle)).1
+      = some (WordSemResult.error)) :
+    (evaluate (.call (some (values, names, retCode, l1, l2)) dest args handler) t).1 =
+      some (WordSemResult.error) := by
+  rw [evaluate]
+  try split
+  · rename_i h1'
+    rw [hget] at h1'
+    try cases h1'
+  · rename_i locs1 h1'
+    rw [hget] at h1'
+    injection h1' with hx
+    try cases hx
+    rw [if_neg (by rw [hbad]; simp)]
+    try split
+    · rename_i h2'
+      rw [hfind] at h2'
+      try cases h2'
+    · rename_i a1 p1 ss1 h2'
+      have hinj : some (args1, prog, ss) = some (a1, p1, ss1) := hfind.symm.trans h2'
+      simp only [Option.some.injEq, Prod.mk.injEq] at hinj
+      obtain ⟨rfl, rfl, rfl⟩ := hinj
+      try split
+      · rename_i hsome
+        simp at hsome
+      · rename_i v1 n1 rc1 m1 q1 hsome
+        have hinj2 : some (values, names, retCode, l1, l2) = some (v1, n1, rc1, m1, q1) := hsome
+        simp only [Option.some.injEq, Prod.mk.injEq] at hinj2
+        obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hinj2
+        rw [if_neg hnd]
+        try split
+        · rename_i h3
+          rw [hcut] at h3
+          try cases h3
+        · rename_i envs1 h3
+          rw [hcut] at h3
+          injection h3 with hx3
+          try cases hx3
+          rw [dif_neg hclk]
+          rw [hfix]
+          try dsimp only
+          try split
+          all_goals (try simp only [Prod.mk.injEq, Option.some.injEq, WordSemResult.result.injEq,
+            WordSemResult.exception.injEq] at *)
+          all_goals (try rw [hhand])
+          all_goals (try rw [if_pos hloc])
+          all_goals (try rw [if_pos hdom])
+          all_goals (try dsimp only [])
+          all_goals (try exact h)
+          all_goals simp_all
 end InitECandidate.Runtime.WordToStack
