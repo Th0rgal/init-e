@@ -301,8 +301,30 @@ axiom, `unsafe`, `native_decide` or `bv_decide`.
   whose argument read fails while the compiled argument move still succeeds:
   the SSA locals relation is one-directional, so that failing prefix is not
   bounded by this lemma and must be handled where the source run is known to
-  succeed (or by a separate reverse-direction argument).  Returning-call
-  handlers remain to be done the same way.
+  succeed (or by a separate reverse-direction argument).
+- The returning-call work transfer is now proved from the same expanded call
+  clause: `wordPathWork_call_returning_result` (source) and
+  `wordPathWork_compiled_call_returning_result` (compiled `seq` of stack move,
+  argument move and renamed call) decompose the call into the call node, the
+  actual callee-BODY work at the literal `callEnv` entries, and the actual
+  return-handler work at the literal post-call states;
+  `bodyWork_call_returning_result` then bounds the compiled work by the source
+  work plus the body transfer and the handler transfer (plus the four inserted
+  nodes).  No whole-call cost premise is used.  The remaining returning-call
+  obligation is the semantic alignment that instantiates those hypotheses from
+  `ssaCcTrans` (inserted-move runs, cut-env renaming, result/pop
+  correspondence); the public `returning*` lemmas provide the ingredients, and
+  the exception-handler branch is stated the same way.
+- `AllocCostSSATransport` starts the `PERM_STACK` work transport needed because
+  the SSA relation picks the source permutation existentially: the executed
+  work must be invariant under replacing the oracle and stack roots by a
+  `PERM_STACK`-related variant.  Proved step lemmas: `mustTerminate` (default
+  node), `.seq`, `.ite`, `.call` without return, and `.call` with a `result`
+  return (body and return-handler transfers as explicit induction
+  hypotheses).  Remaining: the `.loop` step, the exception branch of the
+  returning call, and the termination-measure driver mirroring `swap_aux`.
+  The step lemmas use `swap_aux`-style facts only through their hypotheses, so
+  the driver supplies the actual sub-runs; no evaluation premise is assumed.
 - `WordSimp`/`instSelect` selection is taken as the root participant's
   `selectionLeaves ≤ 2 * wordExpressionWork` bridge.  This note starts from the
   selected straight-line fragment and does not re-prove that bridge.
