@@ -86,6 +86,26 @@ theorem run_attempt_zero_header_entry_runBounded {F : Type} (s : PanSemStateFini
   rw [result]
   exact fun same => noTimeout budget (Option.some.inj same)
 
+
+/-- The same entry terminal stated on the decoder's own link contract: the witness array read from
+`si+72` holds the header pointer and the count read from `si+80` is zero.  This is the shape a
+decoder contract hands over, so no raw cell facts are needed. -/
+theorem run_attempt_zero_header_entry_terminal_linked {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (si payload array count input inputLength heap : BitVec 64) (code : s.code = originalRuntimeCode)
+    (atSi : s.locals.lookup (ofString "si") = some (.val (.word si)))
+    (siDomain : s.memaddrs (si + (0#64)))
+    (siCell : s.memory (si + (0#64)) = .word payload)
+    (linked : WitnessArrayLinked s si 72 80 array count input inputLength heap)
+    (zero : count = 0)
+    (heapGlobal : s.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)))
+    (capped : heap.toNat ≤ 33806089496) (budget : 8 ≤ s.clock) :
+    StAbort s (evaluateHOLFiniteState s (runAttemptAt 0)) 8 := by
+  subst zero
+  exact run_attempt_zero_header_entry_terminal s si payload array heap code atSi siDomain siCell
+    linked.pointerDomain linked.pointerCell linked.countDomain linked.countCell heapGlobal capped budget
+
+#print axioms run_attempt_zero_header_entry_terminal_linked
+
 #print axioms run_attempt_zero_header_entry_runBounded
 
 #print axioms run_attempt_zero_header_entry_terminal
