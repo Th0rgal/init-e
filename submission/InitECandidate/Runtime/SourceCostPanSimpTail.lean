@@ -68,7 +68,9 @@ theorem simpOk_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info functi
   intro s r post ev run ok
   cases run with
   | callDone args lookup clock bodyRun plan =>
-    exact ⟨_, .callDone args lookup clock bodyRun (simp_plan_map_done g plan), SimpWorkLe.refl _⟩
+    refine ⟨_, .callDone args lookup clock bodyRun (simp_plan_map_done g plan), ?_⟩
+    rw [callGlobalEvents_simpMapInfo]
+    exact SimpWorkLe.refl _
   | callHandler args lookup clock bodyRun plan handlerRun =>
     obtain ⟨plan', returns, exception, handlerVar, hinfo⟩ := simp_plan_map_handler g plan
     obtain ⟨e, r', le⟩ := hh returns exception handlerVar _ hinfo handlerRun ok

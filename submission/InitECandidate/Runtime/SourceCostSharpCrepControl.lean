@@ -337,6 +337,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       simp only [compileProgExactHOLW]
       refine sharp_bounded_paid_sharp (sharp_bounded_local_assign context name expression) ?_
       rw [length]
+      simp only [globalEvents]
       simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_nil]
       try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paid ⊢
       omega
@@ -421,6 +422,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     have bodyOk := call_body_ok_sharp plan resultOk
     have checkedArgs : sharpSitesList sharpReplayBound arguments = true := by
       rcases info with _ | ⟨dest, _ | ⟨a, b, c⟩⟩ <;> simp_all [sharpSitesProg]
+    rw [callGlobalEvents_localised localised, List.append_nil]
     exact call_done_transfer_sharp args lookup clock bodyRun plan resultOk rel localised checkedArgs
       (fun t' c' rel' loc' =>
         ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)

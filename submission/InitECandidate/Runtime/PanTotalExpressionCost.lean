@@ -22,7 +22,7 @@ mutual
     classical
     exact .expression :: (match e with
     | .const _ | .baseAddr | .topAddr | .bytesInWord => [.copy 1]
-    | .var _ _ => [.copy (resultWords s e)]
+    | .var kind _ => .copy (resultWords s e) :: globalEvents kind (resultWords s e)
     | .rstruct fields => expressionListEvents s fields ++ [.copy (resultWords s e)]
     | .rfield _ value | .nfield _ value =>
         expressionEvents s value ++ [.copy (resultWords s e)]

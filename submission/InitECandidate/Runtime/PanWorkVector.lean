@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.PanExecutionWork
 
 namespace InitECandidate.Runtime.FineCost
+open Flapjack Flapjack.Pancake.PanLang
 
 /-- Semantic work units. The compiler certificate supplies coefficients;
 these counters do not assume that one source operation is one native step. -/
@@ -14,6 +15,8 @@ structure Work where
   transferBytes : Nat := 0
   primitiveBlocks : Nat := 0
   nativeEvents : Nat := 0
+  globalAccesses : Nat := 0
+  globalWords : Nat := 0
   deriving DecidableEq, Repr
 
 def Work.plus (a b : Work) : Work :=
@@ -21,7 +24,8 @@ def Work.plus (a b : Work) : Work :=
    a.scalarOps+b.scalarOps, a.memoryAccesses+b.memoryAccesses,
    a.movedWords+b.movedWords, a.frameSlots+b.frameSlots,
    a.transferBytes+b.transferBytes, a.primitiveBlocks+b.primitiveBlocks,
-   a.nativeEvents+b.nativeEvents⟩
+   a.nativeEvents+b.nativeEvents, a.globalAccesses+b.globalAccesses,
+   a.globalWords+b.globalWords⟩
 
 /-- A separate coefficient for each implementation cost avoids multiplying
 unrelated worst-case bounds across the compiler pipeline. -/
@@ -30,7 +34,8 @@ def Work.score (coeff work : Work) : Nat :=
   coeff.scalarOps*work.scalarOps + coeff.memoryAccesses*work.memoryAccesses +
   coeff.movedWords*work.movedWords + coeff.frameSlots*work.frameSlots +
   coeff.transferBytes*work.transferBytes + coeff.primitiveBlocks*work.primitiveBlocks +
-  coeff.nativeEvents*work.nativeEvents
+  coeff.nativeEvents*work.nativeEvents +
+  coeff.globalAccesses*work.globalAccesses + coeff.globalWords*work.globalWords
 
 inductive WorkEvent where
   | statement
@@ -42,6 +47,10 @@ inductive WorkEvent where
   | transfer (bytes : Nat)
   | primitive (blocks : Nat)
   | nativeEvent
+  /-- An access to a module-level global of the given flattened size. The
+  access is also charged as the ordinary variable copy; this event only
+  records that `pan_globals` turns it into a memory access off `TopAddr`. -/
+  | globalAccess (words : Nat)
   deriving DecidableEq, Repr
 
 def WorkEvent.units : WorkEvent → Work
@@ -54,6 +63,13 @@ def WorkEvent.units : WorkEvent → Work
   | .transfer n => { transferBytes := n }
   | .primitive n => { primitiveBlocks := n }
   | .nativeEvent => { nativeEvents := 1 }
+  | .globalAccess n => { globalAccesses := 1, globalWords := n }
+
+/-- The extra event of a global variable access of the given size; local
+variables live in the frame and emit none. -/
+def globalEvents : VarKind → Nat → List WorkEvent
+  | .local, _ => []
+  | .global, n => [.globalAccess n]
 
 def executionWork : List WorkEvent → Work
   | [] => {}

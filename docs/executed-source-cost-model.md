@@ -405,6 +405,48 @@ which is how `compile_prog` installs function bodies.
 handles `ret_to_tail` on non-error runs. Under every coefficient vector, the
 work is no more than the source run's.
 
-Still remaining: transporting runs across the `pan_simp` code map (callee
-bodies compiled), the `pan_structs` and `pan_globals` transfers, and
-whole-program entry composition.
+`SourceCostPanSimpCode.simp_compile_run` transports runs across the
+`pan_simp` code map, and `SourceCostSharpPanSimp.simp_compile_run_sharp`
+gives the sharp-score corollary. `SourceCostPanStructsId.compileTop_structFree`
+shows that `pan_structs` is the identity on struct-free programs, and
+`SourceCostCrepInlineId.compileProgDecls_noInline` shows that `crep_inline` is
+the identity when there are no `inline` declarations.
+
+## Global-access epoch
+
+`pan_globals` turns a global variable into a memory access off `TopAddr`.
+For a global of `n` words:
+
+- A read becomes `Load shape (Op Sub [TopAddr, Const a])`.
+- An assignment becomes the matching `Store`.
+- A call result stored into a global becomes a `DecCall` into a temporary,
+  followed by that `Store`.
+
+The canonical trace records these accesses with a dedicated event,
+`WorkEvent.globalAccess n`. Its units are `{globalAccesses := 1, globalWords
+:= n}`. The event is emitted, in addition to the ordinary copy, by:
+
+- a global read (`expressionEvents`, through `globalEvents kind`);
+- a successful global assignment (`assignValue`);
+- a call whose returned value is stored into a global (`callGlobalEvents`).
+
+Local variables emit no extra event, and the prices of all existing events are
+unchanged. `replayUnits` counts `k - 1` for `globalAccess k` as well as for
+`memory k`.
+
+The sharp coefficients are `globalAccesses 40` and `globalWords 17`, plus the
+replay term. A one-word global access therefore costs 57, and an `n`-word
+access costs `40 + 17n + 45(n-1)`. This is the largest expansion of the three
+cases under the sharp score:
+
+| Case | Expansion cost |
+|---|---|
+| Read | `25 + 12n + 45(n-1)` |
+| Assignment | `25 + 7n + 45(n-1)` |
+| Call result into a global | `40 + 17n + 45(n-1)` |
+
+In every case the address `Op Sub [TopAddr, Const a]` has Loop price 10,
+which is within the replay certificate of 40.
+
+Still remaining: the `pan_globals` run transfer itself, and whole-program
+entry composition.

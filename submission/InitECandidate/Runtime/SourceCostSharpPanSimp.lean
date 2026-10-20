@@ -4,7 +4,8 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 theorem replayUnits_eventSum (ev : List WorkEvent) :
-    replayUnits ev = eventSum (fun e => match e with | .memory k => k - 1 | _ => 0) ev := by
+    replayUnits ev = eventSum (fun e => match e with
+      | .memory k | .globalAccess k => k - 1 | _ => 0) ev := by
   induction ev with
   | nil => rfl
   | cons head tail ih => cases head <;> simp only [replayUnits, eventSum, ih] <;> omega

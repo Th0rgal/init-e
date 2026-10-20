@@ -128,6 +128,12 @@ def simpMapInfo (g : ProgHOL 64 → ProgHOL 64) :
   | some (returns, some (exception, handlerVar, handler)) =>
       some (returns, some (exception, handlerVar, g handler))
 
+theorem callGlobalEvents_simpMapInfo (g : ProgHOL 64 → ProgHOL 64) (info)
+    (result : Option (PanSemResultExact 64)) :
+    callGlobalEvents (simpMapInfo g info) result = callGlobalEvents info result := by
+  rcases info with _ | ⟨_ | ⟨kind, name⟩, _ | ⟨exception, handlerVar, handler⟩⟩ <;>
+    rcases result with _ | (_ | _ | _ | _ | _ | _ | _) <;> rfl
+
 theorem simp_plan_map_done {F : Type} (g : ProgHOL 64 → ProgHOL 64)
     {s : PanSemStateFiniteExact 64 F} {info returnShape bodyResult}
     {bodyPost post : PanSemStateFiniteExact 64 F} {result : Option (PanSemResultExact 64)}
@@ -168,7 +174,9 @@ theorem simp_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info function
   intro s r post ev run
   cases run with
   | callDone args lookup clock bodyRun plan =>
-    exact ⟨_, .callDone args lookup clock bodyRun (simp_plan_map_done g plan), SimpWorkLe.refl _⟩
+    refine ⟨_, .callDone args lookup clock bodyRun (simp_plan_map_done g plan), ?_⟩
+    rw [callGlobalEvents_simpMapInfo]
+    exact SimpWorkLe.refl _
   | callHandler args lookup clock bodyRun plan handlerRun =>
     obtain ⟨plan', returns, exception, handlerVar, hinfo⟩ := simp_plan_map_handler g plan
     obtain ⟨e, r', le⟩ := hh returns exception handlerVar _ hinfo handlerRun

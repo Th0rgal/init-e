@@ -13,6 +13,7 @@ replays a structured load or store performs. -/
 def replayUnits : List WorkEvent → Nat
   | [] => 0
   | .memory k :: rest => (k - 1) + replayUnits rest
+  | .globalAccess k :: rest => (k - 1) + replayUnits rest
   | _ :: rest => replayUnits rest
 
 /-- Expression weights of the sharp source score. -/
