@@ -285,15 +285,16 @@ noncomputable def stackPopSuccessEvents (s : PanSemStateFiniteExact 64 F) (frame
     .rStruct [.val (.word w0), .val (.word w1), .val (.word w2), .val (.word w3)]
   expressionEvents s stackPopSp ++
     [.copy (flattenHOL (.val (.word sp))).length, .frame 1] ++
-    (.statement :: (.statement :: (expressionEvents entry stackPopGuard ++ [.statement]))) ++
-    (.statement :: (.statement :: (expressionEvents entry
-      (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
-      [.copy (flattenHOL (.val (.word (sp - 1)))).length]))) ++
-    (.statement :: (.statement :: (expressionEvents assigned (fundingAddress 16) ++
-      expressionEvents assigned (.var VarKind.local (ofString "sp")) ++
-      [.memory (flattenHOL (.val (.word (sp - 1)))).length]))) ++
-    (.statement :: (.statement :: (expressionEvents stored (.load comb4Shape stackPopValueAddress) ++
-      [.copy (flattenHOL payload).length]))) ++
+    (.statement :: ((.statement :: (expressionEvents entry stackPopGuard ++ [.statement])) ++
+      (.statement :: (expressionEvents entry
+          (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
+          [.copy (flattenHOL (.val (.word (sp - 1)))).length] ++
+          (.statement :: (expressionEvents assigned (fundingAddress 16) ++
+            expressionEvents assigned (.var VarKind.local (ofString "sp")) ++
+            [.memory (flattenHOL (.val (.word (sp - 1)))).length] ++
+            (.statement :: (expressionEvents stored
+              (.load comb4Shape stackPopValueAddress) ++
+              [.copy (flattenHOL payload).length])))))))) ++
     [.copy (((s.locals.lookup (ofString "sp")).map
       (fun previous => (flattenHOL previous).length)).getD 0)]
 
