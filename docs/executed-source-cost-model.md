@@ -212,3 +212,12 @@ relation is one-way and permits additional context entries, so it cannot imply
 domain premise explicitly. Compound-expression transfer should instead exploit
 successful evaluation to establish presence of the variables actually read;
 this refinement remains open, alongside later native lowering and the guest bound.
+
+The scalar transfer is now generalized in `PanScopedCostTransfer` to require
+widths only on `varExpHOL expression`. The previous whole-context theorem is a
+short wrapper; shared definitions live in `PanScalarCostModel`, avoiding two
+copies of the structural proof. `PanLayoutCost.related_scalar_source_to_loop_cost`
+combines this scoped result with the compiler locals relation and presence of
+the read variables. Extra uninitialized context entries impose no obligation.
+Deriving read-variable presence directly from successful expression evaluation
+remains the next refinement; the RISC-V and guest-bound obligations are unchanged.

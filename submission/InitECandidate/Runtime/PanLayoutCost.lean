@@ -75,6 +75,45 @@ theorem related_local_source_to_loop_cost {F G : Type}
 
 #print axioms related_local_source_to_loop_cost
 
+/-- Context entries unrelated to the expression need no coverage. -/
+theorem scopedWidthsFit_of_related_present {F : Type}
+    (s : PanSemStateFiniteExact 64 F) (context : PanToCrepContextExact 64)
+    (targetLocals : HolFiniteMapExact Nat (HolWordLab 64))
+    (related : panToCrepLocalsRelFiniteExact context s.locals targetLocals)
+    (expression : ExpHOL 64)
+    (presentReads : ∀ name, name ∈ varExpHOL expression →
+      ∃ value, s.locals.lookup name = some value) :
+    LocalWidthsFitOn s context (varExpHOL expression) := by
+  intro name member shape names mapped
+  obtain ⟨value, present⟩ := presentReads name member
+  have width := related_local_width s context targetLocals related name value shape names present mapped
+  omega
+
+/-- Compound scalar expressions use only read-local presence and the existing
+compiler relation; arbitrary extra context entries are harmless. -/
+theorem related_scalar_source_to_loop_cost {F G : Type}
+    (s : PanSemStateFiniteExact 64 F) (context : PanToCrepContextExact 64)
+    (targetLocals : HolFiniteMapExact Nat (HolWordLab 64))
+    (related : panToCrepLocalsRelFiniteExact context s.locals targetLocals)
+    (expression : ExpHOL 64)
+    (presentReads : ∀ name, name ∈ varExpHOL expression →
+      ∃ value, s.locals.lookup name = some value)
+    (supported : scalarLowering expression = true)
+    (loopContext : CrepToLoopContextExact) (tmp : Nat) (live : NumSet)
+    (state : LoopSemStateFiniteExact 64 G) :
+    let expressions := (compileExpExactHOLW context expression).1
+    let compiled := compileExpsHOLExact loopContext tmp live expressions
+    ∃ cost, LoopWorkRun state (loopNestedSeqHOL compiled.1)
+        (LoopSemStateFiniteExact.evaluate (loopNestedSeqHOL compiled.1) state) cost ∧
+      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤
+        6 * expressionCost scalarLoweringWeights s expression := by
+  have layout := scopedWidthsFit_of_related_present s context targetLocals related expression presentReads
+  obtain ⟨cost, trace, bound⟩ := compiled_pan_expression_trace context loopContext tmp live expression state
+  exact ⟨cost, trace, Nat.le_trans bound (Nat.mul_le_mul_left 6
+    (scoped_scalar_lowering_cost_bound s context expression layout supported))⟩
+
+#print axioms related_scalar_source_to_loop_cost
+
 #print axioms related_local_width
 #print axioms localWidthsFit_of_related_coverage
 end InitECandidate.Runtime.FineCost
