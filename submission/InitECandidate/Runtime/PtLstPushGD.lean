@@ -35,12 +35,12 @@ def LPPost (Lh E P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA) (v : ValueHOL 64) (M
       H.toNat ≤ Hc.toNat ∧ N.toNat < Cn.toNat ∧ Pn.toNat + E.toNat * Cn.toNat ≤ Hc.toNat ∧
       ((Pn = P ∧ Cn = Cp) ∨ (H.toNat ≤ Pn.toNat ∧ Cn.toNat = 2 * Cp.toNat))
 
-theorem hdw_toNat {Lh : BitVec 64} (hL : Lh.toNat + 24 ≤ 33806089496) :
+theorem hdw_toNat {Lh : BitVec 64} (hL : Lh.toNat + 24 < 2 ^ 64) :
     (Lh + 8#64).toNat = Lh.toNat + 8 ∧ (Lh + 16#64).toNat = Lh.toNat + 16 := by
   constructor <;> (simp [BitVec.toNat_add]; omega)
 
 /-- The tail of `lst_push`: `st l + 8, n + 1; return lds(l + 0) + n * esz`. -/
-theorem lstPush_tail (Lh E P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA) (hL : Lh.toNat + 24 ≤ 33806089496)
+theorem lstPush_tail (Lh E P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA) (hL : Lh.toNat + 24 < 2 ^ 64)
     (hwh : ¬ HdW Lh w) :
     AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => True) (LPJ Lh E P N Cp H N M0 Gk) (fun _ _ _ => False)
       (LPPost Lh E P N Cp H M0 Gk)
@@ -111,8 +111,8 @@ def LPG2 (Lh E N Cp X : BitVec 64) (M0 : Mem) (Gk : GA) (L : GA) (M : Mem) (G : 
 
 /-- `st l + 0, np; st l + 16, cap * 2` in the growth branch. -/
 theorem lstPush_growStores (Lh E P N Cp H X : BitVec 64) (M0 : Mem) (Gk : GA) {RR : ValueHOL 64 → Mem → GA → Prop}
-    (hL : Lh.toNat + 24 ≤ H.toNat) (hHE : H.toNat ≤ 33806089496) (hwh : ¬ HdW Lh w) (hd : LHd Lh P N Cp M0)
-    (hNC : N = Cp) (hC0 : 0 < Cp.toNat) (hE1 : 1 ≤ E.toNat) (hsz : E.toNat * Cp.toNat * 2 ≤ 33806089496)
+    (hL : Lh.toNat + 24 ≤ H.toNat) (hwh : ¬ HdW Lh w) (hd : LHd Lh P N Cp M0)
+    (hNC : N = Cp) (hC0 : 0 < Cp.toNat) (hE1 : 1 ≤ E.toNat) (hsz : E.toNat * Cp.toNat * 2 < 2 ^ 64)
     (hHX : H.toNat ≤ X.toNat) :
     AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => True) (LPG2 Lh E N Cp X M0 Gk)
       (fun L M G => LK ((ofString "np",X) :: lpPs Lh E N Cp) L ∧ LPJ Lh E P N Cp H N M0 Gk L M G) RR
@@ -174,7 +174,7 @@ def LPG1 (Lh E N Cp X : BitVec 64) (M0 : Mem) (Gk : GA) (L : GA) (M : Mem) (G : 
 
 /-- `memcpy(np, lds(l + 0), esz * n)` in the growth branch: only `[X, X + esz·n)` changes. -/
 theorem lstPush_growMc (Lh E P N Cp H X : BitVec 64) (M0 : Mem) (Gk : GA) {RR : ValueHOL 64 → Mem → GA → Prop}
-    (hw : w.toNat < H.toNat) (hd : LHd Lh P N Cp M0) (hNC : N = Cp) (hsz : E.toNat * Cp.toNat * 2 ≤ 33806089496)
+    (hw : w.toNat < H.toNat) (hd : LHd Lh P N Cp M0) (hNC : N = Cp) (hsz : E.toNat * Cp.toNat * 2 < 2 ^ 64)
     (hX8 : X.toNat % 8 = 0) (hHX : H.toNat ≤ X.toNat) (hXE : X.toNat + E.toNat * Cp.toNat * 2 ≤ 33806089496) :
     AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => True) (LPG1 Lh E N Cp X M0 Gk) (LPG2 Lh E N Cp X M0 Gk) RR
       (.call (some (none,none)) (ofString "memcpy") [.var .local (ofString "np"),
@@ -219,9 +219,9 @@ def LPS2 (Lh E N Cp H : BitVec 64) (M0 : Mem) (Gk : GA) (L : GA) (M : Mem) (G : 
 
 /-- The growth branch `np = alloc(esz * cap * 2); memcpy(...); st l + 0, np; st l + 16, cap * 2`. -/
 theorem lstPush_grow (Lh E P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA) {RR : ValueHOL 64 → Mem → GA → Prop}
-    (hL : Lh.toNat + 24 ≤ H.toNat) (hHE : H.toNat ≤ 33806089496) (hw : w.toNat < H.toNat) (hwh : ¬ HdW Lh w)
+    (hL : Lh.toNat + 24 ≤ H.toNat) (hw : w.toNat < H.toNat) (hwh : ¬ HdW Lh w)
     (hd : LHd Lh P N Cp M0) (hC0 : 0 < Cp.toNat) (hE1 : 1 ≤ E.toNat)
-    (hsz : E.toNat * Cp.toNat * 2 ≤ 33806089496) :
+    (hsz : E.toNat * Cp.toNat * 2 < 2 ^ 64) :
     AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => True)
       (fun L M G => LPS2 Lh E N Cp H M0 Gk L M G ∧ N = Cp) (LPJ Lh E P N Cp H N M0 Gk) RR
       (.decCall (ofString "np") .one (ofString "alloc")
@@ -247,7 +247,7 @@ theorem lstPush_grow (Lh E P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA) {RR : Valu
     (fun _ M0' G0' _ => allocNA_spec (SP0 := SP0) (P0 := P0) (FM := FM) (G0 := G0) (J := J) (C := C) (SKB := SKB)
       (Nj := Nj) (D := D) (B := B) (w := w) (E * Cp * 2#64) (hpOf G0') M0' G0') ?_ (fun _ => rfl) ?_
     (aqgd_exE (fun X => aqgd_pureE (fun ⟨a,b,c,d⟩ => aqgd_seq (lstPush_growMc Lh E P N Cp H X M0 Gk hw hd d hsz a b
-      (by omega)) (aqgd_conseq (lstPush_growStores Lh E P N Cp H X M0 Gk hL hHE hwh hd d hC0 hE1 hsz b)
+      (by omega)) (aqgd_conseq (lstPush_growStores Lh E P N Cp H X M0 Gk hL hwh hd d hC0 hE1 hsz b)
         (fun _ _ _ h => h) (fun _ _ _ h => h.2) (fun _ _ _ h => h))))) ?_
   · intro F s values callee rs _ H' hG ⟨⟨lk,_,hH,_⟩,_⟩ _ args lookup
     unfold GIs at hG; subst hG
@@ -272,9 +272,9 @@ theorem lstPush_grow (Lh E P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA) {RR : Valu
 
 /-- The actual `lst_push(l, esz)` on a valid list header. -/
 theorem lstPush_spec (Lh E P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA)
-    (hL : Lh.toNat + 24 ≤ H.toNat) (hHE : H.toNat ≤ 33806089496) (hw : w.toNat < H.toNat) (hwh : ¬ HdW Lh w)
+    (hL : Lh.toNat + 24 ≤ H.toNat) (hw : w.toNat < H.toNat) (hwh : ¬ HdW Lh w)
     (hd : LHd Lh P N Cp M0) (hNC : N.toNat ≤ Cp.toNat) (hC0 : 0 < Cp.toNat) (hE1 : 1 ≤ E.toNat)
-    (hbuf : P.toNat + E.toNat * Cp.toNat ≤ H.toNat) (hsz : E.toNat * Cp.toNat * 2 ≤ 33806089496) :
+    (hbuf : P.toNat + E.toNat * Cp.toNat ≤ H.toNat) (hsz : E.toNat * Cp.toNat * 2 < 2 ^ 64) :
     AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => True)
       (fun L M G => (LK [(ofString "l",Lh),(ofString "esz",E)] L ∧ M = M0 ∧ HeapIs G H) ∧ G = Gk)
       (fun _ _ _ => False) (LPPost Lh E P N Cp H M0 Gk) (sourceFunctionBody Guest.guestFn_lst_push) := by
@@ -297,7 +297,7 @@ theorem lstPush_spec (Lh E P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA)
     (aqgd_conseq (lstPush_tail Lh E P N Cp H M0 Gk (by omega) hwh) (fun _ _ _ h => h) (fun _ _ _ h => h)
       (fun _ _ _ h => h))
   refine aqgd_iteD (CT := fun _ _ _ => N = Cp) (CF := fun _ _ _ => N.toNat < Cp.toNat) _ ?_
-    (aqgd_conseq (lstPush_grow Lh E P N Cp H M0 Gk hL hHE hw hwh hd hC0 hE1 hsz) (fun _ _ _ h => h)
+    (aqgd_conseq (lstPush_grow Lh E P N Cp H M0 Gk hL hw hwh hd hC0 hE1 hsz) (fun _ _ _ h => h)
       (fun _ _ _ h => h) (fun _ _ _ h => h))
     (aqgd_conseq aqgd_skip (fun _ _ _ h => h) ?_ (fun _ _ _ h => h))
   · intro F s x G _ _ _ ⟨hl,_⟩ _ ev
@@ -315,6 +315,66 @@ theorem lstPush_spec (Lh E P N Cp H : BitVec 64) (M0 : Mem) (Gk : GA)
     exact ⟨lk,hd.2.1,fun _ _ _ => rfl,fun _ _ => rfl,P,Cp,H,hd.1,hd.2.2,hH,le_refl _,lt,hbuf,Or.inl ⟨rfl,rfl⟩⟩
 
 #print axioms lstPush_spec
+
+/-- Postcondition of the actual `lst_new(esz, cap)` with the header content. -/
+def LNPost (E Cp H : BitVec 64) (M0 : Mem) (Gk : GA) (v : ValueHOL 64) (M' : Mem) (G' : GA) : Prop :=
+  (∃ X Pp : BitVec 64, v = .val (.word X) ∧ H.toNat ≤ X.toNat ∧ X.toNat + 24 ≤ Pp.toNat ∧ LHd X Pp 0#64 Cp M' ∧
+    ∃ H' : BitVec 64, HeapIs G' H' ∧ Pp.toNat + (E * Cp).toNat ≤ H'.toNat ∧ H'.toNat ≤ 33806089496) ∧
+    (∀ x, x.toNat < H.toNat → M' x = M0 x) ∧ OnlyHeap Gk G'
+
+/-- The actual `lst_new(esz, cap)` with the header content: a fresh header `X ≥ H` holding `buf Pp, n 0, cap Cp`
+with the buffer `[Pp, Pp + esz·cap)` (`Pp ≥ X + 24`) below the exit heap pointer. -/
+theorem lstNewC_spec (E Cp H : BitVec 64) (hw : w.toNat < H.toNat) (M0 : Mem) (Gk : GA) :
+    AQGD D B (JWSN SP0 P0 FM G0 J C SKB Nj) w (fun _ => True)
+      (fun L M G => (LK [(ofString "cap",Cp),(ofString "esz",E)] L ∧ M = M0 ∧ HeapIs G H) ∧ G = Gk)
+      (fun _ _ _ => False) (LNPost E Cp H M0 Gk) (sourceFunctionBody Guest.guestFn_lst_new) := by
+  unfold sourceFunctionBody
+  rw [InitECandidate.Proofs.FrontendCodecComputation.declToHOL_eq]
+  simp only [Guest.guestFn_lst_new,InitECandidate.Proofs.FrontendCodecComputation.declToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.funDeclToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.progToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.expListToHOLStructural,
+    InitECandidate.Proofs.FrontendCodecComputation.shapeToHOLStructural,List.map_cons,List.map_nil]
+  refine aqgd_conseq (P := HNS H H M0 Gk [(ofString "cap",Cp),(ofString "esz",E)] [] H.toNat) ?_
+    (fun L M G ⟨⟨lk,hM,hH⟩,hG⟩ => by subst hM hG; exact ⟨lk,fun _ _ => rfl,fun p hp => by simp at hp,⟨H,hH,le_refl _⟩,
+      fun _ _ => rfl⟩) (fun _ _ _ h => h) (fun _ _ _ h => h)
+  refine hn_allocStep (ofString "l") (.const 24) 24#64 (fun s _ => by simp [EV,evalHOLExact])
+    (by simp (config := {decide := true})) (fun X alX loX fitX => ?_)
+  refine aqgd_conseq (P := HNS H X M0 Gk [(ofString "l",X),(ofString "cap",Cp),(ofString "esz",E)] []
+    (X.toNat + (24#64).toNat)) ?_ (fun L M G h => ⟨h.1,h.2.1,fun p hp => by simp at hp,h.2.2.2⟩)
+    (fun _ _ _ h => h) (fun _ _ _ h => h)
+  have h24 : (24#64).toNat = 24 := rfl
+  refine hn_allocStep (ofString "p") _ (E * Cp) (fun s lk => by
+      simp [EV,evalHOLExact,evalListHOLExact,lk (ofString "esz",E) (by simp),lk (ofString "cap",Cp) (by simp),
+        panOpHOL,valueIsWord,valueWord]) (by simp (config := {decide := true})) (fun Pp _ loP fitP => ?_)
+  have hT : X.toNat + 24 ≤ 33806089496 := by rw [h24] at fitX; exact fitX
+  have hHX : H.toNat ≤ X.toNat := loX
+  have hXP : X.toNat + 24 ≤ Pp.toNat := by rw [h24] at loP; exact loP
+  have st := fun (k y : BitVec 64) (v : ExpHOL 64) (hk : k.toNat < 24) (cells : List (BitVec 64 × BitVec 64)) (lo : Nat)
+      (hv : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F),
+        LK [(ofString "p",Pp),(ofString "l",X),(ofString "cap",Cp),(ofString "esz",E)] s.locals →
+        EV s v = some (.val (.word y))) (hnew : ∀ p ∈ cells, p.1 ≠ k) =>
+    hn_storeStepN (D := D) (B := B) (SP0 := SP0) (P0 := P0) (FM := FM) (G0 := G0) (J := J) (C := C) (SKB := SKB)
+      (Nj := Nj) (w := w) (H := H) (Tt := X) (M0 := M0) (Gk := Gk) (lo := lo) (RR := LNPost E Cp H M0 Gk)
+      (ofString "l") 24 k y v hk hT hHX hw (fun L lk => lk (ofString "l",X) (by simp)) hv hnew
+  refine aqgd_seq (st 0#64 Pp _ (by decide) [] _ (fun s lk => by simp [EV,evalHOLExact,lk (ofString "p",Pp) (by simp)])
+    (by simp)) ?_
+  refine aqgd_seq (st 8#64 0#64 _ (by decide) _ _ (fun s lk => by simp [EV,evalHOLExact]) (by simp)) ?_
+  refine aqgd_seq (st 16#64 Cp _ (by decide) _ _ (fun s lk => by simp [EV,evalHOLExact,lk (ofString "cap",Cp) (by simp)])
+    (by simp)) ?_
+  exact aqgd_return _ (fun s v G' aw hG ⟨lk,fr,ce,⟨Hc,hHc,le⟩,oh⟩ _ ev => by
+    unfold GIs at hG; subst hG
+    simp [EV,evalHOLExact,lk (ofString "l",X) (by simp)] at ev
+    subst ev
+    have c0 := ce (0#64,Pp) (by simp)
+    have c8 := ce (8#64,0#64) (by simp)
+    have c16 := ce (16#64,Cp) (by simp)
+    simp only [BitVec.add_zero] at c0
+    exact ⟨⟨X,Pp,rfl,hHX,hXP,⟨c0,c8,c16⟩,Hc,hHc,le,by
+      have := (jws_heap_facts aw.1 hHc).2.1; omega⟩,fr,oh⟩)
+
+#print axioms lstNewC_spec
 
 end lp
 end InitECandidate.Runtime
