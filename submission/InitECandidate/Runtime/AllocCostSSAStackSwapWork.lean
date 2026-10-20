@@ -2185,4 +2185,96 @@ theorem sValEq_lastN_head (a b : List (WordSemStackFrame 64))
       rw [hb] at hh
       exact hh.2
 
+
+/-! ### Result transport along a value-equal stack swap
+
+The pinned `stackSwapPost` transports every result except `error`; for the
+exception case the handler frame is relocated with `sValEq_lastN_head`. -/
+
+theorem evaluate_stack_swap_result_nonexception {C F : Type}
+    (c : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64)) (res : Option (WordSemResult 64))
+    (middle : WordSemStateFiniteExact 64 C F)
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (h0 : res ≠ some (WordSemResult.error))
+    (h1 : ∀ (l : WordLocW 64) (r : List (WordLocW 64)), res ≠ some (.result l r))
+    (h2 : ∀ (l v : WordLocW 64), res ≠ some (.exception l v))
+    (hev : evaluate c s = (res, middle)) :
+    ∃ st, evaluate c { s with stack := xs } = (res, { middle with stack := st }) ∧
+      WordSemStackEq.sValEq middle.stack st := by
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap c s
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  cases res with
+  | none =>
+      dsimp only [WordSemStackEq.stackSwapRel] at hT
+      obtain ⟨-, -, hrun⟩ := hT
+      obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hval
+      exact ⟨st, hevT, hvalT⟩
+  | some r =>
+      cases r with
+      | error => exact absurd rfl h0
+      | result l rt =>
+          dsimp only [WordSemStackEq.stackSwapRel] at hT
+          obtain ⟨-, -, hrun⟩ := hT
+          obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hval
+          exact absurd rfl (h1 l rt)
+      | exception l v => exact absurd rfl (h2 l v)
+      | finalFfi e =>
+          dsimp only [WordSemStackEq.stackSwapRel] at hT
+          obtain ⟨hst, -, hrun⟩ := hT
+          refine ⟨[], ?_, ?_⟩
+          · rw [hrun xs hval, ← hst]
+          · rw [hst]
+            exact True.intro
+      | timeOut =>
+          dsimp only [WordSemStackEq.stackSwapRel] at hT
+          obtain ⟨hst, -, hrun⟩ := hT
+          refine ⟨[], ?_, ?_⟩
+          · rw [hrun xs hval, ← hst]
+          · rw [hst]
+            exact True.intro
+      | notEnoughSpace =>
+          dsimp only [WordSemStackEq.stackSwapRel] at hT
+          obtain ⟨hst, -, hrun⟩ := hT
+          refine ⟨[], ?_, ?_⟩
+          · rw [hrun xs hval, ← hst]
+          · rw [hst]
+            exact True.intro
+      | «break» k =>
+          dsimp only [WordSemStackEq.stackSwapRel] at hT
+          obtain ⟨-, -, hrun⟩ := hT
+          obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hval
+          exact ⟨st, hevT, hvalT⟩
+      | «continue» k =>
+          dsimp only [WordSemStackEq.stackSwapRel] at hT
+          obtain ⟨-, -, hrun⟩ := hT
+          obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hval
+          exact ⟨st, hevT, hvalT⟩
+
+theorem evaluate_stack_swap_result_exception {C F : Type}
+    (c : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64)) (location value : WordLocW 64)
+    (middle : WordSemStateFiniteExact 64 C F)
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate c s = (some (.exception location value), middle)) :
+    ∃ (st : List (WordSemStackFrame 64)) (locs : Spt (WordLocW 64)),
+      evaluate c { s with stack := xs } =
+        (some (.exception location value),
+          { middle with stack := st, handler := middle.handler, locals := locs }) := by
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap c s
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  obtain ⟨-, e0, e, n, ls, m, lss, hlastn, hm, -, -, hhandn, hforall⟩ := hT
+  obtain ⟨fr', ls', hlastn', hframe⟩ :=
+    sValEq_lastN_head s.stack xs hval s.handler
+      (WordSemStackFrame.stackFrame m e0 e (some n)) ls hlastn
+  obtain ⟨m', e0', e', y'⟩ := fr'
+  rw [WordSemStackEq.sFrameValEqDef2] at hframe
+  obtain ⟨-, hy, hm'⟩ := hframe
+  rw [← hm', ← hy] at hlastn'
+  obtain ⟨st, locs, hevT, -, -, -⟩ := hforall xs e0' e' ls' ⟨hlastn', hval⟩
+  rw [← hhandn] at hevT
+  refine ⟨st, locs, ?_⟩
+  rw [show (fun ys => evaluate c { s with stack := ys }) xs = evaluate c { s with stack := xs }
+    from rfl] at hevT
+  exact hevT
 end InitECandidate.Runtime.WordToStack
