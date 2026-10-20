@@ -510,5 +510,29 @@ The static premises are:
 
 For the guest, `GuestCostSharpSites` certifies the sites on `pass2`.
 
-Still remaining: the whole-program `pan_globals` step (generated main and global
-initialisers) and the `pan_simp` code-map step at top level.
+## Whole-program preprocessing
+
+`SourceCostSourceTop.source_top_entry` starts from the original entry run
+`Call NONE start []` in the post-declaration state of the original program, at
+any clock. It ends with the run of the generated entry of the program
+`pan_to_crep` receives, from the state the target declarations produce, at one
+more clock tick. The generated entry's events cost at most the original's
+under `sharpScore`, plus a one-time
+`globalsTopInit = 20 + 4·|return shape| + 57·#globals + 5·payload`.
+
+The steps are:
+
+1. `pan_simp`: `simp_top_entry`, via the pinned `evaluateDeclsCodeRel` and
+   `simp_code_run`.
+2. `pan_structs`: the identity on struct-free programs.
+3. `pan_globals`: `globals_top_entry`, which follows the pinned
+   `compile_top_semantics_decls` proof at run level.
+
+`globals_top_entry` uses four lemmas:
+
+- `fperm_run`: renaming functions keeps events exactly.
+- `entry_empty_locals`: the entry call does not read the caller's locals.
+- `globals_inits_score`: each constant global initialiser costs 57.
+- `globals_run_le`: covers the renamed original entry.
+
+`decls_clock` shows that declaration evaluation does not depend on the clock.
