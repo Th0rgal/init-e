@@ -243,6 +243,23 @@ only the standard proof axioms. `WordExecutionCostAlgebra` proves exact additive
 pointwise two-component price envelope transfers to the same linear execution
 envelope. These laws do not insert a multiplier at calls or loop nesting.
 
+## Composing native prefixes
+
+`StackWeightedCompose.NormalWeightedFlatten` is the recursive compiler motive
+for normally returning, code-preserving fragments. Ordinary instruction blocks
+discharge it using the original flattening hypotheses. The Seq rule joins
+actual weighted subtraces at the reached source and label states, preserving
+ABI metadata and adding no structural native cost. Its native theorem executes
+the composed prefix on RISC-V and preserves the oracle tie for continuation.
+`StackWeightedComposeIf` grounds the motive for actual selected conditionals
+with nonempty ordinary arms. Layout positions include both arms; runtime work
+includes only the selected arm and its actual control instructions.
+
+These checked rules cover normal prefixes. They do not assert a complete
+compiler theorem for calls, loops, terminal results, code installation or
+resource exits; those need their corresponding recursive rules and concrete
+Word-to-Stack price justifications before an end-to-end score can be derived.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
