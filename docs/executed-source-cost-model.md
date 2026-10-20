@@ -202,3 +202,13 @@ the compiler state relation at guest entry and preserved layouts. The resulting
 times source expression cost, including residual values. General multiword loads
 are excluded by `scalarLowering` because address replay needs separate accounting.
 Preprocessing and subsequent native lowering remain outside this theorem.
+
+`PanLayoutCost.related_local_width` derives exact slot/runtime-word equality
+from the pinned `panToCrepLocalsRelFiniteExact` for a present source variable.
+`related_local_source_to_loop_cost` consequently discharges the layout condition
+for successful local reads, without whole-context coverage. The compiler locals
+relation is one-way and permits additional context entries, so it cannot imply
+`LocalWidthsFit` universally. A separate coverage lemma records the missing
+domain premise explicitly. Compound-expression transfer should instead exploit
+successful evaluation to establish presence of the variables actually read;
+this refinement remains open, alongside later native lowering and the guest bound.
