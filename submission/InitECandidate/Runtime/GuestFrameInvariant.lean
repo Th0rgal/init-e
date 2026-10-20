@@ -140,4 +140,44 @@ theorem HasGasFunding.emptyLocals {F : Type} {s : PanSemStateFiniteExact 64 F}
 #print axioms HasGasFunding.setVar
 #print axioms HasGasFunding.emptyLocals
 
+
+/-- The first pop's continuation only writes the pointer cell. -/
+theorem opAddXEntry_memory_ne (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame sp : BitVec 64) (x : ValueHOL 64) (address : BitVec 64)
+    (different : address ≠ frame + 16) :
+    (opAddXEntry s frame sp x).memory address = s.memory address := by
+  simp only [opAddXEntry, stackPopSuccessPost, emptyLocalsHOLFinite, setVarHOLFinite,
+    callEntryStateHOLFinite]
+  rw [stackPopStored_memory_ne _ _ _ _ different]
+
+/-- The two pops' continuation only writes the pointer cell. -/
+theorem opAddYEntry_memory_ne (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame sp : BitVec 64) (x y : ValueHOL 64) (address : BitVec 64)
+    (different : address ≠ frame + 16) :
+    (opAddYEntry s frame sp x y).memory address = s.memory address := by
+  simp only [opAddYEntry, opAddXEntry, stackPopSuccessPost, emptyLocalsHOLFinite, setVarHOLFinite,
+    callEntryStateHOLFinite]
+  rw [stackPopStored_memory_ne _ _ _ _ different]
+  rw [stackPopStored_memory_ne _ _ _ _ different]
+
+/-- Clock after the first pop's continuation. -/
+theorem opAddXEntry_clock (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame sp : BitVec 64) (x : ValueHOL 64) :
+    (opAddXEntry s frame sp x).clock = s.clock - 1 := by
+  simp [opAddXEntry, stackPopSuccessPost, stackPopStored, stackPopAssigned, stackPopEntry,
+    emptyLocalsHOLFinite, setVarHOLFinite, setKvarHOLFinite, callEntryStateHOLFinite]
+
+/-- Clock after the second pop's continuation. -/
+theorem opAddYEntry_clock (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame sp : BitVec 64) (x y : ValueHOL 64) :
+    (opAddYEntry s frame sp x y).clock = s.clock - 2 := by
+  have hx := opAddXEntry_clock s frame sp x
+  simp [opAddYEntry, hx, stackPopSuccessPost, stackPopStored, stackPopAssigned, stackPopEntry,
+    emptyLocalsHOLFinite, setVarHOLFinite, setKvarHOLFinite, callEntryStateHOLFinite]
+  omega
+
+#print axioms opAddXEntry_memory_ne
+#print axioms opAddYEntry_memory_ne
+#print axioms opAddXEntry_clock
+#print axioms opAddYEntry_clock
 end InitECandidate.Runtime.FineCost
