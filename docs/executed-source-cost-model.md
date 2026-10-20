@@ -378,6 +378,15 @@ branch (3); when both arms are empty the compiler emits no branch and the native
 prefix costs zero. The complete module checked with standard axioms in
 `stack-then-skip-if4`.
 
+`AllocCostSSACallAlignment` derives actual inserted stack/argument move runs,
+renamed reads and paired cuts from the original SSA state invariant and pinned
+returning-call preparation lemmas. It also derives swapped-stack pop alignment
+from the original callee stack relations. The assembled local bound retains
+callee lookup/result protocol and body/continuation cost premises; eliminating
+these through the checked permutation theorem and recursive SSA induction is
+still required. The root replay `call-alignment-independent` checked all seven
+printed theorems with only standard axioms.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
