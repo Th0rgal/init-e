@@ -63,3 +63,34 @@ CONFIRMED PACKET SEMANTICS (WordSem/Props/EvaluateStackSwap/Motive.lean:70-108)
         instantiates with the SAME e0,e and ls' := xs, giving lss' = lss (map_fst_snd_eq)
         and hence locs = middle.locals, i.e. middleT = { middle with stack := st }
         (hmidT) plus hdomT by sptDomainEqUnion_congr. No extra domain hypothesis.
+
+INLINE DRIVER ATTEMPT (dispatch form `match p, s, xs, hval, hne with`), exact
+remaining tactic errors (all in the .seq/.loop scaffolding, none semantic):
+  1. `have hfe : (fixClock s ((none, middle))).2 = middle` must be proved as
+       rw [show ((none : Option (WordSemResult 64)), middle) = evaluate first s from hev.symm]
+       rw [fix_clock_evaluate s first, hev]
+     (`fix_clock_evaluate` is a function of (s, c1) and prints as `s.fixClock _`; do NOT
+      `rw [← hev]` in the goal, the LHS then stops being syntactically the lemma's state).
+  2. Excluding a `.error` result needs `exact (hneF (by rw [hev])).elim` — `exact hneF _`
+     yields `False`, which cannot prove the ambient equality.
+  3. `evaluate_stack_swap_result_nonexception c s xs res middle hval h0 h1 h2 hev` takes
+     THREE absurdity hypotheses (res ≠ error, ∀ l r, res ≠ .result l r,
+     ∀ l v, res ≠ .exception l v): pass three `(by simp)`.
+  4. Error propagation: `evaluate_seq_error_fst first second s hc` /
+     `evaluate_loop_error_body names body exitNames s cs hs hc` take the raw
+     `(evaluate c s).1 = some .error` — do not `rw [hev]` first.
+  5. In the tactic `match p, s, xs, hval, hne with`, trivial constructors must be patterns
+     with explicit `_` args (arity from Flapjack/Pancake/WordLang.lean:221-257:
+     skip/tick nullary; move 2; inst 1; assign/get/set/store 2; storeConsts 5; return 2;
+     break/continue 1; opCurrHeap 3; locValue 2; install 5; codeBufferWrite 2;
+     dataBufferWrite 2; ffi 6; shareInst 3; alloc 2; raise 1; mustTerminate 1) and each
+     branch is a bare tactic `rw [wordPathWork, wordPathWork]` (a `by` block is a parse
+     error in this position).
+  6. In the .loop case `cases res with` must stay in the two-level shape
+     `| none => … | some r =>` newline `cases r with | error => …`; flattening the
+     WordSemResult alternatives makes Lean read them as alternatives of `Option`.
+  7. After `rw [cutState_stack_some …]; simp only []` the goal is already
+     `1 + wordPathWork body {cs with stack := xs} + (fixClock … match)`, so `rw [hev]`
+     no longer finds `evaluate body cs`: use `simp only [fixClock, hev, hevT, ihB]` or
+     `dsimp only` immediately after rewriting the scrutinee (root's fix: rw does not
+     iota-reduce the outer match; `dsimp only` at the hypothesis/goal right after does).
