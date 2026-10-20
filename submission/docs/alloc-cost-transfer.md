@@ -374,3 +374,9 @@ removes the SSA-side premises:
   `wordPathWork` transport across `PERM_STACK`-related entry states);
   `retWork` is the continuation transfer.  No whole-call inequality is
   assumed anywhere: both transfers are body-only.
+- `ssaCallReturning_pop_alignment`: result/pop correspondence on the swapped
+  stack.  From the source successful `popEnv` and the callee stack-swap key and
+  value relations, the target stack swapped into the returned state pops
+  successfully (the exact `popT` input), the two popped states are
+  frame-related, and every target popped lookup is related — derived from the
+  public `returningPopCutRelation`.
