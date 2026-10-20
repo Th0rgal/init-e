@@ -1,0 +1,259 @@
+'InitECandidate.Runtime.WordToStack.pushEnv_stack_swap' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.callEnv_stack_swap' depends on axioms: [propext, Quot.sound]
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:148:149: error: unsolved goals
+C F : Type
+first second : WordLangProgHOL (BitVec 64)
+s middle : WordSemStateFiniteExact 64 C F
+xs : List (WordSemStackFrame 64)
+hval : WordSemStackEq.sValEq s.stack xs
+hev : evaluate first s = (none, middle)
+ihFirst :
+  wordPathWork first
+      { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+        stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+        mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+        compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer, gcFun := s.gcFun,
+        handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code, be := s.be, ffi := s.ffi } =
+    wordPathWork first s
+ihSecond :
+  ∀ (m : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq m.stack st →
+      wordPathWork second
+          { locals := m.locals, localsSize := m.localsSize, fpRegs := m.fpRegs, store := m.store, stack := st,
+            stackLimit := m.stackLimit, stackMax := m.stackMax, stackSize := m.stackSize, memory := m.memory,
+            mdomain := m.mdomain, shMdomain := m.shMdomain, permute := m.permute, compile := m.compile,
+            compileOracle := m.compileOracle, codeBuffer := m.codeBuffer, dataBuffer := m.dataBuffer, gcFun := m.gcFun,
+            handler := m.handler, clock := m.clock, termdep := m.termdep, code := m.code, be := m.be, ffi := m.ffi } =
+        wordPathWork second m
+hrun :
+  ∀ (xs : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq s.stack xs →
+      ∃ st,
+        evaluate first
+              { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+                stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+                mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+                compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer,
+                gcFun := s.gcFun, handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code,
+                be := s.be, ffi := s.ffi } =
+            (none,
+              { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs,
+                store := middle.store, stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax,
+                stackSize := middle.stackSize, memory := middle.memory, mdomain := middle.mdomain,
+                shMdomain := middle.shMdomain, permute := middle.permute, compile := middle.compile,
+                compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer, dataBuffer := middle.dataBuffer,
+                gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock, termdep := middle.termdep,
+                code := middle.code, be := middle.be, ffi := middle.ffi }) ∧
+          WordSemStackEq.sValEq middle.stack st ∧ WordSemStackEq.sKeyEq xs st
+st : List (WordSemStackFrame 64)
+hevT :
+  evaluate first
+      { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+        stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+        mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+        compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer, gcFun := s.gcFun,
+        handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code, be := s.be, ffi := s.ffi } =
+    (none,
+      { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs, store := middle.store,
+        stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax, stackSize := middle.stackSize,
+        memory := middle.memory, mdomain := middle.mdomain, shMdomain := middle.shMdomain, permute := middle.permute,
+        compile := middle.compile, compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer,
+        dataBuffer := middle.dataBuffer, gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock,
+        termdep := middle.termdep, code := middle.code, be := middle.be, ffi := middle.ffi })
+hvalT : WordSemStackEq.sValEq middle.stack st
+hL :
+  wordPathWork (first.seq second)
+      { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+        stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+        mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+        compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer, gcFun := s.gcFun,
+        handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code, be := s.be, ffi := s.ffi } =
+    1 + wordPathWork first s +
+      wordPathWork second
+        (let __src := (s.fixClock (none, middle)).snd;
+        { locals := __src.locals, localsSize := __src.localsSize, fpRegs := __src.fpRegs, store := __src.store,
+          stack := st, stackLimit := __src.stackLimit, stackMax := __src.stackMax, stackSize := __src.stackSize,
+          memory := __src.memory, mdomain := __src.mdomain, shMdomain := __src.shMdomain, permute := __src.permute,
+          compile := __src.compile, compileOracle := __src.compileOracle, codeBuffer := __src.codeBuffer,
+          dataBuffer := __src.dataBuffer, gcFun := __src.gcFun, handler := __src.handler, clock := __src.clock,
+          termdep := __src.termdep, code := __src.code, be := __src.be, ffi := __src.ffi })
+⊢ (1 + wordPathWork first s +
+      match (evaluate first s).fst with
+      | none =>
+        wordPathWork second
+          { locals := (evaluate first s).snd.locals, localsSize := (evaluate first s).snd.localsSize,
+            fpRegs := (evaluate first s).snd.fpRegs, store := (evaluate first s).snd.store,
+            stack := (evaluate first s).snd.stack, stackLimit := (evaluate first s).snd.stackLimit,
+            stackMax := (evaluate first s).snd.stackMax, stackSize := (evaluate first s).snd.stackSize,
+            memory := (evaluate first s).snd.memory, mdomain := (evaluate first s).snd.mdomain,
+            shMdomain := (evaluate first s).snd.shMdomain, permute := (evaluate first s).snd.permute,
+            compile := (evaluate first s).snd.compile, compileOracle := (evaluate first s).snd.compileOracle,
+            codeBuffer := (evaluate first s).snd.codeBuffer, dataBuffer := (evaluate first s).snd.dataBuffer,
+            gcFun := (evaluate first s).snd.gcFun, handler := (evaluate first s).snd.handler,
+            clock := if s.clock < (evaluate first s).snd.clock then s.clock else (evaluate first s).snd.clock,
+            termdep := s.termdep, code := (evaluate first s).snd.code, be := (evaluate first s).snd.be,
+            ffi := (evaluate first s).snd.ffi }
+      | x => 0) =
+    1 + wordPathWork first s +
+      wordPathWork second
+        { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs, store := middle.store,
+          stack := middle.stack, stackLimit := middle.stackLimit, stackMax := middle.stackMax,
+          stackSize := middle.stackSize, memory := middle.memory, mdomain := middle.mdomain,
+          shMdomain := middle.shMdomain, permute := middle.permute, compile := middle.compile,
+          compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer, dataBuffer := middle.dataBuffer,
+          gcFun := middle.gcFun, handler := middle.handler,
+          clock := if s.clock < middle.clock then s.clock else middle.clock, termdep := s.termdep, code := middle.code,
+          be := middle.be, ffi := middle.ffi }
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:151:32: error: Type mismatch: After simplification, term
+  hvalT
+ has type
+  @WordSemStackEq.sValEq 64 ⋯ middle.stack st
+but is expected to have type
+  @WordSemStackEq.sValEq 64 ⋯ (s.fixClock (none, middle)).snd.stack st
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:171:34: error: unsolved goals
+C F : Type
+first second : WordLangProgHOL (BitVec 64)
+s middle : WordSemStateFiniteExact 64 C F
+xs : List (WordSemStackFrame 64)
+location : WordLocW 64
+returned : List (WordLocW 64)
+hval : WordSemStackEq.sValEq s.stack xs
+hev : evaluate first s = (some (WordSemResult.result location returned), middle)
+ihFirst :
+  wordPathWork first
+      { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+        stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+        mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+        compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer, gcFun := s.gcFun,
+        handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code, be := s.be, ffi := s.ffi } =
+    wordPathWork first s
+hrun :
+  ∀ (xs : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq s.stack xs →
+      ∃ st,
+        evaluate first
+              { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+                stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+                mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+                compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer,
+                gcFun := s.gcFun, handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code,
+                be := s.be, ffi := s.ffi } =
+            (some (WordSemResult.result location returned),
+              { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs,
+                store := middle.store, stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax,
+                stackSize := middle.stackSize, memory := middle.memory, mdomain := middle.mdomain,
+                shMdomain := middle.shMdomain, permute := middle.permute, compile := middle.compile,
+                compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer, dataBuffer := middle.dataBuffer,
+                gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock, termdep := middle.termdep,
+                code := middle.code, be := middle.be, ffi := middle.ffi }) ∧
+          WordSemStackEq.sValEq middle.stack st ∧ WordSemStackEq.sKeyEq xs st
+st : List (WordSemStackFrame 64)
+hevT :
+  evaluate first
+      { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+        stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+        mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+        compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer, gcFun := s.gcFun,
+        handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code, be := s.be, ffi := s.ffi } =
+    (some (WordSemResult.result location returned),
+      { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs, store := middle.store,
+        stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax, stackSize := middle.stackSize,
+        memory := middle.memory, mdomain := middle.mdomain, shMdomain := middle.shMdomain, permute := middle.permute,
+        compile := middle.compile, compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer,
+        dataBuffer := middle.dataBuffer, gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock,
+        termdep := middle.termdep, code := middle.code, be := middle.be, ffi := middle.ffi })
+⊢ 1 + wordPathWork first s + 0 = 1 + wordPathWork first s
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:174:77: error: unsolved goals
+C F : Type
+first second : WordLangProgHOL (BitVec 64)
+s middle : WordSemStateFiniteExact 64 C F
+xs : List (WordSemStackFrame 64)
+location : WordLocW 64
+returned : List (WordLocW 64)
+hval : WordSemStackEq.sValEq s.stack xs
+hev : evaluate first s = (some (WordSemResult.result location returned), middle)
+ihFirst :
+  wordPathWork first
+      { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+        stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+        mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+        compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer, gcFun := s.gcFun,
+        handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code, be := s.be, ffi := s.ffi } =
+    wordPathWork first s
+hrun :
+  ∀ (xs : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq s.stack xs →
+      ∃ st,
+        evaluate first
+              { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+                stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+                mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+                compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer,
+                gcFun := s.gcFun, handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code,
+                be := s.be, ffi := s.ffi } =
+            (some (WordSemResult.result location returned),
+              { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs,
+                store := middle.store, stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax,
+                stackSize := middle.stackSize, memory := middle.memory, mdomain := middle.mdomain,
+                shMdomain := middle.shMdomain, permute := middle.permute, compile := middle.compile,
+                compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer, dataBuffer := middle.dataBuffer,
+                gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock, termdep := middle.termdep,
+                code := middle.code, be := middle.be, ffi := middle.ffi }) ∧
+          WordSemStackEq.sValEq middle.stack st ∧ WordSemStackEq.sKeyEq xs st
+st : List (WordSemStackFrame 64)
+hevT :
+  evaluate first
+      { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+        stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+        mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+        compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer, gcFun := s.gcFun,
+        handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code, be := s.be, ffi := s.ffi } =
+    (some (WordSemResult.result location returned),
+      { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs, store := middle.store,
+        stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax, stackSize := middle.stackSize,
+        memory := middle.memory, mdomain := middle.mdomain, shMdomain := middle.shMdomain, permute := middle.permute,
+        compile := middle.compile, compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer,
+        dataBuffer := middle.dataBuffer, gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock,
+        termdep := middle.termdep, code := middle.code, be := middle.be, ffi := middle.ffi })
+hL :
+  wordPathWork (first.seq second)
+      { locals := s.locals, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := xs,
+        stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
+        mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
+        compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer, gcFun := s.gcFun,
+        handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code, be := s.be, ffi := s.ffi } =
+    1 + wordPathWork first s
+⊢ (1 + wordPathWork first s +
+      match (evaluate first s).fst with
+      | none =>
+        wordPathWork second
+          { locals := (evaluate first s).snd.locals, localsSize := (evaluate first s).snd.localsSize,
+            fpRegs := (evaluate first s).snd.fpRegs, store := (evaluate first s).snd.store,
+            stack := (evaluate first s).snd.stack, stackLimit := (evaluate first s).snd.stackLimit,
+            stackMax := (evaluate first s).snd.stackMax, stackSize := (evaluate first s).snd.stackSize,
+            memory := (evaluate first s).snd.memory, mdomain := (evaluate first s).snd.mdomain,
+            shMdomain := (evaluate first s).snd.shMdomain, permute := (evaluate first s).snd.permute,
+            compile := (evaluate first s).snd.compile, compileOracle := (evaluate first s).snd.compileOracle,
+            codeBuffer := (evaluate first s).snd.codeBuffer, dataBuffer := (evaluate first s).snd.dataBuffer,
+            gcFun := (evaluate first s).snd.gcFun, handler := (evaluate first s).snd.handler,
+            clock := if s.clock < (evaluate first s).snd.clock then s.clock else (evaluate first s).snd.clock,
+            termdep := s.termdep, code := (evaluate first s).snd.code, be := (evaluate first s).snd.be,
+            ffi := (evaluate first s).snd.ffi }
+      | x => 0) =
+    1 + wordPathWork first s
+'InitECandidate.Runtime.WordToStack.fixClock_stack' depends on axioms: [propext]
+'InitECandidate.Runtime.WordToStack.wordPathWork_seq_sValEq_variant_none' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'InitECandidate.Runtime.WordToStack.wordPathWork_seq_sValEq_variant_result' depends on axioms: [propext,
+ sorryAx,
+ Classical.choice,
+ Quot.sound]
+'InitECandidate.Runtime.WordToStack.getVar_stack' depends on axioms: [propext]
+'InitECandidate.Runtime.WordToStack.getVars_stack' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.getVarImm_stack' depends on axioms: [propext]
+'InitECandidate.Runtime.WordToStack.cutState_stack' depends on axioms: [propext, Classical.choice, Quot.sound]
+'InitECandidate.Runtime.WordToStack.decClock_stack' depends on axioms: [propext]
+'InitECandidate.Runtime.WordToStack.setVar_stack' depends on axioms: [propext, Quot.sound]
+'InitECandidate.Runtime.WordToStack.setVars_stack' depends on axioms: [propext, Quot.sound]
