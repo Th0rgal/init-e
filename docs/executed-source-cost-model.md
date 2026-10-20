@@ -72,6 +72,8 @@ without a universal return-slot bound.
 | `AllocCostModel`, `AllocCostSSA`, `AllocCostPasses`, `AllocCostCompose`, `AllocCostExecuted` | SSA prologue/instruction moves, three-to-two rewrite-site costs, nonamplifying allocation/colouring, and actual path budget for their composed output | Certified straight-line fragments; recursive call/loop reconciliation remains open |
 | `AllocCostOptimizer`, `AllocCostCse`, `AllocCostUnreach` | Local static envelopes for must-terminate/dead-code removal, copy propagation, CSE, sequence cleanup and unreachable removal; expansion charged by rewrite sites | Straight-line fragment bounds; grammar/composed optimizer and dynamic control transfer remain separate |
 | `AllocCostReconcile`, `AllocCostSSAControl` | Static local syntax envelopes for renaming, reconciliation, loop setup/back-edges, break/continue targets and tail-call argument moves, using actual live sets | Dynamic semantic execution transfer must still charge each occurrence; returning-call composition remains open |
+| `SourceCostLoopWork` | Output-indexed exact Loop execution work, soundness and equal-work lifting to a larger clock for non-timeout runs; selected branches, each loop iteration, callees/continuations/handlers exposed | Actual Crep-to-Loop transfer and simplification/live-optimization work proofs remain open |
+| `AllocCostSSAExecuted` | Actual-state executed budgets for reconciliation and setup fragments, back-edge work at each reached intermediate state, and break/continue exit moves | Whole-loop SSA semantic iteration induction and returning-call exception composition remain open |
 | `CrepExpressionWork`, `PanLoweringAllowance` | Full local source expression expansion; context-width and repeated address work retained | Generated syntax, not complete statement execution transfer |
 | `CrepToLoopLocalBound` | Generated code plus residual expression work <=6 times Crep expression work; list materialization potential | Local expression lowering |
 | `LoopExecutedWork` | Sound, complete, bounded actual traces for generated expression-code subset | Calls/loops rejected by the static subset cost |
@@ -141,9 +143,19 @@ composition. `GuestCostChargeFamily` traces and prices the pinned `charge_gas`
 successful body and out-of-gas prefix; `GuestCostArithmeticFamily` pins and
 traces both `add_sat` helper paths. Combined imports with the compiler transfer
 are checked in `GuestCostCombinedSmoke`. These do not cover any complete EVM
-opcode arm yet. The installed-call success theorem still needs to expose the
-same concrete event list used by its price theorem, and universal trace/body
-bounds remain separate from the explicitly constructed helper traces.
+opcode arm yet. The installed `charge_gas` call theorem now supplies its concrete trace and
+price together. `GuestCostPcAdd` pins the actual `pc_add` body and derives its
+stored value from the frame cell/domain and local `n`, then traces and prices
+the body. Universal trace/body bounds remain separate from these explicitly
+constructed helper traces.
+
+`StackWeightedInstruction` now derives an exact weighted label trace from the
+original Stack instruction flattening hypotheses, then composes it with the
+RISC-V local simulation. The result includes the actual native prefix, its
+opcode-plus-padding bound, the related successor and the advanced oracle tie.
+`LabWeightedComposition` adds weighted instruction traces with no extra factor
+or terminal surcharge per block. This is a checked instruction leaf;
+recursive Stack/control-flow composition is still required.
 
 ## Remaining end-to-end obligations
 
