@@ -1,12 +1,13 @@
 import InitECandidate.Runtime.SourceCostLoopIf
 import InitECandidate.Runtime.SourceCostLoopDec
+import InitECandidate.Runtime.SourceCostLoopWhile
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect
 
 /-- Crep statements covered by the checked Crep-to-Loop transfer. -/
 def crepLoopCovered : CrepProgHOL 64 → Bool
   | .seq first second | .ite _ first second => crepLoopCovered first && crepLoopCovered second
-  | .dec _ _ body => crepLoopCovered body
+  | .dec _ _ body | .while _ body => crepLoopCovered body
   | p => (crepLeafWork p).isSome
 
 /-- Crep-to-Loop executed-work transfer, by induction on executed Crep work.
@@ -106,6 +107,45 @@ theorem crep_loop_executed_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepP
     exfalso
     apply ok
     rw [evalCrepSemHOLProgExact_dec_holShape, failed]
+  | @whileExit t condition body exit =>
+    intro u context live ok rel covered
+    cases hev : evalCrepSemHOLExp t condition with
+    | none =>
+      exfalso; apply ok; rw [evalCrepSemHOLProgExact_while_holShape, hev]
+    | some v =>
+      cases v with
+      | word w =>
+        have hw := exit w hev
+        subst hw
+        exact while_false_loop_paid hev rel
+  | @whileTimeout t condition body word guard nonzero clock =>
+    intro u context live ok rel covered
+    exact while_timeout_loop_paid guard nonzero clock rel
+  | @whileLoop t condition body word bodyWork result middle restWork guard nonzero clock one run
+      again rest ihOne ihRest =>
+    intro u context live ok rel covered
+    have coveredBody : crepLoopCovered body = true := by
+      simpa [crepLoopCovered] using covered
+    have bodyOk := while_body_not_error guard nonzero clock run ok
+    have restOk : (evalCrepSemHOLProgExact middle (.while condition body)).1 ≠ some .error := by
+      have crepRun : evalCrepSemHOLProgExact t (.while condition body) =
+          evalCrepSemHOLProgExact middle (.while condition body) := by
+        rw [evalCrepSemHOLProgExact_while_holShape, guard]
+        simp only [ne_eq, clock, if_false]
+        rw [if_pos nonzero, run]
+        rcases again with rfl | rfl <;> rfl
+      rw [← crepRun]; exact ok
+    exact while_loop_loop_paid guard nonzero clock run again rel
+      (fun u' rel' => ihOne u' context live (by rw [run]; exact bodyOk) rel' coveredBody)
+      (fun u' rel' => ihRest u' context live restOk rel' covered)
+  | @whileStop t condition body word bodyWork result middle guard nonzero clock one run stop
+      ihOne =>
+    intro u context live ok rel covered
+    have coveredBody : crepLoopCovered body = true := by
+      simpa [crepLoopCovered] using covered
+    have bodyOk := while_body_not_error guard nonzero clock run ok
+    exact while_stop_loop_paid guard nonzero clock run stop ok rel
+      (fun u' rel' => ihOne u' context live (by rw [run]; exact bodyOk) rel' coveredBody)
   | _ =>
     intro u context live ok rel covered
     first
