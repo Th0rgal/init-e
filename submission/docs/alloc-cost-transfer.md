@@ -105,6 +105,14 @@ Compile order and module stems (checker role `allocation`):
      `  + (8 + 3 * |names ∪ exitNames| + |names| + bodyBudget)`.
      The body bound is a parameter, so this composes with any induction or
      scheduling argument instead of assuming a whole-program AST maximum.
+   - `ssaCcTrans_break_target_nodeCost_le` /
+     `ssaCcTrans_continue_target_nodeCost_le`: at a live loop target, the
+     reconciliation move is paid from the actual exit/live name set:
+     `≤ wordNodeCost (break n) + (|exitNames| + 4)` and
+     `≤ wordNodeCost (continue n) + (|names| + 4)`.
+     The conditional forms take the reconciled program and its exact cost bound;
+     the unconditional target forms discharge them with
+     `ssaReconcile_nodeCost_le`.
    - `ssaCcTrans_call_none_nodeCost_le`: a non-returning call pays only its
      argument move:
      `≤ wordNodeCost (call none dest args h) + (4 + args.length)`.
@@ -119,11 +127,11 @@ axiom, `unsafe`, `native_decide` or `bv_decide`.
   earlier theorems.  The reconciliation *budgets* for loops, `break`,
   `continue` and exception handlers are now proved in `AllocCostReconcile`, and
   the loop and call-none transfer is proved in `AllocCostSSAControl`.  The
-  remaining recursive cases are the `break`/`continue` branch-cost wiring and
-  the returning-call (`call some`) handler composition, where the return and
-  exception handler programs and their `fixInconsistencies` budget must be
-  threaded through the same symbolic state.  Those are the next missing chunk,
-  not consequences of the present theorems.
+  remaining recursive case is the returning-call (`call some`) handler
+  composition, where the return and exception handler programs and their
+  `fixInconsistencies` budget must be threaded through the same symbolic state.
+  The handler budget itself is already proved; the remaining work is only the
+  symbolic-state plumbing, not a new cost principle.
 - `WordSimp`/`instSelect` selection is taken as the root participant's
   `selectionLeaves ≤ 2 * wordExpressionWork` bridge.  This note starts from the
   selected straight-line fragment and does not re-prove that bridge.
