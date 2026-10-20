@@ -148,7 +148,7 @@ theorem wdSliceLoop_window {F : Type} (t : PanSemStateFiniteExact 64 F)
     (atHeap : t.globals.lookup (ofString "heap_ptr") = some (ValueHOL.val (HolWordLab.word heapBase)))
     (code : t.code = originalRuntimeCode)
     (heap0 : H 0 = heapBase)
-    (heapStep : ∀ j, H (j + 1) = allocationEnd (H j) 64)
+    (heapStep : ∀ j, j ≤ nwd.toNat → H (j + 1) = allocationEnd (H j) 64)
     (initialLe : I0.toNat ≤ nwd.toNat)
     (smallNwd : nwd.toNat < 2^63)
     (bounds : ∀ j, j ≤ nwd.toNat → (H j).toNat + 64 < 2^64)
@@ -275,7 +275,7 @@ theorem wdSliceLoop_window {F : Type} (t : PanSemStateFiniteExact 64 F)
     · exact hp
     · exact he
     · exact hs
-    · simpa only [heapStep] using hh
+    · simpa only [heapStep k hk'] using hh
     · exact hcode
     · have metadata := evaluateHOLFiniteState_metadata entered wdSliceLoopBody
       rw [metadata.2.1]
