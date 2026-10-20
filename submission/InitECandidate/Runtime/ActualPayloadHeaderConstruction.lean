@@ -993,4 +993,142 @@ theorem actual_payload_header_keccak_reaches {F : Type} (state : PanSemStateFini
 
 #print axioms actual_payload_header_keccak_reaches
 
+/-- **The header stores from statement 14 to statement 25.**  Every store in the range is free and
+only changes memory, the opaque `bf` declaration is free and only rebinds locals, so the construction
+reaches the actual `alloc 8` for `z8` in zero ticks, or aborts there. -/
+theorem actual_payload_header_stores_to_z8 {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap : BitVec 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap) :
+    Reaches mid (actualPayloadHeaderAt 14) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0
+      (actualPayloadHeaderAt 25) := by
+  have run1 : ∀ E : PanSemStateFiniteExact 64 F, (ActualPayloadHeaderPrefix state · pl raw pointer heap) E →
+      Reaches E (actualPayloadHeaderAt 14) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0
+        (actualPayloadHeaderAt 25) := by
+    intro E pE
+    exact (reaches_trans E (actualPayloadHeaderAt 14) (actualPayloadHeaderAt 15) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state E pl raw pointer heap 14 source_actual_payload_header_store_at_14 pE)
+        (fun _E_2_ _pE_2_ => (reaches_trans _E_2_ (actualPayloadHeaderAt 15) (actualPayloadHeaderAt 16) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state _E_2_ pl raw pointer heap 15 source_actual_payload_header_store_at_15 _pE_2_)
+        (fun __E_2__3_ __pE_2__3_ => (reaches_trans __E_2__3_ (actualPayloadHeaderAt 16) (actualPayloadHeaderAt 17) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state __E_2__3_ pl raw pointer heap 16 source_actual_payload_header_store_at_16 __pE_2__3_)
+        (fun ___E_2__3__4_ ___pE_2__3__4_ => (reaches_trans ___E_2__3__4_ (actualPayloadHeaderAt 17) (actualPayloadHeaderAt 18) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state ___E_2__3__4_ pl raw pointer heap 17 source_actual_payload_header_store_at_17 ___pE_2__3__4_)
+        (fun ____E_2__3__4__5_ ____pE_2__3__4__5_ => (reaches_trans ____E_2__3__4__5_ (actualPayloadHeaderAt 18) (actualPayloadHeaderAt 19) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state ____E_2__3__4__5_ pl raw pointer heap 18 source_actual_payload_header_store_at_18 ____pE_2__3__4__5_)
+        (fun _____E_2__3__4__5__6_ _____pE_2__3__4__5__6_ => (reaches_trans _____E_2__3__4__5__6_ (actualPayloadHeaderAt 19) (actualPayloadHeaderAt 20) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state _____E_2__3__4__5__6_ pl raw pointer heap 19 source_actual_payload_header_store_at_19 _____pE_2__3__4__5__6_)
+        (fun ______E_2__3__4__5__6__7_ ______pE_2__3__4__5__6__7_ => (reaches_trans ______E_2__3__4__5__6__7_ (actualPayloadHeaderAt 20) (actualPayloadHeaderAt 21) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state ______E_2__3__4__5__6__7_ pl raw pointer heap 20 source_actual_payload_header_store_at_20 ______pE_2__3__4__5__6__7_)
+        (fun _______E_2__3__4__5__6__7__8_ _______pE_2__3__4__5__6__7__8_ => (reaches_trans _______E_2__3__4__5__6__7__8_ (actualPayloadHeaderAt 21) (actualPayloadHeaderAt 22) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state _______E_2__3__4__5__6__7__8_ pl raw pointer heap 21 source_actual_payload_header_store_at_21 _______pE_2__3__4__5__6__7__8_)
+        (fun ________E_2__3__4__5__6__7__8__9_ ________pE_2__3__4__5__6__7__8__9_ => (reaches_trans ________E_2__3__4__5__6__7__8__9_ (actualPayloadHeaderAt 22) (actualPayloadHeaderAt 23) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state ________E_2__3__4__5__6__7__8__9_ pl raw pointer heap 22 source_actual_payload_header_store_at_22 ________pE_2__3__4__5__6__7__8__9_)
+        (fun _________E_2__3__4__5__6__7__8__9__10_ _________pE_2__3__4__5__6__7__8__9__10_ => (reaches_trans _________E_2__3__4__5__6__7__8__9__10_ (actualPayloadHeaderAt 23) (actualPayloadHeaderAt 24) (actualPayloadHeaderAt 25)
+        (ActualPayloadHeaderPrefix state · pl raw pointer heap) (ActualPayloadHeaderPrefix state · pl raw pointer heap) 0 0
+        (actual_payload_header_store_step state _________E_2__3__4__5__6__7__8__9__10_ pl raw pointer heap 23 source_actual_payload_header_store_at_23 _________pE_2__3__4__5__6__7__8__9__10_)
+        (fun __________E_2__3__4__5__6__7__8__9__10__11_ __________pE_2__3__4__5__6__7__8__9__10__11_ => actual_payload_header_store_step state __________E_2__3__4__5__6__7__8__9__10__11_ pl raw pointer heap 24 source_actual_payload_header_store_at_24 __________pE_2__3__4__5__6__7__8__9__10__11_))))))))))))))))))))
+  exact run1 mid facts
+
+#print axioms actual_payload_header_stores_to_z8
+
+/-- **The construction tail under a rejected `z8` allocation.**  When the `alloc 8` request does not
+fit, the real allocator rejects it, so the stores of statements 14 to 24 lead straight into the abort
+branch within the two ticks the allocation itself needs. -/
+theorem actual_payload_header_tail_rejected {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap : BitVec 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (code : state.code = originalRuntimeCode)
+    (below : heap.toNat ≤ 33806089496)
+    (noRoom : 33806089496 < heap.toNat + (8#64).toNat)
+    (budget : 2 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 14)
+      (ActualPayloadHeaderPrefix state · pl raw pointer
+        (allocationEnd (allocationEnd (allocationEnd (allocationEnd heap (8#64)) (32#64)) (32#64)) (32#64))) 2
+      (actualPayloadHeaderAt 40) := by
+  rcases actual_payload_header_stores_to_z8 state mid pl raw pointer heap facts with
+    ⟨E, pE, c1, c2, sc⟩ | ab
+  · have rejected := actual_payload_header_alloc_rejected E (ofString "z8") (8#64) heap
+      (actualPayloadHeaderAt 26) (fun _ => False) pE.2.2.2.1
+      (by rw [pE.2.2.2.2.2]; exact code) (by omega) below noRoom
+    rcases rejected with ⟨bad, impossible, _, _, _⟩ | ab2
+    · exact (by simpa using impossible : False).elim
+    · obtain ⟨x, a1, a2, a3, a4, a5⟩ := ab2
+      have bridge : (evaluateHOLFiniteState E (ProgHOL.decCall (ofString "z8") ShapeHOL.one
+            (ofString "alloc") [ExpHOL.const (8#64)] (actualPayloadHeaderAt 26))).2.clock =
+          (evaluateHOLFiniteState E (actualPayloadHeaderAt 25)).2.clock := rfl
+      have sameClock : E.clock = mid.clock := by omega
+      have clocks := sc.2.1
+      refine Or.inr ⟨x, sc.1.trans a1, a2, by omega, by omega, ?_⟩
+      intro t
+      exact a5 (by omega)
+  · obtain ⟨x, a1, a2, a3, a4, a5⟩ := ab
+    exact Or.inr ⟨x, a1, a2, by omega, a4, fun t => a5 (by omega)⟩
+
+#print axioms actual_payload_header_tail_rejected
+
+/-- **The construction tail for every outcome, without any room reserve.**  From statement 14 the
+actual construction reaches statement 40 -- immediately before `block_rlp_length(h, pl)` -- in 17
+ticks, or aborts: the room the `memzero(z8, 8)` needs is either granted by the real allocator or the
+allocator rejects the request and the statement ends in the abort branch.  Only the current floor's own
+membership in memory and its eight-byte alignment are assumed. -/
+theorem actual_payload_header_tail_guarded {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap : BitVec 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (code : state.code = originalRuntimeCode)
+    (below : heap.toNat ≤ 33806089496) (aligned : heap.toNat % 8 = 0)
+    (fullDomain : ∀ address : BitVec 64, address.toNat < 33806089496 → state.memaddrs address)
+    (budget : 17 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 14)
+      (ActualPayloadHeaderPrefix state · pl raw pointer
+        (allocationEnd (allocationEnd (allocationEnd (allocationEnd heap (8#64)) (32#64)) (32#64)) (32#64))) 17
+      (actualPayloadHeaderAt 40) := by
+  by_cases room : heap.toNat + (8#64).toNat ≤ 33806089496
+  · exact actual_payload_header_construction_tail state mid pl raw pointer heap facts code room aligned
+      fullDomain budget
+  · exact reaches_mono mid (actualPayloadHeaderAt 14) (actualPayloadHeaderAt 40)
+      (ActualPayloadHeaderPrefix state · pl raw pointer
+        (allocationEnd (allocationEnd (allocationEnd (allocationEnd heap (8#64)) (32#64)) (32#64)) (32#64)))
+      (ActualPayloadHeaderPrefix state · pl raw pointer
+        (allocationEnd (allocationEnd (allocationEnd (allocationEnd heap (8#64)) (32#64)) (32#64)) (32#64)))
+      2 17 (by omega) (fun _ h => h)
+      (actual_payload_header_tail_rejected state mid pl raw pointer heap facts code below (by omega) (by omega))
+
+#print axioms actual_payload_header_tail_guarded
+
+/-- **An allocation floor never exceeds its request by more than seven bytes.** -/
+theorem actual_payload_header_floor_upper (pointer size : BitVec 64)
+    (fits : pointer.toNat + size.toNat + 7 < 2^64) :
+    (allocationEnd pointer size).toNat ≤ pointer.toNat + size.toNat + 7 := by
+  have seven : (7#64 : BitVec 64).toNat = 7 := by decide
+  have inner : (pointer + size).toNat = pointer.toNat + size.toNat := by
+    rw [BitVec.toNat_add_of_lt (by omega)]
+  have sum : (pointer + size + (7#64)).toNat = pointer.toNat + size.toNat + 7 := by
+    rw [BitVec.toNat_add_of_lt (by rw [inner,seven]; omega),inner,seven]
+  rw [allocationEnd_eq_align,panByteAlign_toNat64]
+  change BitVec.toNat (pointer + size + (7#64)) / 8 * 8 ≤ pointer.toNat + size.toNat + 7
+  rw [sum]
+  have := Nat.div_mul_le_self (pointer.toNat + size.toNat + 7) 8
+  omega
+
+#print axioms actual_payload_header_floor_upper
+
+/-- **Allocation floors are eight-byte aligned.** -/
+theorem actual_payload_header_floor_aligned (pointer size : BitVec 64) :
+    (allocationEnd pointer size).toNat % 8 = 0 := by
+  rw [allocationEnd_eq_align,panByteAlign_toNat64]
+  have split := Nat.div_add_mod (pointer + size + (7#64)).toNat 8
+  have small := Nat.mod_lt (pointer + size + (7#64)).toNat (by norm_num : 0 < 8)
+  omega
+
+#print axioms actual_payload_header_floor_aligned
+
 end InitECandidate.Runtime
