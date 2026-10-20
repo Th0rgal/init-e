@@ -435,6 +435,21 @@ theorem wordPathWork_call_noreturn_sValEq_variant {C F : Type}
 
 #print axioms wordPathWork_call_noreturn_sValEq_variant
 
+
+/-- A list of pairs is determined by its `fst`-image and its `snd`-image. -/
+theorem map_fst_snd_eq : ∀ (l l' : List (WordLocW 64 × WordLocW 64)),
+    l.map Prod.fst = l'.map Prod.fst → l.map Prod.snd = l'.map Prod.snd → l = l'
+  | [], [], _, _ => rfl
+  | [], _ :: _, h1, _ => by simp at h1
+  | _ :: _, [], h1, _ => by simp at h1
+  | a :: as, b :: bs, h1, h2 => by
+      simp only [List.map_cons, List.cons.injEq] at h1 h2
+      obtain ⟨h1a, h1t⟩ := h1
+      obtain ⟨h2a, h2t⟩ := h2
+      rw [Prod.ext h1a h2a, map_fst_snd_eq as bs h1t h2t]
+
+#print axioms map_fst_snd_eq
+
 #print axioms wordPathWork_ite_sValEq_variant
 
 #print axioms wordPathWork_seq_sValEq_variant_none
