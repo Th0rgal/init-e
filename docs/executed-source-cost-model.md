@@ -347,6 +347,13 @@ exclude the generated call temporary, and body readiness follows from actual
 declaration membership. The whole statement/installed-entry globals transfer
 is still pending; these expression and syntax results do not imply it alone.
 
+`StackWeightedSkipIf` proves the literal layout for a nonempty then arm with
+an empty else arm. A true source guard executes the negated branch's actual
+fall-through and the selected arm, for normal, control-exit or terminal results.
+A false source guard jumps over the body for allowance 3; the skipped body
+contributes no work. The shared layout includes its actual emitted label counter
+and installed end location. Other conditional layouts remain to be generalized.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
