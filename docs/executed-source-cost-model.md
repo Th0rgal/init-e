@@ -738,3 +738,25 @@ successful evaluation, using supported post-removal grammar, stored-code
 eligibility, label scope, and validity of the final returned/raised location.
 These facts are not an assumed trace or native budget. Completeness and the
 full finite certificate remain unfinished.
+
+### Atomic derivation completeness
+
+`StackExecutionEligibility` defines the supported post-removal grammar and
+valid result forms, including installed returned/raised locations and explicit
+exclusion of source Error/TimeOut. It classifies results into the unified
+compiler conclusions without changing their source result. Its eight laws
+checked in `stack-execution-atomic3`.
+
+`StackExecutionAtomicComplete.executionTrace_atomic` constructs the semantic
+derivation from the actual evaluation of every supported leaf. It covers
+normal/final FFI, all eight shared-memory operations, returns/raises, and
+normal/control/Halt leaves. Invalid result forms are eliminated using the
+explicit source result-validity premise. The theorem assumes no derivation,
+native trace, price table, or target budget. Checked with standard axioms in
+`stack-execution-atomic4`.
+
+Full completeness still requires well-founded assembly over sequence,
+conditional, loop, and call evaluations, with stored-code eligibility and
+label scope transported through code-map preservation. Concrete compiled
+artifact eligibility/prices and the fine Word/source/guest bounds remain
+unfinished.
