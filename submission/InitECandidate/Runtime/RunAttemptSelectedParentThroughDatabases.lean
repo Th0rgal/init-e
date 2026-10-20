@@ -1,4 +1,6 @@
 import InitECandidate.Runtime.RunAttemptTwoDatabaseValuesReach
+import InitECandidate.Runtime.RunAttemptStateInitArguments
+import InitECandidate.Runtime.RunAttemptStateInitLookup
 /-!
 The selected parent survives both database builds.
 
@@ -72,7 +74,13 @@ theorem run_attempt_selected_parent_two_database_reaches {F : Type}
         final.locals.lookup (ofString "parent") = some (.val (.word parent)) ∧
         final.memory (parent + 32#64) = .word word ∧
         final.memaddrs (parent + 32#64) ∧
-        parent.toNat + 248 ≤ finalHeap.toNat)
+        parent.toNat + 248 ≤ finalHeap.toNat ∧
+        evalListHOLFinite final (h := fun a => Classical.propDecidable (final.memaddrs a))
+          runAttemptStateInitArguments =
+          some [.val (.word heap),.val (.word word),.val (.word midHeap)] ∧
+        lookupCodeHOLFinite final.code.lookup (ofString "state_init")
+          [.val (.word heap),.val (.word word),.val (.word midHeap)] =
+          some (sourceFunctionBody Guest.guestFn_state_init,stateInitCallee heap word midHeap,.one))
       ((nodedbBodyCost total₁ + 1) + (nodedbBodyCost total₂ + 1)) (runAttemptAt 11) := by
   have reached := run_attempt_two_database_values_reaches s si heap total₁ array₁ total₂ array₂ input
     inputLength statePad pad output atSi linked₁ linked₂ code atHeap aligned capped atState atPad
@@ -95,7 +103,7 @@ theorem run_attempt_selected_parent_two_database_reaches {F : Type}
     rw [addressEq]
     omega
   refine ⟨midHeap,finalHeap,localsEq,domainEq,codeEq,beEq,stEq,padEq,outEq,heapEq,mono₁,mono₂,
-    aligned',capped',entries₁,entries₂,table₁,table₂,live,frame,?_,?_,?_,?_⟩
+    aligned',capped',entries₁,entries₂,table₁,table₂,live,frame,?_,?_,?_,?_,?_,?_⟩
   · rw [localsEq]
     have codDifferent : (ofString "codedb" == ofString "parent") = false := by decide
     have nodDifferent : (ofString "nodedb" == ofString "parent") = false := by decide
@@ -105,6 +113,25 @@ theorem run_attempt_selected_parent_two_database_reaches {F : Type}
       (mwin_below (by omega))).trans rootWord
   · exact domainEq ▸ rootDomain
   · omega
+  · have atNodes : final.locals.lookup (ofString "nodedb") = some (.val (.word heap)) := by
+      rw [localsEq]
+      have different : (ofString "codedb" == ofString "nodedb") = false := by decide
+      simp [HolFiniteMapExact.lookup_update,FUPDATE,different]
+    have atParentFinal : final.locals.lookup (ofString "parent") = some (.val (.word parent)) := by
+      rw [localsEq]
+      have codDifferent : (ofString "codedb" == ofString "parent") = false := by decide
+      have nodDifferent : (ofString "nodedb" == ofString "parent") = false := by decide
+      simpa [HolFiniteMapExact.lookup_update,FUPDATE,codDifferent,nodDifferent] using atParent
+    have atCodes : final.locals.lookup (ofString "codedb") = some (.val (.word midHeap)) := by
+      rw [localsEq]
+      have different : (ofString "nodedb" == ofString "codedb") = false := by decide
+      simp [HolFiniteMapExact.lookup_update,FUPDATE,different]
+    exact eval_run_attempt_state_init_arguments final heap parent word midHeap atNodes atParentFinal
+      atCodes (domainEq ▸ rootDomain)
+      ((frame (parent + 32#64) below (mwin_below (by omega)) (mwin_below (by omega))
+        (mwin_below (by omega))).trans rootWord)
+  · rw [codeEq,code]
+    exact lookup_state_init_callee heap word midHeap
 
 #print axioms run_attempt_selected_parent_two_database_reaches
 end InitECandidate.Runtime
