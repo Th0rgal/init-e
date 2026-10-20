@@ -81,3 +81,28 @@ So the remaining per-callee obligations, in dependency order, are
 `FunBounded "rlp_finish_list"`, `FunBounded "rlp_encode_bytes"`, and finally the record sum
 `2 + Σ(1 + callee)` which is a concrete numeral. Each is a `ProgBounded` composition over the quoted
 body with `ProgBounded.alloc`/`call`/`decCall`/`countedDec` — no runtime oracle anywhere.
+
+## Statement-46 loop runtime bound (checked, `HeaderWithdrawalLoopRuntime`)
+
+Per-iteration cost, from the **actual installed encoder** (canonical shared bound
+`encode_withdrawal_body_bounded`, reused through the `ProgBounded`/`RunBounded` machinery — no new
+encoder proof and no oracle):
+`wdSliceLoopBody_runBounded : RunBounded t wdSliceLoopBody (encodeWithdrawalSourceCost DF + 1)`
+given `code`, `Fence t.memaddrs DF`, `DF + 8 ≤ 2^62`, `33806089496 ≤ DF`, the `heap_ptr` binding with
+`heap.toNat ≤ 33806089496` and the argument evaluation. The decoder `decCall` is decomposed with
+explicit `bodyCost`/`tailCost` (`RunBounded.decCall (bodyCost := encodeWithdrawalSourceCost DF)
+(tailCost := 0)`), the two slice stores are straight-line (`runBounded_zero_of_extStraightLine`).
+
+Loop cost (`countedWhile_runBounded`, `countedWhile_runBounded_var`, `eval_var_condition`): a counted
+while with a **state-dependent** per-iteration `RunBounded` costs `n * (cost + 1)`, where the
+variable-bound form matches statement 46's `while i < nwd` (the `nwd` local is fixed by the invariant
+`P`). `wdSliceLoop_runBounded` is the instantiation:
+`state.clock ≤ post.clock + n * (encodeWithdrawalSourceCost DF + 2)` with
+`nwd.toNat - I0.toNat = n`, and the loop never times out under that budget.
+
+Explicit remaining obligations for the unconditional statement-46 corollary (all named, none assumed):
+`P`-preservation across one iteration (heap frontier `H (j+1) = allocationEnd (H j) 64`, the
+`Fence`-at-`H j` fact, `nwd`/`pl`/`slices` stability, counter advance by one, `noContinue`). The
+frozen `HeaderWithdrawalLoopBody` step lemmas supply the counter/heap/code parts
+(`wdSliceLoopStores_adv`, `wd_slice_step_successor`, `wd_slice_step_clock_ne`,
+`wd_slice_step_outcome`); the missing piece is `Fence`-preservation of the encoder's writes.
