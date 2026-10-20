@@ -62,15 +62,17 @@ theorem wdDecP_globals_frame : OriginalGlobalsFrame wdDecP := by
   rw [wdDecP]
   exact originalGlobalsFrame_declaration _ _ _ _ wdCall0_globals_frame
 
-/-- A successful `encode_withdrawal_rlp` really advances the heap pointer to the aligned end of its
-own 64-byte buffer allocation: the allocation writes it and the writer tail keeps it. -/
-theorem rlpEncodeWithdrawal_heap {F : Type} (t base : PanSemStateFiniteExact 64 F)
+/-- A successful `encode_withdrawal_rlp` changes exactly one global: `heap_ptr` becomes the aligned
+end of its own 64-byte buffer allocation.  The allocation writes that pointer and the writer tail
+then keeps every global. -/
+theorem rlpEncodeWithdrawal_returned_globals {F : Type} (t base : PanSemStateFiniteExact 64 F)
     (B : BitVec 64) (value : ValueHOL 64)
     (heap : t.globals.lookup (ofString "heap_ptr") = some (.val (.word B)))
     (code : t.code = originalRuntimeCode) (clock : 2 ≤ t.clock)
     (run : evaluateHOLFiniteState t (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) =
       (some (.returned value),base)) :
-    base.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd B 64))) := by
+    base.globals =
+      (setGlobalHOLFinite (ofString "heap_ptr") (.val (.word (allocationEnd B 64))) t).globals := by
   rw [source_rlpEncodeWithdrawal_body,rlpEncodeWithdrawal_eq] at run
   obtain ⟨values,body,callee,returnShape,w,bodyPost,resumed,inner,argsR,lookupR,bodyRun,_,_,_,rcode,rglob,
     _,_,_,rrun,_,_,_,_,pg⟩ := decCall_returned_globalsG run
@@ -85,21 +87,42 @@ theorem rlpEncodeWithdrawal_heap {F : Type} (t base : PanSemStateFiniteExact 64 
   rw [pan_single_word_lookup t.code.lookup (ofString "alloc") (ofString "n")
     (sourceFunctionBody Guest.guestFn_alloc) (64#64) installed] at lookupR
   cases lookupR
-  obtain ⟨_,_,hw,bm,_,_,bc,bg⟩ := alloc_body_returned _ bodyPost B 64 (by exact code) (by exact heap)
+  obtain ⟨_,_,hw,_,_,_,bcode,bg⟩ := alloc_body_returned _ bodyPost B 64 (by exact code) (by exact heap)
     (by simp [callEntryStateHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]) w bodyRun
   subst hw
-  have resumedHeap : resumed.globals.lookup (ofString "heap_ptr") =
-      some (.val (.word (allocationEnd B 64))) := by
-    rw [rglob,bg]
-    simp [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
   have resumedCode : resumed.code = originalRuntimeCode := by
-    rw [rcode,bc]
+    rw [rcode,bcode]
     exact code
   have frame := wdDecP_globals_frame resumed resumedCode
   rw [rrun] at frame
   rw [pg]
-  rw [frame]
-  exact resumedHeap
+  rw [frame,rglob]
+  exact bg
 
+/-- A successful `encode_withdrawal_rlp` really advances the heap pointer. -/
+theorem rlpEncodeWithdrawal_heap {F : Type} (t base : PanSemStateFiniteExact 64 F)
+    (B : BitVec 64) (value : ValueHOL 64)
+    (heap : t.globals.lookup (ofString "heap_ptr") = some (.val (.word B)))
+    (code : t.code = originalRuntimeCode) (clock : 2 ≤ t.clock)
+    (run : evaluateHOLFiniteState t (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) =
+      (some (.returned value),base)) :
+    base.globals.lookup (ofString "heap_ptr") = some (.val (.word (allocationEnd B 64))) := by
+  rw [rlpEncodeWithdrawal_returned_globals t base B value heap code clock run]
+  simp [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+
+/-- A successful `encode_withdrawal_rlp` keeps every other global, in particular the slice array
+pointer. -/
+theorem rlpEncodeWithdrawal_other_globals {F : Type} (t base : PanSemStateFiniteExact 64 F)
+    (B : BitVec 64) (value : ValueHOL 64) (name : MlS)
+    (heap : t.globals.lookup (ofString "heap_ptr") = some (.val (.word B)))
+    (code : t.code = originalRuntimeCode) (clock : 2 ≤ t.clock) (apart : name ≠ ofString "heap_ptr")
+    (run : evaluateHOLFiniteState t (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) =
+      (some (.returned value),base)) :
+    base.globals.lookup name = t.globals.lookup name := by
+  rw [rlpEncodeWithdrawal_returned_globals t base B value heap code clock run]
+  simp only [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,apart]
+
+#print axioms rlpEncodeWithdrawal_returned_globals
 #print axioms rlpEncodeWithdrawal_heap
+#print axioms rlpEncodeWithdrawal_other_globals
 end InitECandidate.Runtime
