@@ -95,3 +95,13 @@ It is a syntactic expansion bound, not yet a native runtime theorem. Field
 projection can discard some expanded expressions, so this full-load bound is
 conservative for a projected load. The expression/source cost connection must
 retain these local multiplicities rather than assume flattening is free.
+
+`PanLoweringAllowance.pan_lowering_work_bound` now assembles these local
+inequalities for every expression constructor of the exact Pan-to-Crep pass.
+Its allowance uses the current compiler context's local variable word counts,
+sums record/operand allowances, and multiplies structured load address work by
+the load's word count. It does not depend on whole-program syntax size.
+Named structures and globals still take the literal fallback clauses at this
+pass: correctness and cost of their earlier preprocessing must be connected
+separately. This theorem bounds generated expression nodes; execution-frequency
+accounting and the later compiler/runtime transfer remain open.
