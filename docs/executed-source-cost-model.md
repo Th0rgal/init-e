@@ -252,7 +252,15 @@ proof; the price definition alone does not discharge it.
 global-access charges. `SourceCostPanStructsId` proves structures preprocessing
 is the identity under a checked syntactic no-named-structures predicate;
 `SourceCostCrepInlineId` proves Crep inlining is the identity when no function
-is inlinable. Their concrete guest predicates still need kernel certificates.
+is inlinable. `GuestCostSyntax` checks both predicates on the actual simplified guest. The
+post-globals no-inline predicate remains to be checked.
+
+The attempted `sharpSitesProg 40` certificate on the actual simplified guest
+was false: eight storage/account function families contain record-field load
+addresses outside `scalarAddr`, while `op_dup` has scalar address price 43.
+The failed theorem is not part of the checked modules. Extending the selected
+record-field address proof and checking the actual post-globals stage remain
+open; raising the numeric bound alone would not fix the unsupported grammar.
 
 Existing root guest helpers were replayed with the new model. Generic
 `callEvents`/`callLocalCost` accept optional final call info (default `none`)
