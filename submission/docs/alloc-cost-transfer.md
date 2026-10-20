@@ -396,3 +396,12 @@ budget zero); the SSA-renamed case must be discharged by the callee induction
 hypothesis at the related entry environments, which is what
 `returningCalleeTransport`/`returningPrepareArguments` expose as
 `strongLocalsRel` on the cut environments.
+
+### Which theorem to use for the final assembly
+
+Use `ssaBody_call_returning_executed_le` (the parametric-budget one): its
+`calleeWork` premise with additive `calleeBudget` is exactly the shape of the
+recursive induction hypothesis for the callee program, so the pass-level
+induction plugs straight in and no whole-call cost transfer is assumed.  The
+zero-budget variant `ssaBody_call_returning_no_body_oracle` remains useful only
+as the stack-permutation sub-case documented above.
