@@ -31,10 +31,10 @@ def IWRg (ADs : Set (BitVec 64)) (Rg : BalK → BitVec 64 → Prop) (Rr Ow : Bit
   (∃ k, BalK.live ADs k ∧ Rg k x) ∨ Rr x ∨ Ow x ∨ BlkRg BO lb0 R Ose x
 
 /-- The incoming world of the incorporation at the call: the block-access-list objects, the witness invariant and
-scratch region, the builder source tables and the merge block objects, all separated; the regions below `P0` inside
+scratch region, the builder source tables and the merge block objects, all separated; the regions below the watch bound `Pw` inside
 `Z`; the outside words outside `Excl` and the block-list words off every region and below the heap. -/
 def IncW (D : BitVec 64 → Prop) (B : Bool) (n : Nat) (c T : Fin n → BitVec 64)
-    (WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop) (Sk : BitVec 64 → Prop) (Ts Bs P0 : BitVec 64)
+    (WsI : Mem → BitVec 64 → (BitVec 64 → Prop) → Prop) (Sk : BitVec 64 → Prop) (Ts Bs Pw : BitVec 64)
     (Z Out Excl W40 W72 : BitVec 64 → Prop) (M : Mem) (G : GA) : Prop :=
   ∃ (BA IA IS KB Ix : BitVec 64) (ADs : Set (BitVec 64)) (Rg : BalK → BitVec 64 → Prop) (H : BitVec 64)
     (Ow Rx : BitVec 64 → Prop) (Taw : BitVec 64) (law : TLay) (Tout : BitVec 64) (lout : TLay) (BO : BitVec 64)
@@ -63,8 +63,8 @@ def IncW (D : BitVec 64 → Prop) (B : Bool) (n : Nat) (c T : Fin n → BitVec 6
       (j24 ∈ R ∧ j8 ∈ R ∧ j40 ∈ R ∧ j16 ∈ R ∧ j48 ∈ R) ∧
       (M (Bs + 24#64) = .word j24 ∧ M (Bs + 8#64) = .word j8 ∧ M (Bs + 40#64) = .word j40 ∧
         M (Bs + 16#64) = .word j16 ∧ M (Bs + 48#64) = .word j48 ∧ M (Bs + 32#64) = .word BO)) ∧
-    -- watchability and the outside / block-list words
-    (∀ x, IWRg ADs Rg (IRr n c T M Rx) Ow BO lb0 R Ose x → x.toNat < P0.toNat → Z x) ∧
+    -- watchability (below `Pw`) and the outside / block-list words
+    (∀ x, IWRg ADs Rg (IRr n c T M Rx) Ow BO lb0 R Ose x → x.toNat < Pw.toNat → Z x) ∧
     (∀ x, Out x → ¬ Excl x → x.toNat < H.toNat ∧ ¬ IWRg ADs Rg (IRr n c T M Rx) Ow BO lb0 R Ose x) ∧
     (∀ x, (W40 x ∨ W72 x) → x.toNat < H.toNat ∧ ¬ IWRg ADs Rg (IRr n c T M Rx) Ow BO lb0 R Ose x)
 
@@ -140,13 +140,14 @@ theorem incorpCO2_call (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM G0 
     (hcB : c kB = Bs + 72#64) (ne40 : k40 ≠ ko) (Ts : BitVec 64)
     (hTs : G0.lookup (ofString "ts") = some (.val (.word Ts))) (hc40 : c k40 = Ts + 40#64)
     (hSkSO : ∀ x, SkWin SKB x → Out x ∧ ∀ i, x ≠ c i) (hSk : ∀ x, SkWin SKB x → Sk x)
-    (hwZ : ¬ Z w) (hwP : w.toNat < P0.toNat) (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a) :
+    (Pw : BitVec 64) (hwZ : ¬ Z w) (hwPw : w.toNat < Pw.toNat) (hwP : w.toNat < P0.toNat)
+    (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a) :
     IncorpCO2 D B w RR SP0 P0 FM G0 J C SKB Bo U Sc n c T Out ko Excl W40 W72
-      (fun M G => IncW D B n c T WsI Sk Ts Bs P0 Z Out Excl W40 W72 M G) (fun M G => IncWo D B n c T ko WsI Sk M G)
+      (fun M G => IncW D B n c T WsI Sk Ts Bs Pw Z Out Excl W40 W72 M G) (fun M G => IncWo D B n c T ko WsI Sk M G)
       Mz Y Ix Hb L40 L72 := by
   intro Hg
   refine aqgd_conseq (P := fun L M G => LPSo Y Ix L ∧ (PZ n c T Out ko D B Excl Hb Hg Mz M G ∧
-      BL2 W40 W72 Hb L40 L72 M G ∧ IncW D B n c T WsI Sk Ts Bs P0 Z Out Excl W40 W72 M G))
+      BL2 W40 W72 Hb L40 L72 M G ∧ IncW D B n c T WsI Sk Ts Bs Pw Z Out Excl W40 W72 M G))
     (Q := fun L M G => LPSo Y Ix L ∧ (PZ n c T Out ko D B Excl Hb Hg Mz M G ∧
       BL2 W40 W72 Hb L40 L72 M G ∧ IncWo D B n c T ko WsI Sk M G))
     (aqgd_ghostR fun M1 G1 pre => ?_) (fun _ _ _ ⟨⟨lp,pz⟩,bl,iw⟩ => ⟨lp,pz,bl,iw⟩)
@@ -156,7 +157,7 @@ theorem incorpCO2_call (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM G0 
     ⟨hH,bg,bw,wi,rxB,dRO,dis,hsk⟩,⟨cAw,tcA,klA,ncA,hAwR,cOut,tcO,klO,ncO,hOutR,hIn⟩,
     ⟨blk0,hBlk,hOutB,hcell,⟨hj24,hj8,hj40,hj16,hj48⟩,cbs⟩,hZ,hOX,hWX⟩ := iw
   have u0 := uw_of_pzIncW (Sk := Sk) hAB pg hH bg bw wi rxB dRO dis hsk
-  have hwI : ¬ IWRg ADs Rg (IRr n c T M1 Rx) Ow BO lb0 R Ose w := fun h => hwZ (hZ w h hwP)
+  have hwI : ¬ IWRg ADs Rg (IRr n c T M1 Rx) Ow BO lb0 R Ose w := fun h => hwZ (hZ w h hwPw)
   exact aqgd_conseq (aqgd_call_incorporate (LP := LPSo Y Ix) (RR := RR) bk wsr ne Bs hBs hcB ne40 Ts hTs hc40
       (fun x h => ⟨Or.inl (hSkSO x h).1,(hSkSO x h).2⟩) hSk u0 Taw law cAw tcA klA ncA hAwR Tout lout cOut tcO klO
       ncO hOutR hIn BO lb0 R Ose Hl blk0 hBlk hOutB (fun k hk => (hcell k hk).1) j24 j8 j40 j16 j48 hj24 hj8 hj40
