@@ -15,7 +15,7 @@ theorem expanded_main_decoder_call_bounded (input : Guest.InputBlob) (fuel : Nat
   apply main_decoder_entry_stateless_call_bounded
     {expandedRuntimeEntry input with clock := fuel} ready
   · exact canonical_original_source_code input
-  · intro address aligned lower upper;trivial
+  · intro address aligned lower upper;exact upper
   · exact valid
   · exact budget
 

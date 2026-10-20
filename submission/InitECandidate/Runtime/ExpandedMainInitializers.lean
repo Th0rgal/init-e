@@ -5,7 +5,7 @@ namespace InitECandidate.Runtime
 /-- Proof-only enlarged-domain entry. Transfer back to the unchanged canonical
 source requires the separate evaluator domain-enlargement theorem. -/
 noncomputable def expandedRuntimeEntry (input : Guest.InputBlob) :=
-  {canonicalOriginalSourceEntry input with memaddrs:=fun _=>True}
+  {canonicalOriginalSourceEntry input with memaddrs:=fun address=>address.toNat<InitE.heapEnd}
 
 open InitE Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -35,7 +35,7 @@ theorem expanded_main_initializers (input : Guest.InputBlob) (fuel : Nat)
     intro entry member
     exact ⟨0, zero entry.1 (of_decide_eq_true (List.all_eq_true.mp included entry member))⟩
   apply evaluate_main_all_initializers_cells state 0 0 0 0 0 0 0 0 0
-  case arena => intro address aligned lower upper;trivial
+  case arena => intro address aligned lower upper;exact upper
   case code => exact canonical_original_source_code input
   case budget => exact budget
   case hashWords => exact entries _ (by decide_cbv)

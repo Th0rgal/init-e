@@ -55,7 +55,11 @@ theorem validate_headers_stored_roots_invariant_step {F : Type} (e : ValidateHea
       heap.toNat + headerCarryRoom ≤ 33806089496)
     (budget : headerDecoderBodyCost e.inputLimit + 1 + (e.inputLimit * 20 + 125) ≤ s.clock)
     (normal : evaluateHOLFiniteState s validateHeadersFirstBody = (none,post)) :
-    ∃ nextRank, nextRank < rank ∧ ValidateHeadersStoredRootsInvariant e post nextRank := by
+    ∃ nextRank, nextRank < rank ∧ ValidateHeadersStoredRootsInvariant e post nextRank ∧
+      ∃ oldHeap newHeap : BitVec 64,
+        s.globals.lookup (ofString "heap_ptr") = some (.val (.word oldHeap)) ∧
+        post.globals.lookup (ofString "heap_ptr") = some (.val (.word newHeap)) ∧
+        newHeap.toNat < oldHeap.toNat + headerCarryRoom := by
   obtain ⟨valid,⟨prefixIndex,atPrefixIndex,initialized⟩,⟨initialHeap,initialBinding,bufferBefore⟩⟩ :=
     completeValid.1
   obtain ⟨index,heap,atIndex,heapGlobal,storedFloor,roots⟩ := completeValid.2
@@ -118,9 +122,9 @@ theorem validate_headers_stored_roots_invariant_step {F : Type} (e : ValidateHea
       code w condition nonzero budget normal
   have indexNat : (index + 1).toNat = index.toNat + 1 := (validate_headers_index_progress index e.count
     inside).1
-  exact ⟨nextRank,smaller,pointerNext,⟨index + 1,nextHeap,increment,postHeap,nextFloorHere,by
+  exact ⟨nextRank,smaller,⟨pointerNext,index + 1,nextHeap,increment,postHeap,nextFloorHere,by
     rw [indexNat]
-    exact rootsNext⟩⟩
+    exact rootsNext⟩,heap,nextHeap,heapGlobal,postHeap,growth⟩
 
 #print axioms validate_headers_stored_roots_invariant_step
 end InitECandidate.Runtime

@@ -28,7 +28,9 @@ theorem expanded_main_decoder_entry (input : Guest.InputBlob) (fuel : Nat)
       (by
         intro address cellAligned lo hi
         rw [domain]
-        trivial)
+        change address.toNat<33806089496
+        change address.toNat < zero.toNat + 32 at hi
+        omega)
     obtain ⟨ready,tailAgreement,tailSpent,tailRemaining,zeroed,locals,globals,code,addresses⟩ :=
       evaluate_main_zero_prefix_cells buffers zero binding
         (installed.trans (canonical_original_source_code input)) (by omega) upper aligned domains
