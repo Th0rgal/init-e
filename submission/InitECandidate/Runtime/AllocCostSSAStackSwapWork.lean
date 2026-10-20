@@ -1141,4 +1141,44 @@ theorem fixClock_swap_stack {C F : Type} (s : WordSemStateFiniteExact 64 C F)
 
 #print axioms fixClock_swap_stack
 
+
+/-- `wordSemLastN` at the full length returns the whole stack. -/
+theorem wordSemLastN_length {α : Type} (l : List α) : Flapjack.wordSemLastN l.length l = l := by
+  simp only [Flapjack.wordSemLastN]
+  rw [List.take_of_length_le (by simp)]
+  simp
+
+/-- Prelude: a tail call with a handler contributes `1`. -/
+theorem wordPathWork_call_none_handler {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat)) locs)
+        t.code t.stackSize = some (args1, prog, ss))
+    (hhand : ∃ x, handler = some x) :
+    wordPathWork (.call none dest args handler) t = 1 := by
+  rw [wordPathWork]
+  split
+  · rfl
+  · rename_i locs1 h
+    rw [hget] at h
+    cases h
+    rw [if_neg (by rw [hbad]; simp)]
+    split
+    · rfl
+    · rename_i a1 p1 ss1 hf
+      rw [hfind] at hf
+      cases hf
+      obtain ⟨x, rfl⟩ := hhand
+      split
+      · rfl
+      · rename_i hc
+        simp at hc
+
+#print axioms wordSemLastN_length
+#print axioms wordPathWork_call_none_handler
 end InitECandidate.Runtime.WordToStack
