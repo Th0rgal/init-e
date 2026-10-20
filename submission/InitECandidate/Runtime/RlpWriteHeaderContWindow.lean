@@ -7,22 +7,27 @@ open Flapjack.Basis.Pure.MlString
 set_option maxRecDepth 100000
 set_option maxHeartbeats 4000000
 
-/-- The long-header continuation of the actual `rlp_write_header`: the length byte at `dst`, the big
-endian byte count at `dst + 1`, then the total length.  Given the prefix length `ll` fits in at most
-eight bytes, it writes only inside the nine-byte window at `dst`. -/
-theorem rlpWriteHeaderCont_window {F : Type} (cs : PanSemStateFiniteExact 64 F)
-    (D B0 N L w : BitVec 64) (out : ¬ MWin D 9 w)
+/-- **The long-header continuation shared by the RLP writers.**  It stores the length byte at `dst`,
+writes the big endian byte count at `dst + 1` through the actual `rlp_put_be`, then returns the total
+length.  Given the prefix length `ll` fits in at most eight bytes, the value expression is arbitrary
+(the frame argument never evaluates it) and the counted word is supplied by the caller through the
+argument evaluation, it writes only inside the nine-byte window at `dst`. -/
+theorem rlpLongTail_window {F : Type} (cs : PanSemStateFiniteExact 64 F)
+    (D L V w : BitVec 64) (out : ¬ MWin D 9 w)
+    (value vExp : ExpHOL 64)
     (hd : cs.locals.lookup (ofString "dst") = some (.val (.word D)))
-    (hb : cs.locals.lookup (ofString "base") = some (.val (.word B0)))
-    (hn : cs.locals.lookup (ofString "n") = some (.val (.word N)))
     (hl : cs.locals.lookup (ofString "ll") = some (.val (.word L)))
+    (hargs : ∀ {F' : Type} (t : PanSemStateFiniteExact 64 F'), t.locals = cs.locals →
+      evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+        [.op .add [.var .local (ofString "dst"), .const (1#64)],
+         vExp, .var .local (ofString "ll")] =
+        some [.val (.word (D + 1#64)),.val (.word V),.val (.word L)])
     (hL : L.toNat ≤ 8)
     (code : cs.code = originalRuntimeCode) :
-    (evaluateHOLFiniteState cs (.seq (.storeByte (.var .local (ofString "dst"))
-        (.op .add [.var .local (ofString "base"), .const (55#64), .var .local (ofString "ll")]))
+    (evaluateHOLFiniteState cs (.seq (.storeByte (.var .local (ofString "dst")) value)
       (.seq (.call (some (none,none)) (ofString "rlp_put_be")
           [.op .add [.var .local (ofString "dst"), .const (1#64)],
-           .var .local (ofString "n"), .var .local (ofString "ll")])
+           vExp, .var .local (ofString "ll")])
         (.return (.op .add [.const (1#64), .var .local (ofString "ll")]))))).2.memory w =
       cs.memory w := by
   have dstEval : @evalHOLExact 64 F _ cs.toExact (fun a => Classical.propDecidable (cs.memaddrs a))
@@ -33,13 +38,10 @@ theorem rlpWriteHeaderCont_window {F : Type} (cs : PanSemStateFiniteExact 64 F)
     refine out ⟨0,by decide,Or.inr ?_⟩
     rw [show (D + BitVec.ofNat 64 0) = D from by simp]
     exact h
-  have store := evaluate_storeByte_memory_frame cs (.var .local (ofString "dst"))
-    (.op .add [.var .local (ofString "base"), .const (55#64), .var .local (ofString "ll")]) D w dstEval sep
-  have control := evaluate_storeByte_control_frame cs (.var .local (ofString "dst"))
-    (.op .add [.var .local (ofString "base"), .const (55#64), .var .local (ofString "ll")])
+  have store := evaluate_storeByte_memory_frame cs (.var .local (ofString "dst")) value D w dstEval sep
+  have control := evaluate_storeByte_control_frame cs (.var .local (ofString "dst")) value
   rw [evaluateHOLFiniteState_seq_line780]
-  cases storeRun : evaluateHOLFiniteState cs (.storeByte (.var .local (ofString "dst"))
-      (.op .add [.var .local (ofString "base"), .const (55#64), .var .local (ofString "ll")])) with
+  cases storeRun : evaluateHOLFiniteState cs (.storeByte (.var .local (ofString "dst")) value) with
   | mk sr sPost =>
     rw [storeRun] at store control
     obtain ⟨_,_,localsEq,_,codeEq,_,_⟩ := control
@@ -48,8 +50,6 @@ theorem rlpWriteHeaderCont_window {F : Type} (cs : PanSemStateFiniteExact 64 F)
       dsimp only
       have hd' : sPost.locals.lookup (ofString "dst") = some (.val (.word D)) := by
         rw [show sPost.locals = cs.locals from localsEq]; exact hd
-      have hn' : sPost.locals.lookup (ofString "n") = some (.val (.word N)) := by
-        rw [show sPost.locals = cs.locals from localsEq]; exact hn
       have hl' : sPost.locals.lookup (ofString "ll") = some (.val (.word L)) := by
         rw [show sPost.locals = cs.locals from localsEq]; exact hl
       have code' : sPost.code = originalRuntimeCode := by
@@ -57,25 +57,19 @@ theorem rlpWriteHeaderCont_window {F : Type} (cs : PanSemStateFiniteExact 64 F)
       have inner : (evaluateHOLFiniteState sPost (.seq (.call (some (none,none))
           (ofString "rlp_put_be")
           [.op .add [.var .local (ofString "dst"), .const (1#64)],
-           .var .local (ofString "n"), .var .local (ofString "ll")])
+           vExp, .var .local (ofString "ll")])
           (.return (.op .add [.const (1#64), .var .local (ofString "ll")])))).2.memory w =
           sPost.memory w := by
         refine window_seq sPost w ?_ ?_
-        · have argsEval : evalListHOLFinite sPost
-              (h := fun a => Classical.propDecidable (sPost.memaddrs a))
-              [.op .add [.var .local (ofString "dst"), .const (1#64)],
-               .var .local (ofString "n"), .var .local (ofString "ll")] =
-              some [.val (.word (D + 1#64)),.val (.word N),.val (.word L)] := by
-            simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,hd',hn',hl',
-              wordOpHOL,wordOp,valueIsWord,valueWord]
+        · have argsEval := hargs (t := sPost) (show sPost.locals = cs.locals from localsEq)
           obtain ⟨callee,look⟩ := lookupCodeHOLFinite_of_exact sPost.code.lookup
             (ofString "rlp_put_be")
-            [.val (.word (D + 1#64)),.val (.word N),.val (.word L)]
+            [.val (.word (D + 1#64)),.val (.word V),.val (.word L)]
             (sourceFunctionBody Guest.guestFn_rlp_put_be) _ .one
             (by rw [code']; exact rlpPutBe_exact_lookup _ _ _)
           have look' := look
           rw [code'] at look'
-          obtain ⟨_,_,hdst,_,hnl⟩ := rlpPutBe_call_facts (D + 1#64) N L
+          obtain ⟨_,_,hdst,_,hnl⟩ := rlpPutBe_call_facts (D + 1#64) V L
             (sourceFunctionBody Guest.guestFn_rlp_put_be) callee .one look'
           exact discardCall_window sPost (ofString "rlp_put_be") _ _ _ callee .one w argsEval look
             (rlpPutBe_window (D + 1#64) L w (fun h => out (mwin_shift_one h hL))
@@ -87,6 +81,6 @@ theorem rlpWriteHeaderCont_window {F : Type} (cs : PanSemStateFiniteExact 64 F)
       dsimp only
       cases res <;> first | exact store | (dsimp only; exact store)
 
-#print axioms rlpWriteHeaderCont_window
+#print axioms rlpLongTail_window
 
 end InitECandidate.Runtime

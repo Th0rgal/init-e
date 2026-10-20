@@ -74,7 +74,23 @@ theorem rlpWriteHeaderTail_window {F : Type} (s : PanSemStateFiniteExact 64 F)
   have cscode : cs.code = originalRuntimeCode := by
     simp only [cs,setVarHOLFinite]
     exact baseCode
-  exact (rlpWriteHeaderCont_window cs D B0 N L w out hdst hbas hn' hll hL cscode).trans csmem
+  have hargs : ∀ {F' : Type} (t : PanSemStateFiniteExact 64 F'), t.locals = cs.locals →
+      evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+        [.op .add [.var .local (ofString "dst"), .const (1#64)],
+         .var .local (ofString "n"), .var .local (ofString "ll")] =
+        some [.val (.word (D + 1#64)),.val (.word N),.val (.word L)] := by
+    intro F' t ht
+    have hdstT : t.locals.lookup (ofString "dst") = some (.val (.word D)) := by
+      rw [ht]; exact hdst
+    have hnT : t.locals.lookup (ofString "n") = some (.val (.word N)) := by
+      rw [ht]; exact hn'
+    have hllT : t.locals.lookup (ofString "ll") = some (.val (.word L)) := by
+      rw [ht]; exact hll
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,hdstT,hnT,hllT,
+      wordOpHOL,wordOp,valueIsWord,valueWord]
+  exact (rlpLongTail_window cs D L N w out
+    (.op .add [.var .local (ofString "base"), .const (55#64), .var .local (ofString "ll")])
+    (.var .local (ofString "n")) hdst hll hargs hL cscode).trans csmem
 
 #print axioms rlpWriteHeaderTail_window
 
