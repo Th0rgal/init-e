@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SourceCostCrepPrimitive
+import InitECandidate.Runtime.SourceCostCrepAtomic
 import Flapjack.Pancake.Proofs.PanGlobals.SemanticsInitCall
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -14,7 +14,7 @@ def sourceControlProg : ProgHOL 64 → Bool
   | .call none _ _ | .call (some (_, none)) _ _ => true
   | .call (some (_, some (_, _, handler))) _ _ => sourceControlProg handler
   | .decCall _ _ _ _ continuation => sourceControlProg continuation
-  | .primitive _ _ _ => true
+  | .primitive _ _ _ | .extCall _ _ _ _ _ | .shMemLoad _ _ _ _ | .shMemStore _ _ _ => true
   | _ => false
 
 /-- Static premise on every source function body reachable through calls. -/
@@ -490,6 +490,15 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     intro t context resultOk rel localised checked control codeOk
     simp only [bulkLoadSitesProg] at checked
     exact primitive_transfer args operation valid rel localised checked
+  | @external s function configuration configurationLength array arrayLength result post run =>
+    intro t context resultOk rel localised checked control codeOk
+    exact external_transfer run resultOk rel localised checked
+  | @sharedLoad s operator kind name address result post run =>
+    intro t context resultOk rel localised checked control codeOk
+    exact shared_load_transfer run resultOk rel localised checked
+  | @sharedStore s operator address value result post run =>
+    intro t context resultOk rel localised checked control codeOk
+    exact shared_store_transfer run resultOk rel localised checked
   | _ =>
     intro t context result rel localised checked control codeOk
     first
@@ -497,4 +506,82 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       | (simp [sourceControlProg] at control)
 
 #print axioms source_control_crep_work
+end InitECandidate.Runtime.FineCost
+
+namespace InitECandidate.Runtime.FineCost
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+
+/-- Every localised source program is in the transferred fragment; the only
+excluded constructor (global assignment) is never localised. -/
+theorem covered_of_localised : ∀ p : ProgHOL 64, localisedProgHOL p = true →
+    sourceControlProg p = true
+  | .skip, _ | .break, _ | .continue, _ | .tick, _ | .annot _ _, _ => by simp [sourceControlProg]
+  | .assign .local _ _, _ => by simp [sourceControlProg]
+  | .assign .global _ _, h => by simp [localisedProgHOL] at h
+  | .store _ _, _ | .store32 _ _, _ | .storeByte _ _, _ | .return _, _ | .raise _ _, _ => by
+    simp [sourceControlProg]
+  | .primitive _ _ _, _ | .extCall _ _ _ _ _, _ | .shMemLoad _ _ _ _, _
+  | .shMemStore _ _ _, _ => by simp [sourceControlProg]
+  | .seq a b, h => by
+    simp only [localisedProgHOL, Bool.and_eq_true] at h
+    simp [sourceControlProg, covered_of_localised a h.1, covered_of_localised b h.2]
+  | .ite _ a b, h => by
+    simp only [localisedProgHOL, Bool.and_eq_true] at h
+    simp [sourceControlProg, covered_of_localised a h.1.2, covered_of_localised b h.2]
+  | .while _ b, h => by
+    simp only [localisedProgHOL, Bool.and_eq_true] at h
+    simp [sourceControlProg, covered_of_localised b h.2]
+  | .dec _ _ _ b, h => by
+    simp only [localisedProgHOL, Bool.and_eq_true] at h
+    simp [sourceControlProg, covered_of_localised b h.2]
+  | .decCall _ _ _ _ b, h => by
+    simp only [localisedProgHOL, Bool.and_eq_true] at h
+    simp [sourceControlProg, covered_of_localised b h.2]
+  | .call none _ _, _ | .call (some (_, none)) _ _, _ => by simp [sourceControlProg]
+  | .call (some (dest, some (eid, var, handler))) f args, h => by
+    have hh : localisedProgHOL handler = true := by
+      rcases dest with _ | ⟨k, n⟩ <;> (try rcases k) <;> simp_all [localisedProgHOL]
+    simp [sourceControlProg, covered_of_localised handler hh]
+termination_by p => sizeOf p
+
+/-- Executed source-to-Crep work transfer for every exact source trace.
+Premises: the exact source trace and a non-error result, the four original
+`pc_compile_correct` relations, `localised_prog`, and the static guest
+load-site certificate on the program and every function body. The compiled
+Crep program's actual execution has a work derivation paid by the source
+event vector under `sourceCrepWeights`. -/
+theorem source_crep_executed_work {F : Type} {s post : PanSemStateFiniteExact 64 F}
+    {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
+    (run : StatementRun s p r post events) (t : CrepSemHOLState 64 F)
+    (context : PanToCrepContextExact 64) (resultOk : r ≠ some .error)
+    (rel : SourceCrepRel context s t) (localised : localisedProgHOL p = true)
+    (checked : bulkLoadSitesProg p = true)
+    (codeChecked : ∀ function shapes body returnShape,
+      s.code.lookup function = some (shapes, body, returnShape) → bulkLoadSitesProg body = true) :
+    CrepWorkPaid t (compileProgExactHOLW context p) events := by
+  apply source_control_crep_work run t context resultOk rel localised checked
+    (covered_of_localised p localised)
+  intro function shapes body returnShape lookup
+  obtain ⟨bodyLocalised, _, _⟩ := codeRelExactHOLW_imp context s.code t.code rel.code function
+    shapes body returnShape lookup
+  exact ⟨codeChecked function shapes body returnShape lookup,
+    covered_of_localised body bodyLocalised⟩
+
+/-- Selected-trace form: the canonical source execution cost pays for the
+compiled Crep execution. -/
+theorem source_execution_cost_pays_crep {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (p : ProgHOL 64) (t : CrepSemHOLState 64 F) (context : PanToCrepContextExact 64)
+    (resultOk : (evaluateHOLFiniteState s p).1 ≠ some .error)
+    (rel : SourceCrepRel context s t) (localised : localisedProgHOL p = true)
+    (checked : bulkLoadSitesProg p = true)
+    (codeChecked : ∀ function shapes body returnShape,
+      s.code.lookup function = some (shapes, body, returnShape) → bulkLoadSitesProg body = true) :
+    ∃ w, CrepWork t (compileProgExactHOLW context p) w ∧
+      w ≤ sourceExecutionCost sourceCrepWeights s p :=
+  source_crep_executed_work (sourceExecutionEvents_run s p) t context resultOk rel localised
+    checked codeChecked
+
+#print axioms covered_of_localised
+#print axioms source_crep_executed_work
+#print axioms source_execution_cost_pays_crep
 end InitECandidate.Runtime.FineCost

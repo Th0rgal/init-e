@@ -334,3 +334,23 @@ the declared shape. Argument and lookup failures are unchanged. Calls whose
 compiled form allocates no slots are conservatively over-charged. This
 replaces the earlier static return-size premise of the Crep transfer and lets
 its statement coefficient stay small; trace existence proofs are unchanged.
+
+## Source-to-Crep executed transfer
+
+`SourceCostCrepWork.CrepWork t p w` counts executed Crep work: one unit per
+executed statement and the scalar node work of every evaluated expression,
+following the exact evaluator's successor states (selected branch, every loop
+guard, actual callee body, matched handler, early failures). Calls also charge
+argument words and returned payload words. `SourceCostCrepControl.source_crep_executed_work`
+proves, for every exact source `StatementRun` with a non-error result, the four
+original `pc_compile_correct` relations, `localised_prog`, and the guest
+load-site certificate on the program and every function body, that the
+compiled Crep execution has a `CrepWork` derivation bounded by
+`sourceCrepWeights.score` of the source event vector, with weights statement 8,
+expression 24, moved word 8, memory access 8, frame slot 8. All source
+constructors are covered, including declarations, structured assignment and
+stores through fresh temporaries, calls with return slots, caught handlers,
+declared calls, primitives, FFI and shared memory. No whole-program size enters
+the bound. `source_execution_cost_pays_crep` restates it for the selected
+canonical trace. The Crep-to-Loop executed transfer and the downstream
+composition remain.
