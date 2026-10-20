@@ -66,6 +66,9 @@ theorem run_attempt_selected_parent_root_at9_reaches {F : Type} (s : PanSemState
     (rootDomain : s.memaddrs (header + 32#64)) :
     Reaches s (runAttemptAt 5)
       (fun final => ∃ parent : BitVec 64,
+        final = setGlobalHOLFinite (ofString "block_hashes_n") (.val (.word count))
+          (setGlobalHOLFinite (ofString "block_hashes") (.val (.word hashes))
+            (setVarHOLFinite (ofString "parent") (.val (.word parent)) s)) ∧
         final.locals.lookup (ofString "parent") = some (.val (.word parent)) ∧ parent = header ∧
         final.memory (header + 32#64) = .word word ∧
         final.memaddrs (header + 32#64) ∧
@@ -91,18 +94,26 @@ theorem run_attempt_selected_parent_root_at9_reaches {F : Type} (s : PanSemState
     (setVarHOLFinite (ofString "parent") (.val (.word parent)) s) hs hashes count atVhMid atNhMid
   refine reaches_mono _ (runAttemptAt 6) (runAttemptAt 9) _ _ _ _ (le_refl 0) ?_ assigned
   intro final finalEq
-  subst finalEq
   have hHeap : (ofString "heap_ptr") ≠ ofString "block_hashes" := by decide
   have hHeapN : (ofString "heap_ptr") ≠ ofString "block_hashes_n" := by decide
-  refine ⟨parent,?_,parentEq,?_,?_,?_,?_,?_⟩
-  · simp [setGlobalHOLFinite,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
-  · simpa [setGlobalHOLFinite,setVarHOLFinite] using rootWord
-  · simpa [setGlobalHOLFinite,setVarHOLFinite] using domainMid
-  · exact heapMid
-  · simp [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  refine ⟨parent,finalEq,?_,parentEq,?_,?_,?_,?_,?_⟩
+  · rw [finalEq]
+    simp [setGlobalHOLFinite,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      Ne.symm (by decide : (ofString "parent") ≠ ofString "block_hashes"),
+      Ne.symm (by decide : (ofString "parent") ≠ ofString "block_hashes_n")]
+  · rw [finalEq]
+    simpa [setGlobalHOLFinite,setVarHOLFinite] using rootWord
+  · rw [finalEq]
+    simpa [setGlobalHOLFinite,setVarHOLFinite] using domainMid
+  · rw [finalEq]
+    simpa [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm hHeap,Ne.symm hHeapN]
+      using heapMid
+  · rw [finalEq]
+    simp [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
     intro blocked
     exact absurd blocked (by decide)
-  · simp [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  · rw [finalEq]
+    simp [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
 
 #print axioms run_attempt_selected_parent_root_at9_reaches
 #print axioms run_attempt_selected_parent_root_reaches
