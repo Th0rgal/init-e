@@ -71,6 +71,13 @@ inductive ExpressionRun {F : Type} (s : PanSemStateFiniteExact 64 F) :
         ((wordOpHOL operator [a, b]).map (fun word => .val (.word word)))
         (.expression :: (leftEvents ++ rightEvents ++ [.scalar 1]))
 
+  | baseAddress : ExpressionRun s .baseAddr (some (.val (.word s.baseAddr)))
+      [.expression, .copy 1]
+  | topAddress : ExpressionRun s .topAddr (some (.val (.word s.topAddr)))
+      [.expression, .copy 1]
+  | wordBytes : ExpressionRun s .bytesInWord (some (.val (.word (bytesInWordHOL 64))))
+      [.expression, .copy 1]
+
 theorem ExpressionRun.sound {F : Type} {s : PanSemStateFiniteExact 64 F}
     {e : ExpHOL 64} {value : Option (ValueHOL 64)} {events : List WorkEvent}
     (run : ExpressionRun s e value events) : expressionValue s e = value := by
@@ -102,6 +109,9 @@ theorem ExpressionRun.sound {F : Type} {s : PanSemStateFiniteExact 64 F}
   | binaryOp operator left right a b leftEvents rightEvents lhs rhs ihLeft ihRight =>
     simp only [expressionValue] at ihLeft ihRight ⊢
     simp [evalHOLExact, evalListHOLExact, ihLeft, ihRight, valueIsWord, valueWord]
+  | baseAddress => rfl
+  | topAddress => rfl
+  | wordBytes => rfl
 
 theorem variable_work_score (coeff : Work) (value : ValueHOL 64) :
     coeff.score (executionWork [.expression, .copy (flattenHOL value).length]) =

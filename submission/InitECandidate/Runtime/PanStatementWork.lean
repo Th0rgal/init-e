@@ -163,6 +163,25 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       StatementRun s (.storeByte destination source) (some .error) s
         (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
 
+  | declareValue {s name shape initializer body value initEvents bodyEvents result post}
+      (init : ExpressionRun s initializer (some value) initEvents)
+      (shapeMatch : shapeEqHOL shape (shapeOfHOLExact value) = true)
+      (bodyRun : StatementRun (setVarHOLFinite name value s) body result post bodyEvents) :
+      StatementRun s (.dec name shape initializer body) result
+        { post with locals := HolFiniteMapExact.resVarEq post.locals (name, s.locals.lookup name) }
+        (.statement :: (initEvents ++ [.copy (flattenHOL value).length, .frame 1] ++
+          bodyEvents ++ [.copy (((s.locals.lookup name).map
+            (fun previous => (flattenHOL previous).length)).getD 0)]))
+  | declareMismatch {s name shape initializer body value initEvents}
+      (init : ExpressionRun s initializer (some value) initEvents)
+      (mismatch : shapeEqHOL shape (shapeOfHOLExact value) = false) :
+      StatementRun s (.dec name shape initializer body) (some .error) s
+        (.statement :: initEvents)
+  | declareFailure {s name shape initializer body initEvents}
+      (init : ExpressionRun s initializer none initEvents) :
+      StatementRun s (.dec name shape initializer body) (some .error) s
+        (.statement :: initEvents)
+
 theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
     (run : StatementRun s p r post events) : evaluateHOLFiniteState s p = (r, post) := by
@@ -328,6 +347,22 @@ theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     unfold expressionValue at hd hs
     rw [evaluateHOLFiniteState_storeByte, hd, hs]
     simp only [write]
+
+  | declareValue init shapeMatch bodyRun ih =>
+    have he := init.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_dec_total]
+    simp only [he, shapeMatch, ↓reduceIte, ih]
+  | declareMismatch init mismatch =>
+    have he := init.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_dec_total]
+    simp only [he, mismatch, Bool.false_eq_true, ↓reduceIte]
+  | declareFailure init =>
+    have he := init.sound
+    unfold expressionValue at he
+    rw [evaluateHOLFiniteState_dec_total]
+    simp only [he]
 
 #print axioms StatementRun.sound
 end InitECandidate.Runtime.FineCost
