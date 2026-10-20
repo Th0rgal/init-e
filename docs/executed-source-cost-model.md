@@ -239,8 +239,9 @@ and move sizing. `LoopToWordExecutedCost.loop_to_word_executed_local` turns the
 existing supported local-code certificate into an actual execution bound for
 every Word entry state. Its supported subset excludes calls and loops; those
 transfers and native pricing remain obligations. All three modules checked with
-only the standard proof axioms. Experimental additive/scaling algebra is not
-part of this checked interface.
+only the standard proof axioms. `WordExecutionCostAlgebra` proves exact additive and scaling laws, and a
+pointwise two-component price envelope transfers to the same linear execution
+envelope. These laws do not insert a multiplier at calls or loop nesting.
 
 ## Remaining end-to-end obligations
 
