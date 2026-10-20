@@ -175,6 +175,109 @@ theorem sourceCall_getVars_some_of_not_error {C F : Type}
     exact absurd run.1.symm hres
   · exact ⟨xs, rfl⟩
 
+/-- Actual compiler returning-call case (no exception handler).  The literal
+`ssaCcTrans` output is executed through the inserted stack move, the inserted
+argument move, the renamed argument read, the renamed paired cut and the
+renamed bad-shape test, all discharged by `ssaCallReturning_prepare_alignment`;
+what remains is callee-dependent: the compiled code lookup at the physical
+return registers, the callee result/pop correspondence at the renamed entry
+state, and the two body work transfers (`calleeWork` is exactly the pending
+body permutation transport, `retWork` the continuation transfer). -/
+theorem ssaBody_call_returning_executed_le {C F : Type}
+    (values : List Nat) (numset : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (source target middle popped : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64)) (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 args1T : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64))
+    (ss : Option Nat)
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (ssa : Spt Nat) (na : Nat)
+    (stackMov : WordLangProgHOL (BitVec 64)) (mapOut : Spt Nat) (counter : Nat)
+    (regs : List Nat) (stackSet : WordLangCutsetsHOL)
+    (movRetHandler : WordLangProgHOL (BitVec 64)) (convArgs : List Nat)
+    (handlerT : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (refreshed prepared middleT targetPopped : WordSemStateFiniteExact 64 C F)
+    (valuesT : List (WordLocW 64)) (moveArgs : WordLangProgHOL (BitVec 64))
+    (envsT : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (locationT : WordLocW 64) (returnedT : List (WordLocW 64))
+    (calleeBudget retBudget : Nat)
+    (read : getVars args source = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, numset, retCode, l1, l2)) xs) source.code
+      source.stackSize = some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty numset.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs numset source.locals = some envs)
+    (clock : source.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs none (decClock source)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs none (decClock source)))) =
+      (some (.result location returned), middle))
+    (pop : popEnv middle = some popped)
+    (locEq : location = .loc l1 l2)
+    (lenEq : returned.length = values.length)
+    (domUnion : sptDomainEqUnion popped.locals envs.1 envs.2)
+    (related : ssaLocalsRel na ssa source.locals target.locals)
+    (allocated : isAllocVar na) (valid : ssaMapOK na ssa)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (produced : listNextVarRenameMove (width := 64) ssa (na + 2)
+      ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) = (stackMov, mapOut, counter))
+    (convEq : convArgs = (List.range (args.map (optionLookup ssa)).length).map
+      fun x => 2 * (x + 1))
+    (stackSetEq : stackSet = Flapjack.WordAlloc.applyNummapsKey (optionLookup mapOut) numset)
+    (moveEq : moveArgs = WordLangProgHOL.move 1 (convArgs.zip (args.map (optionLookup ssa))))
+    (refEq : refreshed = (evaluate stackMov target).2)
+    (prepEq : prepared = setVars convArgs xs refreshed)
+    (valuesTEq : valuesT = xs)
+    (findT : wordSemFindCode dest
+      (wordSemAddRetLoc (some (regs, stackSet, movRetHandler, l1, l2)) valuesT)
+      prepared.code prepared.stackSize = some (args1T, prog, ss))
+    (domT : ¬ sptDomainEmpty stackSet.1) (nodupT : regs.Nodup)
+    (cutT : wordSemCutEnvs stackSet prepared.locals = some envsT)
+    (clockT : prepared.clock ≠ 0)
+    (runT : fixClock (callEnv args1T ss (pushEnv envsT handlerT (decClock prepared)))
+      (evaluate prog (callEnv args1T ss (pushEnv envsT handlerT (decClock prepared)))) =
+      (some (.result locationT returnedT), middleT))
+    (popT : popEnv middleT = some targetPopped)
+    (locEqT : locationT = .loc l1 l2)
+    (lenEqT : returnedT.length = regs.length)
+    (domUnionT : sptDomainEqUnion targetPopped.locals envsT.1 envsT.2)
+    (calleeWork : wordPathWork prog
+      (callEnv args1T ss (pushEnv envsT handlerT (decClock prepared))) ≤
+      wordPathWork prog (callEnv args1 ss (pushEnv envs none (decClock source))) + calleeBudget)
+    (retWork : wordPathWork movRetHandler (setVars regs returnedT targetPopped) ≤
+      wordPathWork retCode (setVars values returned popped) + retBudget) :
+    wordPathWork (.seq stackMov
+      (.seq moveArgs (.call (some (regs, stackSet, movRetHandler, l1, l2))
+        dest convArgs handlerT))) target ≤
+      wordPathWork (.call (some (values, numset, retCode, l1, l2)) dest args none) source +
+        (calleeBudget + retBudget + 4) := by
+  have align := ssaCallReturning_prepare_alignment source target ssa na dest args xs numset
+    envs.1 envs.2 stackMov mapOut counter (by simpa using cut) read related allocated valid
+    frame bad produced
+  dsimp only at align
+  rw [← convEq, ← stackSetEq, ← moveEq, ← refEq, ← prepEq] at align
+  obtain ⟨-, -, stackFixed, stackWork, argFixed, argWork, getT0, badT, -, -, -⟩ := align
+  have getT : getVars convArgs prepared = some valuesT := by
+    rw [valuesTEq]
+    exact getT0
+  have hclk : prepared.clock = refreshed.clock := by
+    rw [prepEq]; rfl
+  have htrm : prepared.termdep = refreshed.termdep := by
+    rw [prepEq]; rfl
+  have argFixedFix : fixClock refreshed (evaluate moveArgs refreshed) = (none, prepared) := by
+    rw [argFixed]
+    simp only [fixClock, if_neg (Nat.not_lt.mpr (Nat.le_of_eq hclk)), ← htrm]
+    try rfl
+  exact bodyWork_call_returning_result values numset retCode l1 l2 dest args none source
+    middle popped xs envs args1 args1T prog ss location returned read bad find dom nodup cut
+    clock run pop locEq lenEq domUnion regs stackSet movRetHandler convArgs handlerT target
+    refreshed prepared middleT targetPopped valuesT stackMov moveArgs envsT locationT returnedT
+    stackFixed stackWork argFixedFix argWork getT badT findT domT nodupT cutT clockT runT popT
+    locEqT lenEqT domUnionT calleeBudget retBudget calleeWork retWork
+
+#print axioms ssaBody_call_returning_executed_le
+
 #print axioms ssaCcTrans_call_returning_none_output
 #print axioms wordSemBadDestArgs_renameArgs
 #print axioms wordPathWork_listNextVarRenameMove
