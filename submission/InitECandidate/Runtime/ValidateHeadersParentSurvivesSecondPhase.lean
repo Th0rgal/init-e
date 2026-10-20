@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.ValidateHeadersStoredRootsFinalParent
+import InitECandidate.Runtime.ValidateHeadersStoredRootsRoomedLoop
 import InitECandidate.Runtime.ValidateHeadersSecondPhaseFrame
 /-!
 The selected parent survives the actual second phase.
@@ -36,4 +36,8 @@ theorem validate_headers_parent_survives_second_phase {F : Type}
     exact rooted
 
 #print axioms validate_headers_parent_survives_second_phase
+
+
+
+#print axioms validate_headers_stored_roots_parent_reaches
 end InitECandidate.Runtime
