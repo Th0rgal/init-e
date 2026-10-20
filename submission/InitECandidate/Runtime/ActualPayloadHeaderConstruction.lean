@@ -933,9 +933,9 @@ call.  Whatever the callee does, the statement either continues at statement 10 
 construction facts restored -- the caller's locals verbatim, globals and `heap_ptr` untouched, code
 and memory addresses preserved by the general metadata theorem -- or it ends in the abort branch
 within its 360-tick budget. -/
-theorem actual_payload_header_keccak_reaches {F : Type} (state : PanSemStateFiniteExact 64 F)
+theorem actual_payload_header_keccak_reaches {F : Type} (ref state : PanSemStateFiniteExact 64 F)
     (pl raw pointer heap oh tmp st pad : BitVec 64)
-    (facts : ActualPayloadHeaderCommit state state pl raw pointer heap oh tmp)
+    (facts : ActualPayloadHeaderCommit ref state pl raw pointer heap oh tmp)
     (code : state.code = originalRuntimeCode)
     (stateGlobal : state.globals.lookup (ofString "keccak_st") = some (.val (.word st)))
     (padGlobal : state.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)))
@@ -953,7 +953,7 @@ theorem actual_payload_header_keccak_reaches {F : Type} (state : PanSemStateFini
     (sourceBytes : ∀ offset : Nat, offset < 1 →
       state.memaddrs (panByteAlignHOL (tmp + BitVec.ofNat 64 offset))) :
     Reaches state (actualPayloadHeaderAt 9)
-      (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp) 360 (actualPayloadHeaderAt 10) := by
+      (ActualPayloadHeaderCommit ref · pl raw pointer heap oh tmp) 360 (actualPayloadHeaderAt 10) := by
   have bounded := actual_payload_header_keccak_call_bounded state tmp oh st pad facts.2.2 facts.2.1
     stateGlobal padGlobal code ticks stateSmall stateAligned stateWords stateBytes small padAligned
     tmpAligned ohAligned words bytes sourceWords sourceBytes
@@ -968,7 +968,7 @@ theorem actual_payload_header_keccak_reaches {F : Type} (state : PanSemStateFini
         evaluateHOLFiniteState state actualPayloadHeaderKeccak = (none, post) :=
       ⟨_, by rw [Prod.eq_iff_fst_eq_snd_eq]; exact ⟨normal,rfl⟩⟩
     refine Or.inl ⟨post,?_,?_,?_,run⟩
-    · exact actual_payload_header_commit_after_keccak state state post pl raw pointer heap oh tmp
+    · exact actual_payload_header_commit_after_keccak ref state post pl raw pointer heap oh tmp
         facts code run
     · have spent := bounded.1
       rw [run] at spent
