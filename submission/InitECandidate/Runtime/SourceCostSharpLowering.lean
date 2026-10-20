@@ -7,10 +7,6 @@ open Flapjack Flapjack.Pancake.PanLang
 plus one move per element) of the Crep expressions `pan_to_crep` emits, and a
 local allowance per source node that dominates it. -/
 
-/-- Sharp Crep price of an expression list: each expression's exact Loop price
-plus one move. -/
-def sharpCrepList (es : List (CrepExpHOL 64)) : Nat := loopPriceList es + es.length
-
 theorem sharpCrepList_nil : sharpCrepList [] = 0 := by simp [sharpCrepList, loopPriceList]
 
 theorem sharpCrepList_cons (e : CrepExpHOL 64) (es : List (CrepExpHOL 64)) :

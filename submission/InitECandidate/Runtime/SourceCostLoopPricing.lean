@@ -12,14 +12,17 @@ recovers the earlier uniform `7 *` statement for node-count `CrepWork`. -/
 two units per statement. -/
 def sharpPricing : LoopPricing where
   price := loopNodePrice
-  priceList := fun es => loopPriceList es + es.length
+  priceList := sharpCrepList
   unit := 2
   exprOk := fun context tmp live e => crep_to_loop_price_work context tmp live e
   listOk := fun context tmp live es => by
     obtain ⟨cost, h, b⟩ := crep_to_loop_price_list_work context tmp live es
     have len := loopCompileExps_length context es tmp live
-    exact ⟨cost, h, by (try simp only [] at b len ⊢); omega⟩
+    exact ⟨cost, h, by simp only [sharpCrepList]; (try simp only [] at b len ⊢); omega⟩
   unitOk := by decide
+
+/-- Crep work at exact Loop prices. -/
+abbrev CrepWorkS {σ : Type} := @CrepWorkP loopNodePrice sharpCrepList 2 σ
 
 /-- Uniform node-count ceilings: six Loop units per Crep node, one more per
 argument, seven per statement. -/
@@ -109,7 +112,7 @@ theorem crep_loop_coarse_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSemHO
 
 /-- Exact-priced Crep work transfers with factor one. -/
 theorem crep_loop_sharp_work {F : Type} (opt : LoopOptimiseWork) {t : CrepSemHOLState 64 F}
-    {p : CrepProgHOL 64} {w : Nat} (work : CrepWorkL sharpPricing t p w)
+    {p : CrepProgHOL 64} {w : Nat} (work : CrepWorkS t p w)
     (u : LoopSemStateFiniteExact 64 F) (context : CrepToLoopContextExact) (live : NumSet)
     (ok : (evalCrepSemHOLProgExact t p).1 ≠ some .error) (rel : CrepLoopRel context live t u) :
     LoopPaid context live t u p w :=

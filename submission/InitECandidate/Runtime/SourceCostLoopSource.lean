@@ -117,7 +117,7 @@ theorem crep_loop_installed_work {F : Type} {t : CrepSemHOLState 64 F} {p : Crep
 
 /-- Unconditional Crep-to-Loop transfer at exact Loop prices, factor one. -/
 theorem crep_loop_installed_sharp_work {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64}
-    {w : Nat} (work : CrepWorkL sharpPricing t p w) (u : LoopSemStateFiniteExact 64 F)
+    {w : Nat} (work : CrepWorkS t p w) (u : LoopSemStateFiniteExact 64 F)
     (context : CrepToLoopContextExact) (live : NumSet)
     (ok : (evalCrepSemHOLProgExact t p).1 ≠ some .error) (rel : CrepLoopRel context live t u) :
     LoopPaid context live t u p w :=

@@ -155,6 +155,10 @@ theorem loopPriceList_ge_length : ∀ es : List (CrepExpHOL 64), es.length ≤ l
     have := loopNodePrice_pos e
     simp only [loopPriceList, List.length_cons]; omega
 
+/-- Sharp Crep price of an expression list: each expression's exact Loop price
+plus one move. -/
+def sharpCrepList (es : List (CrepExpHOL 64)) : Nat := loopPriceList es + es.length
+
 #print axioms crep_to_loop_price_work
 #print axioms loopNodePrice_le
 end InitECandidate.Runtime.FineCost
