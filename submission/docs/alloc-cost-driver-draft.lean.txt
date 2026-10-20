@@ -133,6 +133,123 @@ theorem callBody_transport_shape {C F : Type}
 
 #print axioms callBody_transport_shape
 
+/-- Value-equal stacks have equal length. -/
+theorem sValEq_length : ∀ (a b : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq a b → a.length = b.length
+  | [], [], _ => rfl
+  | [], _ :: _, h => by simp [WordSemStackEq.sValEq] at h
+  | _ :: _, [], h => by simp [WordSemStackEq.sValEq] at h
+  | _ :: as, _ :: bs, h => by
+      simp only [List.length_cons]
+      rw [sValEq_length as bs h.1]
+
+#print axioms sValEq_length
+
+/-- A call entry with a freshly pushed **handler** frame: the handler index is that
+frame's position, i.e. `handler + 1 = stack.length`. -/
+theorem callEntry_handler_succ {C F : Type}
+    (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (t : WordSemStateFiniteExact 64 C F) :
+    (WordSemStateFiniteExact.callEnv args1 ss
+        (pushEnv envs (some (reg, handlerCode, h1, h2)) t)).handler + 1 =
+      (WordSemStateFiniteExact.callEnv args1 ss
+        (pushEnv envs (some (reg, handlerCode, h1, h2)) t)).stack.length := by
+  simp [WordSemStateFiniteExact.callEnv, pushEnv]
+
+#print axioms callEntry_handler_succ
+
+/-- Body transport for a `.call` whose body raises: the packet's exception clause,
+specialised at the *freshly pushed* handler frame (the `LASTN (handler + 1)` window is
+then the whole entry stack, so the transported frame payload is literally the source
+one and the transported `popEnv`/exception locals coincide with the source's). -/
+theorem callBody_transport_exception {C F : Type}
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (location value : WordLocW 64) (middle : WordSemStateFiniteExact 64 C F)
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s))) =
+      (some (.exception location value), middle)) :
+    ∃ (fr : WordSemStackFrame 64) (middleT : WordSemStateFiniteExact 64 C F)
+      (st : List (WordSemStackFrame 64)),
+      (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s))).stack =
+        fr :: s.stack ∧
+      WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock { s with stack := xs })) =
+        { WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s)) with
+          stack := fr :: xs } ∧
+      evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock { s with stack := xs }))) =
+        (some (.exception location value), middleT) ∧
+      middleT = { middle with stack := st } ∧
+      WordSemStackEq.sValEq middle.stack st := by
+  obtain ⟨fr, hfr1, hfr2⟩ :=
+    callEntry_stack_swap args1 ss envs (some (reg, handlerCode, h1, h2)) s xs hval
+  have hlen : s.stack.length = xs.length := sValEq_length s.stack xs hval
+  have hvalEntry : WordSemStackEq.sValEq
+      (WordSemStateFiniteExact.callEnv args1 ss
+        (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s))).stack
+      (fr :: xs) := by
+    rw [hfr1]; exact sValEq_cons_self fr hval
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap prog
+    (WordSemStateFiniteExact.callEnv args1 ss
+      (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s)))
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  obtain ⟨-, e0, e, n, ls, m, lss, hlast, hm, hloc, hkeyS1, hhandS1, hforall⟩ := hT
+  -- the `LASTN (handler + 1)` window of a call entry is the whole stack
+  have hwhole :
+      wordSemLastN ((WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s))).handler + 1)
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s))).stack =
+      (WordSemStateFiniteExact.callEnv args1 ss
+        (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s))).stack := by
+    rw [callEntry_handler_succ args1 ss envs reg handlerCode h1 h2 (decClock s)]
+    exact wordSemLastN_length _
+  rw [hlast, hfr1] at hwhole
+  injection hwhole with hfeq hlsEq
+  -- the transported window is the whole stack too, with the same frame payload
+  have hlenE :
+      (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s))).handler + 1 =
+        (fr :: xs).length := by
+    rw [callEntry_handler_succ args1 ss envs reg handlerCode h1 h2 (decClock s), hfr1]
+    simp only [List.length_cons]
+    omega
+  have hlastT :
+      wordSemLastN ((WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s))).handler + 1)
+        (fr :: xs) = .stackFrame m e0 e (some n) :: xs := by
+    rw [hlenE, wordSemLastN_length, hfeq]
+  obtain ⟨st, locs, hrun, hlocs, hvalSt, -⟩ := hforall (fr :: xs) e0 e xs ⟨hlastT, hvalEntry⟩
+  obtain ⟨lss', hk', hlocsEq, hv'⟩ := hlocs
+  have hls' : lss = lss' := by
+    refine map_fst_snd_eq lss lss' ?_ hv'
+    rw [← hloc.1]
+    exact hk'
+  have hlocsMid : locs = middle.locals := by
+    rw [hlocsEq, ← hls', ← hloc.2]
+  refine ⟨fr, { middle with stack := st }, st, hfr1, hfr2, ?_, ?_, hvalSt⟩
+  · rw [hfr2]
+    have hrun' : evaluate prog
+        { WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s)) with
+          stack := fr :: xs } =
+        (some (.exception location value),
+          { middle with stack := st, handler := n.1, locals := locs }) := hrun
+    rw [hrun', hlocsMid, ← hhandS1]
+  · rfl
+
+#print axioms callBody_transport_exception
+
 /-- Tail of the loop clause at the stop state: swapping the stack under `decClock`
 does not change the cost, so the clock-guarded tail of the transported run equals the
 clock-guarded tail of the source run. -/
