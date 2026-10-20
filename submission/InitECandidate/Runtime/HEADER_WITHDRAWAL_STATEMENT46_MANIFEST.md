@@ -132,3 +132,13 @@ Checked GREEN with only `[propext, Classical.choice, Quot.sound]`:
    `slices.toNat ≤ heapBase.toNat` (aligned cells above `sourceBase`, arena above the payload area).
    No all-byte-domain premise is used anywhere: only `memaddrs`-membership of the watched cells.
 5. The statement 47 tail window (root-owned).
+
+### Stage 2 addendum
+
+- `wd_loop_budget`: one source cap `slices.toNat + 80 * nwd.toNat + 80 ≤ 33806089496`, together with the
+  exact arena end (`heapBase.toNat = slices.toNat + size.toNat`) and `size.toNat = 16 * nwd.toNat + 16`,
+  yields the loop limit, the 64-bit range fact and the slice-cell no-wrap fact — the three separate
+  arithmetic premises collapse to one.
+- `payloadHeader46_window_geometry_budget`: statement 46's window taking only the single cap,
+  `alSlices`/`alSize` (from which `heapBase`'s 8-alignment is derived), the address separation
+  `read/w` below `slices ≤ heapBase`, the decoded count bound, the state bindings and the 47 tail.

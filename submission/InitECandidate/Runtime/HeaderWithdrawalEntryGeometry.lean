@@ -176,4 +176,51 @@ theorem wd_declaration_code {F : Type} (state : PanSemStateFiniteExact 64 F)
     (setVarHOLFinite name value state).code = state.code := by
   simp [setVarHOLFinite]
 
+/-- One source allocation cap covers the whole statement 46 run: the exact slices end plus the loop's
+`64` bytes per iteration is the `80 * nwd + 80` budget, and it also gives every no-wrap fact. -/
+theorem wd_loop_budget (slices size heapBase : BitVec 64) (nwd : Nat)
+    (endEq : heapBase.toNat = slices.toNat + size.toNat)
+    (sizeEq : size.toNat = 16 * nwd + 16)
+    (cap : slices.toNat + 80 * nwd + 80 ≤ 33806089496) :
+    heapBase.toNat + 64 * nwd + 64 ≤ 33806089496 ∧
+    heapBase.toNat + 64 * nwd + 128 < 2^64 ∧
+    slices.toNat + 16 * nwd + 8 < 2^64 := by
+  have limit : heapBase.toNat + 64 * nwd + 64 ≤ 33806089496 := by
+    rw [endEq, sizeEq]; omega
+  refine ⟨limit, by omega, by omega⟩
+
+/-- Statement 46's window from the single source allocation cap: the arena end is exact, so the
+alignment, the heap range/limit and the no-wrap facts for the slice cells all follow from
+`alSlices`, `alSize` and one cap. -/
+theorem payloadHeader46_window_geometry_budget {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (nwd pl slices heapBase w read X size : BitVec 64)
+    (readEq : read = pl + 48#64)
+    (endEq : heapBase.toNat = slices.toNat + size.toNat)
+    (sizeEq : size.toNat = 16 * nwd.toNat + 16)
+    (alSlices : slices.toNat % 8 = 0) (alSize : size.toNat % 8 = 0)
+    (cap : slices.toNat + 80 * nwd.toNat + 80 ≤ 33806089496)
+    (atCounter : t.locals.lookup (ofString "i") = some (ValueHOL.val (HolWordLab.word 0#64)))
+    (atNwd : t.locals.lookup (ofString "nwd") = some (ValueHOL.val (HolWordLab.word nwd)))
+    (atPl : t.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
+    (freshE : t.locals.lookup (ofString "e") = none)
+    (atSlices : t.globals.lookup (ofString "wd_rlp_slices") =
+      some (ValueHOL.val (HolWordLab.word slices)))
+    (atHeap : t.globals.lookup (ofString "heap_ptr") = some (ValueHOL.val (HolWordLab.word heapBase)))
+    (code : t.code = originalRuntimeCode)
+    (smallNwd : nwd.toNat < 2^63)
+    (slicesAbove : slices.toNat ≤ heapBase.toNat)
+    (belowRead : read.toNat < slices.toNat)
+    (belowW : w.toNat < slices.toNat)
+    (addrRead : t.memaddrs read)
+    (memRead : t.memory read = HolWordLab.word X)
+    (tail : (evaluateHOLFiniteState (evaluateHOLFiniteState t wdSliceLoop).2
+        (actualPayloadHeaderAt 47)).2.memory w = (evaluateHOLFiniteState t wdSliceLoop).2.memory w) :
+    (evaluateHOLFiniteState t (actualPayloadHeaderAt 46)).2.memory w = t.memory w := by
+  have budget := wd_loop_budget slices size heapBase nwd.toNat endEq sizeEq cap
+  have aligned : heapBase.toNat % 8 = 0 := by
+    rw [endEq]; omega
+  exact payloadHeader46_window_geometry t nwd pl slices heapBase w read X readEq atCounter atNwd
+    atPl freshE atSlices atHeap code aligned budget.2.1 budget.1 smallNwd slicesAbove belowRead
+    belowW budget.2.2 addrRead memRead tail
+
 end InitECandidate.Runtime
