@@ -98,8 +98,10 @@ materialization2, branches3 and remaining complex instructions16.
 `NopLocalBudget` proves one step per padding NOP. `LabInstructionLocalCost`
 charges a fetched ordinary instruction by opcode cost plus only padding bytes
 beyond its actual encoding, divided by four. The weighted instruction trace uses
-this sharper ordinary-instruction charge. Conservative control-line charges
-remain pending their analogous refinement.
+this sharper ordinary-instruction charge. `LabControlLocalCost` also bounds indirect jumps by1, direct jumps by2 and
+taken branches by3. Fallthrough branches and location values use their local
+base cost plus the visited line-word allowance; no ROM-size factor remains
+in the weighted trace.
 
 ## Remaining end-to-end obligations
 

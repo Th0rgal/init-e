@@ -13,7 +13,7 @@ sizes, then proves local compiler expansion bounds.
 | `WordPullWork`, `WordSelectionWork`, `WordSelectedPathCost` | Full selector preprocessing and actual selected paths; bounds scale with expression work. | Keep. |
 | `WordPathWorkCorrect`, `StackPathWorkCorrect`, `StackRemovePathWorkCorrect` | Full semantic/compiler simulations with actual-successor budgets and original relation/resource premises. | Keep; replace coarse analytic caps around them. |
 | `WordNativeInstructionCost`, `StackStraightLineCost` | Explicit local reload/spill bounds independent of total frame size. | Keep. |
-| `LabWeightedInstructionTrace`, `LabWeightedMixedTrace`, `LabLocalWork` | Charges executed instruction expansions; avoids multiplying by total ROM bytes. | Keep and connect to the preceding stages. |
+| `LabWeightedInstructionTrace`, `LabWeightedMixedTrace`, `LabInstructionLocalCost`, `LabControlLocalCost` | Charges executed instruction expansions; avoids multiplying by total ROM bytes. | Keep and connect to the preceding stages. |
 | Guest memory ownership, frame, gas monotonicity, progress, input-domain and geometry proofs | Useful semantic premises and iteration/size bounds, even when expressed using the old clock. They do not by themselves bound new expression/statement work. | Keep; reuse premises when proving executed work. |
 | Whole-program size ceilings and source-clock affine products | Too coarse for the target. Some are still imported by initialization/geometry modules, so their absence of utility cannot be inferred from their names. | Remove isolated wrappers now; separate mixed dependencies before further deletion. |
 | Generic finite-certificate / bootstrap / behavior matching lemmas | Logical interfaces remain useful with a new quantitative transfer. | Keep. |
@@ -43,3 +43,8 @@ coarse endpoint imports, then delete the resulting unused coarse subgraph.
 Do not delete semantic geometry merely because an import path reaches an old
 bound. The final guest executed-work bound, full RISC-V transfer, and finite
 certificate remain outstanding.
+
+The now-unreferenced `LabLocalWork` module was also removed after the sharp
+opcode/NOP/control transfer replaced it. Its sixteen-times-line-bytes allowance
+is superseded by actual opcode expansion plus visited padding. All five weighted
+trace/initialization/compiled-run dependents were replayed after replacement.
