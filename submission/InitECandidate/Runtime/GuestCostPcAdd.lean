@@ -30,17 +30,26 @@ theorem eval_pcAddAddress (s : PanSemStateFiniteExact 64 F) (frame : BitVec 64)
   simp [evalHOLExact, evalListHOLExact, toExact, hFrame, wordOpHOL, wordOp, valueIsWord,
     valueWord]
 
-/-- The store expression's value comes from the fetched program counter; this
-premise is discharged by expanding the `.load` inside the `.op`, which is kept
-as a separate obligation so the trace itself stays independent of it. -/
-def PcAddValueEvaluates (s : PanSemStateFiniteExact 64 F) (n : BitVec 64) : Prop :=
-  ∃ fetched : BitVec 64, expressionValue s pcAddValue = some (.val (.word (fetched + n)))
+/-- The stored word is the fetched program counter plus `n`, evaluated from the
+actual cell, its domain membership and the actual local. -/
+theorem eval_pcAddValue (s : PanSemStateFiniteExact 64 F) (frame value n : BitVec 64)
+    (hFrame : s.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (hN : s.locals.lookup (ofString "n") = some (.val (.word n)))
+    (domain : s.memaddrs (frame + 0)) (memory : s.memory (frame + 0) = .word value) :
+    @evalHOLExact 64 F _ s.toExact
+      (fun address => Classical.propDecidable (s.memaddrs address)) pcAddValue =
+      some (.val (.word (value + n))) := by
+  classical
+  unfold pcAddValue
+  simp only [evalHOLExact, evalListHOLExact]
+  rw [eval_fundingLoad s frame 0 value hFrame domain memory]
+  simp [evalHOLExact, toExact, hN, valueIsWord, valueWord, wordOpHOL, wordOp]
 
 /-- The program-counter store of the helper. -/
 theorem pcAdd_store_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVec 64)
     (hFrame : s.globals.lookup (ofString "ev") = some (.val (.word frame)))
-    (hValue : expressionValue s pcAddValue = some (.val (.word (value + n))))
-    (domain : s.memaddrs (frame + 0)) :
+    (hN : s.locals.lookup (ofString "n") = some (.val (.word n)))
+    (domain : s.memaddrs (frame + 0)) (memory : s.memory (frame + 0) = .word value) :
     StatementRun s (.store pcAddAddress pcAddValue) none
       { s with memory := writeWordMemory s (frame + 0) (value + n) }
       (.statement :: (expressionEvents s pcAddAddress ++
@@ -52,7 +61,7 @@ theorem pcAdd_store_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVe
     costedExpression_events s _ _ (eval_pcAddAddress s frame hFrame)
   have src : CostedExpressionRun s pcAddValue (some (.val (.word (value + n))))
       (expressionEvents s pcAddValue) :=
-    costedExpression_events s _ _ hValue
+    costedExpression_events s _ _ (eval_pcAddValue s frame value n hFrame hN domain memory)
   have write : @panMemStoresHOL 64 _ (frame + 0)
       (flattenHOL (.val (.word (value + n)))) s.memaddrs
       (fun a => Classical.propDecidable (s.memaddrs a)) s.memory =
@@ -88,8 +97,8 @@ noncomputable def pcAddEvents (s : PanSemStateFiniteExact 64 F) (frame value n :
 /-- The actual installed `pc_add` helper runs on the fetched program counter. -/
 theorem pcAdd_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVec 64)
     (hFrame : s.globals.lookup (ofString "ev") = some (.val (.word frame)))
-    (hValue : expressionValue s pcAddValue = some (.val (.word (value + n))))
-    (domain : s.memaddrs (frame + 0)) :
+    (hN : s.locals.lookup (ofString "n") = some (.val (.word n)))
+    (domain : s.memaddrs (frame + 0)) (memory : s.memory (frame + 0) = .word value) :
     StatementRun s (sourceFunctionBody Guest.guestFn_pc_add)
       (some (.returned (.val (.word 0))))
       (emptyLocalsHOLFinite { s with memory := writeWordMemory s (frame + 0) (value + n) })
@@ -97,7 +106,7 @@ theorem pcAdd_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVec 64)
   classical
   rw [source_pcAdd_body]
   unfold pcAddBody pcAddEvents
-  exact StatementRun.seqNext (pcAdd_store_run s frame value n hFrame hValue domain)
+  exact StatementRun.seqNext (pcAdd_store_run s frame value n hFrame hN domain memory)
     (pcAdd_return_run { s with memory := writeWordMemory s (frame + 0) (value + n) })
 
 /-- Explicit coefficient price of one `pc_add` helper run. -/
@@ -119,6 +128,7 @@ theorem pcAddEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
 
 #print axioms source_pcAdd_body
 #print axioms eval_pcAddAddress
+#print axioms eval_pcAddValue
 #print axioms pcAdd_store_run
 #print axioms pcAdd_run
 #print axioms pcAddEvents_score
