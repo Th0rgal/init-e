@@ -8,11 +8,12 @@ namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
-/-- Exit layout of a set: ready with values in `S` at the exit heap pointer, its physical region old or fresh. -/
+/-- Exit layout of a set: ready with values in `S` at the exit heap pointer, same key length and stride, its physical
+region old or fresh. -/
 def SetRV (D : BitVec 64 → Prop) (B : Bool) (T : BitVec 64) (l : TLay) (Hc : BitVec 64) (S : Set (BitVec 64))
     (M : Mem) (G : GA) : Prop :=
   ∃ (l' : TLay) (Hp : BitVec 64), G.lookup (ofString "heap_ptr") = some (.val (.word Hp)) ∧
-    Hc.toNat ≤ Hp.toNat ∧ TabRV D B T l' Hp S M ∧
+    Hc.toNat ≤ Hp.toNat ∧ TabRV D B T l' Hp S M ∧ l'.KL = l.KL ∧ l'.SD = l.SD ∧
     ∀ x, TabPhys T l' x → TabPhys T l x ∨ (Hc.toNat ≤ x.toNat ∧ x.toNat < Hp.toNat)
 
 /-- `setRV_post` with the exit layout located. -/
@@ -61,7 +62,7 @@ theorem setRV_post2 {F : Type} {D : BitVec 64 → Prop} {B : Bool} (s post : Pan
     rcases rdy with ⟨nc,_,rp⟩ | rp
     · exact ⟨⟨l.KL,l.SD,l.C,nc,l.KS,l.VS,l.US,l.OS,l.OPS,l.b⟩,Hc,rp.live.frontier.heap,le_refl _,
         ⟨F,liftClock post (2 ^ 74),Hc,rfl,addrs.trans hd,endian.trans hb,rp.live.arrays.code,le_refl _,hC,hT,rp,vin⟩,
-        fun x hx => Or.inl hx⟩
+        rfl,rfl,fun x hx => Or.inl hx⟩
     · have k1 := rp.live.arrays.keysBefore
       have k2 := rp.live.arrays.valuesBefore
       have k3 := rp.live.arrays.usedBefore
@@ -76,7 +77,7 @@ theorem setRV_post2 {F : Type} {D : BitVec 64 → Prop} {B : Bool} (s post : Pan
       refine ⟨⟨l.KL,l.SD,l.C * 2,l.N + 1,Hc,htabGrowValues Hc l.C l.SD,htabGrowUsed Hc l.C l.SD,
         htabGrowOrder Hc l.C l.SD,htabGrowOrderPos Hc l.C l.SD,l.b + 1⟩,_,rp.live.frontier.heap,by omega,
         ⟨F,liftClock post (2 ^ 74),_,rfl,addrs.trans hd,endian.trans hb,rp.live.arrays.code,le_refl _,?_,hT,rp,vin⟩,
-        fun x hx => ?_⟩
+        rfl,rfl,fun x hx => ?_⟩
       · show 1 < (l.C * 2).toNat
         rw [BitVec.toNat_mul]; simp; omega
       · dsimp only [TabPhys,InTabF] at hx ⊢
