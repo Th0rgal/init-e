@@ -201,3 +201,34 @@ free (`wd_loop_counter_binding`), and then statement 46's loop costs at most
 `nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)`. Result:
 `state.clock ≤ post.clock + 1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)`,
 `post.clock ≤ state.clock`, no timeout.
+
+## Statement 43–46 as `Reaches` ending at `actualPayloadHeaderAt 47` (design, checked ingredients)
+
+`RunBounded` on `actualPayloadHeaderAt 43` is the wrong shape: `43 = .dec "nwd" .one (load [pl+56]) 44`
+and `.dec`'s body argument *is* the continuation, so it would include statements 47+ (and the builder
+callee). The right shape is `Reaches` (`StatelessReach`), whose `cont` argument truncates the run:
+
+`Reaches s (actualPayloadHeaderAt 43) Q (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (actualPayloadHeaderAt 47)`
+
+Checked ingredients, all green in this checkout:
+
+- `wd_count_load_eval` — the exact `@evalHOLExact 64 F _ s.toExact (fun a => Classical.propDecidable
+  (s.memaddrs a))` hypothesis shape that `Reaches.reaches_dec` / `RunBounded.decWord` expect, so no
+  manual `toExact` instance expansion is needed.
+- `reaches_dec s "nwd" (load [pl+56]) (actualPayloadHeaderAt 44) P43` — gives the 43 prefix with `K = 0`
+  and, crucially, `scoped_restore` absorbs the `resVarEq`/locals difference that makes the *pair*
+  equality false (this is the routine seam now closed at the framework level).
+- `wd_slice_alloc_entry` / `evaluate_alloc_global_call` (`ready.clock = state.clock - 1`) —
+  `reaches_seq` data for statement 44 (`= (none, ready)`).
+- `wd_loop_counter_binding` — statement 45 `.dec "i" .one (const 0)` is a `reaches_dec` step with `K = 0`.
+- `wdSliceLoop_count` / `wdSliceLoop_count_alloc` — the loop bound with the real count and the installed
+  encoder cost, including `state.clock ≤ post.clock + n` and `post.clock ≤ state.clock`.
+- `HeaderWithdrawalLoopFrame` — `actualPayloadHeaderAt 46 = .seq wdSliceLoop (actualPayloadHeaderAt 47)`,
+  so `reaches_seq` with `cont = actualPayloadHeaderAt 47` is the composition at the 46/47 seam.
+
+The one gap between the checked ingredients and the `Reaches` statement: `reaches_seq` needs the first
+part to *complete normally* (`evaluateHOLFiniteState s first = (none, t)`), while the loop bound delivers
+its `RunBounded` projections plus `≠ some .timeOut`; the error branch must therefore be routed into
+`Reaches`' second disjunct (`StAbort`) — i.e. one of (a) an error-free loop hypothesis (the header block
+assumes the encoder succeeds), or (b) a `StAbort`-of-loop lemma. The rest is `reaches_trans`/`reaches_mono`
+plumbing with `Q` the loop-exit predicate (`WdLoopInv` at exit, `i = nwd`).
