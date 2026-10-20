@@ -326,6 +326,16 @@ iterations when a later iteration has such an exit, at the same additive
 `bodyPrice + 2 + restPrice` ceiling. Terminal/resource outcomes and a complete
 recursive driver still need their remaining rules.
 
+`StackWeightedTerminal` connects an actual flattened Halt operand to its exact
+success/resource-limit outcome and final FFI state. Its recursive motive carries
+the actual weighted prefix plus a literal terminal witness. Normal-prefix and
+early-terminal Seq rules compose without terminal surcharges per child;
+`StackWeightedLoopTerminal` handles terminal bodies and normal/Continue 0
+reentry into a later terminal iteration. Native extraction charges at most
+`prefixPrice + 17`, with the terminal ceiling appearing once. These are checked
+compiler constructor rules; the complete recursive compiler driver and the
+remaining FFI/shared/call leaf constructions still need completion.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
