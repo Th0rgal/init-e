@@ -134,3 +134,28 @@ STATE OF THE INLINE DRIVER (v6, submission/docs/alloc-cost-driver-draft.lean.txt
        Plain `simp` DOES reduce `if h : False`/`if h : c = 0` (verified in isolation),
        so the only reason the dite survives is that the two sides' conditions are
        syntactically different (hence the `hclk` normalisation).
+
+v7 attempt (log alloc-cost-driver-draft.log.txt): with the trivial branches closed by
+`simp only [wordPathWork]` and the loop clock subgoals by `rw [dif_pos hc0, dif_pos hc0]`
+/ `rw [dif_neg hc0, dif_neg hc0]`, the *termination* proof becomes the blocker:
+  submission/...:2618:27: error: omega could not prove the goal   (twice, plus :45)
+i.e. the loop stop call at program `wordSemSTOP (.loop names body exitNames)` and state
+`decClock s1` does not obviously satisfy `wordSemLex`, because `wordSemSTOP` is a
+*derived* program whose `sizeOf` need not be smaller than `sizeOf (.loop ..)` and whose
+clock is `decClock s1` (one less, but `termdep` unchanged). Two clean ways out:
+  1. prove `sizeOf (wordSemSTOP p) < sizeOf p` (or `<=`) and discharge the branch with
+     `Or.inr ⟨by omega, Or.inr ⟨by omega, ...⟩⟩` (the third component is the sizeOf
+     decrease, which is `by decreasing_tactic`-friendly), or
+  2. note `(decClock s1).clock < s1.clock` and that the goal's clock component of
+     `wordSemLex` is already discharged, so feed `omega` the extra fact
+     `s1.clock ≠ 0` (available from the enclosing `hc0 : ¬ s1.clock = 0` branch): the
+     stop recursion is only made in the `¬ clock = 0` branch, so
+     `simp only [decClock] ; omega` should close it once the branch hypothesis is in
+     context. The v7 draft lost that hypothesis in the `decreasing_by` context - keep
+     the stop recursion inside the `by_cases hc0` negative branch and add
+     `have : (decClock s1).clock < s1.clock := by simp [decClock]; omega` before the
+     call so `omega` sees it.
+Also fixed along the way: `.seq` fully checked; `evaluate_stack_swap_result_value`
+added; the loop `if h : True`/`if h : False` subgoals need `dif_pos hc0` / `dif_neg hc0`
+(one per side) rather than `simp`, and the swapped clock must be normalised with
+`have hclk : ({s1 with stack := st}).clock = s1.clock := rfl; rw [hclk]` first.

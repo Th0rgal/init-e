@@ -2510,8 +2510,9 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
               have hclk : ({ s1 with stack := st } : WordSemStateFiniteExact 64 C F).clock = s1.clock := rfl
               rw [hclk]
               by_cases hc0 : s1.clock = 0
-              · simp [hc0]
-              · simp only [hc0]
+              · rw [dif_pos hc0, dif_pos hc0]
+                simp
+              · rw [dif_neg hc0, dif_neg hc0]
                 have ihStop : wordPathWork (wordSemSTOP (.loop names body exitNames))
                     { decClock s1 with stack := st } =
                     wordPathWork (wordSemSTOP (.loop names body exitNames)) (decClock s1) := by
@@ -2564,8 +2565,9 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                     have hclk : ({ s1 with stack := st } : WordSemStateFiniteExact 64 C F).clock = s1.clock := rfl
                     rw [hclk]
                     by_cases hc0 : s1.clock = 0
-                    · simp [hc0]
-                    · simp only [hc0]
+                    · rw [dif_pos hc0, dif_pos hc0]
+                      simp
+                    · rw [dif_neg hc0, dif_neg hc0]
                       have ihStop : wordPathWork (wordSemSTOP (.loop names body exitNames))
                           { decClock s1 with stack := st } =
                           wordPathWork (wordSemSTOP (.loop names body exitNames)) (decClock s1) := by
@@ -2578,28 +2580,28 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                   · simp [hevT, ihB, wordSemContLoop, hk]
   | .call ret dest args handler, s, xs, hval, hne =>
       exact hcall ret dest args handler s xs hval hne
-  | .mustTerminate _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .skip, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .move _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .inst _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .assign _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .get _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .set _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .store _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .tick, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .storeConsts _ _ _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .return _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .break _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .continue _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .opCurrHeap _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .locValue _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .install _ _ _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .codeBufferWrite _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .dataBufferWrite _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .ffi _ _ _ _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .shareInst _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .alloc _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .raise _, _, _, _, _ => rw [wordPathWork, wordPathWork]
+  | .mustTerminate _, _, _, _, _ => simp only [wordPathWork]
+  | .skip, _, _, _, _ => simp only [wordPathWork]
+  | .move _ _, _, _, _, _ => simp only [wordPathWork]
+  | .inst _, _, _, _, _ => simp only [wordPathWork]
+  | .assign _ _, _, _, _, _ => simp only [wordPathWork]
+  | .get _ _, _, _, _, _ => simp only [wordPathWork]
+  | .set _ _, _, _, _, _ => simp only [wordPathWork]
+  | .store _ _, _, _, _, _ => simp only [wordPathWork]
+  | .tick, _, _, _, _ => simp only [wordPathWork]
+  | .storeConsts _ _ _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .return _ _, _, _, _, _ => simp only [wordPathWork]
+  | .break _, _, _, _, _ => simp only [wordPathWork]
+  | .continue _, _, _, _, _ => simp only [wordPathWork]
+  | .opCurrHeap _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .locValue _ _, _, _, _, _ => simp only [wordPathWork]
+  | .install _ _ _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .codeBufferWrite _ _, _, _, _, _ => simp only [wordPathWork]
+  | .dataBufferWrite _ _, _, _, _, _ => simp only [wordPathWork]
+  | .ffi _ _ _ _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .shareInst _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .alloc _ _, _, _, _, _ => simp only [wordPathWork]
+  | .raise _, _, _, _, _ => simp only [wordPathWork]
   termination_by p s xs => (s.termdep, s.clock, sizeOf p)
   decreasing_by
     all_goals
@@ -2864,28 +2866,28 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                   · simp only [hevT, ihB, wordSemContLoop, hk, if_false]
   | .call ret dest args handler, s, xs, hval, hne =>
       exact hcall ret dest args handler s xs hval hne
-  | .mustTerminate _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .skip, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .move _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .inst _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .assign _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .get _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .set _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .store _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .tick, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .storeConsts _ _ _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .return _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .break _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .continue _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .opCurrHeap _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .locValue _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .install _ _ _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .codeBufferWrite _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .dataBufferWrite _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .ffi _ _ _ _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .shareInst _ _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .alloc _ _, _, _, _, _ => rw [wordPathWork, wordPathWork]
-  | .raise _, _, _, _, _ => rw [wordPathWork, wordPathWork]
+  | .mustTerminate _, _, _, _, _ => simp only [wordPathWork]
+  | .skip, _, _, _, _ => simp only [wordPathWork]
+  | .move _ _, _, _, _, _ => simp only [wordPathWork]
+  | .inst _, _, _, _, _ => simp only [wordPathWork]
+  | .assign _ _, _, _, _, _ => simp only [wordPathWork]
+  | .get _ _, _, _, _, _ => simp only [wordPathWork]
+  | .set _ _, _, _, _, _ => simp only [wordPathWork]
+  | .store _ _, _, _, _, _ => simp only [wordPathWork]
+  | .tick, _, _, _, _ => simp only [wordPathWork]
+  | .storeConsts _ _ _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .return _ _, _, _, _, _ => simp only [wordPathWork]
+  | .break _, _, _, _, _ => simp only [wordPathWork]
+  | .continue _, _, _, _, _ => simp only [wordPathWork]
+  | .opCurrHeap _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .locValue _ _, _, _, _, _ => simp only [wordPathWork]
+  | .install _ _ _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .codeBufferWrite _ _, _, _, _, _ => simp only [wordPathWork]
+  | .dataBufferWrite _ _, _, _, _, _ => simp only [wordPathWork]
+  | .ffi _ _ _ _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .shareInst _ _ _, _, _, _, _ => simp only [wordPathWork]
+  | .alloc _ _, _, _, _, _ => simp only [wordPathWork]
+  | .raise _, _, _, _, _ => simp only [wordPathWork]
   termination_by p s xs => (s.termdep, s.clock, sizeOf p)
   decreasing_by
     all_goals

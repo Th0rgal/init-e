@@ -1,12 +1,12 @@
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2513:16: error: No goals to be solved
 submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2521:85: error: Application type mismatch: The argument
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2575:91: error: Application type mismatch: The argument
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2577:22: error: Type mismatch
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2581:33: error: unsolved goals
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2582:22: error: unsolved goals
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2583:26: error: unsolved goals
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2584:24: error: unsolved goals
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2585:28: error: unsolved goals
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2586:25: error: unsolved goals
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2587:25: error: unsolved goals
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2588:27: error: unsolved goals
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2589:22: error: unsolved goals
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2567:26: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2569:26: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2618:27: error: omega could not prove the goal:
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2618:45: error: omega could not prove the goal:
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2618:27: error: omega could not prove the goal:
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2618:45: error: omega could not prove the goal:
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2618:27: error: omega could not prove the goal:
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2618:45: error: omega could not prove the goal:
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2618:55: error: failed to prove termination, possible solutions:
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:2623:8: error: `InitECandidate.Runtime.WordToStack.evaluate_stack_swap_result_value` has already been declared
