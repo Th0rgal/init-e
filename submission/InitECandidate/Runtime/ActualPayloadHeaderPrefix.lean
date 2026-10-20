@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.BoundedDecCallReach
 import InitECandidate.Runtime.HtabGrowRehash
 import InitECandidate.Runtime.AllocationUniformBound
+import InitECandidate.Runtime.KeccakShortCallBound
 import InitECandidate.Runtime.ByteStorePrefixReach
 import InitECandidate.Runtime.FrameHalt
 import InitECandidate.Runtime.MemzeroAlignedCall
@@ -653,5 +654,49 @@ theorem actual_payload_header_prefix_store_byte {F : Type} (state : PanSemStateF
       have ck := sc.2.1
       exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
   · exact Or.inr (stAbort_mono state _ 253 255 (by omega) ab)
+
+/-- Statement 9 begins with the actual `keccak256(tmp, 1, oh)` call. -/
+theorem source_actual_payload_header_keccak :
+    actualPayloadHeaderAt 9 = .seq (.call (some (none,none)) (ofString "keccak256")
+      [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")]) (actualPayloadHeaderAt 10) := by
+  unfold actualPayloadHeaderAt
+  rfl
+
+/-- **The actual `keccak256(tmp, 1, oh)` call is bounded by 360 ticks.**  The bound is the actual short
+keccak callee contract at the initialized `keccak_st`/`keccak_pad` globals with the expanded operand
+domains; no callee runtime or frame callback and no successful reserve are assumed. -/
+theorem actual_payload_header_keccak_call_bounded {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (tmp oh st pad : BitVec 64)
+    (tmpLocal : state.locals.lookup (ofString "tmp") = some (.val (.word tmp)))
+    (ohLocal : state.locals.lookup (ofString "oh") = some (.val (.word oh)))
+    (stateGlobal : state.globals.lookup (ofString "keccak_st") = some (.val (.word st)))
+    (padGlobal : state.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)))
+    (code : state.code = originalRuntimeCode)
+    (ticks : 360 ≤ state.clock)
+    (stateSmall : st.toNat + 200 ≤ 33806089496) (stateAligned : st.toNat % 8 = 0)
+    (stateWords : ∀ offset : Nat, offset < 200 → state.memaddrs (st + BitVec.ofNat 64 offset))
+    (stateBytes : ∀ offset : Nat, offset < 200 →
+      state.memaddrs (panByteAlignHOL (st + BitVec.ofNat 64 offset)))
+    (small : pad.toNat + 136 ≤ 33806089496) (padAligned : pad.toNat % 8 = 0)
+    (tmpAligned : tmp.toNat % 8 = 0) (ohAligned : oh.toNat % 8 = 0)
+    (words : ∀ offset : Nat, offset < 136 → state.memaddrs (pad + BitVec.ofNat 64 offset))
+    (bytes : ∀ offset : Nat, offset < 136 →
+      state.memaddrs (panByteAlignHOL (pad + BitVec.ofNat 64 offset)))
+    (sourceWords : ∀ offset : Nat, offset < 1 → state.memaddrs (tmp + BitVec.ofNat 64 offset))
+    (sourceBytes : ∀ offset : Nat, offset < 1 →
+      state.memaddrs (panByteAlignHOL (tmp + BitVec.ofNat 64 offset))) :
+    RunBounded state (.call (some (none,none)) (ofString "keccak256")
+      [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")]) 360 := by
+  have arguments : evalListHOLFinite state (h := fun a => Classical.propDecidable (state.memaddrs a))
+      [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")] =
+      (some [ValueHOL.val (HolWordLab.word tmp), ValueHOL.val (HolWordLab.word (1#64)),
+        ValueHOL.val (HolWordLab.word oh)] : Option (List (ValueHOL 64))) := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,tmpLocal,ohLocal]
+  have sizeNat : (1#64).toNat = 1 := by decide
+  exact evaluate_keccak_short_call_bounded state (.var .local (ofString "tmp")) (.const (1#64))
+    (.var .local (ofString "oh")) st pad tmp (1#64) oh stateGlobal padGlobal code (by omega) arguments
+    stateSmall stateAligned stateWords stateBytes small padAligned tmpAligned ohAligned (by omega)
+    words bytes sourceWords sourceBytes
+#print axioms actual_payload_header_keccak_call_bounded
 
 end InitECandidate.Runtime
