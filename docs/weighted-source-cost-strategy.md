@@ -4,7 +4,7 @@ The participant target is a native step ceiling of 900,000,000,000. The old affi
 
 ## Evidence and budget
 
-`CanonicalAffineClosedForm.sourceNativeSlope` multiplies maxima from the Crep, Word, bitmap/removal, named-label and native stages. Its backend factor is 14,467,153. `ActualUnfilteredNativeBudget` identifies that factor as `16 * (bytes.length + 1) + 1`: it scales with the size of the entire submitted image, rather than the locally executed instruction expansion. Source-clock accounting also treats straight-line declarations, expression work and stores as free. Replacing only the source ceiling while retaining these transfer factors cannot give the desired useful bound.
+The removed `CanonicalAffineClosedForm.sourceNativeSlope` multiplied maxima from the Crep, Word, bitmap/removal, named-label and native stages. Its backend factor is 14,467,153. `ActualUnfilteredNativeBudget` identifies that factor as `16 * (bytes.length + 1) + 1`: it scales with the size of the entire submitted image, rather than the locally executed instruction expansion. Source-clock accounting also treats straight-line declarations, expression work and stores as free. Replacing only the source ceiling while retaining these transfer factors cannot give the desired useful bound.
 
 The pinned local `InitE.NatE` and `verifier/check_submission.py` represent finite budgets as arbitrary nonnegative naturals; a 900-billion admission cap was not found there. Treat 900 billion as the required working ceiling regardless of whether enforcement is external or newer than this checkout.
 
