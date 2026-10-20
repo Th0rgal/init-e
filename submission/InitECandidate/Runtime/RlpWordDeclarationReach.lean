@@ -2,6 +2,7 @@ import InitECandidate.Runtime.RlpWordDeclarationCursor
 import InitECandidate.Runtime.RlpWritersRuntimeBound
 import InitECandidate.Runtime.BoundedDecCallReach
 import InitECandidate.Runtime.PanEvaluationMetadata
+import InitECandidate.Runtime.RlpWordReturnedUpperFrame
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -13,7 +14,9 @@ def RlpWordDeclarationReady {F : Type} (base next : PanSemStateFiniteExact 64 F)
  ∃written : BitVec 64,next.locals.lookup name=some (.val (.word written)) ∧
   1≤written.toNat ∧written.toNat≤9 ∧pointer.toNat+written.toNat≤DF+8 ∧
   (∀key,key≠name→next.locals.lookup key=base.locals.lookup key) ∧
-  next.code=base.code ∧next.memaddrs=base.memaddrs ∧next.be=base.be
+  next.code=base.code ∧next.memaddrs=base.memaddrs ∧next.be=base.be ∧
+  next.globals=base.globals ∧
+  (∀watched : BitVec 64,pointer.toNat+9≤watched.toNat→next.memory watched=base.memory watched)
 
 /-- The actual scalar writer reaches its continuation with a short encoded
 length, or terminates within the uniform writer ceiling. This covers write
@@ -47,7 +50,11 @@ theorem rlp_word_declaration_reaches {F : Type} (s : PanSemStateFiniteExact 64 F
  obtain ⟨written,rfl,positive,short,fits⟩:=returned
  have metadata:=evaluateHOLFiniteState_metadata entry (sourceFunctionBody Guest.guestFn_rlp_encode_word)
  rw [run] at metadata
- refine ⟨written,?_,positive,short,fits,?_,metadata.1,metadata.2.1,metadata.2.2.1⟩
+ have frame:=rlp_word_returned_upper_frame entry post pointer input (.val (.word written)) DF code fence cap
+  (by omega)
+  (by simp (config:={decide:=true}) [entry,callee,callEntryStateHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE])
+  (by simp [entry,callee,callEntryStateHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]) run
+ refine ⟨written,?_,positive,short,fits,?_,metadata.1,metadata.2.1,metadata.2.2.1,frame.1,frame.2⟩
  · simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
  · intro key different
    simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,Ne.symm different]
