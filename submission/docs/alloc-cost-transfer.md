@@ -169,6 +169,9 @@ Compile order and module stems (checker role `allocation`):
    - `ssaLoop_compiled_executed_transfer`: includes the actual successful
      `loopSetup` run and its executed setup budget, covering
      `seq setup loop`, not only the inner loop.
+   - `SsaLoopStateRel`: the original `wordStateEqRel` plus `ssaLocalsRel`;
+     `ssaLoop_executed_transfer_originalRel` states the same whole-loop bound
+     over that original relation.
 
    The remaining semantic premise, stated explicitly rather than hidden, is
    the derivation of `SsaLoopStep` from `ssaCcTransCorrectLoop` for the actual

@@ -1,4 +1,6 @@
 import InitECandidate.Runtime.AllocCostSSAExecuted
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.StateRelation
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSALocals
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Compiler.Backend.WordAlloc Flapjack.WordSemStateFiniteExact
 open InitECandidate.Runtime.WordToStack
@@ -65,6 +67,16 @@ def SsaLoopStep {width : Nat} [NeZero width] {C F : Type}
             (Flapjack.WordSemStateFiniteExact.decClock tm) ∧
           tm.clock = sm.clock ∧
           wordPathWork targetBody ct ≤ wordPathWork body cs + bodyBudget)
+
+/-- The state relation used by the original SSA semantic loop proof:
+`wordStateEqRel` plus the SSA-locals relation.  The whole-loop theorem is
+relation-generic; this specialization records exactly which original relation
+the one-step premise is meant to instantiate. -/
+def SsaLoopStateRel {width : Nat} [NeZero width] {C F : Type}
+    (ssa : Spt Nat) (next : Nat)
+    (s t : WordSemStateFiniteExact width C F) : Prop :=
+  Flapjack.WordAlloc.wordStateEqRel s t ∧
+    ssaLocalsRel next ssa s.locals t.locals
 
 /-- Whole-loop executed transfer.  The extra is charged recursively on the
 actual source iterations; the strong induction is on the source clock, which
@@ -162,7 +174,24 @@ theorem ssaLoop_compiled_executed_transfer {width : Nat} [NeZero width] {C F : T
     body targetBody bodyBudget backBudget R step s middle rel
   omega
 
+/-- Whole-loop transfer stated over the original `wordStateEqRel` +
+`ssaLocalsRel` relation.  The one-step premise remains explicit. -/
+theorem ssaLoop_executed_transfer_originalRel {width : Nat} [NeZero width] {C F : Type}
+    (names targetNames exits targetExits : Spt Unit)
+    (body targetBody : WordLangProgHOL (BitVec width))
+    (bodyBudget backBudget : Nat) (ssa : Spt Nat) (next : Nat)
+    (step : SsaLoopStep names targetNames body targetBody
+      (SsaLoopStateRel (width := width) (C := C) (F := F) ssa next) bodyBudget)
+    (s t : WordSemStateFiniteExact width C F)
+    (rel : SsaLoopStateRel (width := width) (C := C) (F := F) ssa next s t) :
+    wordPathWork (.loop targetNames targetBody targetExits) t ≤
+      wordPathWork (.loop names body exits) s +
+        ssaLoopExtra body names bodyBudget backBudget s :=
+  ssaLoop_executed_transfer names targetNames exits targetExits body targetBody
+    bodyBudget backBudget _ step s t rel
+
 #print axioms ssaLoopExtra
 #print axioms ssaLoop_executed_transfer
 #print axioms ssaLoop_compiled_executed_transfer
+#print axioms ssaLoop_executed_transfer_originalRel
 end InitECandidate.Runtime.FineCost
