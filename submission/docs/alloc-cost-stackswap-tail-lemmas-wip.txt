@@ -251,3 +251,20 @@ theorem wordPathWork_call_other_tail {C F : Type}
 -- Fix: discharge the tail with `simp only [if_pos hnl]` / `simp only [hp]`
 -- (simp rewrites all occurrences and reduces named matches), or add a helper
 -- lemma stated with the same named-match shape.
+
+-- REMAINING DRIVER RECIPE (all prerequisites but the three tail lemmas are green):
+--   theorem wordPathWork_sValEq_stack_variant :
+--     ∀ p s xs, sValEq s.stack xs → (∀ q t, (evaluate q t).1 ≠ some .error) →
+--       wordPathWork p {s with stack := xs} = wordPathWork p s
+--   termination_by p s => (s.termdep, s.clock, sizeOf p)   [copy decreasing_by from WordPathWork.lean:82-94]
+--   .seq : rcases evaluate first s, stackSwapPost generic clause -> fixClock_swap_stack -> cases result;
+--          none branch uses the IH at (fixClock s _).2 with stack st (fixClock_stack_proj + hvalT).
+--   .ite : exact wordPathWork_ite_sValEq_variant with both IH instances.
+--   .loop: cutState_stack, then stackSwapPost at the body, then cases on the body result /
+--          wordSemContLoop / middle.clock == 0; nonzero branch uses the IH at decClock middle with st.
+--   .call: prelude lemmas (green) -> clock-zero cases (green) -> result/exception/other tails (WIP)
+--          -> fixClock_swap_stack + callEntry_stack_swap + popEnv_agree for .result
+--          -> exception branch needs middleT.locals = middle.locals: pushEnv sets handler to
+--             s.stack.length, so wordSemLastN_length + wordSemLastN_length_succ_cons select the
+--             SAME pushed frame in both runs; e0 = e0' and map fst/snd lss equal -> sptUnion_env_eq.
+--   trivial constructors: rw [wordPathWork, wordPathWork]; all_goals simp
