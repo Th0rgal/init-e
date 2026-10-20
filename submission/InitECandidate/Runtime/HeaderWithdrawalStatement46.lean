@@ -32,10 +32,6 @@ theorem payloadHeader46_window {F : Type} (t : PanSemStateFiniteExact 64 F)
     (sliceR : ∀ j, j ≤ nwd.toNat →
       read ≠ slices + (I0 + BitVec.ofNat 64 j) * 16#64 ∧
       read ≠ slices + (I0 + BitVec.ofNat 64 j) * 16#64 + 8#64)
-    (noControl : ∀ s : PanSemStateFiniteExact 64 F,
-      wdSliceInv t I0 nwd pl slices w read H s →
-      (evaluateHOLFiniteState (decClockHOLFinite s) wdSliceLoopBody).1 ≠ some .continue ∧
-      (evaluateHOLFiniteState (decClockHOLFinite s) wdSliceLoopBody).1 ≠ some .break)
     (memRead : t.memory read = HolWordLab.word X)
     (tail : (evaluateHOLFiniteState (evaluateHOLFiniteState t wdSliceLoop).2
         (actualPayloadHeaderAt 47)).2.memory w = (evaluateHOLFiniteState t wdSliceLoop).2.memory w) :
@@ -43,7 +39,7 @@ theorem payloadHeader46_window {F : Type} (t : PanSemStateFiniteExact 64 F)
   have loopWin : (evaluateHOLFiniteState t wdSliceLoop).2.memory w = t.memory w :=
     wdSliceLoop_window t I0 nwd pl slices heapBase w read X H readEq atCounter atNwd atPl freshE
       atSlices atHeap code heap0 heapStep initialLe smallNwd bounds outW outR addrRead sliceW sliceR
-      noControl memRead
+      memRead
   rw [source_wd_slice_loop,evaluateHOLFiniteState_seq_line780]
   cases hloop : evaluateHOLFiniteState t wdSliceLoop with
   | mk r s' =>

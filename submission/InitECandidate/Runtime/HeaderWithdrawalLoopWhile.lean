@@ -6,6 +6,101 @@ open Flapjack.Basis.Pure.MlString
 set_option maxRecDepth 100000
 set_option maxHeartbeats 4000000
 
+/-- An assignment completes or fails, never breaks or continues. -/
+theorem assign_local_control {F : Type} (s : PanSemStateFiniteExact 64 F) (name : MlS) (source : ExpHOL 64) :
+    (evaluateHOLFiniteState s (.assign .local name source)).1 = none ∨
+    (evaluateHOLFiniteState s (.assign .local name source)).1 = some .error := by
+  rw [evaluateHOLFiniteState_assign]
+  split
+  · first | exact Or.inl rfl | exact Or.inr rfl
+  · split
+    · first | exact Or.inl rfl | exact Or.inr rfl
+    · first | exact Or.inl rfl | exact Or.inr rfl
+
+/-- The stores of one slice iteration complete normally or fail; they never break or continue. -/
+theorem wdSliceLoopStores_control {F : Type} (s : PanSemStateFiniteExact 64 F) :
+    (evaluateHOLFiniteState s wdSliceLoopStores).1 = none ∨
+    (evaluateHOLFiniteState s wdSliceLoopStores).1 = some .error := by
+  rw [wdSliceLoopStores]
+  rw [evaluateHOLFiniteState_seq_line780]
+  cases h0 : evaluateHOLFiniteState s (.store
+    (.op .add [.var .global (ofString "wd_rlp_slices"),
+      .panop .mul [.var .local (ofString "i"), .const (16#64)]])
+    (.rfield 0 (.var .local (ofString "e")))) with
+  | mk r0 s0 =>
+    have c0 := (evaluate_store_control_frame s (.op .add [.var .global (ofString "wd_rlp_slices"),
+      .panop .mul [.var .local (ofString "i"), .const (16#64)]])
+      (.rfield 0 (.var .local (ofString "e")))).1
+    rw [h0] at c0
+    rcases c0 with rfl | rfl
+    · dsimp only
+      rw [evaluateHOLFiniteState_seq_line780]
+      cases h8 : evaluateHOLFiniteState s0 (.store
+        (.op .add [.var .global (ofString "wd_rlp_slices"),
+          .panop .mul [.var .local (ofString "i"), .const (16#64)], .const (8#64)])
+        (.rfield 1 (.var .local (ofString "e")))) with
+      | mk r8 s8 =>
+        have c8 := (evaluate_store_control_frame s0 (.op .add [.var .global (ofString "wd_rlp_slices"),
+          .panop .mul [.var .local (ofString "i"), .const (16#64)], .const (8#64)])
+          (.rfield 1 (.var .local (ofString "e")))).1
+        rw [h8] at c8
+        rcases c8 with rfl | rfl
+        ·
+          simpa using assign_local_control s8 (ofString "i")
+            (.op .add [.var .local (ofString "i"), .const (1#64)])
+        · dsimp only
+          exact Or.inr rfl
+    · dsimp only
+      exact Or.inr rfl
+
+/-- A result that only completes or fails is never `break` or `continue`. -/
+theorem not_control_of_control (result : Option (PanSemResultExact 64))
+    (h : result = none ∨ result = some .error) :
+    result ≠ some .continue ∧ result ≠ some .break := by
+  rcases h with h | h <;> rw [h] <;> simp
+
+/-- A `decCall` whose continuation only completes or fails never returns `break` or `continue`. -/
+theorem decCall_noControl {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (resultName : MlS) (shape : ShapeHOL) (function : MlS) (arguments : List (ExpHOL 64))
+    (continuation : ProgHOL 64)
+    (contControl : ∀ (s' : PanSemStateFiniteExact 64 F),
+      (evaluateHOLFiniteState s' continuation).1 = none ∨
+      (evaluateHOLFiniteState s' continuation).1 = some .error) :
+    (evaluateHOLFiniteState s
+        (.decCall resultName shape function arguments continuation)).1 ≠ some .continue ∧
+    (evaluateHOLFiniteState s
+        (.decCall resultName shape function arguments continuation)).1 ≠ some .break := by
+  rw [evaluateHOLFiniteState_decCall_total]
+  dsimp only
+  split
+  · simp
+  · split
+    · simp
+    · split
+      · simp
+      · split
+        · simp
+        · simp
+        · simp
+        · split
+          · first
+            | exact not_control_of_control _ (Or.inr rfl)
+            | exact not_control_of_control _ (contControl _)
+          · first
+            | exact not_control_of_control _ (Or.inr rfl)
+            | exact not_control_of_control _ (contControl _)
+        · simp_all
+
+/-- One withdrawal slice iteration never returns `break` or `continue`. -/
+theorem wdSliceLoopBody_noControl {F : Type} (s : PanSemStateFiniteExact 64 F) :
+    (evaluateHOLFiniteState s wdSliceLoopBody).1 ≠ some .continue ∧
+    (evaluateHOLFiniteState s wdSliceLoopBody).1 ≠ some .break := by
+  rw [wdSliceLoopBody]
+  exact decCall_noControl s (ofString "e") (.comb [.one,.one]) (ofString "encode_withdrawal_rlp")
+    [.op .add [.load .one (.op .add [.var .local (ofString "pl"), .const (48#64)]),
+      .panop .mul [.var .local (ofString "i"), .const (44#64)]]] wdSliceLoopStores
+    (by intro s'; exact wdSliceLoopStores_control s')
+
 /-- The encoder argument of iteration `k` reads the 32-byte slice record at `pl + 48 + 44 * i`. -/
 theorem wd_slice_args {F : Type} (s : PanSemStateFiniteExact 64 F) (I0 pl X : BitVec 64) (k : Nat)
     (atPl : s.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
@@ -66,10 +161,6 @@ theorem wdSliceLoop_window {F : Type} (t : PanSemStateFiniteExact 64 F)
     (sliceR : ∀ j, j ≤ nwd.toNat →
       read ≠ slices + (I0 + BitVec.ofNat 64 j) * 16#64 ∧
       read ≠ slices + (I0 + BitVec.ofNat 64 j) * 16#64 + 8#64)
-    (noControl : ∀ s : PanSemStateFiniteExact 64 F,
-      wdSliceInv t I0 nwd pl slices w read H s →
-      (evaluateHOLFiniteState (decClockHOLFinite s) wdSliceLoopBody).1 ≠ some .continue ∧
-      (evaluateHOLFiniteState (decClockHOLFinite s) wdSliceLoopBody).1 ≠ some .break)
     (memRead : t.memory read = HolWordLab.word X) :
     (evaluateHOLFiniteState t wdSliceLoop).2.memory w = t.memory w := by
   have inv0 : wdSliceInv t I0 nwd pl slices w read H t := by
@@ -193,8 +284,8 @@ theorem wdSliceLoop_window {F : Type} (t : PanSemStateFiniteExact 64 F)
       simpa [entered,decClockHOLFinite] using memW
     · rw [windowR]
       simpa [entered,decClockHOLFinite] using memR
-  · exact absurd hcont (noControl s invKeep).1
-  · exact absurd hbreak (noControl s invKeep).2
+  · exact absurd hcont (wdSliceLoopBody_noControl entered).1
+  · exact absurd hbreak (wdSliceLoopBody_noControl entered).2
 
 #print axioms wd_slice_args
 #print axioms wdSliceLoop_window
