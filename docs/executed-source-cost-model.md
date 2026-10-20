@@ -51,8 +51,13 @@ call/handler/external rules.
 `PanCostTotal.source_evaluation_cost_trace` proves global trace existence for
 every state/program evaluation. `sourceExecutionEvents` selects a certified
 trace, and `sourceExecutionCost` scores it. `sourceExecutionCost_spec` connects
-this definition to `StatementRun`. Compiler/guest bounds should hold for all
-such traces; trace uniqueness has not been claimed.
+this definition to `StatementRun`. `PanCostDeterminism` proves event-list
+uniqueness for ANY two source runs from the same state/program, including
+failures, timeouts and overlapping invalid-value rules.
+`sourceExecutionCost_eq_of_run` identifies the functional cost with the exact
+price of any concrete actual trace, and `sourceExecutionCost_le_of_run` lifts
+a witness price bound directly to that functional cost. No trace-choice
+hypothesis or quantitative oracle is needed.
 
 ## Return-slot frame accounting
 
@@ -201,8 +206,11 @@ worker snapshot966c5a8d2. The former preserves all original compiler relations a
 uses the proved optimizer interface. The latter is nonamplifying under every
 coefficient vector, including reached compiled callees, continuations and
 handlers. Structures/globals preprocessing and whole-program entry remain open.
-Guest helper modules last checked under the previous event model still need
-exact Seq event migration and independent replay.
+The existing guest sequencing, charge_gas, add_sat and pc_add helper modules
+were migrated to exact Seq-free event lists and independently replayed with
+gas amortization, funding, call-rule, atomic-expression and combined-import
+checks. New StackPop/U256Add/StackPush/op_add helper snapshots are still queued
+for independent review/replay; no complete opcode/interpreter bound is claimed.
 
 ## Numerical budget audit
 

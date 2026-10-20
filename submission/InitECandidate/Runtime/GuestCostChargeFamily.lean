@@ -123,8 +123,8 @@ noncomputable def chargeGasBodyEvents (s : PanSemStateFiniteExact 64 Guest.HostM
     [.memory (flattenHOL (.val (.word (used + amount)))).length])
   let ret := .statement :: (expressionEvents s2 (.const 0) ++
     [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])
-  let tailEvents := .statement :: (storeA ++ (.statement :: (storeB ++ ret)))
-  let bodyEvents := .statement :: (iteEvents ++ tailEvents)
+  let tailEvents := storeA ++ (storeB ++ ret)
+  let bodyEvents := iteEvents ++ tailEvents
   .statement ::
     (((expressionEvents s (fundingLoad 64) ++
         [.copy (flattenHOL (.val (.word left))).length, .frame 1]) ++ bodyEvents) ++
@@ -298,7 +298,7 @@ noncomputable def chargeGasOutOfGasEvents (s : PanSemStateFiniteExact 64 Guest.H
   let raiseEvents := .statement ::
     (expressionEvents entry (.const 4) ++ [.copy (flattenHOL (.val (.word (4 : BitVec 64)))).length])
   let iteEvents := .statement :: (expressionEvents entry chargeGasCheck ++ raiseEvents)
-  let bodyEvents := .statement :: iteEvents
+  let bodyEvents := iteEvents
   .statement ::
     (((expressionEvents s (fundingLoad 64) ++
         [.copy (flattenHOL (.val (.word left))).length, .frame 1]) ++ bodyEvents) ++
@@ -361,9 +361,9 @@ theorem chargeGas_outOfGas_run (state : PanSemStateFiniteExact 64 Guest.HostMemo
       guard (by decide) raiseRun
   have tailRun : StatementRun entry chargeGasTail
       (some (.exception (ofString "EvmErr") (.val (.word 4)))) (emptyLocalsHOLFinite entry)
-      (.statement :: (.statement :: (expressionEvents entry chargeGasCheck ++
+      (.statement :: (expressionEvents entry chargeGasCheck ++
         (.statement :: (expressionEvents entry (.const 4) ++
-          [.copy (flattenHOL (.val (.word (4 : BitVec 64)))).length]))))) := by
+          [.copy (flattenHOL (.val (.word (4 : BitVec 64)))).length])))) := by
     rw [chargeGasTail_shape]
     exact StatementRun.seqStop (by simp)
       (StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
