@@ -210,3 +210,22 @@ argument reads and reuses unchanged callee traces exactly for tail calls and
 returning calls without handlers. Handler/continuation composition, early call
 exits, and the global liveness induction remain open; LoopOptimiseWork is not
 yet discharged. These facts introduce no final native coefficient or score.
+
+Full optimizer checkpoint: LoopWork.live_paid covers every non-error executed
+LoopWork constructor through the actual shrinkHOL compiler, including returning
+continuations, exception handlers and early-call timeouts. Shared saved-local
+projection lemmas extend ownership by returned tuples or exception bindings.
+LoopWork.live_comp combines shrink with mark_all, retaining the original terminal
+result guards and exact original initial/final states. Finally
+loop_optimise_executed_work composes the actual known-label call rewrite with
+liveness and marking at coefficient ONE. This discharges the quantitative
+LoopOptimiseWork interface used by the source-to-Loop work transfer; installed
+source preprocessing and the remaining downstream compiler/guest bounds are
+still separate obligations.
+
+Model refinement agreed with source/guest workers: Seq is structural composition
+and should emit no statement event, matching its lack of a native instruction.
+Otherwise pan_simp association changes can add arbitrarily many charged Seq
+entries before an early exit. The corresponding shared-core epoch is being
+implemented and must be independently replayed before integration. The optimizer
+checkpoint is independent of it: LoopWork sequencing was already free.
