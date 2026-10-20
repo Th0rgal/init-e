@@ -70,9 +70,9 @@ theorem addBalance_aqgd (bk : BalKeep) (BA IA IS KB Ix A I b0 b1 b2 b3 : BitVec 
     · exact hwR _ l1 h1
     · omega
   have hO : ∀ x, R x → x.toNat < H'.toNat := fun x hx => hbl x (hR x hx)
-  refine aqgd_of_arenaFact (Φ := H'.toNat ≤ 33806089496)
-    (fun _ _ g aw ⟨_,_,hg⟩ => by rw [hg] at aw; exact (jws_heap_facts aw.1.1.1 hH').2.1) ?_
-  intro hHE
+  refine aqgd_of_arenaFact (Φ := H'.toNat ≤ 33806089496 ∧ H'.toNat % 8 = 0)
+    (fun _ _ g aw ⟨_,_,hg⟩ => by rw [hg] at aw; exact (jws_heap_facts aw.1.1.1 hH').2) ?_
+  intro ⟨hHE,hHal'⟩
   have c16D : (ad + 16#64).toNat < 33806089496 := by
     obtain ⟨_,_,_,_,_,_,RgA,_,_,_,hrw,_,_,_,_,_,_,_,inO⟩ := adv
     have := hbl _ (inO .recw trivial _ (hrw _ (Or.inr (Or.inr (Or.inl rfl))))); omega
@@ -86,7 +86,7 @@ theorem addBalance_aqgd (bk : BalKeep) (BA IA IS KB Ix A I b0 b1 b2 b3 : BitVec 
       (∀ x, x.toNat < H'.toNat → ¬ R x → M x = M2 x)) ∧ HeapIs G Hc ∧ H'.toNat ≤ Hc.toNat ∧
       G.lookup (ofString "journal_n") = some (.val (.word Nj)) ∧ BalG BA IA IS KB Ix G)
     (Qc := fun _ _ _ => False) (ofString "e") _ _ _ l 40#64 I R H' Nj M2 G2 lo hH' hn' bg hO hwO (by omega) (by decide)
-    ?_ ?_ ?_ (fun _ _ _ _ _ h => h.elim)
+    hHal' ?_ ?_ ?_ (fun _ _ _ _ _ h => h.elim)
   · intro F s hd hm _ ⟨⟨_,li,_⟩,lad⟩
     rw [evalListHOLFinite_eq_toExact]
     simp only [evalListHOLExact,eval_record_word s .local (ofString "ad") ad 16#64 l (by simp [evalHOLExact,lad])
@@ -193,9 +193,9 @@ theorem addCode_aqgd (bk : BalKeep) (BA IA IS KB Ix A I Cd Cl : BitVec 64) (ADs 
     · exact hwR _ l1 h1
     · omega
   have hO : ∀ x, R x → x.toNat < H'.toNat := fun x hx => hbl x (hR x hx)
-  refine aqgd_of_arenaFact (Φ := H'.toNat ≤ 33806089496)
-    (fun _ _ g aw ⟨_,_,hg⟩ => by rw [hg] at aw; exact (jws_heap_facts aw.1.1.1 hH').2.1) ?_
-  intro hHE
+  refine aqgd_of_arenaFact (Φ := H'.toNat ≤ 33806089496 ∧ H'.toNat % 8 = 0)
+    (fun _ _ g aw ⟨_,_,hg⟩ => by rw [hg] at aw; exact (jws_heap_facts aw.1.1.1 hH').2) ?_
+  intro ⟨hHE,hHal'⟩
   have c16D : (ad + 32#64).toNat < 33806089496 := by
     obtain ⟨_,_,_,_,_,_,RgA,_,_,_,hrw,_,_,_,_,_,_,_,inO⟩ := adv
     have := hbl _ (inO .recw trivial _ (hrw _ (Or.inr (Or.inr (Or.inr (Or.inr rfl)))))); omega
@@ -209,7 +209,7 @@ theorem addCode_aqgd (bk : BalKeep) (BA IA IS KB Ix A I Cd Cl : BitVec 64) (ADs 
       (∀ x, x.toNat < H'.toNat → ¬ R x → M x = M2 x)) ∧ HeapIs G Hc ∧ H'.toNat ≤ Hc.toNat ∧
       G.lookup (ofString "journal_n") = some (.val (.word Nj)) ∧ BalG BA IA IS KB Ix G)
     (Qc := fun _ _ _ => False) (ofString "e") _ _ _ l 24#64 I R H' Nj M2 G2 lo hH' hn' bg hO hwO (by omega) (by decide)
-    ?_ ?_ ?_ (fun _ _ _ _ _ h => h.elim)
+    hHal' ?_ ?_ ?_ (fun _ _ _ _ _ h => h.elim)
   · intro F s hd hm _ ⟨⟨_,li,_⟩,lad⟩
     rw [evalListHOLFinite_eq_toExact]
     simp only [evalListHOLExact,eval_record_word s .local (ofString "ad") ad 32#64 l (by simp [evalHOLExact,lad])

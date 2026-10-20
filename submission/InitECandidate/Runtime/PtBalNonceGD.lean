@@ -75,9 +75,9 @@ theorem addNonce_aqgd (bk : BalKeep) (BA IA IS KB Ix A I Nn : BitVec 64) (ADs : 
     · exact hwR _ l1 h1
     · omega
   have hO : ∀ x, R x → x.toNat < H'.toNat := fun x hx => hbl x (hR x hx)
-  refine aqgd_of_arenaFact (Φ := H'.toNat ≤ 33806089496)
-    (fun _ _ g aw ⟨_,_,hg⟩ => by rw [hg] at aw; exact (jws_heap_facts aw.1.1.1 hH').2.1) ?_
-  intro hHE
+  refine aqgd_of_arenaFact (Φ := H'.toNat ≤ 33806089496 ∧ H'.toNat % 8 = 0)
+    (fun _ _ g aw ⟨_,_,hg⟩ => by rw [hg] at aw; exact (jws_heap_facts aw.1.1.1 hH').2) ?_
+  intro ⟨hHE,hHal'⟩
   have c24D : (ad + 24#64).toNat < 33806089496 := by
     obtain ⟨_,_,_,_,_,_,RgA,_,_,_,hrw,_,_,_,_,_,_,_,inO⟩ := adv
     have := hbl _ (inO .recw trivial _ (hrw _ (Or.inr (Or.inr (Or.inr (Or.inl rfl)))))); omega
@@ -177,7 +177,7 @@ theorem addNonce_aqgd (bk : BalKeep) (BA IA IS KB Ix A I Nn : BitVec 64) (ADs : 
       refine aqgd_return _ (fun s v H'' _ hG ⟨⟨_,keep⟩,hG2⟩ _ ev => ?_)
       simp [EV,evalHOLExact] at ev
       subst ev
-      have kh : ∀ x, HdW l x → s.memory x = M2 x := fun x hx => keep x (fun e => ainB.2 (e ▸ hx))
+      have kh : ∀ x, HdW l x → s.memory x = M2 x := fun x hx => keep x (fun e => ainB.2.1 (e ▸ hx))
       have kf : ∀ x, x.toNat < H'.toNat → ¬ R x → s.memory x = M2 x := fun x _ hr =>
         keep x (fun e => hr (e ▸ ainB.1))
       unfold GIs at hG
@@ -203,7 +203,7 @@ theorem addNonce_aqgd (bk : BalKeep) (BA IA IS KB Ix A I Nn : BitVec 64) (ADs : 
       (∀ x, x.toNat < H'.toNat → ¬ R x → M x = M2 x)) ∧ HeapIs G Hc ∧ H'.toNat ≤ Hc.toNat ∧
       G.lookup (ofString "journal_n") = some (.val (.word Nj)))
     (Qc := fun _ _ _ => False) (ofString "e") _ _ l 16#64 R H' Nj M2 G2 lo hH' hn' bg hO hwO (by omega) (by decide)
-    ?_ ?_ ?_ (fun _ _ _ _ _ h => h.elim)
+    hHal' ?_ ?_ ?_ (fun _ _ _ _ _ h => h.elim)
   · intro F s _ _ _ ⟨_,_,ll,_,_⟩
     rw [evalListHOLFinite_eq_toExact]
     simp [evalListHOLExact,evalHOLExact,ll]

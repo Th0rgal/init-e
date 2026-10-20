@@ -238,6 +238,7 @@ theorem aqgd_decCall_lstUpsert_b (bk : BalKeep) (BA IA IS KB Ix : BitVec 64) {LP
     (M1 : Mem) (G1 : GA) (lo : LstO E O Lh M1) (hH1 : HeapIs G1 H)
     (hn1 : G1.lookup (ofString "journal_n") = some (.val (.word Nj))) (hB1 : BalG BA IA IS KB Ix G1)
     (hO : ∀ x, O x → x.toNat < H.toNat) (hwO : ¬ O w) (hwH : w.toNat < H.toNat) (hE1 : 1 ≤ E.toNat)
+    (hHal : H.toNat % 8 = 0)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memaddrs = D → s.memory = M1 → s.globals = G1 →
       LP s.locals → evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [el,eE,eI] =
         some [.val (.word Lh),.val (.word E),.val (.word I)])
@@ -289,7 +290,7 @@ theorem aqgd_decCall_lstUpsert_b (bk : BalKeep) (BA IA IS KB Ix : BitVec 64) {LP
       (aqgd_conseq (aqgd_keepScr (Sc := Sc) (keepsScr_of_installed originalRuntimeCode_lstUpsertIdx_lookup (by decide))
         (lstUpsertIdx_spec (D := D) (B := B) (SP0 := SP0) (P0 := P0) (FM := FM) (G0 := G0) (J := J) (C := C)
           (SKB := SKB) (Nj := Nj) (w := w) Lh E I P N Cp H M1 G1 (by omega) hwH hwh hd hNC hC0 hE1 hbuf hsz hwB
-          (fun x l u => (hBuf x l u).2)))
+          (fun x l u => (hBuf x l u).2.1)))
         (fun _ _ _ h => h) (fun _ _ _ h => h.1.elim) (fun _ _ _ h => h)))
       (fun _ _ _ h => h) (fun _ _ _ h => h.elim) (fun _ _ _ h => h)
   · intro F s values callee rs _ dom H' hG ⟨lp,hM,hG1⟩ _ args lookup
@@ -307,23 +308,26 @@ theorem aqgd_decCall_lstUpsert_b (bk : BalKeep) (BA IA IS KB Ix : BitVec 64) {LP
   · intro L M G v M' G' ⟨lp,hM,_⟩ bg ⟨⟨⟨_,S,Pn,Nn,Cn,Hc,ev,hd',hHc,le,hNn,hCn,hPn,⟨j,hj,hS⟩,old,_,fr⟩,_⟩,hn'⟩ _
     subst ev hM
     have bufN : ∀ x : BitVec 64, Pn.toNat ≤ x.toNat → x.toNat < Pn.toNat + E.toNat * Cn.toNat →
-        (O x ∨ (H.toNat ≤ x.toNat ∧ x.toNat < Hc.toNat)) ∧ ¬ HdW Lh x := by
+        (O x ∨ (H.toNat ≤ x.toNat ∧ x.toNat < Hc.toNat)) ∧ ¬ HdW Lh x ∧
+          (O (panByteAlignHOL x) ∨ (H.toNat ≤ (panByteAlignHOL x).toNat ∧ (panByteAlignHOL x).toNat < Hc.toNat)) := by
       intro x l u
       rcases old with ⟨rfl,rfl⟩ | ⟨hp,_⟩
-      · exact ⟨Or.inl (hBuf x l u).1,(hBuf x l u).2⟩
-      · refine ⟨Or.inr ⟨by omega,by omega⟩,fun h => ?_⟩
+      · exact ⟨Or.inl (hBuf x l u).1,(hBuf x l u).2.1,Or.inl (hBuf x l u).2.2⟩
+      · have ba := byteAlign_ge hHal (show H.toNat ≤ x.toNat by omega)
+        refine ⟨Or.inr ⟨by omega,by omega⟩,fun h => ?_,Or.inr ⟨ba.1,by omega⟩⟩
         have := hO x (hHd x h); omega
     have alN : Lh.toNat + 24 ≤ Pn.toNat := by
       rcases old with ⟨rfl,rfl⟩ | ⟨hp,_⟩
       · exact al
       · omega
     refine hres L S Hc M' G' lp hHc le hn' ⟨Pn,Nn,Cn,hd',hNn,hCn,alN,fun x h => Or.inl (hHd x h),bufN⟩
-      (fun x l u => bufN x (elem_in hj hNn hS x.toNat l u).1 (elem_in hj hNn hS x.toNat l u).2) ?_ bg
+      (fun x l u => (fun b => ⟨b.1,b.2.1⟩) (bufN x (elem_in hj hNn hS x.toNat l u).1 (elem_in hj hNn hS x.toNat l u).2))
+      ?_ bg
     intro x hx ho
     refine fr x hx (fun h => ho (hHd x h)) (fun e => ?_)
     rw [e] at hx ho
     have hin := elem_in hj hNn hS S.toNat (le_refl _) (by omega)
-    rcases bufN S hin.1 hin.2 with ⟨h | ⟨h,_⟩,_⟩
+    rcases bufN S hin.1 hin.2 with ⟨h | ⟨h,_⟩,_,_⟩
     · exact ho h
     · omega
 
@@ -385,6 +389,7 @@ theorem aqgd_decCall_lstPush_b (bk : BalKeep) (BA IA IS KB Ix : BitVec 64) {LP :
     (M1 : Mem) (G1 : GA) (lo : LstO E O Lh M1) (hH1 : HeapIs G1 H)
     (hn1 : G1.lookup (ofString "journal_n") = some (.val (.word Nj))) (hB1 : BalG BA IA IS KB Ix G1)
     (hO : ∀ x, O x → x.toNat < H.toNat) (hwO : ¬ O w) (hwH : w.toNat < H.toNat) (hE1 : 1 ≤ E.toNat)
+    (hHal : H.toNat % 8 = 0)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memaddrs = D → s.memory = M1 → s.globals = G1 →
       LP s.locals → evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [el,eE] =
         some [.val (.word Lh),.val (.word E)])
@@ -454,11 +459,13 @@ theorem aqgd_decCall_lstPush_b (bk : BalKeep) (BA IA IS KB Ix : BitVec 64) {LP :
     subst ev hM
     have hCnE : Cn.toNat ≤ E.toNat * Cn.toNat := Nat.le_mul_of_pos_left _ (by omega)
     have bufN : ∀ x : BitVec 64, Pn.toNat ≤ x.toNat → x.toNat < Pn.toNat + E.toNat * Cn.toNat →
-        (O x ∨ (H.toNat ≤ x.toNat ∧ x.toNat < Hc.toNat)) ∧ ¬ HdW Lh x := by
+        (O x ∨ (H.toNat ≤ x.toNat ∧ x.toNat < Hc.toNat)) ∧ ¬ HdW Lh x ∧
+          (O (panByteAlignHOL x) ∨ (H.toNat ≤ (panByteAlignHOL x).toNat ∧ (panByteAlignHOL x).toNat < Hc.toNat)) := by
       intro x l u
       rcases old with ⟨rfl,rfl⟩ | ⟨hp,_⟩
-      · exact ⟨Or.inl (hBuf x l u).1,(hBuf x l u).2⟩
-      · refine ⟨Or.inr ⟨by omega,by omega⟩,fun h => ?_⟩
+      · exact ⟨Or.inl (hBuf x l u).1,(hBuf x l u).2.1,Or.inl (hBuf x l u).2.2⟩
+      · have ba := byteAlign_ge hHal (show H.toNat ≤ x.toNat by omega)
+        refine ⟨Or.inr ⟨by omega,by omega⟩,fun h => ?_,Or.inr ⟨ba.1,by omega⟩⟩
         have := hO x (hHd x h); omega
     have alN : Lh.toNat + 24 ≤ Pn.toNat := by
       rcases old with ⟨rfl,rfl⟩ | ⟨hp,_⟩
@@ -471,8 +478,9 @@ theorem aqgd_decCall_lstPush_b (bk : BalKeep) (BA IA IS KB Ix : BitVec 64) {LP :
       exact itm_toNat_add_mul Pn N E (by have := Hc.isLt; omega)
     refine hres L (Pn + N * E) Hc M' G' lp hHc le hn' ⟨Pn,N + 1#64,Cn,hd',by rw [eN1]; omega,by omega,alN,
       fun x h => Or.inl (hHd x h),bufN⟩
-      (fun x l u => bufN x (elem_in (j := N.toNat) (Nn := N.toNat + 1) (Nat.lt_succ_self _) hNC' eS x.toNat l u).1
-        (elem_in (j := N.toNat) (Nn := N.toNat + 1) (Nat.lt_succ_self _) hNC' eS x.toNat l u).2)
+      (fun x l u => (fun b => ⟨b.1,b.2.1⟩) (bufN x
+        (elem_in (j := N.toNat) (Nn := N.toNat + 1) (Nat.lt_succ_self _) hNC' eS x.toNat l u).1
+        (elem_in (j := N.toNat) (Nn := N.toNat + 1) (Nat.lt_succ_self _) hNC' eS x.toNat l u).2))
       (fun x hx ho => fr x hx (fun h => ho (hHd x h))) bg
 
 #print axioms aqgd_decCall_lstPush_b

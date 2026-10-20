@@ -254,7 +254,7 @@ theorem lstO_of_lnew {E Cp H X H' : BitVec 64} {M1 M' : Mem} {G' : GA} (h : LNew
   rw [hEC] at hP
   have e8 : (X + 8#64).toNat = X.toNat + 8 := by rw [BitVec.toNat_add]; simp; omega
   have e16 : (X + 16#64).toNat = X.toNat + 16 := by rw [BitVec.toNat_add]; simp; omega
-  refine ⟨Pp,0#64,Cp,hd,by simp,hC,hXP,fun x hx => ?_,fun x l u => ⟨⟨by omega,by omega⟩,fun hx => ?_⟩⟩
+  refine ⟨Pp,0#64,Cp,hd,by simp,hC,hXP,fun x hx => ?_,fun x l u => ⟨⟨by omega,by omega⟩,fun hx => ?_,?_⟩⟩
   · rcases hx with rfl | rfl | rfl
     · exact ⟨hX,by omega⟩
     · rw [e8]; exact ⟨by omega,by omega⟩
@@ -263,6 +263,11 @@ theorem lstO_of_lnew {E Cp H X H' : BitVec 64} {M1 M' : Mem} {G' : GA} (h : LNew
     · omega
     · rw [e8] at l; omega
     · rw [e16] at l; omega
+  · show H.toNat ≤ (panByteAlignHOL x).toNat ∧ (panByteAlignHOL x).toNat < H'.toNat
+    rw [panByteAlign_toNat64]
+    have := Nat.div_mul_le_self x.toNat 8
+    have := Nat.mod_add_div x.toNat 8
+    constructor <;> omega
 
 section be
 variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {RR : ValueHOL 64 → Mem → GA → Prop}
