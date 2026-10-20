@@ -18,11 +18,11 @@ theorem score_scalar (coeff : Work) (count : Nat) :
     coeff.score (WorkEvent.scalar count).units = coeff.scalarOps * count := by
   simp [Work.score, WorkEvent.units]
 
-theorem score_memory (coeff : Work) (count : Nat) :
+theorem guest_score_memory (coeff : Work) (count : Nat) :
     coeff.score (WorkEvent.memory count).units = coeff.memoryAccesses * count := by
   simp [Work.score, WorkEvent.units]
 
-theorem score_copy (coeff : Work) (count : Nat) :
+theorem guest_score_copy (coeff : Work) (count : Nat) :
     coeff.score (WorkEvent.copy count).units = coeff.movedWords * count := by
   simp [Work.score, WorkEvent.units]
 
@@ -56,7 +56,7 @@ theorem score_pair (coeff : Work) (first second : WorkEvent) :
 /-- A recorded size bound is exactly a score bound for one sized event. -/
 theorem score_sized_le (coeff : Work) (upper actual : Nat) (h : actual ≤ upper) :
     coeff.score (WorkEvent.copy actual).units ≤ coeff.movedWords * upper := by
-  rw [score_copy]
+  rw [guest_score_copy]
   exact Nat.mul_le_mul_left _ h
 
 
@@ -67,7 +67,7 @@ theorem executionWork_nil_score (coeff : Work) :
 
 end InitECandidate.Runtime.FineCost
 
-#print axioms InitECandidate.Runtime.FineCost.score_copy
+#print axioms InitECandidate.Runtime.FineCost.guest_score_copy
 #print axioms InitECandidate.Runtime.FineCost.score_pair
 #print axioms InitECandidate.Runtime.FineCost.score_singleton
 #print axioms InitECandidate.Runtime.FineCost.score_sized_le

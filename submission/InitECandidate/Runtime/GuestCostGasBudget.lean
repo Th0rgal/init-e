@@ -95,8 +95,9 @@ def LoopBudget (coeff : Work) (μ : PanSemStateFiniteExact 64 F → Nat) (C B D 
 
 /-- Core gas amortization for a source loop, proved directly on the exact
 `StatementRun` trace. If each body iteration pays at most `C` per unit of the
-consumed funding measure and `D` of guard/statement overhead, then a complete
-loop run pays `(C + D) * (mu post - mu s) + D`, and the measure never decreases
+consumed funding measure plus a fixed `B` for its terminal or rejecting prefix,
+and the guard and loop statement entry cost at most `D`, then a complete loop run
+pays `(C + B + D) * (mu post - mu s) + (B + D)`, and the measure never decreases
 along the loop. The bound mentions only the funding this run actually consumed:
 no program, frame, ROM or bitmap size, and no `2^64` fallback, appears. Terminal
 paths (break, propagating result, timeout, malformed guard) keep their executed
@@ -327,8 +328,9 @@ theorem while_gas_budget_memory {σ : Type} [NeZero 64] (coeff : Work)
     (memory_measure_clock_invariant read) (memory_measure_reset_invariant read) run initial amortized
 
 /-- Numeric ceiling: the run's executed work is at most `N` whenever the funding
-measure it consumed is at most `G` and `(C + D) * G + D ≤ N`. No program, frame,
-ROM or bitmap size appears, so this is a genuine per-site ceiling. -/
+measure it consumed is at most `G` and `(C + B + D) * G + (B + D) ≤ N`. No
+program, frame, ROM or bitmap size appears, so this is a genuine per-site
+ceiling. -/
 theorem while_gas_ceiling (coeff : Work) (μ : PanSemStateFiniteExact 64 F → Nat)
     (I : PanSemStateFiniteExact 64 F → Prop) (C B D G N : Nat)
     (clockStep : ∀ state : PanSemStateFiniteExact 64 F, I state → I (decClockHOLFinite state))

@@ -210,7 +210,7 @@ theorem addSatCarryEvents_score (coeff : Work)
           (fun previous => (flattenHOL previous).length)).getD 0) := by
   unfold addSatCarryEvents expressionCost
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
-    score_copy, score_frame, score_memory, score_singleton, score_expression,
+    guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
     executionWork_nil_score, List.append_nil]
   omega
 
@@ -229,12 +229,46 @@ theorem addSatNoCarryEvents_score (coeff : Work)
           (fun previous => (flattenHOL previous).length)).getD 0) := by
   unfold addSatNoCarryEvents expressionCost
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
-    score_copy, score_frame, score_memory, score_singleton, score_expression,
+    guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
     executionWork_nil_score, List.append_nil]
   omega
 
 #print axioms addSatCarryEvents_score
 #print axioms addSatNoCarryEvents_score
+
+
+/-- The pinned compiled AST of the saturating-add helper: the declared body this
+module traces is literally the source body the installed program carries. -/
+theorem source_addSat_body : sourceFunctionBody Guest.guestFn_add_sat = addSatDeclaredBody := by
+  cbv
+
+/-- Carry path of the actual installed helper body. -/
+theorem addSat_carry_source_run (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (a b sum : BitVec 64)
+    (hA : s.locals.lookup (ofString "a") = some (.val (.word a)))
+    (hB : s.locals.lookup (ofString "b") = some (.val (.word b)))
+    (hSum : sum = a + b) (carry : sum.toNat < a.toNat) :
+    StatementRun s (sourceFunctionBody Guest.guestFn_add_sat)
+      (some (.returned (.val (.word addSatMaximum))))
+      (addSatReturnedPost s sum) (addSatCarryEvents s sum) := by
+  rw [source_addSat_body]
+  exact addSat_carry_run s a b sum hA hB hSum carry
+
+/-- No-carry path of the actual installed helper body. -/
+theorem addSat_noCarry_source_run (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (a b sum : BitVec 64)
+    (hA : s.locals.lookup (ofString "a") = some (.val (.word a)))
+    (hB : s.locals.lookup (ofString "b") = some (.val (.word b)))
+    (hSum : sum = a + b) (noCarry : ¬ sum.toNat < a.toNat) :
+    StatementRun s (sourceFunctionBody Guest.guestFn_add_sat)
+      (some (.returned (.val (.word sum))))
+      (addSatReturnedPost s sum) (addSatNoCarryEvents s sum) := by
+  rw [source_addSat_body]
+  exact addSat_noCarry_run s a b sum hA hB hSum noCarry
+
+#print axioms source_addSat_body
+#print axioms addSat_carry_source_run
+#print axioms addSat_noCarry_source_run
 
 #print axioms addSat_carry_run
 #print axioms addSat_noCarry_run

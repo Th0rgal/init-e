@@ -41,7 +41,7 @@ theorem callEvents_score {F : Type} (coeff : Work) (s : PanSemStateFiniteExact 6
   unfold callEvents callLocalCost
   rw [executionWork_score_cons, score_statement]
   rw [executionWork_score_append, executionWork_score_append, executionWork_score_append]
-  simp only [executionWork_score_cons, score_frame, score_copy, score_singleton, score_pair,
+  simp only [executionWork_score_cons, score_frame, guest_score_copy, score_singleton, score_pair,
     executionWork_nil_score]
   omega
 

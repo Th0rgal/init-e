@@ -54,7 +54,7 @@ theorem store_statement_cost (coeff : Work) {s : PanSemStateFiniteExact 64 F}
   refine ⟨StatementRun.storeValue dst src write, ?_⟩
   rw [executionWork_score_cons, score_statement]
   rw [executionWork_score_append, executionWork_score_append]
-  rw [score_singleton, score_memory]
+  rw [score_singleton, guest_score_memory]
   omega
 
 /-- Price additivity for a declared local: the initialiser, the frame slot, the
@@ -77,7 +77,7 @@ theorem dec_statement_cost (coeff : Work) {s post : PanSemStateFiniteExact 64 F}
           (fun previous => (flattenHOL previous).length)).getD 0) := by
   rw [executionWork_score_cons, score_statement]
   rw [executionWork_score_append, executionWork_score_append, executionWork_score_append]
-  rw [score_pair, score_copy, score_frame, score_singleton, score_copy]
+  rw [score_pair, guest_score_copy, score_frame, score_singleton, guest_score_copy]
   omega
 
 #print axioms seq_statement_cost
