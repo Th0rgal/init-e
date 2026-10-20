@@ -3,7 +3,7 @@ import InitECandidate.Runtime.PtBalLstGD
 import InitECandidate.Runtime.OriginalBalCode
 /-!
 Owned-region block-access-list objects: `LstO E O Lh M` is a list header at `Lh` (`buf P, n N, cap Cp`, `N ≤ Cp`,
-`0 < Cp`, 8-aligned) with header words and buffer `[P, P + E·Cp)` inside the owned region `O`, the buffer apart from the
+`0 < Cp`, header before buffer) with header words and buffer `[P, P + E·Cp)` inside the owned region `O`, the buffer apart from the
 header. The actual `e = lst_upsert_idx(l, esz, idx)` on such a list keeps it with `O` grown by the fresh heap
 `[H, Hc)`, returns an element `[e, e + esz)` inside the grown region off the header, and changes no word below `H`
 outside `O`.
@@ -14,7 +14,7 @@ open Flapjack.Basis.Pure.MlString
 
 /-- An owned-region list. -/
 def LstO (E : BitVec 64) (O : BitVec 64 → Prop) (Lh : BitVec 64) (M : Mem) : Prop :=
-  ∃ P N Cp : BitVec 64, LHd Lh P N Cp M ∧ N.toNat ≤ Cp.toNat ∧ 0 < Cp.toNat ∧ Lh.toNat % 8 = 0 ∧
+  ∃ P N Cp : BitVec 64, LHd Lh P N Cp M ∧ N.toNat ≤ Cp.toNat ∧ 0 < Cp.toNat ∧ Lh.toNat + 24 ≤ P.toNat ∧
     (∀ x, HdW Lh x → O x) ∧
     ∀ x : BitVec 64, P.toNat ≤ x.toNat → x.toNat < P.toNat + E.toNat * Cp.toNat → O x ∧ ¬ HdW Lh x
 
@@ -78,8 +78,6 @@ theorem aqgd_decCall_lstUpsert_o {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA
   have hCE : 0 < E.toNat * Cp.toNat := Nat.mul_pos (by omega) hC0
   have hbuf : P.toNat + E.toNat * Cp.toNat ≤ H.toNat :=
     buf_le P.isLt hHl hCE (fun x l u => hO x (hBuf x l u).1)
-  have h16 : (Lh + 16#64).toNat < H.toNat := hO _ (hHd _ (Or.inr (Or.inr rfl)))
-  have h0 : Lh.toNat < H.toNat := hO Lh (hHd Lh (Or.inl rfl))
   refine aqgd_decCallSpecD (Vn' := fun _ => True)
     (Pe := fun (_ : GA) (M0' : Mem) (G0' : GA) (L : GA) (M : Mem) (G : GA) =>
       (LK [(ofString "l",Lh),(ofString "esz",E),(ofString "idx",I)] L ∧ M = M0' ∧ G = G0') ∧
@@ -94,7 +92,6 @@ theorem aqgd_decCall_lstUpsert_o {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA
       (fun _ _ g aw ⟨⟨_,_,hg⟩,_⟩ => by
         rw [hg] at aw; exact ⟨aw.2,(jws_heap_facts aw.1.1.1 hH1).2.1,(jws_heap_facts aw.1.1.1 hH1).2.2⟩) ?_
     intro ⟨hsc,hHE,hal⟩
-    have e16 : (Lh + 16#64).toNat = Lh.toNat + 16 := by rw [BitVec.toNat_add]; simp; omega
     have hsz : E.toNat * Cp.toNat * 2 < 2 ^ 64 := by omega
     have hwh : ¬ HdW Lh w := fun h => hwO (hHd w h)
     have hwB : ¬ (P.toNat ≤ w.toNat ∧ w.toNat < P.toNat + E.toNat * Cp.toNat) := fun ⟨a,b⟩ => hwO (hBuf w a b).1
@@ -135,7 +132,11 @@ theorem aqgd_decCall_lstUpsert_o {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA
       · exact ⟨Or.inl (hBuf x l u).1,(hBuf x l u).2⟩
       · refine ⟨Or.inr ⟨by omega,by omega⟩,fun h => ?_⟩
         have := hO x (hHd x h); omega
-    refine hres L S Hc M' G' lp hHc le hn' ⟨Pn,Nn,Cn,hd',hNn,hCn,al,fun x h => Or.inl (hHd x h),bufN⟩
+    have alN : Lh.toNat + 24 ≤ Pn.toNat := by
+      rcases old with ⟨rfl,rfl⟩ | ⟨hp,_⟩
+      · exact al
+      · omega
+    refine hres L S Hc M' G' lp hHc le hn' ⟨Pn,Nn,Cn,hd',hNn,hCn,alN,fun x h => Or.inl (hHd x h),bufN⟩
       (fun x l u => bufN x (elem_in hj hNn hS x.toNat l u).1 (elem_in hj hNn hS x.toNat l u).2) ?_
     intro x hx ho
     refine fr x hx (fun h => ho (hHd x h)) (fun e => ?_)
