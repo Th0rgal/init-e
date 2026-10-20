@@ -54,15 +54,17 @@ theorem rlpPutBeIndexAssign {F : Type} (s : PanSemStateFiniteExact 64 F) (I : Bi
 
 #print axioms rlpPutBeIndexAssign
 
-/-- On normal completion one `rlp_put_be` iteration moves the countdown index to `I - 1` and leaves
-`dst` alone: the index assignment is the only local write besides the value shift, the byte store
-touches no local at all. -/
-theorem rlpPutBeStep_locals {F : Type} (s s' : PanSemStateFiniteExact 64 F) (D I : BitVec 64)
+/-- One `rlp_put_be` iteration always leaves `dst = D` and turns `i = I` into `i = I - 1`,
+whatever the outcome of the byte store or of the value shift: the index assignment is the only local
+write besides the value shift, the byte store touches no local at all, and the index assignment itself
+cannot fail. -/
+theorem rlpPutBeStep_locals {F : Type} (s : PanSemStateFiniteExact 64 F) (D I : BitVec 64)
     (hd : s.locals.lookup (ofString "dst") = some (.val (.word D)))
-    (hi : s.locals.lookup (ofString "i") = some (.val (.word I)))
-    (run : evaluateHOLFiniteState s rlpPutBeStep = (none, s')) :
-    s'.locals.lookup (ofString "i") = some (.val (.word (I - 1#64))) ∧
-      s'.locals.lookup (ofString "dst") = some (.val (.word D)) := by
+    (hi : s.locals.lookup (ofString "i") = some (.val (.word I))) :
+    (evaluateHOLFiniteState s rlpPutBeStep).2.locals.lookup (ofString "i") =
+        some (.val (.word (I - 1#64))) ∧
+      (evaluateHOLFiniteState s rlpPutBeStep).2.locals.lookup (ofString "dst") =
+        some (.val (.word D)) := by
   let sA : PanSemStateFiniteExact 64 F :=
     setVarHOLFinite (ofString "i") (.val (.word (I - 1#64))) s
   let dest : ExpHOL 64 := .op .add [.var .local (ofString "dst"), .var .local (ofString "i")]
@@ -77,13 +79,12 @@ theorem rlpPutBeStep_locals {F : Type} (s s' : PanSemStateFiniteExact 64 F) (D I
     lookup_setVar_ne s (ofString "i") (ofString "dst") _ _ (by decide) hd
   have hiA : sA.locals.lookup (ofString "i") = some (.val (.word (I - 1#64))) :=
     lookup_setVar_eq s (ofString "i") _
-  have run1 : evaluateHOLFiniteState sA (.seq bytes shift) = (none, s') := by
-    have r := run
-    simp only [rlpPutBeStep, bytes, shift, dest, val] at r
+  have hmain : evaluateHOLFiniteState s rlpPutBeStep = evaluateHOLFiniteState sA (.seq bytes shift) := by
+    simp only [rlpPutBeStep, bytes, shift, dest, val]
     rw [seq_normal (s := s) (first := .assign .local (ofString "i")
       (.op .sub [.var .local (ofString "i"), .const (1#64)]))
-      (second := .seq bytes shift) index] at r
-    exact r
+      (second := .seq bytes shift) index]
+  rw [hmain]
   let sB : PanSemStateFiniteExact 64 F := (evaluateHOLFiniteState sA bytes).2
   have control := evaluate_storeByte_control_frame sA dest val
   have localsB : sB.locals = sA.locals := control.2.2.1
@@ -93,27 +94,21 @@ theorem rlpPutBeStep_locals {F : Type} (s s' : PanSemStateFiniteExact 64 F) (D I
     rw [localsB]; exact hdA
   by_cases hB : (evaluateHOLFiniteState sA bytes).1 = none
   · have hBpair : evaluateHOLFiniteState sA bytes = (none, sB) := Prod.ext hB rfl
-    have run2 : evaluateHOLFiniteState sB shift = (none, s') := by
-      have r := run1
-      rw [seq_normal (s := sA) (first := bytes) (second := shift) hBpair] at r
-      exact r
-    have finI := lookup_assign_ne sB (ofString "v") (ofString "i")
-      (.shift .lsr (.var .local (ofString "v")) (.const (8#64)))
-      (.val (.word (I - 1#64))) (by decide) hiB
-    have finD := lookup_assign_ne sB (ofString "v") (ofString "dst")
-      (.shift .lsr (.var .local (ofString "v")) (.const (8#64)))
-      (.val (.word D)) (by decide) hdB
-    have s'eq : s' = (evaluateHOLFiniteState sB shift).2 := (Prod.mk.inj run2).2.symm
-    rw [s'eq]
-    exact ⟨finI,finD⟩
+    rw [seq_normal (s := sA) (first := bytes) (second := shift) hBpair]
+    exact ⟨lookup_assign_ne sB (ofString "v") (ofString "i")
+        (.shift .lsr (.var .local (ofString "v")) (.const (8#64)))
+        (.val (.word (I - 1#64))) (by decide) hiB,
+      lookup_assign_ne sB (ofString "v") (ofString "dst")
+        (.shift .lsr (.var .local (ofString "v")) (.const (8#64)))
+        (.val (.word D)) (by decide) hdB⟩
   · have hErr : (evaluateHOLFiniteState sA bytes).1 = some .error := by
       rcases control.1 with h | h
       · exact absurd h hB
       · exact h
     have hErrpair : evaluateHOLFiniteState sA bytes = (some .error, sB) := Prod.ext hErr rfl
-    have stop := seq_stops (s := sA) (first := bytes) (second := shift) hErrpair
-    rw [stop] at run1
-    exact absurd (Prod.mk.inj run1).1 (by intro h; cases h)
+    rw [seq_stops (s := sA) (first := bytes) (second := shift) hErrpair]
+    dsimp only
+    exact ⟨hiB,hdB⟩
 
 #print axioms rlpPutBeStep_locals
 
