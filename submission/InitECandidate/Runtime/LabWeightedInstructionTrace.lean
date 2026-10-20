@@ -186,5 +186,80 @@ theorem weightedInstructionTrace_bounded {F : Type} {start final : LabSem.State 
     · simpa only [shiftInterfer_twice, Nat.add_comm] using finalRel
 
 
+/-- Erasing costs recovers an ordinary evaluator trace. -/
+theorem weightedInstructionTrace_erase {F : Type} {code : LabProgHOL 64}
+    {start final : LabSem.State 64 Config F} {work : Nat}
+    (trace : WeightedInstructionTrace code start final work) :
+    ∃ length, InstructionTrace start final length := by
+  induction trace with
+  | nil state => exact ⟨0, .nil state⟩
+  | step state final i bytes n work clock fetch success rest ih =>
+    obtain ⟨length, tail⟩ := ih
+    exact ⟨length + 1, .step state final i bytes n length clock fetch success tail⟩
+  | jump state final label pc w bytes n work clock fetch destination rest ih =>
+    obtain ⟨length, tail⟩ := ih
+    exact ⟨length + 1, .jump state final label pc w bytes n length clock fetch destination tail⟩
+  | jumpReg state final r n1 n2 pc bytes n work clock fetch register destination rest ih =>
+    obtain ⟨length, tail⟩ := ih
+    exact ⟨length + 1, .jumpReg state final r n1 n2 pc bytes n length clock fetch register destination tail⟩
+  | branchTaken state final cmp r operand label pc w bytes n work clock fetch chosen destination rest ih =>
+    obtain ⟨length, tail⟩ := ih
+    exact ⟨length + 1, .branchTaken state final cmp r operand label pc w bytes n length clock fetch chosen destination tail⟩
+  | branchFallthrough state final cmp r operand label w bytes n work clock fetch chosen rest ih =>
+    obtain ⟨length, tail⟩ := ih
+    exact ⟨length + 1, .branchFallthrough state final cmp r operand label w bytes n length clock fetch chosen tail⟩
+  | locValue state final r label pc w bytes n work clock fetch destination rest ih =>
+    obtain ⟨length, tail⟩ := ih
+    exact ⟨length + 1, .locValue state final r label pc w bytes n length clock fetch destination tail⟩
+
+theorem weightedInstructionTrace_halt_bounded {F : Type} {start final : LabSem.State 64 Config F} {length : Nat}
+    (code : LabProgHOL 64) (trace : WeightedInstructionTrace code start final length)
+    (mc : MachineConfig 64 riscv_state RiscVProjection)
+    (labs : Spt (Spt Nat)) (p : BitVec 64) (asm : AsmState 64) (machine : riscv_state)
+    (target : mc.target = riscvTarget) (encoder : encoderCorrect mc.target)
+    (related : stateRel (mc, code, labs, p) start asm machine)
+    (w value : BitVec 64) (bytes : List (BitVec 8)) (n : Nat)
+    (clock : final.clock ≠ 0)
+    (fetch : asmFetch final = some (.labAsm .halt w bytes n))
+    (result : final.regs final.ptrReg = .word value) :
+    evaluate start = (.halt (if value = 0 then .success else .resourceLimitHit), final) ∧
+    ∃ count post, count ≤ length + 17 ∧
+      evaluateTargetHOL mc start.ffi count machine =
+        (.halt (if value = 0 then .success else .resourceLimitHit), post, final.ffi) := by
+  obtain ⟨_, plain⟩ := weightedInstructionTrace_erase trace
+  constructor
+  · rw [(instructionTrace_source plain).1, evaluate]
+    by_cases zero : value = (0#64) <;> simp [clock, fetch, result, zero]
+  · obtain ⟨firstCount, middle, middleAsm, firstBound, firstRun, firstSearch, middleRel⟩ :=
+      weightedInstructionTrace_bounded code trace mc labs p asm machine target encoder related
+    obtain ⟨lastCount, post, lastBound, lastRun⟩ := fetched_halt_bounded final w value
+      (shiftInterfer firstCount mc) code labs p middleAsm middle bytes n target fetch result encoder middleRel
+    refine ⟨lastCount + firstCount, post, by omega, ?_⟩
+    rw [firstRun, lastRun]
+
+theorem weightedInstructionTrace_with_oracle {F : Type} {start final : LabSem.State 64 Config F} {length : Nat}
+    (code : LabProgHOL 64) (trace : WeightedInstructionTrace code start final length)
+    (mc : MachineConfig 64 riscv_state RiscVProjection)
+    (labs : Spt (Spt Nat)) (p : BitVec 64) (asm : AsmState 64) (machine : riscv_state)
+    (target : mc.target = riscvTarget) (encoder : encoderCorrect mc.target)
+    (related : stateRel (mc, code, labs, p) start asm machine)
+    (tie : oracleTie mc machine start) :
+    ∃ count post asm2, count ≤ length ∧
+      (∀ clock, evaluateTargetHOL mc start.ffi (clock + count) machine =
+        evaluateTargetHOL (shiftInterfer count mc) final.ffi clock post) ∧
+      stateRel (shiftInterfer count mc, code, labs, p) final asm2 post ∧
+      oracleTie (shiftInterfer count mc) post final := by
+  obtain ⟨count, post, asm2, bound, run, search, rel⟩ :=
+    weightedInstructionTrace_bounded code trace mc labs p asm machine target encoder related
+  obtain ⟨_, plain⟩ := weightedInstructionTrace_erase trace
+  obtain ⟨io, iofp, cc, ccfp, ffi⟩ := instructionTrace_oracle_fields plain
+  refine ⟨count, post, asm2, bound, run, rel, ?_⟩
+  apply oracleTie_step mc machine post start final count
+  exact ⟨tie, fun clock => by simpa only [ffi] using search clock, io, iofp, cc, ccfp, ffi⟩
+
+
 end InitECandidate.Runtime.LabToTarget
 #print axioms InitECandidate.Runtime.LabToTarget.weightedInstructionTrace_bounded
+
+#print axioms InitECandidate.Runtime.LabToTarget.weightedInstructionTrace_halt_bounded
+#print axioms InitECandidate.Runtime.LabToTarget.weightedInstructionTrace_with_oracle
