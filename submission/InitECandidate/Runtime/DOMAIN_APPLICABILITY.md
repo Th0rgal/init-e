@@ -29,5 +29,12 @@ workspace invariants before their bounds can contribute to the certificate.
 
 The statement-46 withdrawal-loop window theorem has no all-byte-domain premise,
 but still requires its concrete entry geometry and the statement-47 tail.
-`Solution.claimedScore` remains infinity; the full runtime bound, quantitative
-compiler transfer, and finite certificate are unfinished.
+`baseline_source_affine_transfer` in `BaselineSourceAffineTransfer` already provides
+the quantitative compiler bound, including bootstrap, with explicit fixed
+slope and offset. `BaselineFiniteCertificate` composes it with a `SourceBound`.
+Both endpoint modules were freshly replayed in
+`work/compiler-endpoint-root-audit` with only standard Lean axioms.
+`ExpandedMainFiniteCertificate` composes these endpoints with the existing
+domain bridge and main-entry tick. Its uniform no-timeout hypothesis for the
+entire expanded main body remains to be discharged; this conditional endpoint
+is not a completed finite submission. `Solution.claimedScore` remains infinity.
