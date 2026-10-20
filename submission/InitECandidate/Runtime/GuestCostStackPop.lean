@@ -146,4 +146,63 @@ theorem stackPop_reject_run (s : PanSemStateFiniteExact 64 F) (frame sp : BitVec
 
 #print axioms eval_stackPopSp
 #print axioms eval_stackPopGuard
+
+
+/-- The decrement expression of the successful path. -/
+theorem eval_stackPopSub (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64)
+    (hSp : s.locals.lookup (ofString "sp") = some (.val (.word sp))) :
+    expressionValue s (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) =
+      some (.val (.word (sp - 1))) := by
+  classical
+  unfold expressionValue
+  simp [evalHOLExact, evalListHOLExact, toExact, hSp, wordOpHOL, wordOp, valueIsWord, valueWord]
+
+/-- The `sp := sp - 1` assignment of the successful path. -/
+theorem stackPop_assign_run (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64)
+    (hSp : s.locals.lookup (ofString "sp") = some (.val (.word sp))) :
+    StatementRun s (.assign VarKind.local (ofString "sp")
+      (.op .sub [.var VarKind.local (ofString "sp"), .const 1])) none
+      (setKvarHOLFinite VarKind.local (ofString "sp")
+        (.val (.word (sp - 1))) s)
+      (.statement :: (expressionEvents s
+        (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
+        [.copy (flattenHOL (.val (.word (sp - 1)))).length])) := by
+  classical
+  refine StatementRun.assignValue (kind := VarKind.local) (name := ofString "sp")
+    (expression := .op .sub [.var VarKind.local (ofString "sp"), .const 1])
+    (value := .val (.word (sp - 1))) ?_ ?_
+  · exact costedExpression_events s _ _ (eval_stackPopSub s sp hSp)
+  · simp [isValidValueHOLFinite, lookupKvarHOLFinite, hSp, shapeOfHOLExact, shapeEqHOL]
+
+/-- The stack-pointer store of the successful path. -/
+theorem stackPop_store_run (s : PanSemStateFiniteExact 64 F) (frame sp' : BitVec 64)
+    (hFrame : s.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (hSp : s.locals.lookup (ofString "sp") = some (.val (.word sp')))
+    (domain : s.memaddrs (frame + 16)) :
+    StatementRun s (.store (fundingAddress 16) (.var VarKind.local (ofString "sp"))) none
+      { s with memory := writeWordMemory s (frame + 16) sp' }
+      (.statement :: (expressionEvents s (fundingAddress 16) ++
+        expressionEvents s (.var VarKind.local (ofString "sp")) ++
+        [.memory (flattenHOL (.val (.word sp'))).length])) := by
+  classical
+  have dst : CostedExpressionRun s (fundingAddress 16) (some (.val (.word (frame + 16))))
+      (expressionEvents s (fundingAddress 16)) :=
+    costedExpression_events s _ _ (eval_fundingAddress s frame 16 hFrame)
+  have src : CostedExpressionRun s (.var VarKind.local (ofString "sp")) (some (.val (.word sp')))
+      (expressionEvents s (.var VarKind.local (ofString "sp"))) :=
+    costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact, hSp])
+  have write : @panMemStoresHOL 64 _ (frame + 16) (flattenHOL (.val (.word sp'))) s.memaddrs
+      (fun a => Classical.propDecidable (s.memaddrs a)) s.memory =
+      some (writeWordMemory s (frame + 16) sp') := by
+    simp only [flattenHOL, panMemStoresHOL, panMemStoreHOL]
+    rw [if_pos domain]
+    rfl
+  exact StatementRun.storeValue (destination := fundingAddress 16)
+    (source := .var VarKind.local (ofString "sp")) dst src write
+
+
+#print axioms eval_stackPopSub
+#print axioms stackPop_assign_run
+#print axioms stackPop_store_run
+
 end InitECandidate.Runtime.FineCost
