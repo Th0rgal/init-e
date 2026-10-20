@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.ActualPayloadHeaderPrefix
 import InitECandidate.Runtime.StatelessReach
 import InitECandidate.Runtime.KeccakGlobalsFrame
+import InitECandidate.Runtime.PanEvaluationMetadata
 import InitECandidate.Runtime.DecodeRequestsBodyBound
 
 namespace InitECandidate.Runtime
@@ -552,5 +553,70 @@ theorem actual_payload_header_keccak_normal_locals {F : Type} (state mid : PanSe
           | exact absurd run (by simp))
 
 #print axioms actual_payload_header_keccak_normal_locals
+
+/-- **The complete post-keccak construction facts.**  Everything the construction needs about the
+state returned by the actual `keccak256(tmp, 1, oh)` call survives the call: the caller's locals are
+restored verbatim, the globals (hence `heap_ptr`) are untouched, and the general evaluation metadata
+theorem gives `mid.code = before.code` and `mid.memaddrs = before.memaddrs` for every program and
+every outcome.  This is the transport that lets the construction continue after the real call. -/
+theorem actual_payload_header_commit_after_keccak {F : Type} (state before mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp : BitVec 64)
+    (pre : ActualPayloadHeaderCommit state before pl raw pointer heap oh tmp)
+    (code : before.code = originalRuntimeCode)
+    (normal : evaluateHOLFiniteState before actualPayloadHeaderKeccak = (none, mid)) :
+    ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp := by
+  obtain ⟨postState, equal⟩ := actual_payload_header_keccak_normal_locals before mid normal
+  subst equal
+  have globals := actual_payload_header_keccak_globals before code
+  rw [normal] at globals
+  have picture := evaluateHOLFiniteState_metadata before actualPayloadHeaderKeccak
+  rw [normal] at picture
+  obtain ⟨plLocal,rawLocal,hLocal,heapGlobal,domain,codeFrame⟩ := pre.1
+  obtain ⟨ohLocal,tmpLocal⟩ := pre.2
+  refine ⟨⟨?_,?_,?_,?_,?_,?_⟩,?_,?_⟩
+  · simpa using plLocal
+  · simpa using rawLocal
+  · simpa using hLocal
+  · have globalEq : postState.globals = before.globals := by simpa using globals
+    rw [globalEq]
+    exact heapGlobal
+  · rw [picture.2.1]; exact domain
+  · rw [picture.1]; exact codeFrame
+  · simpa using ohLocal
+  · simpa using tmpLocal
+
+#print axioms actual_payload_header_commit_after_keccak
+
+/-- **The actual header construction from the keccak return to `block_rlp_length`.**  From the state
+returned by the actual `keccak256(tmp, 1, oh)` call, the rest of the source -- the stores
+`h[16..240]` with the struct stores and the opaque `bf` declaration, the allocations `txr`, `z8`,
+`wr`, `rh`, `bh`, the actual `memzero(z8, 8)` and the extra-length cell `h[136]` -- reaches index 40,
+immediately before the actual `block_rlp_length(h, pl)` call, in 19 ticks. -/
+theorem actual_payload_header_construction_from_keccak {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp : BitVec 64)
+    (facts : ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp)
+    (code : state.code = originalRuntimeCode)
+    (wordDomain : ∀ offset : Nat, offset < 256 → state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (small : (allocationEnd heap (32#64)).toNat + 8 ≤ 33806089496)
+    (aligned : (allocationEnd heap (32#64)).toNat % 8 = 0)
+    (fullDomain : ∀ address : BitVec 64, address.toNat < 33806089496 → state.memaddrs address)
+    (budget : 19 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 10)
+      (ActualPayloadHeaderPrefix state · pl raw pointer
+        (allocationEnd (allocationEnd (allocationEnd (allocationEnd (allocationEnd heap (32#64)) (8#64))
+          (32#64)) (32#64)) (32#64))) 19 (actualPayloadHeaderAt 40) := by
+  have after := actual_payload_header_construction_after_keccak state mid pl raw pointer heap oh tmp facts
+    code wordDomain (by omega)
+  rcases after with ⟨E1, pE1, c1, c2, sc1⟩ | ab
+  · have tail := actual_payload_header_construction_tail state E1 pl raw pointer
+      (allocationEnd heap (32#64)) pE1.1.1 code small aligned fullDomain (by omega)
+    rcases tail with ⟨E2, pE2, d1, d2, sd⟩ | ab2
+    · refine Or.inl ⟨E2, pE2, by omega, by omega, scoped_trans sc1 sd⟩
+    · obtain ⟨x, a1, a2, a3, a4, a5⟩ := ab2
+      have ck := sc1.2.1
+      exact Or.inr ⟨x, sc1.1.trans a1, a2, by omega, by omega, fun t => a5 (by omega)⟩
+  · exact Or.inr (stAbort_mono mid _ 2 19 (by omega) ab)
+
+#print axioms actual_payload_header_construction_from_keccak
 
 end InitECandidate.Runtime
