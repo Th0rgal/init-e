@@ -437,7 +437,7 @@ theorem wordPathWork_call_noreturn_sValEq_variant {C F : Type}
 
 
 /-- A list of pairs is determined by its `fst`-image and its `snd`-image. -/
-theorem map_fst_snd_eq : ∀ (l l' : List (WordLocW 64 × WordLocW 64)),
+theorem map_fst_snd_eq {α β : Type} : ∀ (l l' : List (α × β)),
     l.map Prod.fst = l'.map Prod.fst → l.map Prod.snd = l'.map Prod.snd → l = l'
   | [], [], _, _ => rfl
   | [], _ :: _, h1, _ => by simp at h1
@@ -464,4 +464,44 @@ theorem map_fst_snd_eq : ∀ (l l' : List (WordLocW 64 × WordLocW 64)),
 #print axioms setVar_stack
 #print axioms setVars_stack
 
+
+/-- A stack frame is determined by its key-equalities *and* value-equalities:
+`sFrameValEq` pins the values and the length, `sFrameKeyEq` pins the keys, the
+saved environment `e0` and the handler. -/
+theorem frame_eq_of_valEq_keyEq (f g : WordSemStackFrame 64) :
+    WordSemStackEq.sFrameValEq f g → WordSemStackEq.sFrameKeyEq f g → f = g := by
+  cases f with
+  | stackFrame n e0 ls hh =>
+    cases g with
+    | stackFrame n' e0' ls' hh' =>
+      cases hh with
+      | none =>
+        cases hh' with
+        | none =>
+          intro h1 h2
+          simp only [WordSemStackEq.sFrameValEq, WordSemStackEq.sFrameKeyEq] at h1 h2
+          obtain ⟨hv, hn⟩ := h1
+          obtain ⟨hk, he, _⟩ := h2
+          cases hn
+          cases he
+          rw [map_fst_snd_eq ls ls' hk hv]
+        | some y' =>
+          intro h1
+          simp only [WordSemStackEq.sFrameValEq] at h1
+      | some y =>
+        cases hh' with
+        | none =>
+          intro h1
+          simp only [WordSemStackEq.sFrameValEq] at h1
+        | some y' =>
+          intro h1 h2
+          simp only [WordSemStackEq.sFrameValEq, WordSemStackEq.sFrameKeyEq] at h1 h2
+          obtain ⟨hv, hy, hn⟩ := h1
+          obtain ⟨hk, _, he, _⟩ := h2
+          cases hn
+          cases he
+          cases hy
+          rw [map_fst_snd_eq ls ls' hk hv]
+
+#print axioms frame_eq_of_valEq_keyEq
 end InitECandidate.Runtime.WordToStack
