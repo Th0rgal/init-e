@@ -153,9 +153,17 @@ constructed helper traces.
 original Stack instruction flattening hypotheses, then composes it with the
 RISC-V local simulation. The result includes the actual native prefix, its
 opcode-plus-padding bound, the related successor and the advanced oracle tie.
-`LabWeightedComposition` adds weighted instruction traces with no extra factor
-or terminal surcharge per block. This is a checked instruction leaf;
-recursive Stack/control-flow composition is still required.
+`LabWeightedComposition` adds weighted instruction and mixed traces with no
+extra factor or terminal surcharge per block. `LabWeightedClock` lifts a finite
+successful instruction prefix to any larger label clock with identical work.
+`StackWeightedBlock` derives an exact weighted trace for an actual compiled
+ordinary-instruction sequence under the original flattening hypotheses. It
+proves source trace existence from successful Stack evaluation, erases only
+zero-step labels from the installed pattern, and obtains an actual RISC-V
+prefix bounded by the sum of each visited opcode/padding cost. Related states,
+program counters, code and the oracle tie are retained. Branch/call/loop
+composition and the bridge from generated expression fragments to these
+ordinary blocks remain open.
 
 ## Remaining end-to-end obligations
 

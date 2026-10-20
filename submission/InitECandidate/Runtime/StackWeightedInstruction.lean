@@ -18,6 +18,38 @@ open Flapjack.Compiler.Encoders.RiscV.Target
 private theorem weighted_appList {α : Type} (l : List α) : appListAppend (.list l) = l :=
   (appListAppend_thm .nil .nil l).2.1
 
+/-- A successful literal instruction update and its installed line determine
+both related successors and the exact local weighted prefix. -/
+theorem instruction_update_weighted {F : Type}
+    (source post : StackSemStateFiniteExact 64 Flapjack.Compiler.Backend.LabToTarget.Config F)
+    (instruction : HolInst 64)
+    (start : LabSem.State 64 Flapjack.Compiler.Backend.LabToTarget.Config F)
+    (encoded : LabProgHOL 64)
+    (ran : StackSemInst.instHOL instruction source = some post)
+    (related : stateRel source start)
+    (fetch : asmFetchAux start.pc start.code = some (.asm (.asmi (.inst instruction)) [] 0)) :
+    stateRel post (incPc (asmInst instruction start)) ∧
+      LabToTarget.WeightedInstructionTrace encoded { start with clock := start.clock + 1 }
+        (incPc (asmInst instruction start))
+        (LabToTarget.LocalCost.instructionWork encoded start.pc instruction) := by
+  have postRelated := InstCorrect.instCorrect ⟨ran, related⟩
+  obtain ⟨samePc, sameCode, sameClock, _, _, _, _, _, _, _, _, _, _⟩ :=
+    asmInstConsts instruction start
+  have nonfailed := InstCorrect.notFailed postRelated
+  have successor : incPc (decClock (asmInst instruction
+      { start with clock := start.clock + 1 })) = incPc (asmInst instruction start) := by
+    rw [Flapjack.Compiler.Backend.LabProps.asmInstWithClock]
+    simp only [incPc, decClock, sameClock, Nat.add_sub_cancel]
+  refine ⟨postRelated, ?_⟩
+  have trace := LabToTarget.WeightedInstructionTrace.step
+    (code := encoded) { start with clock := start.clock + 1 }
+    (incPc (asmInst instruction start)) instruction [] 0 0 (by simp)
+    (by simpa only [asmFetch] using fetch)
+    (by simp only [Flapjack.Compiler.Backend.LabProps.asmInstWithClock, nonfailed,
+      Bool.false_eq_true, not_false_eq_true])
+    (by rw [successor]; exact .nil _)
+  simpa only [Nat.zero_add] using trace
+
 /-- One actual Stack instruction supplies its own locally weighted label trace.
 The original flattening hypotheses prove fetch, nonfailure and the related
 successor. The added unit is label simulation clock, not a native cost factor. -/
@@ -42,23 +74,8 @@ theorem flatten_instruction_weighted {F : Type}
   · rename_i source' ran
     simp only [Prod.mk.injEq] at evaluated
     obtain ⟨rfl, rfl⟩ := evaluated
-    have postRelated := InstCorrect.instCorrect ⟨ran, related⟩
-    obtain ⟨samePc, sameCode, sameClock, _, _, _, _, _, _, _, _, _, _⟩ :=
-      asmInstConsts instruction start
-    have nonfailed := InstCorrect.notFailed postRelated
-    have successor : incPc (decClock (asmInst instruction
-        { start with clock := start.clock + 1 })) = incPc (asmInst instruction start) := by
-      rw [Flapjack.Compiler.Backend.LabProps.asmInstWithClock]
-      simp only [incPc, decClock, sameClock, Nat.add_sub_cancel]
-    refine ⟨rfl, incPc (asmInst instruction start), postRelated, ?_⟩
-    have trace := LabToTarget.WeightedInstructionTrace.step
-      (code := encoded) { start with clock := start.clock + 1 }
-      (incPc (asmInst instruction start)) instruction [] 0 0 (by simp)
-      (by simpa only [asmFetch] using fetch)
-      (by simp only [Flapjack.Compiler.Backend.LabProps.asmInstWithClock, nonfailed,
-        Bool.false_eq_true, not_false_eq_true])
-      (by rw [successor]; exact .nil _)
-    simpa only [Nat.zero_add] using trace
+    have core := instruction_update_weighted source source' instruction start encoded ran related fetch
+    exact ⟨rfl, incPc (asmInst instruction start), core.1, core.2⟩
   · simp only [Prod.mk.injEq] at evaluated
     exact absurd evaluated.1.symm nonerror
 
@@ -103,6 +120,7 @@ theorem flatten_instruction_native {F : Type}
       target encoder related tie
   exact ⟨same, final, count, native, finalAsm, stackRelated, bound, run, nativeRelated, finalTie⟩
 
+#print axioms instruction_update_weighted
 #print axioms flatten_instruction_native
 #print axioms flatten_instruction_weighted
 end InitECandidate.Runtime.StackToLab
