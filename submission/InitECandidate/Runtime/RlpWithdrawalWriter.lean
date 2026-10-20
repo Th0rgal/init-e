@@ -968,4 +968,40 @@ theorem wdCall0_window {F : Type} (t : PanSemStateFiniteExact 64 F)
 
 #print axioms wdCall0_window
 
+/-- Declaring the writer cursor at `buf + 9` and running the whole writer chain keeps every cell
+outside the buffer window. -/
+theorem wdDecP_window {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (B W w : BitVec 64)
+    (out : ¬ MWin B 64 w) (hB : B.toNat + 64 < 2 ^ 64)
+    (hb : t.locals.lookup (ofString "buf") = some (.val (.word B)))
+    (hwdloc : t.locals.lookup (ofString "wd") = some (.val (.word W)))
+    (code : t.code = originalRuntimeCode) :
+    (evaluateHOLFiniteState t (.dec (ofString "p") .one
+      (.op .add [.var .local (ofString "buf"), .const (9#64)]) wdCall0)).2.memory w = t.memory w := by
+  rw [evaluateHOLFiniteState_dec_total]
+  dsimp only
+  rw [show @evalHOLExact 64 F _ t.toExact (fun a => Classical.propDecidable (t.memaddrs a))
+      (.op .add [.var .local (ofString "buf"), .const (9#64)]) =
+      some (.val (.word (B + 9#64))) from by
+    simp [evalHOLExact,evalListHOLExact,hb,wordOpHOL,wordOp,valueIsWord,valueWord]]
+  dsimp only
+  rw [if_pos (by simp [shapeOfHOLExact,shapeEqHOL])]
+  set bs := setVarHOLFinite (ofString "p") (.val (.word (B + 9#64))) t with hbs
+  have hbp : bs.locals.lookup (ofString "buf") = some (.val (.word B)) := by
+    simp [hbs,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,hb,
+      show ofString "p" ≠ ofString "buf" by decide]
+  have hpp : bs.locals.lookup (ofString "p") = some (.val (.word (B + 9#64))) := by
+    simp [hbs,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  have hwp : bs.locals.lookup (ofString "wd") = some (.val (.word W)) := by
+    simp [hbs,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,hwdloc,
+      show ofString "p" ≠ ofString "wd" by decide]
+  have bscode : bs.code = originalRuntimeCode := by
+    simp only [hbs,setVarHOLFinite]
+    exact code
+  have key := wdCall0_window bs B W (B + 9#64) w 9 out hB rfl (by decide) (by decide)
+    hbp hpp hwp bscode
+  simpa [hbs,setVarHOLFinite] using key
+
+#print axioms wdDecP_window
+
 end InitECandidate.Runtime
