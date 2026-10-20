@@ -20,4 +20,12 @@ theorem mwin_shift_nat {D : BitVec 64} {k N : Nat} {w : BitVec 64}
 
 #print axioms mwin_shift_nat
 
+/-- A store window `n` bytes after the offset `k` sits inside the `64`-byte buffer window at `D`
+whenever the whole writer offset fits: no cell outside the buffer window is written. -/
+theorem mwin_narrow_shift {D : BitVec 64} {k n : Nat} {w : BitVec 64}
+    (out : ¬ MWin D 64 w) (fit : k + n ≤ 64) : ¬ MWin (D + BitVec.ofNat 64 k) n w :=
+  fun win => (mwin_mono fit out) (mwin_shift_nat win)
+
+#print axioms mwin_narrow_shift
+
 end InitECandidate.Runtime
