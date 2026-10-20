@@ -1,0 +1,133 @@
+-- WIP DRAFT (not compiled; file extension deliberately disables elaboration).
+-- Target: the main cost driver of AllocCostSSAStackSwapWork.lean.
+-- Once all cases below are filled and this file elaborates with 0 errors and no
+-- sorryAx, rename it to AllocCostSSAStackSwapWork.lean (or move the theorem there)
+-- and add it to the checker chain after AllocCostSSAPermStack.
+import InitECandidate.Runtime.AllocCostSSAStackSwapWork
+
+namespace InitECandidate.Runtime.WordToStack
+
+open Flapjack Flapjack.WordSemStateFiniteExact
+
+/-! ## Stack swap on the clock-corrected successor state -/
+
+/-- `fixClock` only rewrites clock/termdep, so it commutes with a stack swap. -/
+theorem fixClock_stack {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (r : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64)) :
+    fixClock { s with stack := xs } (r.1, { r.2 with stack := xs }) =
+      (fixClock s r).1, { (fixClock s r).2 with stack := xs } := by
+  rcases r with ⟨res, mid⟩
+  simp only [fixClock]
+
+/-! ## Main induction
+
+Motive (well-founded on `(s.termdep, s.clock, sizeOf p)`, matching
+`wordPathWork`'s own `termination_by`):
+
+  `∀ s xs, sValEq s.stack xs → wordPathWork p { s with stack := xs } = wordPathWork p s`
+
+Per-constructor plan, all state reads taken from the actual definition:
+
+* leaves (`.skip`, `.alloc`, `.storeConsts`, `.move`, `.inst`, `.assign`, `.get`,
+  `.set`, `.opCurrHeap`, `.store`, `.tick`, `.mustTerminate`, `.raise`): both
+  sides are `1` for everything except `.raise`/`.alloc`, whose clauses still only
+  read non-stack fields; `simp only [wordPathWork, getVar_stack, ...]`.
+* `.ite`: `getVar`/`getVarImm` read only `locals` (`getVar_stack`,
+  `getVarImm_stack`), so the scrutinee is identical; close with the two IHs.
+* `.loop`: `cutState` touches only `locals` (`cutState_stack`), so
+  `cutState (names,.ln) {s with stack := xs} = some {cutSource with stack := xs}`;
+  apply the IH to `body` at that cut (its stack is `sValEq`-related to
+  `cutSource.stack` by `hval`), transport the run with `evaluateStackSwap body
+  cutSource` (`stackSwapPost`), and apply the IH to the `wordSemSTOP` self-call
+  at the swapped mid state (same program, smaller clock -> lex decrease).
+* `.seq`: apply `evaluateStackSwap first s`.  For a non-exit result it yields
+  `sKeyEq s.stack middle.stack`, `middle.handler = s.handler` and
+  `∀ xs, sValEq s.stack xs -> ∃ st, evaluate first {s with stack := xs} =
+     (res, {middle with stack := st}) ∧ sValEq middle.stack st ∧ sKeyEq xs st`.
+  Hence `fixClock {s with stack := xs} (evaluate first {s with stack := xs}) =
+     {fixClock s (evaluate first s) with stack := st}` (`fixClock_stack`), the
+  result kinds agree (same `res`), and the IH on `second` at `st` closes; the
+  first component closes by the structural IH.  For an *exit* result (`error`,
+  `break`, `continue`, `result`, `exception`, `timeOut`, `finalFfi`,
+  `notEnoughSpace`) the second component is not charged (`_ => 0`), so only the
+  first-component IH is needed -- this is the lead's "result-indexed successor"
+  point: do not demand equality of all locals on terminal outcomes.
+* `.call`: the `.call` clause reads `getVars` (locals), `wordSemBadDestArgs`,
+  `s.code`, `s.stackSize`, `sptDomainEmpty`/`Nodup`, `wordSemCutEnvs names
+  s.locals`, `s.clock` -- all stack-independent (`getVars_stack`,
+  `cutState_stack`-style) -- and builds the callee entry
+  `callEnv args1 ss (pushEnv envs handler (decClock s))`.  By
+  `pushEnv_stack_swap`/`callEnv_stack_swap` the swapped entry is
+  `{entry with stack := fr :: xs}` with `sValEq entry.stack (fr :: xs)`, so the
+  IH applies to `prog` (structural).  The run correspondence is
+  `stackSwapPost`/`evaluateStackSwap` at `entry`: same `res`, and for
+  `.result location returned` the *same* `location`/`returned` (so
+  `location ≠ .loc l1 l2` and `returned.length ≠ values.length` agree) with
+  `middleT = {middle with stack := st}`.  The post run is
+  `popEnv middle` vs `popEnv {middle with stack := st}`: the popped frame is the
+  one pushed by this very call in both runs (same `envs`), so both pops succeed
+  or both fail and the rebuilt locals agree, hence
+  `sptDomainEqUnion popped.locals envs.1 envs.2` agrees; then the IH on
+  `retCode` at `setVars values returned popped` with `sValEq`-related stacks
+  (via `setVars_stack`).  The `.exception` case is the same with
+  `setVar reg value middle` (via `setVar_stack`) and the handler frame read from
+  `middle.stack` vs its swapped copy -- `stackSwapPost` gives the `LASTN`
+  handler frame with equal keys/values, so the `handlerCode` branch agrees.
+-- The patterns to mirror verbatim for `.call` are in
+-- Flapjack/Compiler/Backend/Semantics/WordSem/Props/EvaluateStackSwap/Call.lean
+-- (hPx at ~line 292, hvP at ~line 311, frame equality fr' = fr from the
+-- stack equation, and the getVars_withStack/badDest/findCode steps at 265-310).
+
+/-- **Cost invariance of the selected-path budget under a value-equal stack swap.**
+This is the driver that makes `calleeWork = 0` for the SSA-renamed callee entry:
+the same unchanged callee program, at two entries that differ only in their
+saved caller frames (equal values, renamed keys), charges the same budget. -/
+theorem wordPathWork_sValEq_stack_variant {C F : Type} :
+    ∀ (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+      (xs : List (WordSemStackFrame 64)),
+      WordSemStackEq.sValEq s.stack xs →
+      wordPathWork p { s with stack := xs } = wordPathWork p s
+  -- CASES (fill in order; each `sorry` here is a TODO marker in this draft file,
+  -- which is NOT compiled until the whole induction is complete):
+  | .skip, s, xs, _ => by simp only [wordPathWork]
+  | .alloc n names, s, xs, _ => by simp only [wordPathWork] -- + getVar/cutState commutation
+  | .storeConsts t1 t2 a o ws, s, xs, _ => by simp only [wordPathWork]
+  | .move pri moves, s, xs, _ => by simp only [wordPathWork]
+  | .inst i, s, xs, _ => by simp only [wordPathWork]
+  | .assign v e, s, xs, _ => by simp only [wordPathWork]
+  | .get v name, s, xs, _ => by simp only [wordPathWork]
+  | .set name e, s, xs, _ => by simp only [wordPathWork]
+  | .opCurrHeap b dst src, s, xs, _ => by simp only [wordPathWork]
+  | .store e v, s, xs, _ => by simp only [wordPathWork]
+  | .tick s', s, xs, _ => by simp only [wordPathWork]
+  | .mustTerminate p', s, xs, _ => by simp only [wordPathWork]
+  | .raise r, s, xs, _ => by simp only [wordPathWork]
+  | .ite cmp reg operand first second, s, xs, hval => by
+      simp only [wordPathWork, getVar_stack, getVarImm_stack,
+        wordPathWork_sValEq_stack_variant first s xs hval,
+        wordPathWork_sValEq_stack_variant second s xs hval]
+  | .seq first second, s, xs, hval => by
+      -- TODO: evaluateStackSwap first s -> same result kind + sValEq mid stacks,
+      -- fixClock_stack, then IH first (structural) and IH second at st.
+      sorry
+  | .loop names body exitNames, s, xs, hval => by
+      -- TODO: cutState_stack, IH body at the swapped cut state, transport the
+      -- loop body run with evaluateStackSwap, IH on the wordSemSTOP self-call.
+      sorry
+  | .call ret dest args handler, s, xs, hval => by
+      -- TODO: mirror EvaluateStackSwap/Call.lean 265-330 (hPx/hvP), then the
+      -- popEnv/sptDomainEqUnion agreement described above.
+      sorry
+termination_by (s.termdep, s.clock, sizeOf p)
+decreasing_by
+  all_goals
+    simp_wf
+    apply wordSemLex
+    try (have hfc := fixClock_IMP_LESS_EQ _ _ _ _ _h)
+    try (have hcs := cutState_clock_termdep _ _ _ _hs)
+    try simp only [Flapjack.WordSemStateFiniteExact.callEnv,
+      Flapjack.WordSemStateFiniteExact.decClock,
+      Flapjack.WordSemStateFiniteExact.setVars, Flapjack.WordSemStateFiniteExact.setVar,
+      pushEnv_clock, pushEnv_termdep, wordSemSTOP, true_and] at *
+    omega
