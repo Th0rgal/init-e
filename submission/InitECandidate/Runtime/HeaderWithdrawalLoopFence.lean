@@ -71,6 +71,7 @@ theorem wdSliceLoop_runBounded_of_invariant (DF : Nat) (nwd : BitVec 64)
     (keep : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
       state.locals.lookup (ofString "i") = some (.val (.word w)) →
+      w.toNat < nwd.toNat →
       (evaluateHOLFiniteState state wdSliceLoopBody).1 = none →
       P (evaluateHOLFiniteState state wdSliceLoopBody).2)
     (advance : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →

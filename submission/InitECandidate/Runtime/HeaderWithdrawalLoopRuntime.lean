@@ -34,6 +34,7 @@ theorem countedWhile_runBounded (counter : MlS) (op : Cmp) (hop : op = .less ∨
     (keep : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
       state.locals.lookup counter = some (.val (.word w)) →
+      w.toNat < K.toNat →
       (evaluateHOLFiniteState state body).1 = none → P (evaluateHOLFiniteState state body).2)
     (advance : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.locals.lookup counter = some (.val (.word w)) →
@@ -97,7 +98,7 @@ theorem countedWhile_runBounded (counter : MlS) (op : Cmp) (hop : op = .less ∨
             simpa [bodyRun] using nextCode
           have keepP : P middle := by
             simpa [bodyRun] using keep (decClockHOLFinite state) w pclock codeClock atClock
-              (by rw [bodyRun])
+              (by simpa using lt) (by rw [bodyRun])
           have natural : (w + step).toNat = w.toNat + step.toNat := BitVec.toNat_add_of_lt (by omega)
           have nextRank : K.toNat - (w + step).toNat < n := by rw [natural]; omega
           have tail := ih (K.toNat - (w + step).toNat) nextRank middle keepP (nextCode'.trans codeClock) (w + step)
@@ -155,6 +156,7 @@ theorem countedWhile_runBounded_var (counter bound : MlS) (op : Cmp) (hop : op =
     (keep : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
       state.locals.lookup counter = some (.val (.word w)) →
+      w.toNat < K.toNat →
       (evaluateHOLFiniteState state body).1 = none → P (evaluateHOLFiniteState state body).2)
     (advance : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.locals.lookup counter = some (.val (.word w)) →
@@ -221,7 +223,7 @@ theorem countedWhile_runBounded_var (counter bound : MlS) (op : Cmp) (hop : op =
             simpa [bodyRun] using nextCode
           have keepP : P middle := by
             simpa [bodyRun] using keep (decClockHOLFinite state) w pclock codeClock atClock
-              (by rw [bodyRun])
+              (by simpa using lt) (by rw [bodyRun])
           have natural : (w + step).toNat = w.toNat + step.toNat := BitVec.toNat_add_of_lt (by omega)
           have nextRank : K.toNat - (w + step).toNat < n := by rw [natural]; omega
           have tail := ih (K.toNat - (w + step).toNat) nextRank middle keepP (nextCode'.trans codeClock) (w + step)
@@ -303,6 +305,7 @@ theorem wdSliceLoop_runBounded (DF : Nat) (nwd : BitVec 64)
     (keep : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
       state.locals.lookup (ofString "i") = some (.val (.word w)) →
+      w.toNat < nwd.toNat →
       (evaluateHOLFiniteState state wdSliceLoopBody).1 = none → P (evaluateHOLFiniteState state wdSliceLoopBody).2)
     (advance : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.locals.lookup (ofString "i") = some (.val (.word w)) →

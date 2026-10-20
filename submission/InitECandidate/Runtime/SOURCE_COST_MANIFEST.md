@@ -154,3 +154,31 @@ Remaining obligation for the unconditional statement-46 corollary: the invariant
 `HeaderWithdrawalLoopBody` step facts (`wd_slice_step_successor`, `wdSliceLoopStores_adv`,
 `wd_slice_step_clock_ne`, `wd_slice_step_outcome`) supply once the invariant also carries the
 `pl + 48` watched cell (`wd_slice_args`).
+
+## Concrete invariant discharge (`HeaderWithdrawalLoopCount`)
+
+`WdLoopInv m I0 nwd pl slices read X H t` — the statement-46 loop invariant: `∃ k`,
+`I0.toNat + k ≤ nwd.toNat`, the memory domain `∀ a, t.memaddrs a ↔ m a`, the counter
+`i = I0 + k`, the `nwd`/`pl`/`e`/`wd_rlp_slices` bindings, `heap_ptr = H k`, the installed `code`,
+`m read`, and the watched cell `memory read = word X`.
+
+Every obligation of the loop bound is discharged from it, with no oracle and no open hypothesis:
+- `wdLoopInv_heapOf` — `heap_ptr` value with `(H k).toNat ≤ 33806089496` from the frontier hypothesis;
+- `wdLoopInv_fence` — the fence from the memory domain (`Fence m DF`);
+- `wdLoopInv_argsOf` — the evaluated encoder argument from the watched `pl + 48` cell (`wd_slice_args`);
+- `wdLoopInv_atBound` — the loop bound `nwd`;
+- `wdLoopInv_noContinue` — `wdSliceLoopBody_noControl`;
+- `wdLoopInv_decrease` — clock decrement;
+- `wdLoopInv_counter_toNat` / `wdLoopInv_counter_succ` — the count arithmetic
+  `(I0 + k).toNat = I0.toNat + k`, `(I0 + k) + 1 = I0 + (k+1)`;
+- `wdLoopInv_advance` — counter advance and code preservation (`wd_slice_step_*`, metadata);
+- `wdLoopInv_keep` — invariant preservation: `H (k+1) = allocationEnd (H k) 64`, memory domain
+  (`evaluateHOLFiniteState_metadata`), watched cell (`wd_slice_step_window`), the remaining bindings
+  (`wd_slice_step_successor`), and `I0.toNat + (k+1) ≤ nwd.toNat` from the iteration condition.
+
+**`wdSliceLoop_count`** — the assembled statement-46 runtime bound. For `t` satisfying the invariant,
+`t.code = originalRuntimeCode`, `t.locals "i" = word I0`, `I0.toNat ≤ nwd.toNat`,
+`nwd.toNat + 1 < 2^63` and the fuel budget `(nwd.toNat - I0.toNat) * ((encodeWithdrawalSourceCost DF + 1) + 1) ≤ t.clock`:
+
+`t.clock ≤ post.clock + (nwd.toNat - I0.toNat) * ((encodeWithdrawalSourceCost DF + 1) + 1)` and
+`post.clock ≤ t.clock` and no timeout, where `post` is the actual result of evaluating `wdSliceLoop`.
