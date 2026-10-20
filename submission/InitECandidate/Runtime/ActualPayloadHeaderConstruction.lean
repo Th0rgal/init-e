@@ -5,6 +5,7 @@ import InitECandidate.Runtime.PanEvaluationMetadata
 import InitECandidate.Runtime.DiscardCallNoReturn
 import InitECandidate.Runtime.AllocationFailureTail
 import InitECandidate.Runtime.FrameHalt
+import InitECandidate.Runtime.BoundedDecCallReach
 import InitECandidate.Runtime.DecodeRequestsBodyBound
 
 namespace InitECandidate.Runtime
@@ -836,7 +837,7 @@ theorem actual_payload_header_floor_lower (pointer size : BitVec 64)
 allocations that follow it, the floor the `z8` allocation starts from is at or above
 `heap_ptr + 248`, hence strictly past the extra-length cell at `heap_ptr + 136`. -/
 theorem actual_payload_header_z8_lower (heap : BitVec 64)
-    (fits : heap.toNat + 400 ≤ 33806089496) :
+    (below : heap.toNat ≤ 33806089496) :
     heap.toNat + 248 ≤ (allocationEnd (allocationEnd (allocationEnd heap (248#64)) (32#64)) (32#64)).toNat := by
   have one : (248#64 : BitVec 64).toNat = 248 := by decide
   have two : (32#64 : BitVec 64).toNat = 32 := by decide
@@ -868,9 +869,9 @@ theorem actual_payload_header_z8_lower (heap : BitVec 64)
 statement 23 is strictly below the `z8` floor, so the actual `memzero(z8, 8)` cannot touch it. -/
 theorem actual_payload_header_extra_cell_not_z8 (heap z8 : BitVec 64)
     (floor : z8 = allocationEnd (allocationEnd (allocationEnd heap (248#64)) (32#64)) (32#64))
-    (fits : heap.toNat + 400 ≤ 33806089496) :
+    (below : heap.toNat ≤ 33806089496) :
     heap + (136#64) ≠ z8 := by
-  have lower := actual_payload_header_z8_lower heap fits
+  have lower := actual_payload_header_z8_lower heap below
   have cell : (heap + (136#64)).toNat = heap.toNat + 136 := by
     have h : (136#64 : BitVec 64).toNat = 136 := by decide
     rw [BitVec.toNat_add_of_lt (by rw [h]; omega),h]
@@ -888,11 +889,11 @@ none of the later allocations, stores or the actual `memzero(z8, 8)` can touch a
 the extra-length cell at `heap_ptr + 136`.  This is the geometry the `block_rlp_length` runtime
 argument uses. -/
 theorem actual_payload_header_header_below_floors (heap : BitVec 64)
-    (fits : heap.toNat + 400 ≤ 33806089496) :
+    (below : heap.toNat ≤ 33806089496) :
     ∀ headerAddress : BitVec 64, heap.toNat ≤ headerAddress.toNat → headerAddress.toNat < heap.toNat + 248 →
       headerAddress.toNat < (allocationEnd (allocationEnd (allocationEnd heap (248#64)) (32#64)) (32#64)).toNat := by
-  intro headerAddress above below
-  have lower := actual_payload_header_z8_lower heap fits
+  intro headerAddress headerAbove headerBelow
+  have lower := actual_payload_header_z8_lower heap below
   omega
 
 #print axioms actual_payload_header_header_below_floors
@@ -926,5 +927,70 @@ theorem actual_payload_header_offset_distinct (pointer : BitVec 64) (first secon
   exact distinct (by omega)
 
 #print axioms actual_payload_header_offset_distinct
+
+/-- **The actual keccak call as a reach step.**  Statement 9 is the actual `keccak256(tmp, 1, oh)`
+call.  Whatever the callee does, the statement either continues at statement 10 with the concrete
+construction facts restored -- the caller's locals verbatim, globals and `heap_ptr` untouched, code
+and memory addresses preserved by the general metadata theorem -- or it ends in the abort branch
+within its 360-tick budget. -/
+theorem actual_payload_header_keccak_reaches {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp st pad : BitVec 64)
+    (facts : ActualPayloadHeaderCommit state state pl raw pointer heap oh tmp)
+    (code : state.code = originalRuntimeCode)
+    (stateGlobal : state.globals.lookup (ofString "keccak_st") = some (.val (.word st)))
+    (padGlobal : state.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)))
+    (ticks : 360 ≤ state.clock)
+    (stateSmall : st.toNat + 200 ≤ 33806089496) (stateAligned : st.toNat % 8 = 0)
+    (stateWords : ∀ offset : Nat, offset < 200 → state.memaddrs (st + BitVec.ofNat 64 offset))
+    (stateBytes : ∀ offset : Nat, offset < 200 →
+      state.memaddrs (panByteAlignHOL (st + BitVec.ofNat 64 offset)))
+    (small : pad.toNat + 136 ≤ 33806089496) (padAligned : pad.toNat % 8 = 0)
+    (tmpAligned : tmp.toNat % 8 = 0) (ohAligned : oh.toNat % 8 = 0)
+    (words : ∀ offset : Nat, offset < 136 → state.memaddrs (pad + BitVec.ofNat 64 offset))
+    (bytes : ∀ offset : Nat, offset < 136 →
+      state.memaddrs (panByteAlignHOL (pad + BitVec.ofNat 64 offset)))
+    (sourceWords : ∀ offset : Nat, offset < 1 → state.memaddrs (tmp + BitVec.ofNat 64 offset))
+    (sourceBytes : ∀ offset : Nat, offset < 1 →
+      state.memaddrs (panByteAlignHOL (tmp + BitVec.ofNat 64 offset))) :
+    Reaches state (actualPayloadHeaderAt 9)
+      (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp) 360 (actualPayloadHeaderAt 10) := by
+  have bounded := actual_payload_header_keccak_call_bounded state tmp oh st pad facts.2.2 facts.2.1
+    stateGlobal padGlobal code ticks stateSmall stateAligned stateWords stateBytes small padAligned
+    tmpAligned ohAligned words bytes sourceWords sourceBytes
+  rw [source_actual_payload_header_keccak_shape]
+  refine reaches_seq state actualPayloadHeaderKeccak (actualPayloadHeaderAt 10) 360 _ ?_
+  unfold RunBounded at bounded
+  change state.clock ≤ (evaluateHOLFiniteState state actualPayloadHeaderKeccak).2.clock + 360 ∧
+    (evaluateHOLFiniteState state actualPayloadHeaderKeccak).2.clock ≤ state.clock ∧
+    (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 ≠ some .timeOut at bounded
+  by_cases normal : (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 = none
+  · obtain ⟨post,run⟩ : ∃ post : PanSemStateFiniteExact 64 F,
+        evaluateHOLFiniteState state actualPayloadHeaderKeccak = (none, post) :=
+      ⟨_, by rw [Prod.eq_iff_fst_eq_snd_eq]; exact ⟨normal,rfl⟩⟩
+    refine Or.inl ⟨post,?_,?_,?_,run⟩
+    · exact actual_payload_header_commit_after_keccak state state post pl raw pointer heap oh tmp
+        facts code run
+    · have spent := bounded.1
+      rw [run] at spent
+      exact spent
+    · have kept := bounded.2.1
+      rw [run] at kept
+      exact kept
+  · obtain ⟨x,run⟩ : ∃ result, (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 = some result := by
+      cases placed : (evaluateHOLFiniteState state actualPayloadHeaderKeccak).1 with
+      | none => exact absurd placed normal
+      | some result => exact ⟨result,rfl⟩
+    refine Or.inr ⟨x,run,?_,bounded.1,bounded.2.1,?_⟩
+    · intro value returned
+      have discard := evaluate_discard_call_no_return state (ofString "keccak256")
+        [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")] value
+      exact discard (run.trans (congrArg some returned))
+    · intro clock budget
+      have different := bounded.2.2
+      rw [run] at different
+      exact different (congrArg some budget)
+
+
+#print axioms actual_payload_header_keccak_reaches
 
 end InitECandidate.Runtime
