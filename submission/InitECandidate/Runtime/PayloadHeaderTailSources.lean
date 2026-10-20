@@ -122,4 +122,17 @@ theorem source_actual_payload_header_return :
 #print axioms source_actual_payload_header_block_hashes
 #print axioms source_actual_payload_header_return
 
+/-- **The actual returned header pointer.**  Once the body reaches its final statement with `h` bound
+to the header base, the real `return h` hands back exactly that word and leaves the memory alone.  This
+is the value the `payload_header` declaration call returns to `run_attempt`, so the caller's header
+pointer is the same word the construction had at statement 40. -/
+theorem actual_payload_header_return_h {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (pointer : BitVec 64) (hLocal : state.locals.lookup (ofString "h") = some (.val (.word pointer))) :
+    evaluateHOLFiniteState state (actualPayloadHeaderAt 51) =
+      (some (.returned (.val (.word pointer))),emptyLocalsHOLFinite state) := by
+  rw [source_actual_payload_header_return]
+  simp [evaluateHOLFiniteState_return,evalHOLExact,shapeOfHOLExact,sizeOfShapeWithContextHOL,hLocal]
+
+#print axioms actual_payload_header_return_h
+
 end InitECandidate.Runtime
