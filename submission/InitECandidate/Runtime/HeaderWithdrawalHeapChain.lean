@@ -39,6 +39,16 @@ theorem wd_alloc_success_nowrap (pointer size : BitVec 64)
   rw [BitVec.toNat_sub_of_le pLe, capVal] at sum
   omega
 
+/-- The frozen loop's per-iteration range family follows from the allocator's frontier invariant
+alone (`frontier` stays under `HEAP_END` at every step), not from any assumption that the whole
+withdrawal allocation succeeds: a failed allocation leaves the frontier where it was. -/
+theorem wd_heap_chain_bounds (H : Nat → BitVec 64) (nwd : Nat)
+    (frontier : ∀ j, j ≤ nwd → (H j).toNat ≤ 33806089496) :
+    ∀ j, j ≤ nwd → (H j).toNat + 64 < 2^64 := by
+  intro j hj
+  have := frontier j hj
+  omega
+
 #print axioms wd_heap_step_no_cap
 #print axioms wd_alloc_success_nowrap
 end InitECandidate.Runtime

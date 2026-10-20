@@ -44,6 +44,41 @@ theorem wd_slice_array_cell {F : Type} (post : PanSemStateFiniteExact 64 F)
   · simpa only [cellAt] using entry.pointerCell
   · simpa only [cellAt] using entry.pointerDomain
 
+/-- Statement 46's window with every decoder-side input discharged: the withdrawal count bound comes
+from the source's signed count limit, and both watched cells (`pl + 48` array pointer, `pl + 56` count)
+come from the payload struct's actual slice entry. Only the heap geometry and the state bindings remain
+as inputs. -/
+theorem payloadHeader46_window_from_decoder {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (nwd pl slices heapBase w input wd size : BitVec 64) (withdrawals balance : BitVec 64)
+    (entry : RlpSliceEntry t pl (3#64) (input + wd) nwd)
+    (countVal : nwd = (balance - withdrawals) / 44)
+    (within : ¬ (9223372036854775807 : BitVec 64) < nwd)
+    (endEq : heapBase.toNat = slices.toNat + size.toNat)
+    (sizeEq : size.toNat = 16 * nwd.toNat + 16)
+    (alSlices : slices.toNat % 8 = 0) (alSize : size.toNat % 8 = 0)
+    (cap : slices.toNat + 80 * nwd.toNat + 80 ≤ 33806089496)
+    (atCounter : t.locals.lookup (ofString "i") = some (ValueHOL.val (HolWordLab.word 0#64)))
+    (atNwd : t.locals.lookup (ofString "nwd") = some (ValueHOL.val (HolWordLab.word nwd)))
+    (atPl : t.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
+    (freshE : t.locals.lookup (ofString "e") = none)
+    (atSlices : t.globals.lookup (ofString "wd_rlp_slices") =
+      some (ValueHOL.val (HolWordLab.word slices)))
+    (atHeap : t.globals.lookup (ofString "heap_ptr") = some (ValueHOL.val (HolWordLab.word heapBase)))
+    (code : t.code = originalRuntimeCode)
+    (slicesAbove : slices.toNat ≤ heapBase.toNat)
+    (prologue : pl.toNat + 136 ≤ slices.toNat)
+    (inHeader : w.toNat < pl.toNat + 136)
+    (tail : (evaluateHOLFiniteState (evaluateHOLFiniteState t wdSliceLoop).2
+        (actualPayloadHeaderAt 47)).2.memory w = (evaluateHOLFiniteState t wdSliceLoop).2.memory w) :
+    (evaluateHOLFiniteState t (actualPayloadHeaderAt 46)).2.memory w = t.memory w := by
+  have arrayCell := wd_slice_array_cell t pl input wd nwd entry
+  have countBound := wd_signed_count_bound nwd withdrawals balance countVal within
+  exact payloadHeader46_window_geometry_budget t nwd pl slices heapBase w (pl + 48#64) (input + wd) size
+    rfl endEq sizeEq alSlices alSize cap atCounter atNwd atPl freshE atSlices atHeap code countBound
+    slicesAbove (wd_read_below_arena pl slices (pl + 48#64) prologue rfl)
+    (wd_watched_below_arena pl slices w prologue inHeader) arrayCell.2 arrayCell.1 tail
+
+#print axioms payloadHeader46_window_from_decoder
 #print axioms wd_signed_count_bound
 #print axioms wd_slice_count_cell
 #print axioms wd_slice_array_cell

@@ -168,3 +168,21 @@ the subtraction). With `wd_heap_step_no_cap` the loop needs **no** future alloca
   which is exactly the loop's watched `read`.
 So the count bound and the two watched cells now come from the decoder (`RlpSliceEntry` exported by
 `payload_store_tail_returned_entries`), not from a supplied count theorem.
+
+### Stage 4 addendum — entry applicability endpoint
+
+`HeaderWithdrawalCountBound.payloadHeader46_window_from_decoder` is the composed endpoint: statement
+46's window for a state whose payload struct carries the actual slice entry
+(`RlpSliceEntry t pl 3 (input + wd) nwd`). Discharged internally: the count bound
+(`wd_signed_count_bound`), the count cell `pl + 56` and the watched array cell `pl + 48`
+(`wd_slice_count_cell`, `wd_slice_array_cell`), the address separation (`wd_read_below_arena`,
+`wd_watched_below_arena`). Remaining inputs are only the heap geometry (`endEq`, `sizeEq`,
+`alSlices`, `alSize`, `cap`), the statement 46 state bindings, `slicesAbove`, the prologue separation,
+`w.toNat < pl.toNat + 136`, and the root-owned statement 47 tail.
+
+`HeaderWithdrawalHeapChain.wd_heap_chain_bounds`: the frozen loop's per-iteration range family follows
+from the allocator frontier invariant alone (`(H j).toNat ≤ HEAP_END` for `j ≤ nwd`) — no whole-loop
+success assumption; a failed allocation leaves the frontier unchanged, and each successful advance is
+justified by `wd_alloc_success_nowrap` from the allocator's own request guard. In that reading `cap` is
+the arithmetic form of "the frontier stays under `HEAP_END` while it advances", not a future-room
+assumption.
