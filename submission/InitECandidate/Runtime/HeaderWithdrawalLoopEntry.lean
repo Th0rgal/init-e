@@ -174,4 +174,17 @@ theorem wdSliceLoop_count_alloc (DF : Nat) {F : Type} (state : PanSemStateFinite
 #print axioms wdSliceLoop_count_alloc
 #print axioms wdHeapWord_frontier
 #print axioms wdSliceLoop_count_entry
+
+/-- The statement-43 initializer `load [pl + 56]` evaluates to the decoded withdrawal count. -/
+theorem wd_count_load_eval {F : Type} (s : PanSemStateFiniteExact 64 F) (pl count : BitVec 64)
+    (atPl : s.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
+    (addr : s.memaddrs (pl + 56#64))
+    (mem : s.memory (pl + 56#64) = HolWordLab.word count) :
+    @evalHOLExact 64 F _ s.toExact
+      (fun address => Classical.propDecidable (s.memaddrs address))
+      (.load .one (.op .add [.var .local (ofString "pl"), .const (56#64)])) =
+      some (ValueHOL.val (HolWordLab.word count)) := by
+  simp [evalHOLExact, evalListHOLExact, panOpHOL, wordOpHOL, wordOp, valueIsWord, valueWord,
+    memLoadHOLExact, atPl, addr, mem]
+
 end InitECandidate.Runtime
