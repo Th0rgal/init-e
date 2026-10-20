@@ -1,0 +1,69 @@
+import InitECandidate.Runtime.ChargeWithMemoryTailFunding
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+set_option maxRecDepth 100000
+set_option maxHeartbeats 6000000
+/-- Actual charged memory tail protects all older scratch/control words apart
+from its exact four original header writes. -/
+theorem charge_with_memory_tail_upper_frame
+ (s post : PanSemStateFiniteExact 64 Guest.HostMemory)
+ (upper : Nat) (current : InterpreterFundingFrame) (ancestors : List InterpreterFundingFrame)
+ (layout : InterpreterFundingLayout s current.address.toNat upper (current::ancestors))
+ (base length capacity expansion pointer scratch fee total watched : BitVec 64) (value : ValueHOL 64)
+ (atFrame : s.globals.lookup (ofString "ev")=some (.val (.word current.address)))
+ (atTotal : s.locals.lookup (ofString "total")=some (.val (.word total)))
+ (atPair : s.locals.lookup (ofString "x")=some (.rStruct [.val (.word fee),.val (.word expansion)]))
+ (headerDomain : ∀offset∈([24,32,40] : List (BitVec 64)),s.memaddrs (current.address+offset))
+ (baseAt : s.memory (current.address+24)=.word base) (lengthAt : s.memory (current.address+32)=.word length)
+ (capacityAt : s.memory (current.address+40)=.word capacity)
+ (atPointer : s.globals.lookup (ofString "frame_mem_ptr")=some (.val (.word pointer)))
+ (atScratch : s.globals.lookup (ofString "scratch_ptr")=some (.val (.word scratch)))
+ (lengthOrder : length.toNat≤capacity.toNat) (expansionBound : expansion.toNat<2^38)
+ (oldExtent : base.toNat+capacity.toNat≤pointer.toNat) (ordered : pointer.toNat≤scratch.toNat)
+ (belowFrame : scratch.toNat≤current.address.toNat) (frameExtent : current.address.toNat+280≤33806089496)
+ (above : scratch.toNat≤watched.toNat)
+ (notLength : watched≠current.address+32) (notCapacity : watched≠current.address+40)
+ (notLeft : watched≠current.address+64) (notUsed : watched≠current.address+184)
+ (code : s.code=originalRuntimeCode)
+ (run : evaluateHOLFiniteState s (chargeWithMemoryAt 2)=(some (.returned value),post)) :
+ post.memory watched=s.memory watched := by
+ rw [source_charge_with_memory_2] at run
+ obtain ⟨charged,chargeRun,restRun⟩:=seq_returned_of_nonreturning_first
+  (fun v=>discard_call_not_returned s (ofString "charge_gas") _ v) run
+ have args : evalListHOLFinite s (h:=fun a=>Classical.propDecidable (s.memaddrs a)) [.var .local (ofString "total")]=some [.val (.word total)] := by
+  simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,atTotal]
+ obtain ⟨enough,chargedEq,funding,used,globals,clock,locals,_⟩:=charge_gas_discard_normal_funding s charged current.address.toNat upper current ancestors layout _ total args atFrame code chargeRun
+ have metadata:=evaluateHOLFiniteState_metadata s (.call (some (none,none)) (ofString "charge_gas") [.var .local (ofString "total")])
+ rw [chargeRun] at metadata
+ have chargedFrame : charged.globals.lookup (ofString "ev")=some (.val (.word current.address)) := by rw [globals];exact atFrame
+ have chargedPointer : charged.globals.lookup (ofString "frame_mem_ptr")=some (.val (.word pointer)) := by rw [globals];exact atPointer
+ have chargedScratch : charged.globals.lookup (ofString "scratch_ptr")=some (.val (.word scratch)) := by rw [globals];exact atScratch
+ have chargedDomain : ∀offset∈([24,32,40] : List (BitVec 64)),charged.memaddrs (current.address+offset) := by
+  intro offset member;rw [metadata.2.1];exact headerDomain offset member
+ have chargedBase : charged.memory (current.address+24)=.word base := by
+  rw [chargedEq];simpa [chargeGasCallPost,sourceWriteWord] using baseAt
+ have chargedLength : charged.memory (current.address+32)=.word length := by
+  rw [chargedEq];simpa [chargeGasCallPost,sourceWriteWord] using lengthAt
+ have chargedCapacity : charged.memory (current.address+40)=.word capacity := by
+  rw [chargedEq];simpa [chargeGasCallPost,sourceWriteWord] using capacityAt
+ have extensionArgs : evalListHOLFinite charged (h:=fun a=>Classical.propDecidable (charged.memaddrs a)) [.rfield 1 (.var .local (ofString "x"))]=some [.val (.word expansion)] := by
+  simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,locals,atPair]
+ rw [source_charge_with_memory_3] at restRun
+ obtain ⟨extended,extensionRun,returnRun⟩:=seq_returned_of_nonreturning_first
+  (fun v=>discard_call_not_returned charged (ofString "extend_memory") _ v) restRun
+ obtain ⟨_,newCapacity,nextPointer,_,_,_,_,_,_,_,_,_,_,memoryFrame,_,_,_⟩:=memory_extension_discard_normal_frame charged extended _ current.address base length capacity expansion pointer scratch chargedFrame extensionArgs chargedDomain chargedBase chargedLength chargedCapacity chargedPointer chargedScratch lengthOrder expansionBound oldExtent ordered belowFrame frameExtent (metadata.1.trans code) extensionRun
+ have chargedMemory : charged.memory watched=s.memory watched := by
+  rw [chargedEq]
+  change watched≠current.address+64#64 at notLeft
+  change watched≠current.address+184#64 at notUsed
+  simp [chargeGasCallPost,sourceWriteWord,notLeft,notUsed]
+ rw [source_charge_with_memory_4] at returnRun
+ have finalReturn : evaluateHOLFiniteState extended (.return (.const 0))=
+  (some (.returned (.val (.word (0#64)))),emptyLocalsHOLFinite extended) := by
+  simp [evaluateHOLFiniteState_return,evalHOLExact,shapeOfHOLExact]
+ obtain ⟨returned,postEq⟩:=Prod.mk.inj (returnRun.symm.trans finalReturn)
+ rw [postEq]
+ exact (memoryFrame watched above notLength notCapacity).trans chargedMemory
+#print axioms charge_with_memory_tail_upper_frame
+end InitECandidate.Runtime
