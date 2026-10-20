@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.TrieNodePaths
-import InitECandidate.Runtime.NodeInvalidateNibbleWorld
+import InitECandidate.Runtime.TrieStoredHeaderFrame
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.PanSemStateFiniteExact
 
@@ -19,31 +19,9 @@ theorem TrieNodePaths.after_record_fields {F : Type} {s post : PanSemStateFinite
  refine ⟨paths.leafCapacity,?_⟩
  intro node registered nonBranch
  obtain ⟨key,len,keyAt,lenAt,short,path⟩:=paths.paths node registered nonBranch
- have headerFrame (header : Nat) (which : header=32 ∨header=40) :
-  post.memory (node+BitVec.ofNat 64 header)=s.memory (node+BitVec.ofNat 64 header) := by
-  apply frame
-  intro field included
-  have capacity:=paths.header_capacity world.layout node registered nonBranch
-  apply world.layout.fields_ne node parent registered member header field
-   (by rcases which with rfl|rfl <;>omega) (inside field included)
-  by_cases same : node=parent
-  · subst node;right
-    rcases headerSafe with branch|safe
-    · exact False.elim (nonBranch branch)
-    · rcases which with rfl|rfl
-      · exact Ne.symm (safe field included).1
-      · exact Ne.symm (safe field included).2
-  · exact Or.inl same
- have nibbles : TrieNibbleRange post key len := by
-  apply path.nibbles.after_cells _ domain endian
-  intro offset small
-  apply frame
-  intro field included equal
-  have natural:=congrArg BitVec.toNat equal
-  rw [world.layout.field_nat parent member field (inside field included)] at natural
-  have fieldInside:=inside field included
-  rcases path.separate offset small parent member with before|after <;>omega
- refine ⟨key,len,?_,?_,short,nibbles,path.extent,path.separate⟩
+ have headerFrame := paths.stored_header_frame world parent member fields inside headerSafe frame node registered nonBranch
+ have keptPath:=path.after_record_fields world parent member fields inside frame domain endian
+ refine ⟨key,len,?_,?_,short,keptPath⟩
  · rw [show node+32=node+BitVec.ofNat 64 32 from rfl,headerFrame 32 (Or.inl rfl)];exact keyAt
  · rw [show node+40=node+BitVec.ofNat 64 40 from rfl,headerFrame 40 (Or.inr rfl)];exact lenAt
 
