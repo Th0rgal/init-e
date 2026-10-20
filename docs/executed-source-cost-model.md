@@ -116,3 +116,14 @@ them a static cost. `pan_to_loop_expression_work` composes this theorem with
 the Pan-to-Crep allowance, retaining coefficient six. These are generated-work
 bounds, not yet an executed trace or RISC-V runtime bound; instruction selection,
 register allocation, later lowering, and execution-frequency proofs remain.
+
+`LoopExecutedWork` now defines exact evaluator traces for the expression-code
+subset and proves soundness, allowance boundedness and completeness for every
+program accepted by the code-work function. Sequence traces stop on a terminal
+result; conditionals trace only their selected child, apply the exact `cutRes`,
+and include missing/nonword guard errors. Atom charges conservatively include
+full residual expression allowances, including when evaluation fails early.
+`compiled_pan_expression_trace` combines this completeness result with the
+coefficient-six theorem, so the allowance bounds an actual evaluator trace,
+with residual value work reserved for the enclosing statement. It remains a
+Loop work bound rather than a count of compiled RISC-V steps.
