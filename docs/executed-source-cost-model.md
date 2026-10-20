@@ -488,4 +488,27 @@ grammar with `sharpHeadPrice address + 1 ≤ B`:
 `sharpHeadPrice`, syntactically and for every context. It needs no layout or
 value hypothesis.
 
-Still remaining: whole-program entry composition.
+## Installed entry
+
+`SourceCostEntry.entry_loop_sharp_work` composes the transfers for the
+installed whole program fed to `pan_to_crep`. It starts from the initial states
+of the pinned `state_rel_imp_semantics` theorems: the `pan_to_crep` top-level
+relation with installed code, and the `crep_to_loop` relation with
+`compile_prog` of the `crep_arith`-simplified bodies.
+
+It states that the source run of `Call NONE start []` at any clock is matched
+by the installed Loop entry, whose `LoopWork` is at most `sharpScore` of the
+same canonical source events.
+
+The static premises are:
+
+- no inline declarations;
+- localised bodies;
+- the site certificate on every installed body;
+- the pinned premises of both semantics theorems;
+- the `start` lookup.
+
+For the guest, `GuestCostSharpSites` certifies the sites on `pass2`.
+
+Still remaining: the whole-program `pan_globals` step (generated main and global
+initialisers) and the `pan_simp` code-map step at top level.
