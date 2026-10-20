@@ -242,3 +242,70 @@ theorem wordPathWork_ite_sValEq_variant {C F : Type}
 #print axioms setVars_stack
 
 end InitECandidate.Runtime.WordToStack
+
+/-! ## Loop case: real attempt, currently red (errors in
+submission/docs/alloc-cost-stackswap-loop-errors.log)
+
+Exact errors to repair next:
+  * `cutState (names, .ln)` -- the pair's second component and `wordSemCutEnv`'s
+    argument shape must be read off `WordPathWork.lean` (the `cutState_stack`
+    helper in the compiled module is stated for the *pair*, so `hs` must be
+    unfolded with the same pair shape);
+  * `simp at hs` makes no progress in the `none` branch of `wordSemCutEnv`
+    -- use `cases hce : wordSemCutEnv ...` plus `rw [hce] at hs` and
+    `cases hs` instead;
+  * the record-update `{ cs with stack := xs }` in `hcs'`/`hmid` must use the
+    same shape that `cutState_stack` produces (it produced `some {c with
+    stack := xs}` only after rewriting `cutState_stack` at the *pair*).
+The rest of the plan is unchanged and already validated in the Seq case:
+`ihBody` at the swapped cut state, `hevT` from `evaluateStackSwap`, `hmid`/
+`hdec` record equalities, then `ihStop` at `decClock` of the fixed middle.
+-/
+
+/-- **Loop case, body completes normally.**  The cut state is only changed in its
+locals (so the swapped loop body runs from the value-equal cut state), the body
+run transports by `evaluateStackSwap`, and the recursive `wordSemSTOP` call is
+discharged by the clock-decreasing induction hypothesis. -/
+theorem wordPathWork_loop_sValEq_variant_of_none {C F : Type}
+    (names : WordLangCutsetsHOL) (body : WordLangProgHOL (BitVec 64))
+    (exitNames : WordLangCutsetsHOL)
+    (s cs middle : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64))
+    (hs : cutState (names, .ln) s = some cs)
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate body cs = (none, middle))
+    (ihBody : wordPathWork body { cs with stack := xs } = wordPathWork body cs)
+    (ihStop : ∀ (m : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64)),
+      WordSemStackEq.sValEq m.stack st →
+      wordPathWork (wordSemSTOP (.loop names body exitNames)) { m with stack := st } =
+        wordPathWork (wordSemSTOP (.loop names body exitNames)) m) :
+    wordPathWork (.loop names body exitNames) { s with stack := xs } =
+      wordPathWork (.loop names body exitNames) s := by
+  have hcsStack : cs.stack = s.stack := by
+    unfold WordSemStateFiniteExact.cutState at hs
+    cases wordSemCutEnv names s.locals with
+    | none => simp at hs
+    | some env =>
+        simp only [Option.some.injEq] at hs
+        rw [← hs]
+  have hvalCs : WordSemStackEq.sValEq cs.stack xs := by rw [hcsStack]; exact hval
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap body cs
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  dsimp only [WordSemStackEq.stackSwapRel] at hT
+  obtain ⟨-, -, hrun⟩ := hT
+  obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hvalCs
+  have hcs' : cutState (names, .ln) { s with stack := xs } = some { cs with stack := xs } := by
+    rw [cutState_stack, hs]
+  have hmid : (fixClock { cs with stack := xs }
+      ((none : Option (WordSemResult 64)), { middle with stack := st })).2 =
+      { (fixClock cs ((none : Option (WordSemResult 64)), middle)).2 with stack := st } := by
+    simp only [fixClock]
+  have hdec : decClock { (fixClock cs ((none : Option (WordSemResult 64)), middle)).2 with
+      stack := st } =
+      { decClock (fixClock cs ((none : Option (WordSemResult 64)), middle)).2 with
+          stack := st } := by
+    simp only [decClock]
+  rw [wordPathWork, wordPathWork, hcs', hs, ihBody, hevT, hev, hmid, hdec,
+    ihStop _ st (by rw [fixClock_stack_proj]; exact hvalT)]
+  split <;> rfl
+
