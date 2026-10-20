@@ -194,5 +194,47 @@ theorem addSat_noCarry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 6
     (initializer := addSatSumExpression) (body := addSatTail) init shapeMatch ?_
   simpa [addSatNoCarryEvents, addSatDeclaredBody, entry] using tailRun
 
+
+/-- Explicit price of the carry path of the saturating-add helper. -/
+theorem addSatCarryEvents_score (coeff : Work)
+    (s : PanSemStateFiniteExact 64 F) (sum : BitVec 64) :
+    coeff.score (executionWork (addSatCarryEvents s sum)) ≤
+      let entry := setVarHOLFinite (ofString "s") (.val (.word sum)) s
+      16 * coeff.statements +
+        expressionCost coeff s addSatSumExpression +
+        coeff.movedWords * (flattenHOL (.val (.word sum))).length + coeff.frameSlots +
+        expressionCost coeff entry addSatCarryExpression +
+        expressionCost coeff entry (.const addSatMaximum) +
+        coeff.movedWords * (flattenHOL (.val (.word addSatMaximum))).length +
+        coeff.movedWords * (((s.locals.lookup (ofString "s")).map
+          (fun previous => (flattenHOL previous).length)).getD 0) := by
+  unfold addSatCarryEvents expressionCost
+  simp only [executionWork_score_cons, executionWork_score_append, score_statement,
+    score_copy, score_frame, score_memory, score_singleton, score_expression,
+    executionWork_nil_score, List.append_nil]
+  omega
+
+/-- Explicit price of the no-carry path of the saturating-add helper. -/
+theorem addSatNoCarryEvents_score (coeff : Work)
+    (s : PanSemStateFiniteExact 64 F) (sum : BitVec 64) :
+    coeff.score (executionWork (addSatNoCarryEvents s sum)) ≤
+      let entry := setVarHOLFinite (ofString "s") (.val (.word sum)) s
+      16 * coeff.statements +
+        expressionCost coeff s addSatSumExpression +
+        coeff.movedWords * (flattenHOL (.val (.word sum))).length + coeff.frameSlots +
+        expressionCost coeff entry addSatCarryExpression +
+        expressionCost coeff entry (.var VarKind.local (ofString "s")) +
+        coeff.movedWords * (flattenHOL (.val (.word sum))).length +
+        coeff.movedWords * (((s.locals.lookup (ofString "s")).map
+          (fun previous => (flattenHOL previous).length)).getD 0) := by
+  unfold addSatNoCarryEvents expressionCost
+  simp only [executionWork_score_cons, executionWork_score_append, score_statement,
+    score_copy, score_frame, score_memory, score_singleton, score_expression,
+    executionWork_nil_score, List.append_nil]
+  omega
+
+#print axioms addSatCarryEvents_score
+#print axioms addSatNoCarryEvents_score
+
 #print axioms addSat_carry_run
 #print axioms addSat_noCarry_run
