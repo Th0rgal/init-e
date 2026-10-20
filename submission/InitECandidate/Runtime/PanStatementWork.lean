@@ -26,6 +26,48 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       StatementRun s (.ite condition yes no) r post
         (.statement :: (guardEvents ++ bodyEvents))
 
+  | breakStmt (s) : StatementRun s .break (some .break) s [.statement]
+  | continueStmt (s) : StatementRun s .continue (some .continue) s [.statement]
+  | whileFalse {s condition body guardEvents}
+      (guard : ExpressionRun s condition (some (.val (.word 0))) guardEvents) :
+      StatementRun s (.while condition body) none s (.statement :: guardEvents)
+  | whileNext {s condition body value guardEvents middle r post bodyEvents restEvents}
+      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
+      (one : StatementRun (decClockHOLFinite s) body none middle bodyEvents)
+      (rest : StatementRun middle (.while condition body) r post restEvents) :
+      StatementRun s (.while condition body) r post
+        (.statement :: (guardEvents ++ bodyEvents ++ restEvents))
+  | whileContinue {s condition body value guardEvents middle r post bodyEvents restEvents}
+      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
+      (one : StatementRun (decClockHOLFinite s) body (some .continue) middle bodyEvents)
+      (rest : StatementRun middle (.while condition body) r post restEvents) :
+      StatementRun s (.while condition body) r post
+        (.statement :: (guardEvents ++ bodyEvents ++ restEvents))
+  | whileBreak {s condition body value guardEvents post bodyEvents}
+      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
+      (one : StatementRun (decClockHOLFinite s) body (some .break) post bodyEvents) :
+      StatementRun s (.while condition body) none post
+        (.statement :: (guardEvents ++ bodyEvents))
+  | whileTimeout {s condition body value guardEvents}
+      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0) (clock : s.clock = 0) :
+      StatementRun s (.while condition body) (some .timeOut) (emptyLocalsHOLFinite s)
+        (.statement :: guardEvents)
+  | whileMissingGuard {s condition body guardEvents}
+      (guard : ExpressionRun s condition none guardEvents) :
+      StatementRun s (.while condition body) (some .error) s (.statement :: guardEvents)
+
+  | whilePropagate {s condition body value guardEvents post bodyEvents result}
+      (guard : ExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
+      (notBreak : result ≠ .break) (notContinue : result ≠ .continue)
+      (one : StatementRun (decClockHOLFinite s) body (some result) post bodyEvents) :
+      StatementRun s (.while condition body) (some result) post
+        (.statement :: (guardEvents ++ bodyEvents))
+
 theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
     (run : StatementRun s p r post events) : evaluateHOLFiniteState s p = (r, post) := by
@@ -52,6 +94,54 @@ theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     unfold expressionValue at evalGuard
     rw [evaluateHOLFiniteState_ite, evalGuard]
     simpa using ih
+
+  | breakStmt s => exact evaluateHOLFiniteState_break s
+  | continueStmt s => exact evaluateHOLFiniteState_continue s
+  | whileFalse guard =>
+    have hg := guard.sound
+    unfold expressionValue at hg
+    rw [evaluateHOLFiniteState_while_fixClockRewrite]
+    simp only [evalHOLFinite_eq_toExact, hg]
+    simp
+  | whileNext guard nonzero clock one rest ihOne ihRest =>
+    have hg := guard.sound
+    unfold expressionValue at hg
+    rw [evaluateHOLFiniteState_while_fixClockRewrite]
+    change _ ≠ (0#64) at nonzero
+    simp [evalHOLFinite_eq_toExact, hg, nonzero, clock, ihOne]
+    exact ihRest
+  | whileContinue guard nonzero clock one rest ihOne ihRest =>
+    have hg := guard.sound
+    unfold expressionValue at hg
+    rw [evaluateHOLFiniteState_while_fixClockRewrite]
+    change _ ≠ (0#64) at nonzero
+    simp [evalHOLFinite_eq_toExact, hg, nonzero, clock, ihOne]
+    exact ihRest
+  | whileBreak guard nonzero clock one ihOne =>
+    have hg := guard.sound
+    unfold expressionValue at hg
+    rw [evaluateHOLFiniteState_while_fixClockRewrite]
+    change _ ≠ (0#64) at nonzero
+    simp [evalHOLFinite_eq_toExact, hg, nonzero, clock, ihOne]
+  | whileTimeout guard nonzero clock =>
+    have hg := guard.sound
+    unfold expressionValue at hg
+    rw [evaluateHOLFiniteState_while_fixClockRewrite]
+    change _ ≠ (0#64) at nonzero
+    simp [evalHOLFinite_eq_toExact, hg, nonzero, clock]
+  | whileMissingGuard guard =>
+    have hg := guard.sound
+    unfold expressionValue at hg
+    rw [evaluateHOLFiniteState_while_fixClockRewrite]
+    simp only [evalHOLFinite_eq_toExact, hg]
+
+  | whilePropagate guard nonzero clock notBreak notContinue one ihOne =>
+    have hg := guard.sound
+    unfold expressionValue at hg
+    rw [evaluateHOLFiniteState_while_fixClockRewrite]
+    change _ ≠ (0#64) at nonzero
+    simp only [evalHOLFinite_eq_toExact, hg]
+    simp [nonzero, clock, ihOne, notBreak, notContinue]
 
 #print axioms StatementRun.sound
 end InitECandidate.Runtime.FineCost
