@@ -1,5 +1,7 @@
 import InitECandidate.Runtime.ActualPayloadHeaderPrefix
 import InitECandidate.Runtime.StatelessReach
+import InitECandidate.Runtime.KeccakGlobalsFrame
+import InitECandidate.Runtime.PanEvaluationMetadata
 import InitECandidate.Runtime.DecodeRequestsBodyBound
 
 namespace InitECandidate.Runtime
@@ -456,5 +458,165 @@ theorem actual_payload_header_construction_tail {F : Type} (state mid : PanSemSt
   · exact Or.inr (stAbort_mono mid _ 0 17 (by omega) ab1)
 
 #print axioms actual_payload_header_construction_tail
+
+/-- Statement 23 is the actual store `h[136] := load [pl + 24]` that carries the payload extra
+length into the header. -/
+theorem source_actual_payload_header_store_136 :
+    actualPayloadHeaderAt 23 = .seq (.store (.op .add [.var .local (ofString "h"), .const (136#64)])
+      (.load .one (.op .add [.var .local (ofString "pl"), .const (24#64)]))) (actualPayloadHeaderAt 24) := by
+  unfold actualPayloadHeaderAt
+  rfl
+
+/-- **The `h[136]` extra-length cell.**  The actual store `h[136] := load [pl + 24]` reads the extra
+length word from the payload and writes it into the header cell at `pointer + 136`; a failed load or a
+missing header cell is again a clock-free abort. -/
+theorem actual_payload_header_store_136_stage {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap extraLen : BitVec 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (plDomain : mid.memaddrs (pl + (24#64)))
+    (plCell : mid.memory (pl + (24#64)) = .word extraLen)
+    (headerDomain : mid.memaddrs (pointer + (136#64))) :
+    Reaches mid (actualPayloadHeaderAt 23)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer heap ∧
+        post.memory (pointer + (136#64)) = .word extraLen) 0 (actualPayloadHeaderAt 24) := by
+  rw [source_actual_payload_header_store_136]
+  have destination : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a))
+      (.op .add [.var .local (ofString "h"), .const (136#64)]) =
+      (some (ValueHOL.val (HolWordLab.word (pointer + (136#64)))) : Option (ValueHOL 64)) :=
+    actual_payload_header_eval_word_add mid (ofString "h") pointer (136#64) facts.2.2.1
+  have value : @evalHOLExact 64 F _ mid.toExact
+      (fun a => Classical.propDecidable (mid.memaddrs a))
+      (.load .one (.op .add [.var .local (ofString "pl"), .const (24#64)])) =
+      (some (ValueHOL.val (HolWordLab.word extraLen)) : Option (ValueHOL 64)) :=
+    actual_payload_header_eval_load mid (ofString "pl") pl (24#64) extraLen facts.1 plDomain plCell
+  have run := actual_payload_header_store_any mid _ _ (pointer + (136#64)) extraLen destination value
+    headerDomain
+  refine reaches_seq mid (.store (.op .add [.var .local (ofString "h"), .const (136#64)])
+    (.load .one (.op .add [.var .local (ofString "pl"), .const (24#64)]))) (actualPayloadHeaderAt 24) 0 _ ?_
+  refine Or.inl ⟨sourceWriteWord mid (pointer + (136#64)) extraLen,⟨ActualPayloadHeaderPrefix.write facts,?_⟩,
+    by simp [sourceWriteWord],by simp [sourceWriteWord],run⟩
+  simp [sourceWriteWord]
+
+#print axioms actual_payload_header_store_136_stage
+
+/-- **The actual `keccak256` call shape used by the header construction.** -/
+def actualPayloadHeaderKeccak : ProgHOL 64 :=
+  .call (some (none,none)) (ofString "keccak256")
+    [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")]
+
+/-- Statement 9 is the actual `keccak256(tmp, 1, oh)` call. -/
+theorem source_actual_payload_header_keccak_shape :
+    actualPayloadHeaderAt 9 = .seq actualPayloadHeaderKeccak (actualPayloadHeaderAt 10) := by
+  unfold actualPayloadHeaderAt actualPayloadHeaderKeccak
+  rfl
+
+/-- The actual `keccak256(tmp, 1, oh)` call preserves every global of the runtime, in every
+outcome -- including the allocator global `heap_ptr`. -/
+theorem actual_payload_header_keccak_globals {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (code : state.code = originalRuntimeCode) :
+    (evaluateHOLFiniteState state actualPayloadHeaderKeccak).2.globals = state.globals := by
+  have frame := keccak_call_globals_frame (F := F)
+    [.var .local (ofString "tmp"), .const (1#64), .var .local (ofString "oh")] state code
+  simpa only [actualPayloadHeaderKeccak] using frame
+
+#print axioms actual_payload_header_keccak_globals
+
+/-- Consequently the allocator binding survives the actual keccak call. -/
+theorem actual_payload_header_keccak_heap_ptr {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (code : state.code = originalRuntimeCode) :
+    (evaluateHOLFiniteState state actualPayloadHeaderKeccak).2.globals.lookup (ofString "heap_ptr") =
+      state.globals.lookup (ofString "heap_ptr") := by
+  rw [actual_payload_header_keccak_globals state code]
+
+#print axioms actual_payload_header_keccak_heap_ptr
+
+/-- On a normal return the actual `keccak256(tmp, 1, oh)` call gives back the callee's final state
+with the caller's locals restored verbatim; in particular `h`, `pl`, `raw`, `oh` and `tmp` keep their
+words after the call. -/
+theorem actual_payload_header_keccak_normal_locals {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (run : evaluateHOLFiniteState state actualPayloadHeaderKeccak = (none, mid)) :
+    ∃ postState : PanSemStateFiniteExact 64 F, mid = {postState with locals := state.locals} := by
+  classical
+  simp only [actualPayloadHeaderKeccak,evaluateHOLFiniteState_call] at run
+  split at run
+  · exact absurd run (by simp)
+  · split at run
+    · exact absurd run (by simp)
+    · split at run
+      · exact absurd run (by simp)
+      · repeat' first | split at run | skip
+        all_goals (try (exact absurd run (by simp)))
+        all_goals (try (repeat' first | split at run | skip))
+        all_goals (first
+          | exact ⟨_,by simpa using congrArg Prod.snd run.symm⟩
+          | exact absurd run (by simp))
+
+#print axioms actual_payload_header_keccak_normal_locals
+
+/-- **The complete post-keccak construction facts.**  Everything the construction needs about the
+state returned by the actual `keccak256(tmp, 1, oh)` call survives the call: the caller's locals are
+restored verbatim, the globals (hence `heap_ptr`) are untouched, and the general evaluation metadata
+theorem gives `mid.code = before.code` and `mid.memaddrs = before.memaddrs` for every program and
+every outcome.  This is the transport that lets the construction continue after the real call. -/
+theorem actual_payload_header_commit_after_keccak {F : Type} (state before mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp : BitVec 64)
+    (pre : ActualPayloadHeaderCommit state before pl raw pointer heap oh tmp)
+    (code : before.code = originalRuntimeCode)
+    (normal : evaluateHOLFiniteState before actualPayloadHeaderKeccak = (none, mid)) :
+    ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp := by
+  obtain ⟨postState, equal⟩ := actual_payload_header_keccak_normal_locals before mid normal
+  subst equal
+  have globals := actual_payload_header_keccak_globals before code
+  rw [normal] at globals
+  have picture := evaluateHOLFiniteState_metadata before actualPayloadHeaderKeccak
+  rw [normal] at picture
+  obtain ⟨plLocal,rawLocal,hLocal,heapGlobal,domain,codeFrame⟩ := pre.1
+  obtain ⟨ohLocal,tmpLocal⟩ := pre.2
+  refine ⟨⟨?_,?_,?_,?_,?_,?_⟩,?_,?_⟩
+  · simpa using plLocal
+  · simpa using rawLocal
+  · simpa using hLocal
+  · have globalEq : postState.globals = before.globals := by simpa using globals
+    rw [globalEq]
+    exact heapGlobal
+  · rw [picture.2.1]; exact domain
+  · rw [picture.1]; exact codeFrame
+  · simpa using ohLocal
+  · simpa using tmpLocal
+
+#print axioms actual_payload_header_commit_after_keccak
+
+/-- **The actual header construction from the keccak return to `block_rlp_length`.**  From the state
+returned by the actual `keccak256(tmp, 1, oh)` call, the rest of the source -- the stores
+`h[16..240]` with the struct stores and the opaque `bf` declaration, the allocations `txr`, `z8`,
+`wr`, `rh`, `bh`, the actual `memzero(z8, 8)` and the extra-length cell `h[136]` -- reaches index 40,
+immediately before the actual `block_rlp_length(h, pl)` call, in 19 ticks. -/
+theorem actual_payload_header_construction_from_keccak {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp : BitVec 64)
+    (facts : ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp)
+    (code : state.code = originalRuntimeCode)
+    (wordDomain : ∀ offset : Nat, offset < 256 → state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (small : (allocationEnd heap (32#64)).toNat + 8 ≤ 33806089496)
+    (aligned : (allocationEnd heap (32#64)).toNat % 8 = 0)
+    (fullDomain : ∀ address : BitVec 64, address.toNat < 33806089496 → state.memaddrs address)
+    (budget : 19 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 10)
+      (ActualPayloadHeaderPrefix state · pl raw pointer
+        (allocationEnd (allocationEnd (allocationEnd (allocationEnd (allocationEnd heap (32#64)) (8#64))
+          (32#64)) (32#64)) (32#64))) 19 (actualPayloadHeaderAt 40) := by
+  have after := actual_payload_header_construction_after_keccak state mid pl raw pointer heap oh tmp facts
+    code wordDomain (by omega)
+  rcases after with ⟨E1, pE1, c1, c2, sc1⟩ | ab
+  · have tail := actual_payload_header_construction_tail state E1 pl raw pointer
+      (allocationEnd heap (32#64)) pE1.1.1 code small aligned fullDomain (by omega)
+    rcases tail with ⟨E2, pE2, d1, d2, sd⟩ | ab2
+    · refine Or.inl ⟨E2, pE2, by omega, by omega, scoped_trans sc1 sd⟩
+    · obtain ⟨x, a1, a2, a3, a4, a5⟩ := ab2
+      have ck := sc1.2.1
+      exact Or.inr ⟨x, sc1.1.trans a1, a2, by omega, by omega, fun t => a5 (by omega)⟩
+  · exact Or.inr (stAbort_mono mid _ 2 19 (by omega) ab)
+
+#print axioms actual_payload_header_construction_from_keccak
 
 end InitECandidate.Runtime
