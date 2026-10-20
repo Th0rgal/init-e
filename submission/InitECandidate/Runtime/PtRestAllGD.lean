@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.PtRestGD
+import InitECandidate.Runtime.PtBl2GD
 /-!
 The actual `process_transaction` remainder `ptRest134` from the suffix state at `del` (spine drop 126 heap pointer
 `Hb`, both block lists valid): the final suffix state `PZ` over the fresh words `[Hb, Hg)` (`Hg` the heap pointer at
@@ -14,10 +14,6 @@ variable {D : BitVec 64 → Prop} {B : Bool} {w : BitVec 64} {RR : ValueHOL 64 �
   {SP0 P0 FM : BitVec 64} {G0 : GA}
   {n : Nat} {c T : Fin n → BitVec 64} {Out : BitVec 64 → Prop} {ko kd kA kB k16 : Fin n}
   {Excl : BitVec 64 → Prop} {J C SKB Bo U Sc Ts Bs : BitVec 64} {M0 : Mem} {W40 W72 : BitVec 64 → Prop}
-
-/-- Both block lists over the fresh words `[Hb, Hg)`. -/
-def BL2 (W40 W72 : BitVec 64 → Prop) (Hb L40 L72 : BitVec 64) (M : Mem) (G : GA) : Prop :=
-  BL W40 Hb L40 8#64 M G ∧ BL W72 Hb L72 8#64 M G
 
 /-- Named frame contract of `incorporate_tx_into_block()` at the suffix call site (staging): the final suffix state
 and both block lists are kept. -/
@@ -38,17 +34,6 @@ def OutRecObl (D : BitVec 64 → Prop) (B : Bool) (SP0 FM : BitVec 64) (n : Nat)
   ∀ (Hg : BitVec 64) (L : GA) (M : Mem) (G : GA),
     (LPS Ix L ∧ PZ n c T Out ko D B Excl Hb Hg M0 M G) ∧ BL2 W40 W72 Hb L40 L72 M G →
       ∃ Y : BitVec 64, L.lookup (ofString "out") = some (.val (.word Y)) ∧ OutRec SP0 FM Y M
-
-theorem bl_frameX {Wb : BitVec 64 → Prop} {Hb Lh Lo Hg H H' : BitVec 64} {M M' : Mem} {G G' : GA}
-    (h : BL Wb Hb Lh 8#64 M G) (hW : ∀ x, Wb x → Out x ∧ ¬ InJ J C x ∧ ¬ SkWin SKB x)
-    (hH : HeapIs G H) (hH' : HeapIs G' H') (le : H.toNat ≤ H'.toNat)
-    (keep : ∀ x, OutX Out Lo Hg x → ¬ InJ J C x → ¬ SkWin SKB x → M' x = M x) : BL Wb Hb Lh 8#64 M' G' :=
-  bl_frame h (fun x hx => let k := hW x (h.1 x hx); keep x (Or.inl k.1) k.2.1 k.2.2)
-    (fun H2 h2 => ⟨H',hH',by have := heapIs_unique hH h2; subst this; exact le⟩)
-
-theorem bl_gupd {Wb : BitVec 64 → Prop} {Hb Lh : BitVec 64} {M : Mem} {G : GA} (h : BL Wb Hb Lh 8#64 M G)
-    (gname : MlS) (v : ValueHOL 64) (hn : ofString "heap_ptr" ≠ gname) : BL Wb Hb Lh 8#64 M (G.update (gname,v)) :=
-  bl_frame h (fun _ _ => rfl) (fun H hH => ⟨H,by unfold HeapIs at *; rw [lookup_update_ne' _ _ hn]; exact hH,le_refl _⟩)
 
 /-- The actual remainder `ptRest134` of `process_transaction` from the suffix state at `del`. -/
 theorem ptRest134_aqgd {QM : Mem → GA → Prop} (Ix L40 L72 Hb Nj Nl Lp : BitVec 64)
