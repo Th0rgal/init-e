@@ -3,6 +3,7 @@ import InitECandidate.Runtime.HtabUnionInto
 import InitECandidate.Runtime.OriginalPtSufCode
 import InitECandidate.Runtime.DivmnuWindowGD
 import InitECandidate.Runtime.DigitsDivmodGD
+import InitECandidate.Runtime.EncAdaptGD
 /-!
 The actual `htab_union_into(dst, src)` into a registry table `dst = T kt` (`kt ≠ ko`) from any source pointer: the
 source's count and items are read only (`htab_item` is a memory frame); every used item is inserted by the original
@@ -153,5 +154,45 @@ theorem htabUnionReg_aqgd (kt : Fin n) (ne : kt ≠ ko) (p0 : P0.toNat ≤ H0.to
       exact ⟨⟨ul_upd ul _ _ (by decide) (by decide),Iv + 1,lookup_update_eq' _ _ _⟩,rs⟩))
 
 #print axioms htabUnionReg_aqgd
+/-- `htab_union_into(lds(bs + kb), lds(ts + ks))` into the registry table `kd'` at the cell `bs + kb` (`kd' ≠ ko`), the
+source read through the static global `ts`. -/
+theorem aqgd_call_unionReg {LP : GA → Prop} {RR : ValueHOL 64 → Mem → GA → Prop} (kd' : Fin n) (ne : kd' ≠ ko)
+    (Bs kb ks : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs))) (hc : c kd' = Bs + kb)
+    (p0 : P0.toNat ≤ H0.toNat) (hOut : Out w) :
+    AQGD D B (JWS SP0 P0 FM G0 J C SKB) w (fun _ => False)
+      (fun L M G => LP L ∧ URS n c T Out ko D B H0 Nj M0 M G) (fun L M G => LP L ∧ URS n c T Out ko D B H0 Nj M0 M G)
+      RR
+      (.call (some (none,none)) (ofString "htab_union_into")
+        [.load .one (.op .add [.var .global (ofString "bs"),.const kb]),
+         .load .one (.op .add [.var .global (ofString "ts"),.const ks])]) := by
+  refine aqgd_conseq (P := fun L M G => ∃ H : BitVec 64, LP L ∧ (HeapIs G H ∧ H0.toNat ≤ H.toNat ∧
+      RegT n c T Out H M D B ko ∧ G.lookup (ofString "journal_n") = some (.val (.word Nj)) ∧ ∀ x, Out x → M x = M0 x))
+    (aqgd_ex (fun H => ?_)) (fun L M G ⟨lp,H,rest⟩ => ⟨H,lp,rest⟩) (fun _ _ _ h => h) (fun _ _ _ h => h)
+  refine aqgd_callSpec (Vn' := fun x => x ≠ ofString "s")
+    (Pe := fun _ M0' G0' L M G => UL (T kd') L ∧ RegT n c T Out H M D B ko ∧ M = M0' ∧ HeapIs G H ∧
+      G.lookup (ofString "journal_n") = some (.val (.word Nj)))
+    (RRe := fun _ M0' G0' _ M' G' => URS n c T Out ko D B H Nj M0' M' G')
+    _ _ _ _ _ originalRuntimeCode_htabUnionInto_lookup (by simp)
+    (fun _ M0' _ ⟨_,_,hle,_,_,_⟩ => htabUnionReg_aqgd (M0 := M0') (Nj := Nj) kd' ne (by omega) hOut) ?_ ?_
+  · intro F s values callee rs aw G hG ⟨_,hH,hle,reg,hn,_⟩ _ args lookup
+    unfold GIs at hG; subst hG
+    obtain ⟨l,pure,mem,tc,ab⟩ := reg
+    obtain ⟨eg,_⟩ := aw.1.1.2.2.2 (ofString "bs") (by decide)
+    obtain ⟨v1,vs,rfl,ev1,r1⟩ := evalList_cons' s _ _ _ args
+    obtain ⟨v2,vs2,rfl,ev2,r2⟩ := evalList_cons' s _ _ _ r1
+    have := evalList_nil' s _ r2; subst this
+    have e1 := ev_load_goff s _ Bs kb v1 (by rw [eg]; exact hBs) ev1
+    rw [← hc,(mem kd').1] at e1
+    subst e1
+    obtain ⟨y,rfl⟩ := isWord_load s _ v2 ev2
+    rw [pan_two_word_lookup _ _ _ _ _ _ _ (by decide) originalRuntimeCode_htabUnionInto_lookup] at lookup
+    simp only [Option.some.injEq,Prod.mk.injEq] at lookup
+    obtain ⟨_,rfl,_⟩ := lookup
+    exact ⟨⟨by simp (config := {decide := true}) [HolFiniteMapExact.lookup_update,FUPDATE],y,
+      by simp (config := {decide := true}) [HolFiniteMapExact.lookup_update,FUPDATE]⟩,⟨l,pure,mem,tc,ab⟩,rfl,hH,hn⟩
+  · intro L M G v M' G' ⟨lp,hH,hle,reg,hn,fr⟩ ⟨H',hH',hle',reg',hn',fr'⟩
+    exact ⟨lp,H',hH',by omega,reg',hn',fun x ho => (fr' x ho).trans (fr x ho)⟩
+
+#print axioms aqgd_call_unionReg
 end un
 end InitECandidate.Runtime
