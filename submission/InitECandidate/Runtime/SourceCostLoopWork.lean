@@ -4,10 +4,11 @@ import Flapjack.Pancake.Semantics.LoopProps.NestedSeqExact
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-/-- Local cost of a non-recursive Loop statement: one dispatch unit plus the
-residual expression work and moved variable counts it actually touches. -/
+/-- Local work of a non-recursive Loop statement. Structural Skip emits no
+operation; executable leaves pay dispatch plus their actual expression/move work. -/
 def loopWorkLeafCost : HolLoopProg 64 → Option Nat
-  | .skip | .fail | .arith _ | .load32 _ _ | .loadByte _ _ | .store32 _ _ | .storeByte _ _
+  | .skip => some 0
+  | .fail | .arith _ | .load32 _ _ | .loadByte _ _ | .store32 _ _ | .storeByte _ _
   | .break _ | .continue _ | .raise _ | .tick | .locValue _ _ | .ffi _ _ _ _ _ _ => some 1
   | .assign _ value | .store value _ | .setGlobal _ value | .shMem _ _ value =>
       some (1 + loopValueWork value)

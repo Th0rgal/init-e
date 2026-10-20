@@ -229,3 +229,25 @@ Otherwise pan_simp association changes can add arbitrarily many charged Seq
 entries before an early exit. The corresponding shared-core epoch is being
 implemented and must be independently replayed before integration. The optimizer
 checkpoint is independent of it: LoopWork sequencing was already free.
+
+Native control checkpoint: StackWeightedControl derives costed prefixes for
+actual flattened Break and LocValue under the original FlattenHyps. Break uses
+a local allowance of two native instructions; LocValue uses the visited line's
+materialization/padding allowance. A flattened return to an explicitly valid
+installed location uses a one-instruction indirect jump, preserving the original
+state relation. Full conditional/loop/call backend composition remains open.
+
+Loop Skip now costs zero, matching its absence of emitted operations and the
+source worker's lowering model. SourceCostLoopWork and all eighteen optimizer
+modules were independently replayed against this change; the factor-one theorem
+continues to hold. The separate PanStatementWork Seq-free epoch remains pending.
+
+Budget audit: the generic sourceCrepWeights followed by factor-seven Loop
+transfer is a coverage bound, not yet a usable final numeric bound. The currently
+reported Seq-free u256_add vector (9 statements, 44 expressions, 102 moved words,
+4 frame slots) evaluates to 1976 under sourceCrepWeights, hence 13,832 Loop units
+under that envelope. A gas-3 ADD has only 13,500 native steps per execution at
+the overall 900-billion/200-million ratio, before other helpers and overhead.
+The final route therefore needs sharper local/vector transfer inequalities,
+especially avoiding the bulk-load allowance on load-free helper expressions;
+multiplying existing generic stage envelopes cannot establish the target score.
