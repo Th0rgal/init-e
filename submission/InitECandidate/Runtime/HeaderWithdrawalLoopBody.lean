@@ -4,6 +4,7 @@ import InitECandidate.Runtime.PanSingleWordLookup
 import InitECandidate.Runtime.CountedLoop
 import InitECandidate.Runtime.StoreLoopWindow
 import InitECandidate.Runtime.PanEvaluationMetadata
+import InitECandidate.Runtime.RlpWithdrawalGlobalsFuel
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
@@ -23,7 +24,7 @@ theorem wd_slice_step_window {F : Type} (t : PanSemStateFiniteExact 64 F)
     (atCounter : t.locals.lookup (ofString "i") = some (.val (.word counter)))
     (atSlices : t.globals.lookup (ofString "wd_rlp_slices") = some (.val (.word slices)))
     (atHeap : t.globals.lookup (ofString "heap_ptr") = some (.val (.word heapBase)))
-    (code : t.code = originalRuntimeCode) (clock : 3 ≤ t.clock)
+    (code : t.code = originalRuntimeCode)
     (heapBound : heapBase.toNat + 64 < 2^64)
     (out : ¬ MWin heapBase 64 w)
     (slice0 : w ≠ slices + counter * 16#64)
@@ -70,14 +71,11 @@ theorem wd_slice_step_window {F : Type} (t : PanSemStateFiniteExact 64 F)
     have entryCode : (callEntryStateHOLFinite t (wdEncoderCallee argumentWord)).code =
         originalRuntimeCode := by
       simpa [callEntryStateHOLFinite] using code
-    have entryClock : 2 ≤ (callEntryStateHOLFinite t (wdEncoderCallee argumentWord)).clock := by
-      simp only [callEntryStateHOLFinite]
-      omega
     have baseSlices : base.globals.lookup (ofString "wd_rlp_slices") = some (.val (.word slices)) := by
-      have kept := rlpEncodeWithdrawal_other_globals
+      have kept := rlpEncodeWithdrawal_other_globals_fuel
         (callEntryStateHOLFinite t (wdEncoderCallee argumentWord)) base heapBase
         (.rStruct [.val (.word first),.val (.word second)]) (ofString "wd_rlp_slices")
-        entryHeap entryCode entryClock (show ofString "wd_rlp_slices" ≠ ofString "heap_ptr" by decide)
+        entryHeap entryCode (show ofString "wd_rlp_slices" ≠ ofString "heap_ptr" by decide)
         bodyRun
       rw [kept]
       simpa [callEntryStateHOLFinite] using atSlices
@@ -133,6 +131,33 @@ theorem cond_less_small {F : Type} (s : PanSemStateFiniteExact 64 F) (I N v : Bi
     rw [← hv]
     decide
 
+/-- A normal completion of one slice iteration forces nonzero fuel at the iteration state. -/
+theorem wd_slice_step_clock_ne {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (argumentWord : BitVec 64) (code : t.code = originalRuntimeCode)
+    (hargs : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+      [.op .add [.load .one (.op .add [.var .local (ofString "pl"), .const (48#64)]),
+        .panop .mul [.var .local (ofString "i"), .const (44#64)]]] =
+      some [ValueHOL.val (HolWordLab.word argumentWord)])
+    (normal : (evaluateHOLFiniteState t wdSliceLoopBody).1 = none) : t.clock ≠ 0 := by
+  intro hz
+  have installed : t.code.lookup (ofString "encode_withdrawal_rlp") =
+      some ([(ofString "wd",.one)],sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp,
+        .comb [.one,.one]) := by
+    rw [code]; exact originalRuntimeCode_encode_withdrawal_rlp_lookup
+  have lookup := pan_single_word_lookup_shape t.code.lookup (ofString "encode_withdrawal_rlp")
+    (ofString "wd") (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) argumentWord
+    (.comb [.one,.one]) installed
+  have zero := evaluateHOLFiniteState_decCall_clock_zero t (ofString "e") (.comb [.one,.one])
+    (ofString "encode_withdrawal_rlp")
+    [.op .add [.load .one (.op .add [.var .local (ofString "pl"), .const (48#64)]),
+      .panop .mul [.var .local (ofString "i"), .const (44#64)]]]
+    wdSliceLoopStores [ValueHOL.val (HolWordLab.word argumentWord)]
+    (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) (wdEncoderCallee argumentWord)
+    (.comb [.one,.one]) hargs lookup hz
+  rw [wdSliceLoopBody] at normal
+  rw [zero] at normal
+  cases normal
+
 /-- The stores of one iteration are a counted step on `i` by one. -/
 theorem wdSliceLoopStores_adv : AdvStep (ofString "i") (1#64) wdSliceLoopStores := by
   rw [wdSliceLoopStores]
@@ -153,7 +178,7 @@ theorem wd_slice_stores_globals_frame : OriginalGlobalsFrame wdSliceLoopStores :
 the two-word slice record. -/
 theorem wd_slice_step_outcome {F : Type} (t : PanSemStateFiniteExact 64 F)
     (argumentWord : BitVec 64)
-    (code : t.code = originalRuntimeCode) (clock : 3 ≤ t.clock)
+    (code : t.code = originalRuntimeCode)
     (hargs : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
       [.op .add [.load .one (.op .add [.var .local (ofString "pl"), .const (48#64)]),
         .panop .mul [.var .local (ofString "i"), .const (44#64)]]] =
@@ -172,11 +197,12 @@ theorem wd_slice_step_outcome {F : Type} (t : PanSemStateFiniteExact 64 F)
   have lookup := pan_single_word_lookup_shape t.code.lookup (ofString "encode_withdrawal_rlp")
     (ofString "wd") (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) argumentWord
     (.comb [.one,.one]) installed
+  have clockNe := wd_slice_step_clock_ne t argumentWord code hargs normal
   rw [wdSliceLoopBody,evaluateHOLFiniteState_decCall_total,hargs] at normal
   dsimp only at normal
   rw [lookup] at normal
   dsimp only at normal
-  rw [if_neg (by omega)] at normal
+  rw [if_neg clockNe] at normal
   cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite t (wdEncoderCallee argumentWord))
       (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) with
   | mk rb st =>
@@ -207,7 +233,7 @@ theorem wd_slice_step_successor {F : Type} (t : PanSemStateFiniteExact 64 F)
     (freshE : t.locals.lookup (ofString "e") = none)
     (atSlices : t.globals.lookup (ofString "wd_rlp_slices") = some (.val (.word slices)))
     (atHeap : t.globals.lookup (ofString "heap_ptr") = some (.val (.word heapBase)))
-    (code : t.code = originalRuntimeCode) (clock : 3 ≤ t.clock)
+    (code : t.code = originalRuntimeCode)
     (hargs : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
       [.op .add [.load .one (.op .add [.var .local (ofString "pl"), .const (48#64)]),
         .panop .mul [.var .local (ofString "i"), .const (44#64)]]] =
@@ -245,10 +271,6 @@ theorem wd_slice_step_successor {F : Type} (t : PanSemStateFiniteExact 64 F)
       (HolFiniteMapExact.empty.update (ofString "wd",ValueHOL.val (HolWordLab.word argumentWord)))).code =
       originalRuntimeCode := by
     simpa [callEntryStateHOLFinite] using code
-  have entryClock : 2 ≤ (callEntryStateHOLFinite t
-      (HolFiniteMapExact.empty.update (ofString "wd",ValueHOL.val (HolWordLab.word argumentWord)))).clock := by
-    simp only [callEntryStateHOLFinite]
-    omega
   have stCode : st.code = originalRuntimeCode := by
     have metadata := evaluateHOLFiniteState_metadata
       (callEntryStateHOLFinite t (HolFiniteMapExact.empty.update (ofString "wd",
@@ -257,19 +279,19 @@ theorem wd_slice_step_successor {F : Type} (t : PanSemStateFiniteExact 64 F)
     rw [bodyRun] at metadata
     exact metadata.1.trans entryCode
   have baseSlices : st.globals.lookup (ofString "wd_rlp_slices") = some (.val (.word slices)) := by
-    have kept := rlpEncodeWithdrawal_other_globals
+    have kept := rlpEncodeWithdrawal_other_globals_fuel
       (callEntryStateHOLFinite t (HolFiniteMapExact.empty.update (ofString "wd",
         ValueHOL.val (HolWordLab.word argumentWord)))) st heapBase
       (.rStruct [.val (.word first),.val (.word second)]) (ofString "wd_rlp_slices")
-      entryHeap entryCode entryClock (show ofString "wd_rlp_slices" ≠ ofString "heap_ptr" by decide) bodyRun
+      entryHeap entryCode (show ofString "wd_rlp_slices" ≠ ofString "heap_ptr" by decide) bodyRun
     rw [kept]
     simpa [callEntryStateHOLFinite] using atSlices
   have baseHeap : st.globals.lookup (ofString "heap_ptr") =
       some (.val (.word (allocationEnd heapBase 64))) :=
-    rlpEncodeWithdrawal_heap
+    rlpEncodeWithdrawal_heap_fuel
       (callEntryStateHOLFinite t (HolFiniteMapExact.empty.update (ofString "wd",
         ValueHOL.val (HolWordLab.word argumentWord)))) st heapBase
-      (.rStruct [.val (.word first),.val (.word second)]) entryHeap entryCode entryClock bodyRun
+      (.rStruct [.val (.word first),.val (.word second)]) entryHeap entryCode bodyRun
   set contState : PanSemStateFiniteExact 64 F :=
     setVarHOLFinite (ofString "e") (.rStruct [.val (.word first),.val (.word second)])
       { st with
@@ -299,7 +321,7 @@ theorem wd_slice_step_successor {F : Type} (t : PanSemStateFiniteExact 64 F)
     dsimp only
     rw [lookup]
     dsimp only
-    rw [if_neg (by omega)]
+    rw [if_neg (wd_slice_step_clock_ne t argumentWord code hargs normal)]
     rw [bodyRun]
     dsimp only [fixClockHOLFinite]
     simp only [shapeOk,Bool.and_self,if_true,ite_true]
