@@ -14,7 +14,7 @@ theorem finset_filter_range_card (n : Nat) (p : Nat → Bool) :
 
 /-- Linked order entries with the occupancy count: every live order position names an occupied slot
 (the occupied slots inject into the positions below the count, and both sets have that size). -/
-theorem HashOrderLinked.order_occupied {F : Type} {s : PanSemStateFiniteExact 64 F}
+theorem HashOrderLinked.order_occupied_slot {F : Type} {s : PanSemStateFiniteExact 64 F}
     {used order orderPos capacity items : BitVec 64} (linked : HashOrderLinked used order orderPos capacity items s)
     (agreement : items.toNat = hashOccupiedCount capacity (hashOccupancyRead s used)) (k : BitVec 64)
     (hk : k.toNat < items.toNat) :
@@ -56,7 +56,7 @@ theorem HashOrderLinked.order_occupied {F : Type} {s : PanSemStateFiniteExact 64
   rw [pe] at spec
   exact ⟨BitVec.ofNat 64 i,ofLt i (memS i hi).1,(memS i hi).2,spec⟩
 
-#print axioms HashOrderLinked.order_occupied
+#print axioms HashOrderLinked.order_occupied_slot
 
 /-- Every registered table header is 8-aligned. A property of the registry set alone: it holds for the
 fresh-transaction field registry and survives `insert` of a new `htab_new` table, whose header is the aligned
@@ -170,7 +170,7 @@ theorem TransactionRegistryWorld.outer_ok {F : Type} {widths : BitVec 64 → Bit
     ⟨dom _ (by omega),by rw [es]; exact inv.cell8,foot _ (inO _ (by omega) (by omega))⟩,
     ⟨dom _ (by omega),by rw [ev]; exact inv.cell40,foot _ (inO _ (by omega) (by omega))⟩,fun k hk' => ?_⟩
   rw [en] at hk'
-  obtain ⟨slot,slt,occ,cellO⟩ := linked.order_occupied inv.agreement k hk'
+  obtain ⟨slot,slt,occ,cellO⟩ := linked.order_occupied_slot inv.agreement k hk'
   obtain ⟨u,cellV⟩ := vword slot slt occ
   have kO : (order + k * 8).toNat = order.toNat + k.toNat * 8 := idx8_toNat _ _ (by omega)
   have kV : (values + slot * 8).toNat = values.toNat + slot.toNat * 8 := idx8_toNat _ _ (by omega)
