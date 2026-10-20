@@ -265,6 +265,73 @@ theorem chargeGas_call_run (coeff : Work) (state : PanSemStateFiniteExact 64 Gue
     coeff arguments lookup clock bodyRun planEq
   exact ⟨bodyEvents, result, post, bodyRun, planEq, call.1, call.2⟩
 
+
+
+/-- An empty event list records no work. -/
+theorem executionWork_nil_score (coeff : Work) :
+    coeff.score (executionWork ([] : List WorkEvent)) = 0 := by
+  simp [executionWork, Work.score]
+
+/-- The exact recorded work of one successful `charge_gas` helper execution, in
+source order: the `dec gl` initialiser and its frame slot, the real out-of-gas
+guard, the debit store, the spent store, the final `return 0`, and the restored
+previous `gl` value. -/
+noncomputable def chargeGasBodyEvents (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame left used amount : BitVec 64) : List WorkEvent :=
+  let entry := setVarHOLFinite (ofString "gl") (.val (.word left)) s
+  let s1 := { entry with memory := writeWordMemory entry (frame + 64) (left - amount) }
+  let s2 := { s1 with memory := writeWordMemory s1 (frame + 184) (used + amount) }
+  let iteEvents := .statement :: (expressionEvents entry chargeGasCheck ++ [.statement])
+  let storeA := .statement :: (expressionEvents entry (fundingAddress 64) ++
+    expressionEvents entry gasDebitExpression ++
+    [.memory (flattenHOL (.val (.word (left - amount)))).length])
+  let storeB := .statement :: (expressionEvents s1 (fundingAddress 184) ++
+    expressionEvents s1 chargeGasUsedExpression ++
+    [.memory (flattenHOL (.val (.word (used + amount)))).length])
+  let ret := .statement :: (expressionEvents s2 (.const 0) ++
+    [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])
+  let tailEvents := .statement :: (storeA ++ (.statement :: (storeB ++ ret)))
+  let bodyEvents := .statement :: (iteEvents ++ tailEvents)
+  .statement ::
+    (((expressionEvents s (fundingLoad 64) ++
+        [.copy (flattenHOL (.val (.word left))).length, .frame 1]) ++ bodyEvents) ++
+      [.copy (((s.locals.lookup (ofString "gl")).map
+        (fun previous => (flattenHOL previous).length)).getD 0)])
+
+/-- Explicit coefficient price of one successful `charge_gas` helper execution.
+Sixteen statement entries cover the helper's own three statements together with
+the `seq`/`ite` structure the compiler emits around them, so the coefficient
+multiplying `statements` is an over-count rather than a sharp count; every other
+term is the exact recorded size of the real work: each compiled expression's own
+cost, the copied `gl` word, the frame slot, the two word writes, the returned
+word, and the restored previous `gl` value. -/
+theorem chargeGasBodyEvents_score (coeff : Work)
+    (s : PanSemStateFiniteExact 64 Guest.HostMemory) (frame left used amount : BitVec 64) :
+    coeff.score (executionWork (chargeGasBodyEvents s frame left used amount)) ≤
+      let entry := setVarHOLFinite (ofString "gl") (.val (.word left)) s
+      let s1 := { entry with memory := writeWordMemory entry (frame + 64) (left - amount) }
+      let s2 := { s1 with memory := writeWordMemory s1 (frame + 184) (used + amount) }
+      16 * coeff.statements +
+        expressionCost coeff s (fundingLoad 64) +
+        coeff.movedWords * (flattenHOL (.val (.word left))).length + coeff.frameSlots +
+        expressionCost coeff entry chargeGasCheck +
+        expressionCost coeff entry (fundingAddress 64) +
+        expressionCost coeff entry gasDebitExpression +
+        coeff.memoryAccesses * (flattenHOL (.val (.word (left - amount)))).length +
+        expressionCost coeff s1 (fundingAddress 184) +
+        expressionCost coeff s1 chargeGasUsedExpression +
+        coeff.memoryAccesses * (flattenHOL (.val (.word (used + amount)))).length +
+        expressionCost coeff s2 (.const 0) +
+        coeff.movedWords * (flattenHOL (.val (.word (0 : BitVec 64)))).length +
+        coeff.movedWords * (((s.locals.lookup (ofString "gl")).map
+          (fun previous => (flattenHOL previous).length)).getD 0) := by
+  unfold chargeGasBodyEvents expressionCost
+  simp only [executionWork_score_cons, executionWork_score_append, score_statement,
+    score_copy, score_frame, score_memory, score_singleton, score_expression,
+    executionWork_nil_score, List.append_nil]
+  omega
+
+#print axioms chargeGasBodyEvents_score
 #print axioms chargeGas_call_run
 #print axioms chargeGas_body_run
 
