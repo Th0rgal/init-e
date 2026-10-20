@@ -72,7 +72,7 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
         { t with structs := [] } (fun a => Classical.propDecidable (t.memaddrs a))
         (compileTopExactHOL code start) = some T ∧
       ∃ r' post' ev', StatementRun { T with clock := T.clock + 1 } (.call none start []) r' post' ev' ∧
-        sharpSourceScore B ev' ≤ sharpSourceScore B ev +
+        r' ≠ some .error ∧ sharpSourceScore B ev' ≤ sharpSourceScore B ev +
           globalsTopInit rshape (code.filter isDeclHOL).length (callPayloadWords r) := by
   classical
   obtain ⟨hdistinct, ht, hcode, hglobals, halign, hgood, rfl, rfl, hdisj, hmem,
@@ -374,7 +374,15 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
     with ⟨res, pst⟩ | ⟨e, p⟩
   · have outer := StatementRun.callDone (s := { T with clock := T.clock + 1 }) args0 hlk
       (by simp) bodyRun hplan
-    refine ⟨res, pst, _, outer, ?_⟩
+    have srcLk : C2.lookup nm = some ([], fpermHOL start nm body, rshape) := by
+      rw [hC2def, emptyUpdateListLookup _ _ hfpNodup]
+      exact lookupOfMemNodup _ _ _ hbodyMem hfpNodup
+    have resOk : res ≠ some .error := by
+      have hplan' := hplan
+      rw [globals_compile_call_entry] at hr2
+      rw [hr2] at hplan'
+      exact entry_plan_ok erun ok (entry_lookup_noargs srcLk) _ _ hplan'
+    refine ⟨res, pst, _, outer, resOk, ?_⟩
     have structsT : T.structs = [] := by rw [hT]
     rw [globals_compile_call_entry] at hr2
     rw [hr2] at outer ⊢

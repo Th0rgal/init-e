@@ -52,7 +52,7 @@ theorem source_top_entry {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
         (compileTopExactHOL (Flapjack.Pancake.PanStructs.CompileShapeExact.compileTopExact (panSimpDeclsHOL decls))
           start) = some T ∧
       ∃ r' post' ev', StatementRun { T with clock := T.clock + 1 } (.call none start []) r' post' ev' ∧
-        sharpScore ev' ≤ sharpScore ev +
+        r' ≠ some .error ∧ sharpScore ev' ≤ sharpScore ev +
           globalsTopInit rshape ((panSimpDeclsHOL decls).filter isDeclHOL).length (callPayloadWords r) := by
   obtain ⟨s1', hs1', post', ev1, run1, le1⟩ :=
     simp_top_entry decls s0 h.2.2.1 hs1 start clock run ok
@@ -63,11 +63,11 @@ theorem source_top_entry {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
     have := decls_clock clock (panSimpDeclsHOL decls) { s0 with structs := [] }
     rw [hs1'] at this
     exact this
-  obtain ⟨T, hT, r', post'', ev', run', le'⟩ := globals_top_entry sharpReplayBound
+  obtain ⟨T, hT, r', post'', ev', run', ok', le'⟩ := globals_top_entry sharpReplayBound
     { s0 with clock := clock } t (panSimpDeclsHOL decls) start mgs freeAddrs tmem tlocals h body
     rshape hstartLookup ready constGlobals hs1k run1 ok
   rw [structFree]
-  exact ⟨T, hT, r', post'', ev', run', by
+  exact ⟨T, hT, r', post'', ev', run', ok', by
     have : sharpScore ev' ≤ sharpScore ev1 +
         globalsTopInit rshape ((panSimpDeclsHOL decls).filter isDeclHOL).length (callPayloadWords r) := le'
     omega⟩

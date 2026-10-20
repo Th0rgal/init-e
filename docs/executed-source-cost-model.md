@@ -536,3 +536,13 @@ The steps are:
 - `globals_run_le`: covers the renamed original entry.
 
 `decls_clock` shows that declaration evaluation does not depend on the clock.
+
+`SourceCostLoopTop.source_loop_top` is the end-to-end statement. It takes the
+original entry run from the post-declaration state of the original declarations,
+at any clock. The installed Loop entry of the compiled program then has, after a
+clock extension, `LoopWork` at most `sharpScore` of the original events plus
+`globalsTopInit`. The original `LoopRunRel` conclusion is kept.
+
+The per-state pipeline premises (`EntryPipeline`) are those of the pinned
+`pan_to_crep` and `crep_to_loop` `state_rel_imp_semantics` theorems. They are
+stated for the actual post-declaration state of the compiled program.
