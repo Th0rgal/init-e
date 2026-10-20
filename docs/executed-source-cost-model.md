@@ -199,3 +199,14 @@ that transfer to close the installed-callee gap.
 See `cost-theorem-audit.md` for retained/removed theorem families. Obsolete
 whole-program affine certificate wrappers have been deleted; useful semantic,
 geometry, ownership and progress lemmas remain available.
+
+Liveness control checkpoint: SourceCostLoopLiveBase factors the original
+result-indexed locals relation and uses semantic correctness only to identify
+the output of an independently constructed costed target trace. Sequence,
+branch, mark, and all four loop-exit constructors now preserve or decrease
+actual executed work. Loop fixed-point metadata is derived from the actual
+shrink compiler, not assumed. SourceCostLoopLiveCall preserves successful
+argument reads and reuses unchanged callee traces exactly for tail calls and
+returning calls without handlers. Handler/continuation composition, early call
+exits, and the global liveness induction remain open; LoopOptimiseWork is not
+yet discharged. These facts introduce no final native coefficient or score.
