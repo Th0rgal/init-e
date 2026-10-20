@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.GuestCostCallRule
 import InitECandidate.Runtime.ChargeGas
+import InitECandidate.Runtime.PanSingleWordLookup
 namespace InitECandidate.Runtime.FineCost
 open InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -169,7 +170,104 @@ theorem chargeGas_body_run (state : PanSemStateFiniteExact 64 Guest.HostMemory)
   exact ⟨_, StatementRun.declareValue (name := ofString "gl") (shape := .one)
     (initializer := fundingLoad 64) (body := chargeGasTail) init shapeMatch bodyRun⟩
 
+
+
+/-- Funding form of the helper-body trace: the caller supplies only the funding
+relation and the enough-gas fact. -/
+theorem chargeGas_body_run_funding (state : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame amount : BitVec 64) (funding : GasFunding)
+    (hFrame : state.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (hAmount : state.locals.lookup (ofString "amount") = some (.val (.word amount)))
+    (leftDomain : state.memaddrs (frame + 64)) (usedDomain : state.memaddrs (frame + 184))
+    (memory : HasGasFunding state frame funding) (enough : amount ≤ funding.left) :
+    ∃ events, StatementRun state (sourceFunctionBody Guest.guestFn_charge_gas)
+      (some (.returned (.val (.word 0))))
+      (chargeGasPost state frame funding.left funding.used amount) events :=
+  chargeGas_body_run state frame funding.left funding.used amount hFrame hAmount leftDomain
+    usedDomain memory.1 memory.2.1 enough
+
+/-- The actual installed `.call charge_gas [argument]` statement: the callee
+entry state, the helper's own traced body, the pure call-exit plan, and the
+composed executed work. The reported cost is exactly the local call cost from
+`GuestCostCallRule`: statement entry, the evaluated argument, the actual
+argument words and frame slot, the traced helper body, and the returned word. -/
+theorem chargeGas_call_run (coeff : Work) (state : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame : BitVec 64) (argument : ExpHOL 64) (amount : BitVec 64) (funding : GasFunding)
+    (info : Option (Option (VarKind × MlStringHOL) ×
+      Option (MlStringHOL × MlStringHOL × ProgHOL 64)))
+    (arguments : evalListHOLFinite state
+      (h := fun address => Classical.propDecidable (state.memaddrs address)) [argument] =
+      some [.val (.word amount)])
+    (installed : state.code.lookup (ofString "charge_gas") =
+      some ([(ofString "amount", .one)], sourceFunctionBody Guest.guestFn_charge_gas, .one))
+    (clock : state.clock ≠ 0)
+    (hFrame : state.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (leftDomain : state.memaddrs (frame + 64)) (usedDomain : state.memaddrs (frame + 184))
+    (memory : HasGasFunding state frame funding)
+    (enough : amount ≤ funding.left) :
+    ∃ (bodyEvents : List WorkEvent) (result : Option (PanSemResultExact 64))
+      (post : PanSemStateFiniteExact 64 Guest.HostMemory),
+      StatementRun (callEntryStateHOLFinite state
+        (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
+        (sourceFunctionBody Guest.guestFn_charge_gas) (some (.returned (.val (.word 0))))
+        (chargeGasPost (callEntryStateHOLFinite state
+          (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
+          frame funding.left funding.used amount) bodyEvents ∧
+      callCostPlan state info .one (some (.returned (.val (.word 0))))
+        (chargeGasPost (callEntryStateHOLFinite state
+          (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
+          frame funding.left funding.used amount) = .done result post ∧
+      StatementRun state (.call info (ofString "charge_gas") [argument]) result post
+        (callEvents state [argument] [.val (.word amount)] (some (.returned (.val (.word 0))))
+          bodyEvents) ∧
+      coeff.score (executionWork
+        (callEvents state [argument] [.val (.word amount)] (some (.returned (.val (.word 0))))
+          bodyEvents)) =
+        callLocalCost coeff state [argument] [.val (.word amount)] (some (.returned (.val (.word 0))))
+          bodyEvents := by
+  classical
+  let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
+    HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))
+  obtain ⟨bodyEvents, bodyRun⟩ := chargeGas_body_run_funding
+    (state := callEntryStateHOLFinite state callee) (frame := frame) (amount := amount)
+    (funding := funding) hFrame
+    (by simp [callEntryStateHOLFinite, callee, HolFiniteMapExact.lookup_update, FUPDATE])
+    leftDomain usedDomain memory enough
+  let bodyPost := chargeGasPost (callEntryStateHOLFinite state callee) frame funding.left
+    funding.used amount
+  let value : ValueHOL 64 := .val (.word 0)
+  have shape : shapeEqHOL (shapeOfHOLExact value) .one = true := by
+    simp [value, shapeOfHOLExact, shapeEqHOL]
+  have plan : ∃ result post, callCostPlan state info .one (some (.returned value)) bodyPost =
+      .done result post := by
+    cases info with
+    | none =>
+        exact ⟨some (.returned value), emptyLocalsHOLFinite bodyPost, by simp [callCostPlan, shape]⟩
+    | some packed =>
+        obtain ⟨assignment, handler⟩ := packed
+        cases assignment with
+        | none =>
+            exact ⟨none, { bodyPost with locals := state.locals }, by simp [callCostPlan, shape]⟩
+        | some binding =>
+            obtain ⟨kind, name⟩ := binding
+            cases valid : isValidValueHOLExact state.toExact kind name value with
+            | true =>
+                exact ⟨none, setKvarHOLFinite kind name value { bodyPost with locals := state.locals },
+                  by simp [callCostPlan, shape, valid]⟩
+            | false =>
+                exact ⟨some .error, bodyPost, by simp [callCostPlan, shape, valid]⟩
+  obtain ⟨result, post, planEq⟩ := plan
+  have lookup := pan_single_word_lookup state.code.lookup (ofString "charge_gas")
+    (ofString "amount") (sourceFunctionBody Guest.guestFn_charge_gas) amount installed
+  have call := call_statement_work (callee := callee) (info := info) (returnShape := .one)
+    (function := ofString "charge_gas") (body := sourceFunctionBody Guest.guestFn_charge_gas)
+    (bodyResult := some (.returned value)) (bodyPost := bodyPost)
+    coeff arguments lookup clock bodyRun planEq
+  exact ⟨bodyEvents, result, post, bodyRun, planEq, call.1, call.2⟩
+
+#print axioms chargeGas_call_run
 #print axioms chargeGas_body_run
+
 
 #print axioms chargeGas_storeDebit_run
 #print axioms chargeGas_storeUsed_run
