@@ -3,6 +3,16 @@ import InitECandidate.Runtime.PtRestOGD
 Audit: the premise form `∀ (Mx : Mem) (lo : TLay), lo.hdr Mx Tt → ∀ x, InTabF Tt lo.KS … x → WsSafe SP0 FM K Pd NB x`
 (`hkoWs` in the process-transaction chain) is unsatisfiable: a memory whose header at `Tt` places the key array at the
 keccak state `K` makes `K` a table word that is not `WsSafe`.
+Affected (vacuous) modules, all theorems taking a `∀ (Mx : Mem) (lo : TLay), lo.hdr Mx (T ko) → …` premise (`hkoWs`,
+`hkoSc`, the `hko` of `regT_keep_except(H)`) and their dependents (85 theorems):
+  CheckTransactionGD, CheckTransactionUGD, ProcessTxFencedGD, ProcessTxPrefixGD, ProcessTxSGD, ProcessTxUGD
+  ProcessTxWritersGD, PtAwClearGD, PtCcaPGGD, PtClearGD, PtCreateEtherGD, PtGaPGGD
+  PtPGGD, PtRest2GD, PtRestAllGD, PtRestAllOGD, PtRestGD, PtRestOGD
+  PtSegAllGD, PtSegBaseGD, PtSegFinGD, PtSegTxhGD, PtSufAGD, PtSufAO2GD
+  PtSufAO3GD, PtSufAOGD, PtSufBGD, PtSufBO2GD, PtSufBOGD, PtSufCGD
+  PtSufEGD, PtTxGD, PtTxO2GD, PtTxO3GD, PtTxOGD, RecFrameGD
+Repair: `PtKoWsLGD` (`TabAvoid`, `KoWsL`, `wsSafe_of_low`, `tabAvoid_of_low`, `koWs_fixed`) and the `…L` variant modules
+(premises replaced by the layout-validity form, satisfiable from the workspace floor and `L0 ≤ T ko`).
 -/
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
