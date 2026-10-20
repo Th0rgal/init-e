@@ -1,9 +1,10 @@
 import InitECandidate.Runtime.PtGetPreGD
+import InitECandidate.Runtime.OriginalStorLookupCode
+import InitECandidate.Runtime.OriginalWsGetStorageCode
 /-!
 The actual `get_pre_tx_storage(addr, key)`: the read-only cached lookup `stor_lookup(lds (bs + 32), addr, key)` (a hit
 returns the cached value), else `record_pre_state_read(addr)` over `RegTR` and the witness reader
-`ws_get_storage(addr, key)` (OPEN `WsReadObl`); every return satisfies `GPPost`. The installed-code equations of
-`stor_lookup` and `ws_get_storage` are explicit hypotheses (decidable lookup facts, root lemmas pending).
+`ws_get_storage(addr, key)` (OPEN `WsReadObl`); every return satisfies `GPPost`.
 -/
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -19,10 +20,6 @@ theorem getPreStor_aqgd (bk : BalKeep) (BA IA IS KB Ix : BitVec 64)
     (wsr : WsReadObl D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) WsI)
     (ne : kB ≠ ko) (Bs : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
     (hcB : c kB = Bs + 72#64)
-    (instSL : originalRuntimeCode.lookup (ofString "stor_lookup") = some ([(ofString "outer",.one),
-      (ofString "addr",.one),(ofString "key",.one)],sourceFunctionBody Guest.guestFn_stor_lookup,.comb [.one,.one]))
-    (instWS : originalRuntimeCode.lookup (ofString "ws_get_storage") = some ([(ofString "addr",.one),
-      (ofString "key",.one)],sourceFunctionBody Guest.guestFn_ws_get_storage,.comb [.one,.one,.one,.one]))
     (A K H Nj : BitVec 64) (Rr Ow : BitVec 64 → Prop) (M1 : Mem) (G1 : GA)
     (reg : RegTR n c T Out H M1 D B ko Rr) (rB : ∀ x, Rr x → x.toNat < H.toNat) (dRO : ∀ x, Ow x → ¬ Rr x)
     (hH1 : HeapIs G1 H) (hn1 : G1.lookup (ofString "journal_n") = some (.val (.word Nj)))
@@ -54,8 +51,8 @@ theorem getPreStor_aqgd (bk : BalKeep) (BA IA IS KB Ix : BitVec 64)
     (Pe := fun _ M0' G0' _ M G => M = M0' ∧ G = G0') (RRe := fun _ M0' G0' _ M' G' => M' = M0' ∧ G' = G0')
     (Pc := fun L M G => LA L ∧ M = M1 ∧ G = G1)
     (Qc := fun _ _ _ => False) _ _ _ _ _ _ _
-    instSL (by simp)
-    (fun _ M0' G0' _ => aqgd_of_mf (memoryFrame_of_good instSL (by decide) (by decide))
+    originalRuntimeCode_storLookup_lookup (by simp)
+    (fun _ M0' G0' _ => aqgd_of_mf (memoryFrame_of_good originalRuntimeCode_storLookup_lookup (by decide) (by decide))
       (by body_check Guest.guestFn_stor_lookup) (by body_check Guest.guestFn_stor_lookup) M0' G0')
     (fun _ _ _ _ _ _ _ _ _ _ _ _ => ⟨rfl,rfl⟩) (fun h => h.elim) ?_ ?_ (fun _ _ _ _ _ _ _ h => h.elim)
   · intro L M G v M' G' ⟨⟨la,lk⟩,hM,hG⟩ ⟨e1,e2⟩ _
@@ -118,7 +115,7 @@ theorem getPreStor_aqgd (bk : BalKeep) (BA IA IS KB Ix : BitVec 64)
       (∀ x, x.toNat < H2.toNat → ¬ Ow x → M' x = M3 x) ∧
       ∃ a b c d : BitVec 64, v = .rStruct [.val (.word a),.val (.word b),.val (.word c),.val (.word d)])
     (Pc := fun _ M G => GPPost n c T Out D B ko WsI BA IA IS KB Ix Rr Ow H Nj M1 M G)
-    (Qc := fun _ _ _ => False) _ _ _ _ _ _ _ instWS (by simp)
+    (Qc := fun _ _ _ => False) _ _ _ _ _ _ _ originalRuntimeCode_wsGetStorage_lookup (by simp)
     (fun L0 M0' G0' ⟨_,hM,hG⟩ => by
       rw [hM,hG]
       exact wsr.2.2 A K w M3 G3 H2 Ow wi3 hH3 hwO (by omega)) ?_ (fun h => h.elim) ?_ ?_ (fun _ _ _ _ _ _ _ h => h.elim)
@@ -129,7 +126,7 @@ theorem getPreStor_aqgd (bk : BalKeep) (BA IA IS KB Ix : BitVec 64)
     rw [evalListHOLFinite_eq_toExact] at args
     simp [evalListHOLExact,evalHOLExact,la',lk'] at args
     subst args
-    have e := callee_eq instWS lookup
+    have e := callee_eq originalRuntimeCode_wsGetStorage_lookup lookup
     exact ⟨⟨by rw [e]; simp (config := {decide := true}),by rw [e]; simp (config := {decide := true})⟩,rfl,rfl⟩
   · intro L M G v M' G' ⟨_,hM,hG⟩ ⟨H',Ow',hH',le',nh,wi',sub',frW,_⟩ _
     subst hM hG
