@@ -215,5 +215,53 @@ theorem incorporateBody_aqgd (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 
 
 #print axioms incorporateBody_aqgd
 
+/-- The actual `incorporate_tx_into_block()` call statement. -/
+theorem aqgd_call_incorporate {LP : GA → Prop} {RR : ValueHOL 64 → Mem → GA → Prop} (bk : BalKeep) (wsr : WsReadObl D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) WsI)
+    (ne : kB ≠ ko) (Bs : BitVec 64) (hBs : G0.lookup (ofString "bs") = some (.val (.word Bs)))
+    (hcB : c kB = Bs + 72#64) {k40 : Fin n} (ne40 : k40 ≠ ko) (Ts : BitVec 64)
+    (hTs : G0.lookup (ofString "ts") = some (.val (.word Ts))) (hc40 : c k40 = Ts + 40#64)
+    (hSkSO : ∀ x, SkWin SKB x → Out x ∧ ∀ i, x ≠ c i) (hSk : ∀ x, SkWin SKB x → Sk x)
+    (u0 : UW D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs0 Rg0 H0 Rr0 Ow0 M0 G1)
+    -- source tables of the builder
+    (Taw : BitVec 64) (law : TLay) (cAw : D (Ts + 16#64) ∧ M0 (Ts + 16#64) = .word Taw)
+    (tcA : TCont D B M0 Taw law) (klA : 20 ≤ law.KL.toNat) (ncA : law.N.toNat < law.C.toNat)
+    (hAwR : ∀ x, InTabF Taw law.KS law.SD law.C law.US law.VS law.OS law.OPS x → UOut ADs0 Rg0 H0 Rr0 Ow0 x)
+    (Tout : BitVec 64) (lout : TLay) (cOut : D (Ts + 32#64) ∧ M0 (Ts + 32#64) = .word Tout ∧
+      UOut ADs0 Rg0 H0 Rr0 Ow0 (Ts + 32#64))
+    (tcO : TCont D B M0 Tout lout) (klO : 20 ≤ lout.KL.toNat) (ncO : lout.N.toNat < lout.C.toNat)
+    (hOutR : ∀ x, InTabF Tout lout.KS lout.SD lout.C lout.US lout.VS lout.OS lout.OPS x → UOut ADs0 Rg0 H0 Rr0 Ow0 x)
+    (hIn : ∀ I slot vv : BitVec 64, I.toNat < lout.N.toNat → M0 (lout.OS + I * 8) = .word slot →
+      M0 (lout.VS + slot * 8) = .word vv → ∃ li : TLay, (TCont D B M0 vv li ∧ 20 ≤ li.KL.toNat ∧
+        li.N.toNat < li.C.toNat) ∧ ∀ x, InTabF vv li.KS li.SD li.C li.US li.VS li.OS li.OPS x →
+          UOut ADs0 Rg0 H0 Rr0 Ow0 x)
+    -- block objects of the merge
+    (BO : BitVec 64) (lb0 : TLay) (R : Set (BitVec 64)) (Ose : BitVec 64 → BitVec 64 → Prop) (Hl : BitVec 64)
+    (blk0 : BlkE D B BO lb0 R Ose Hl H0 M0)
+    (hBlk : ∀ x, BlkRg BO lb0 R Ose x → UOut ADs0 Rg0 H0 Rr0 Ow0 x)
+    (hOutB : ∀ x, InTabF Tout lout.KS lout.SD lout.C lout.US lout.VS lout.OS lout.OPS x → ¬ BlkRg BO lb0 R Ose x)
+    (hcell : ∀ k : BitVec 64, k = 8#64 ∨ k = 16#64 ∨ k = 24#64 ∨ k = 32#64 ∨ k = 40#64 ∨ k = 48#64 →
+      (D (Bs + k) ∧ (∀ t ∈ R, ¬ Ose t (Bs + k)) ∧ (Bs + k).toNat < H0.toNat) ∧
+      (D (Ts + k) ∧ (∀ t ∈ R, ¬ Ose t (Ts + k)) ∧ (Ts + k).toNat < H0.toNat))
+    (j24 j8 j40 j16 j48 : BitVec 64) (hj24 : j24 ∈ R) (hj8 : j8 ∈ R) (hj40 : j40 ∈ R) (hj16 : j16 ∈ R)
+    (hj48 : j48 ∈ R)
+    (cbs : M0 (Bs + 24#64) = .word j24 ∧ M0 (Bs + 8#64) = .word j8 ∧ M0 (Bs + 40#64) = .word j40 ∧
+      M0 (Bs + 16#64) = .word j16 ∧ M0 (Bs + 48#64) = .word j48 ∧ M0 (Bs + 32#64) = .word BO)
+    (cbsOut : ∀ k : BitVec 64, k = 8#64 ∨ k = 16#64 ∨ k = 24#64 ∨ k = 32#64 ∨ k = 40#64 ∨ k = 48#64 →
+      UOut ADs0 Rg0 H0 Rr0 Ow0 (Bs + k))
+    (hwB : ¬ BlkRg BO lb0 R Ose w)
+    (hwP : w.toNat < P0.toNat) (hwk0 : ∀ k, BalK.live ADs0 k → ¬ Rg0 k w)
+    (hwR0 : ¬ Rr0 w) (hwO0 : ¬ Ow0 w) (Dall : ∀ a : BitVec 64, a.toNat < 33806089496 → D a) :
+    AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
+      (fun L M G => LP L ∧ M = M0 ∧ G = G1)
+      (fun L M G => LP L ∧ IBPost D B BA IA IS KB Ix n c T Out ko WsI Sk Nj ADs0 Rg0 H0 Rr0 Ow0 M0 BO lb0 R Ose M G) RR
+      (.call (some (none,none)) (ofString "incorporate_tx_into_block") []) :=
+  aqgd_call_post _ _ _ _ _ originalRuntimeCode_incorporateTx_lookup (fun _ => True) M0 G1
+    (aqgd_conseq (incorporateBody_aqgd bk wsr ne Bs hBs hcB ne40 Ts hTs hc40 hSkSO hSk u0 Taw law cAw tcA klA ncA hAwR
+      Tout lout cOut tcO klO ncO hOutR hIn BO lb0 R Ose Hl blk0 hBlk hOutB hcell j24 j8 j40 j16 j48 hj24 hj8 hj40 hj16
+      hj48 cbs cbsOut hwB hwP hwk0 hwR0 hwO0 Dall)
+      (fun _ _ _ h => h.2) (fun _ _ _ h => h) (fun _ _ _ h => h.2))
+    (fun _ _ _ _ _ _ _ _ _ => trivial)
+
+#print axioms aqgd_call_incorporate
 end ic
 end InitECandidate.Runtime
