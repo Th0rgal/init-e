@@ -82,17 +82,48 @@ Compile order and module stems (checker role `allocation`):
      The constant two is the reassociation envelope; move merging only shortens
      lists and the trailing `Skip` is deleted.
 
+9. `AllocCostReconcile` — dynamic, per-site move budgets
+   - `listNextVarRenameMove_nodeCost`:
+     `wordNodeCost (listNextVarRenameMove ssa next names) = 1 + names.length`.
+   - `ssaReconcile_nodeCost_le`:
+     `wordNodeCost (ssaReconcile cur target names) ≤ 1 + |names|`.
+     The proof bounds the reconciled move list by the live-name list, so the
+     budget is the actual loop/call live set, never a whole-program maximum.
+   - `loopSetup_nodeCost_le`:
+     `wordNodeCost (loopSetup names exitNames ssa next) ≤ 3 + 3 * |names ∪ exitNames|`.
+   - `fixInconsistencies_nodeCost_le`:
+     both handler programs together cost
+     `≤ 6 + 8 * |dom left ∪ dom right|`.
+     This is the dynamic exception-handler budget; it counts only the actual
+     union of the two branch maps.
+10. `AllocCostSSAControl` — control-flow transfer
+   - `ssaCcTrans_loop_nodeCost_le`: for a loop whose body transfer
+     `wordNodeCost body' ≤ wordNodeCost body + bodyBudget` has already been
+     established,
+     `wordNodeCost (ssaCcTrans (loop names body exitNames) ssa next lt).1`
+     `≤ wordNodeCost (loop names body exitNames)`
+     `  + (8 + 3 * |names ∪ exitNames| + |names| + bodyBudget)`.
+     The body bound is a parameter, so this composes with any induction or
+     scheduling argument instead of assuming a whole-program AST maximum.
+   - `ssaCcTrans_call_none_nodeCost_le`: a non-returning call pays only its
+     argument move:
+     `≤ wordNodeCost (call none dest args h) + (4 + args.length)`.
+
 All modules are checked with only `propext`, `Classical.choice` and
 `Quot.sound` in their axiom closure; there is no `sorry`, `admit`, custom
 axiom, `unsafe`, `native_decide` or `bv_decide`.
 
 ## What is not yet covered
 
-- The selected fragments handled above are straight-line.  Recursive loops,
-  non-tail calls, `break`/`continue` and exception handlers require the SSA
-  reconciliation (`ssaReconcile`, `loopSetup`, `fixInconsistencies`) move count
-  and the loop/call work relation.  That is the next missing chunk, not a
-  consequence of the present theorems.
+- The straight-line fragments before allocation are still handled by the
+  earlier theorems.  The reconciliation *budgets* for loops, `break`,
+  `continue` and exception handlers are now proved in `AllocCostReconcile`, and
+  the loop and call-none transfer is proved in `AllocCostSSAControl`.  The
+  remaining recursive cases are the `break`/`continue` branch-cost wiring and
+  the returning-call (`call some`) handler composition, where the return and
+  exception handler programs and their `fixInconsistencies` budget must be
+  threaded through the same symbolic state.  Those are the next missing chunk,
+  not consequences of the present theorems.
 - `WordSimp`/`instSelect` selection is taken as the root participant's
   `selectionLeaves ≤ 2 * wordExpressionWork` bridge.  This note starts from the
   selected straight-line fragment and does not re-prove that bridge.
