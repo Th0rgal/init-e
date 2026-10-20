@@ -2126,4 +2126,63 @@ theorem sValEq_cons_self (fr : WordSemStackFrame 64)
     {as bs : List (WordSemStackFrame 64)}
     (h : WordSemStackEq.sValEq as bs) : WordSemStackEq.sValEq (fr :: as) (fr :: bs) :=
   ⟨h, sFrameValEq_refl fr⟩
+
+/-! ### `LASTN` transport along `sValEq`
+
+Value-equality of stacks gives value-equality of every `LASTN` suffix, hence the
+handler frame found by the pinned exception clause exists on the swapped side
+with the same locals size and handler slot (values, not keys, transported). -/
+
+theorem sValEq_append : ∀ (a a' b b' : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq a a' → WordSemStackEq.sValEq b b' →
+    WordSemStackEq.sValEq (a ++ b) (a' ++ b')
+  | [], [], b, b', _, h2 => h2
+  | [], _ :: _, b, b', h1, _ => by cases h1
+  | _ :: _, [], b, b', h1, _ => by cases h1
+  | (a :: as), (a' :: as'), b, b', h1, h2 => by
+      obtain ⟨hv, hf⟩ := h1
+      exact ⟨sValEq_append as as' b b' hv h2, hf⟩
+
+theorem sValEq_reverse : ∀ (a b : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq a b → WordSemStackEq.sValEq a.reverse b.reverse
+  | [], [], _ => True.intro
+  | [], _ :: _, h => by cases h
+  | _ :: _, [], h => by cases h
+  | (a :: as), (b :: bs), h => by
+      obtain ⟨hv, hf⟩ := h
+      simp only [List.reverse_cons]
+      exact sValEq_append _ _ _ _ (sValEq_reverse as bs hv) ⟨True.intro, hf⟩
+
+theorem sValEq_take : ∀ (a b : List (WordSemStackFrame 64)) (n : Nat),
+    WordSemStackEq.sValEq a b → WordSemStackEq.sValEq (a.take n) (b.take n)
+  | [], [], n, _ => by cases n <;> exact True.intro
+  | [], _ :: _, n, h => by cases h
+  | _ :: _, [], n, h => by cases h
+  | (a :: as), (b :: bs), n, h => by
+      obtain ⟨hv, hf⟩ := h
+      cases n with
+      | zero => exact True.intro
+      | succ k => exact ⟨sValEq_take as bs k hv, hf⟩
+
+theorem sValEq_lastN (a b : List (WordSemStackFrame 64))
+    (h : WordSemStackEq.sValEq a b) (n : Nat) :
+    WordSemStackEq.sValEq (wordSemLastN n a) (wordSemLastN n b) := by
+  unfold wordSemLastN
+  exact sValEq_reverse _ _ (sValEq_take _ _ n (sValEq_reverse _ _ h))
+
+theorem sValEq_lastN_head (a b : List (WordSemStackFrame 64))
+    (h : WordSemStackEq.sValEq a b) (n : Nat) (fr : WordSemStackFrame 64)
+    (ls : List (WordSemStackFrame 64))
+    (ha : wordSemLastN (n + 1) a = fr :: ls) :
+    ∃ fr' ls', wordSemLastN (n + 1) b = fr' :: ls' ∧
+      WordSemStackEq.sFrameValEq fr fr' := by
+  have hh := sValEq_lastN a b h (n + 1)
+  rw [ha] at hh
+  cases hb : wordSemLastN (n + 1) b with
+  | nil => rw [hb] at hh; cases hh
+  | cons fr' ls' =>
+      refine ⟨fr', ls', rfl, ?_⟩
+      rw [hb] at hh
+      exact hh.2
+
 end InitECandidate.Runtime.WordToStack
