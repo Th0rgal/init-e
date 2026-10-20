@@ -48,6 +48,64 @@ decreasing_by
   simp only [Flapjack.WordSemStateFiniteExact.decClock]
   omega
 
+/-- The recursive extra budget is finite and bounded by the actual source
+loop work: each executed iteration contributes `bodyBudget + backBudget`, and
+every executed body costs at least one work unit.  This is a dynamic bound,
+not a whole-program maximum. -/
+theorem ssaLoopExtra_le_work {width : Nat} [NeZero width] {C F : Type}
+    (body : WordLangProgHOL (BitVec width)) (names exits : Spt Unit)
+    (bodyBudget backBudget : Nat) (s : WordSemStateFiniteExact width C F) :
+    ssaLoopExtra body names bodyBudget backBudget s ≤
+      (bodyBudget + backBudget) * wordPathWork (.loop names body exits) s := by
+  have main : ∀ n, ∀ (s : WordSemStateFiniteExact width C F), s.clock = n →
+      ssaLoopExtra body names bodyBudget backBudget s ≤
+        (bodyBudget + backBudget) * wordPathWork (.loop names body exits) s := by
+    intro n
+    induction n using Nat.strongRecOn with
+    | _ n ih =>
+      intro s hclock
+      rw [ssaLoopExtra, wordPathWork]
+      cases hs : cutState (names, .ln) s with
+      | none =>
+        dsimp only
+        omega
+      | some cs =>
+        dsimp only
+        cases hrun : fixClock cs (evaluate body cs) with
+        | mk result sm =>
+          dsimp only
+          by_cases hcont : wordSemContLoop result
+          · rw [if_pos hcont, if_pos hcont]
+            by_cases hzero : sm.clock = 0
+            · simp only [hzero]
+              have bodyOne := one_le_wordPathWork body cs
+              have hpos : 0 < 1 + wordPathWork body cs := by omega
+              have hbase := Nat.le_mul_of_pos_left (bodyBudget + backBudget) hpos
+              rw [Nat.mul_comm] at hbase
+              simpa using hbase
+            · have bodyOne := one_le_wordPathWork body cs
+              have hdecLt : (Flapjack.WordSemStateFiniteExact.decClock sm).clock < n := by
+                have hcut := cutState_clock_termdep (names, .ln) s cs hs
+                have hfix := fixClock_IMP_LESS_EQ cs result sm _ hrun
+                simp only [Flapjack.WordSemStateFiniteExact.decClock] at *
+                omega
+              have hrec := ih _ hdecLt (Flapjack.WordSemStateFiniteExact.decClock sm) rfl
+              simp only [hzero]
+              simp only [wordSemSTOP]
+              have hpos : 0 < 1 + wordPathWork body cs := by omega
+              have hbase := Nat.le_mul_of_pos_left (bodyBudget + backBudget) hpos
+              rw [Nat.mul_comm] at hbase
+              have hsum := Nat.add_le_add hbase hrec
+              rw [← Nat.mul_add] at hsum
+              simpa [Nat.add_assoc] using hsum
+          · rw [if_neg hcont, if_neg hcont]
+            have bodyOne := one_le_wordPathWork body cs
+            have hpos : 0 < 1 + wordPathWork body cs := by omega
+            have hbase := Nat.le_mul_of_pos_left (bodyBudget + backBudget) hpos
+            rw [Nat.mul_comm] at hbase
+            simpa using hbase
+  exact main s.clock s rfl
+
 /-- One-step semantic simulation used by the whole-loop induction.  It is a
 relation-level premise: same body result, related successor states, clock
 agreement, and one-execution body work transfer. -/
@@ -191,6 +249,7 @@ theorem ssaLoop_executed_transfer_originalRel {width : Nat} [NeZero width] {C F 
     bodyBudget backBudget _ step s t rel
 
 #print axioms ssaLoopExtra
+#print axioms ssaLoopExtra_le_work
 #print axioms ssaLoop_executed_transfer
 #print axioms ssaLoop_compiled_executed_transfer
 #print axioms ssaLoop_executed_transfer_originalRel

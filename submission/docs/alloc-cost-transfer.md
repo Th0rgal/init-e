@@ -169,6 +169,10 @@ Compile order and module stems (checker role `allocation`):
    - `ssaLoop_compiled_executed_transfer`: includes the actual successful
      `loopSetup` run and its executed setup budget, covering
      `seq setup loop`, not only the inner loop.
+   - `ssaLoopExtra_le_work`: the recursive extra is finite and bounded by
+     `(bodyBudget + backBudget) * wordPathWork (loop body)`, because each
+     executed body costs at least one work unit.  This is a dynamic bound, not
+     a whole-program maximum.
    - `SsaLoopStateRel`: the original `wordStateEqRel` plus `ssaLocalsRel`;
      `ssaLoop_executed_transfer_originalRel` states the same whole-loop bound
      over that original relation.
