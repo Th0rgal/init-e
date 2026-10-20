@@ -1019,6 +1019,183 @@ theorem ssaBody_call_none_executed_le {C F : Type}
   exact bodyWork_call_none_body dest args ssa next names convArgs source target middle xs
     args1 prog ss calleeBudget frame localsRel namesEq convEq get run bad find clock calleeWork
 
+
+/-! ### Returning calls: actual callee body and return-handler decomposition -/
+
+/-- Executed work of a source returning call whose callee actually returns a
+`result`, with the return-location and arity guards satisfied and a successful
+environment pop.  The value is the actual `wordPathWork` call clause: one call
+node, the callee BODY work at the literal `callEnv` entry state, and the
+return-handler work at the actual post-call state. -/
+theorem wordPathWork_call_returning_result {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle popped : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (some (.result location returned), middle))
+    (pop : popEnv middle = some popped)
+    (locEq : location = .loc l1 l2)
+    (lenEq : returned.length = values.length)
+    (domUnion : sptDomainEqUnion popped.locals envs.1 envs.2) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      1 + wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) +
+        wordPathWork retCode (setVars values returned popped) := by
+  rw [wordPathWork]
+  simp only [get]
+  rw [bad, if_neg (by simp)]
+  rw [find]
+  dsimp only
+  rw [if_neg (by simp [dom, nodup])]
+  rw [cut]
+  dsimp only
+  rw [dif_neg clock]
+  rw [run]
+  dsimp only
+  rw [if_neg (by simp [locEq, lenEq]), pop]
+  dsimp only
+  rw [if_pos domUnion]
+
+/-- Executed work of the compiled returning call: the inserted stack move and
+argument move are each one executed node, then the renamed call's own node, the
+callee BODY work at the compiled `callEnv` entry state, and the compiled return
+handler at its actual post-call state. -/
+theorem wordPathWork_compiled_call_returning_result {C F : Type}
+    (regs : List Nat) (stackSet : WordLangCutsetsHOL)
+    (movRetHandler : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (convArgs : List Nat)
+    (handlerT : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (target refreshed prepared middleT targetPopped : WordSemStateFiniteExact 64 C F)
+    (valuesT : List (WordLocW 64))
+    (stackMov moveArgs : WordLangProgHOL (BitVec 64))
+    (envsT : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (locationT : WordLocW 64) (returnedT : List (WordLocW 64))
+    (stackFixed : fixClock target (evaluate stackMov target) = (none, refreshed))
+    (stackWork : wordPathWork stackMov target = 1)
+    (argFixed : fixClock refreshed (evaluate moveArgs refreshed) = (none, prepared))
+    (argWork : wordPathWork moveArgs refreshed = 1)
+    (get : getVars convArgs prepared = some valuesT)
+    (bad : wordSemBadDestArgs dest convArgs = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (regs, stackSet, movRetHandler, l1, l2)) valuesT)
+      prepared.code prepared.stackSize = some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty stackSet.1) (nodup : regs.Nodup)
+    (cut : wordSemCutEnvs stackSet prepared.locals = some envsT)
+    (clock : prepared.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envsT handlerT (decClock prepared)))
+      (evaluate prog (callEnv args1 ss (pushEnv envsT handlerT (decClock prepared)))) =
+      (some (.result locationT returnedT), middleT))
+    (pop : popEnv middleT = some targetPopped)
+    (locEq : locationT = .loc l1 l2)
+    (lenEq : returnedT.length = regs.length)
+    (domUnion : sptDomainEqUnion targetPopped.locals envsT.1 envsT.2) :
+    wordPathWork (.seq stackMov
+      (.seq moveArgs (.call (some (regs, stackSet, movRetHandler, l1, l2))
+        dest convArgs handlerT))) target =
+      5 + wordPathWork prog
+        (callEnv args1 ss (pushEnv envsT handlerT (decClock prepared))) +
+        wordPathWork movRetHandler (setVars regs returnedT targetPopped) := by
+  rw [wordPathWork, stackFixed]
+  dsimp only
+  rw [wordPathWork, argFixed]
+  dsimp only
+  rw [wordPathWork_call_returning_result regs stackSet movRetHandler l1 l2 dest convArgs
+    handlerT prepared middleT targetPopped valuesT envsT args1 prog ss locationT returnedT
+    get bad find dom nodup cut clock run pop locEq lenEq domUnion]
+  rw [stackWork, argWork]
+  omega
+
+/-- Quantitative returning-call transfer.  The compiled call work is bounded by
+the source call work plus the *callee BODY* transfer at the two literal
+`callEnv` entry states and the *return-handler* transfer at the two literal
+post-call states.  No whole-call cost premise is used. -/
+theorem bodyWork_call_returning_result {C F : Type}
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s middle popped : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (args1 args1T : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64))
+    (ss : Option Nat)
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (get : getVars args s = some xs)
+    (bad : wordSemBadDestArgs dest args = false)
+    (find : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) xs) s.code s.stackSize =
+      some (args1, prog, ss))
+    (dom : ¬ sptDomainEmpty names.1) (nodup : values.Nodup)
+    (cut : wordSemCutEnvs names s.locals = some envs)
+    (clock : s.clock ≠ 0)
+    (run : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+      (some (.result location returned), middle))
+    (pop : popEnv middle = some popped)
+    (locEq : location = .loc l1 l2)
+    (lenEq : returned.length = values.length)
+    (domUnion : sptDomainEqUnion popped.locals envs.1 envs.2)
+    (regs : List Nat) (stackSet : WordLangCutsetsHOL)
+    (movRetHandler : WordLangProgHOL (BitVec 64))
+    (convArgs : List Nat)
+    (handlerT : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (target refreshed prepared middleT targetPopped : WordSemStateFiniteExact 64 C F)
+    (valuesT : List (WordLocW 64))
+    (stackMov moveArgs : WordLangProgHOL (BitVec 64))
+    (envsT : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (locationT : WordLocW 64) (returnedT : List (WordLocW 64))
+    (stackFixed : fixClock target (evaluate stackMov target) = (none, refreshed))
+    (stackWork : wordPathWork stackMov target = 1)
+    (argFixed : fixClock refreshed (evaluate moveArgs refreshed) = (none, prepared))
+    (argWork : wordPathWork moveArgs refreshed = 1)
+    (getT : getVars convArgs prepared = some valuesT)
+    (badT : wordSemBadDestArgs dest convArgs = false)
+    (findT : wordSemFindCode dest
+      (wordSemAddRetLoc (some (regs, stackSet, movRetHandler, l1, l2)) valuesT)
+      prepared.code prepared.stackSize = some (args1T, prog, ss))
+    (domT : ¬ sptDomainEmpty stackSet.1) (nodupT : regs.Nodup)
+    (cutT : wordSemCutEnvs stackSet prepared.locals = some envsT)
+    (clockT : prepared.clock ≠ 0)
+    (runT : fixClock (callEnv args1T ss (pushEnv envsT handlerT (decClock prepared)))
+      (evaluate prog (callEnv args1T ss (pushEnv envsT handlerT (decClock prepared)))) =
+      (some (.result locationT returnedT), middleT))
+    (popT : popEnv middleT = some targetPopped)
+    (locEqT : locationT = .loc l1 l2)
+    (lenEqT : returnedT.length = regs.length)
+    (domUnionT : sptDomainEqUnion targetPopped.locals envsT.1 envsT.2)
+    (calleeBudget retBudget : Nat)
+    (calleeWork : wordPathWork prog
+      (callEnv args1T ss (pushEnv envsT handlerT (decClock prepared))) ≤
+      wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) + calleeBudget)
+    (retWork : wordPathWork movRetHandler (setVars regs returnedT targetPopped) ≤
+      wordPathWork retCode (setVars values returned popped) + retBudget) :
+    wordPathWork (.seq stackMov
+      (.seq moveArgs (.call (some (regs, stackSet, movRetHandler, l1, l2))
+        dest convArgs handlerT))) target ≤
+      wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) s +
+        (calleeBudget + retBudget + 4) := by
+  rw [wordPathWork_compiled_call_returning_result regs stackSet movRetHandler l1 l2 dest
+    convArgs handlerT target refreshed prepared middleT targetPopped valuesT stackMov moveArgs
+    envsT args1T prog ss locationT returnedT stackFixed stackWork argFixed argWork getT badT
+    findT domT nodupT cutT clockT runT popT locEqT lenEqT domUnionT]
+  rw [wordPathWork_call_returning_result values names retCode l1 l2 dest args handler s middle
+    popped xs envs args1 prog ss location returned get bad find dom nodup cut clock run pop
+    locEq lenEq domUnion]
+  omega
+
 #print axioms wordControlCost
 #print axioms wordPathWork_le_controlCost_straight
 #print axioms ssaBody_skip_executed_le
@@ -1048,4 +1225,7 @@ theorem ssaBody_call_none_executed_le {C F : Type}
 #print axioms bodyWork_call_none_related_body
 #print axioms callNoneMove_words
 #print axioms callNoneMove_words_args
+#print axioms wordPathWork_call_returning_result
+#print axioms wordPathWork_compiled_call_returning_result
+#print axioms bodyWork_call_returning_result
 end InitECandidate.Runtime.FineCost
