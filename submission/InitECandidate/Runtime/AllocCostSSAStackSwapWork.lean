@@ -1128,4 +1128,17 @@ theorem wordPathWork_call_returning_clock_zero {C F : Type}
           rw [hce] at hcu
           cases hcu
           rw [dif_pos hz]
+
+/-- `fixClock` on a stack-swapped state, with *independent* stacks for the
+result state and for the clock source: it only reads `clock`/`termdep` from `s`
+and the result state's non-stack fields from `m`. -/
+theorem fixClock_swap_stack {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64)) (r : Option (WordSemResult 64))
+    (m : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64)) :
+    fixClock { s with stack := xs } (r, { m with stack := st }) =
+      (r, { (fixClock s (r, m)).2 with stack := st }) := by
+  cases r <;> (simp only [fixClock]; try rfl)
+
+#print axioms fixClock_swap_stack
+
 end InitECandidate.Runtime.WordToStack
