@@ -471,5 +471,21 @@ It assumes the following of the program and the state:
 The run invariants `StatementRun.code_eq`, `StatementRun.noTemp` and
 `StatementRun.globals_present` keep these assumptions true along the run.
 
-Still remaining: whole-program entry composition, and the sharp address
-grammar for record-field addresses.
+## Sharp replay sites
+
+A `k`-word structured load evaluates its compiled address list once. It then
+re-evaluates only the list's head for each further word, at Loop price
+`crepHead + 6` per word (`sharp_compiled_load`). The site certificate
+`sharpSites B` asks every multiword load address to be in the `headAddr`
+grammar with `sharpHeadPrice address + 1 ≤ B`:
+
+- The grammar admits scalar operators, constants, `BaseAddr`/`TopAddr`, nested
+  loads, locals and record fields of locals.
+- A record field of a local compiles to one selected variable, so its head
+  costs 2 (`localTree_small`).
+
+`SourceCostSharpHead.head_bound` shows the compiled head costs at most
+`sharpHeadPrice`, syntactically and for every context. It needs no layout or
+value hypothesis.
+
+Still remaining: whole-program entry composition.

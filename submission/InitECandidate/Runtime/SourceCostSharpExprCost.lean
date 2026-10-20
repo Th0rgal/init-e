@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SourceCostSharpLowering
+import InitECandidate.Runtime.SourceCostSharpHead
 import InitECandidate.Runtime.PanScopedCostTransfer
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -66,52 +66,12 @@ theorem sharpExprScore_cons (B : Nat) (event : WorkEvent) (rest : List WorkEvent
   simp [sharpExprWeights, Work.score, WorkEvent.units, replayUnits]
 
 mutual
-  /-- Address expressions whose every variable is read as a single word. -/
-  def scalarAddr : ExpHOL 64 → Bool
-    | .const _ | .var _ _ | .baseAddr | .topAddr | .bytesInWord => true
-    | .op _ args | .panop _ args => scalarAddrList args
-    | .cmp _ left right | .shift _ left right => scalarAddr left && scalarAddr right
-    | .load shape address => decide (sizeOfShapeHOL shape = 1) && scalarAddr address
-    | .load32 address | .loadByte address => scalarAddr address
-    | _ => false
-  termination_by e => sizeOf e
-  decreasing_by all_goals first | sizeOf_list_dec | decreasing_trivial
-
-  def scalarAddrList : List (ExpHOL 64) → Bool
-    | [] => true
-    | head :: tail => scalarAddr head && scalarAddrList tail
-  termination_by es => sizeOf es
-  decreasing_by all_goals first | sizeOf_list_dec | decreasing_trivial
-end
-
-mutual
-  /-- Context-free sharp price of a scalar address expression. -/
-  def sharpAddrPrice : ExpHOL 64 → Nat
-    | .var .local _ => 6
-    | .op _ args => 3 + sharpAddrListPrice args
-    | .panop _ args => 4 + sharpAddrListPrice args
-    | .cmp _ left right => 5 + sharpAddrPrice left + sharpAddrPrice right
-    | .shift _ left right => 3 + sharpAddrPrice left + sharpAddrPrice right
-    | .load _ address | .load32 address | .loadByte address => 3 + sharpAddrPrice address
-    | .topAddr => 7
-    | _ => 3
-  termination_by e => sizeOf e
-  decreasing_by all_goals first | sizeOf_list_dec | decreasing_trivial
-
-  def sharpAddrListPrice : List (ExpHOL 64) → Nat
-    | [] => 0
-    | head :: tail => sharpAddrPrice head + sharpAddrListPrice tail
-  termination_by es => sizeOf es
-  decreasing_by all_goals first | sizeOf_list_dec | decreasing_trivial
-end
-
-mutual
-  /-- Site certificate: every multiword load has a scalar address whose
-  context-free sharp price is at most `B`. -/
+  /-- Site certificate: every multiword load has a grammar address whose
+  context-free head price, plus one, is at most `B`. -/
   def sharpSites (B : Nat) : ExpHOL 64 → Bool
     | .load shape address =>
         (decide (sizeOfShapeHOL shape ≤ 1) ||
-          (scalarAddr address && decide (sharpAddrPrice address ≤ B))) && sharpSites B address
+          (headAddr address && decide (sharpHeadPrice address + 1 ≤ B))) && sharpSites B address
     | .rstruct es | .op _ es | .panop _ es => sharpSitesList B es
     | .rfield _ e | .load32 e | .loadByte e => sharpSites B e
     | .cmp _ a b | .shift _ a b => sharpSites B a && sharpSites B b
@@ -130,164 +90,6 @@ theorem sharp_resultWords_word {F : Type} (s : PanSemStateFiniteExact 64 F) (e :
     (h : expressionValue s e = some (.val (.word w))) : resultWords s e = 1 := by
   simp [resultWords, h, flattenHOL]
 
-/-- A scalar address that evaluates to a word has sharp allowance at most its
-context-free price. -/
-theorem sharp_addr_bound {F : Type} (s : PanSemStateFiniteExact 64 F) (context : PanToCrepContextExact 64) :
-    ∀ a : ExpHOL 64, scalarAddr a = true → LocalWidthsFitOn s context (varExpHOL a) →
-      (∃ w, expressionValue s a = some (.val (.word w))) →
-      panSharpAllowance context a ≤ sharpAddrPrice a := by
-  refine ExpHOL.rec
-    (motive_1 := fun a => scalarAddr a = true → LocalWidthsFitOn s context (varExpHOL a) →
-      (∃ w, expressionValue s a = some (.val (.word w))) →
-      panSharpAllowance context a ≤ sharpAddrPrice a)
-    (motive_2 := fun args => scalarAddrList args = true →
-      LocalWidthsFitOn s context ((args.map varExpHOL).flatten) →
-      (∃ vs, @evalListHOLExact 64 F _ s.toExact (fun a => Classical.propDecidable (s.memaddrs a)) args =
-        some vs ∧ vs.all valueIsWord = true) →
-      panSharpListAllowance context args ≤ sharpAddrListPrice args)
-    (motive_3 := fun _ => True) (motive_4 := fun _ => True)
-    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
-  · intro value _ _ _; simp [panSharpAllowance, sharpAddrPrice]
-  · intro kind name _ layout word
-    cases kind with
-    | «local» =>
-      simp only [panSharpAllowance, sharpAddrPrice]
-      cases found : context.vars.lookup name with
-      | none => simp
-      | some data =>
-        obtain ⟨shape, names⟩ := data
-        obtain ⟨w, hw⟩ := word
-        have fits := layout name (by simp [varExpHOL]) shape names found
-        rw [sharp_resultWords_word s _ w hw] at fits
-        simp only []
-        omega
-    | «global» => simp [panSharpAllowance, sharpAddrPrice]
-  · intro fields _ supported; simp [scalarAddr] at supported
-  · intro index value _ supported; simp [scalarAddr] at supported
-  · intro name fields _ supported; simp [scalarAddr] at supported
-  · intro name value _ supported; simp [scalarAddr] at supported
-  · intro shape address ih supported layout word
-    simp only [scalarAddr, Bool.and_eq_true, decide_eq_true_eq] at supported
-    obtain ⟨w, hw⟩ := word
-    have addressWord : ∃ a, expressionValue s address = some (.val (.word a)) := by
-      simp only [expressionValue] at hw ⊢
-      rw [evalHOLExact] at hw
-      split at hw
-      · split at hw
-        · rename_i a h; exact ⟨a, h⟩
-        · simp at hw
-      · simp at hw
-    have := ih supported.2 (by simpa [varExpHOL] using layout) addressWord
-    simp only [panSharpAllowance, sharpAddrPrice, supported.1, Nat.sub_self, Nat.zero_mul]
-    omega
-  · intro address ih supported layout word
-    simp only [scalarAddr] at supported
-    obtain ⟨w, hw⟩ := word
-    have addressWord : ∃ a, expressionValue s address = some (.val (.word a)) := by
-      simp only [expressionValue] at hw ⊢
-      rw [evalHOLExact] at hw
-      split at hw
-      · rename_i a h; exact ⟨a, h⟩
-      · simp at hw
-    have := ih supported (by simpa [varExpHOL] using layout) addressWord
-    simp only [panSharpAllowance, sharpAddrPrice]; omega
-  · intro address ih supported layout word
-    simp only [scalarAddr] at supported
-    obtain ⟨w, hw⟩ := word
-    have addressWord : ∃ a, expressionValue s address = some (.val (.word a)) := by
-      simp only [expressionValue] at hw ⊢
-      rw [evalHOLExact] at hw
-      split at hw
-      · rename_i a h; exact ⟨a, h⟩
-      · simp at hw
-    have := ih supported (by simpa [varExpHOL] using layout) addressWord
-    simp only [panSharpAllowance, sharpAddrPrice]; omega
-  · intro operator args ih supported layout word
-    simp only [scalarAddr] at supported
-    obtain ⟨w, hw⟩ := word
-    have argsWords : ∃ vs, @evalListHOLExact 64 F _ s.toExact
-        (fun a => Classical.propDecidable (s.memaddrs a)) args = some vs ∧ vs.all valueIsWord = true := by
-      simp only [expressionValue] at hw
-      rw [evalHOLExact] at hw
-      split at hw
-      · rename_i vs h
-        split at hw
-        · rename_i all; exact ⟨vs, h, all⟩
-        · simp at hw
-      · simp at hw
-    have := ih supported (by simpa [varExpHOL] using layout) argsWords
-    simp only [panSharpAllowance, sharpAddrPrice]; omega
-  · intro operator args ih supported layout word
-    simp only [scalarAddr] at supported
-    obtain ⟨w, hw⟩ := word
-    have argsWords : ∃ vs, @evalListHOLExact 64 F _ s.toExact
-        (fun a => Classical.propDecidable (s.memaddrs a)) args = some vs ∧ vs.all valueIsWord = true := by
-      simp only [expressionValue] at hw
-      rw [evalHOLExact] at hw
-      split at hw
-      · rename_i vs h
-        split at hw
-        · rename_i all; exact ⟨vs, h, all⟩
-        · simp at hw
-      · simp at hw
-    have := ih supported (by simpa [varExpHOL] using layout) argsWords
-    simp only [panSharpAllowance, sharpAddrPrice]; omega
-  · intro operator left right ihLeft ihRight supported layout word
-    simp only [scalarAddr, Bool.and_eq_true] at supported
-    obtain ⟨w, hw⟩ := word
-    have both : (∃ a, expressionValue s left = some (.val (.word a))) ∧
-        (∃ b, expressionValue s right = some (.val (.word b))) := by
-      simp only [expressionValue] at hw ⊢
-      rw [evalHOLExact] at hw
-      split at hw
-      · rename_i a b ha hb; exact ⟨⟨a, ha⟩, ⟨b, hb⟩⟩
-      · simp at hw
-    simp only [varExpHOL] at layout
-    have a := ihLeft supported.1 (fun n m => layout n (List.mem_append_left _ m)) both.1
-    have b := ihRight supported.2 (fun n m => layout n (List.mem_append_right _ m)) both.2
-    simp only [panSharpAllowance, sharpAddrPrice]; omega
-  · intro operator left right ihLeft ihRight supported layout word
-    simp only [scalarAddr, Bool.and_eq_true] at supported
-    obtain ⟨w, hw⟩ := word
-    have both : (∃ a, expressionValue s left = some (.val (.word a))) ∧
-        (∃ b, expressionValue s right = some (.val (.word b))) := by
-      simp only [expressionValue] at hw ⊢
-      rw [evalHOLExact] at hw
-      split at hw
-      · rename_i a b ha hb; exact ⟨⟨a, ha⟩, ⟨b, hb⟩⟩
-      · simp at hw
-    simp only [varExpHOL] at layout
-    have a := ihLeft supported.1 (fun n m => layout n (List.mem_append_left _ m)) both.1
-    have b := ihRight supported.2 (fun n m => layout n (List.mem_append_right _ m)) both.2
-    simp only [panSharpAllowance, sharpAddrPrice]; omega
-  · intros; simp [panSharpAllowance, sharpAddrPrice]
-  · intros; simp [panSharpAllowance, sharpAddrPrice]
-  · intros; simp [panSharpAllowance, sharpAddrPrice]
-  · intros; simp [panSharpListAllowance, sharpAddrListPrice]
-  · intro head tail ihHead ihTail supported layout words
-    simp only [scalarAddrList, Bool.and_eq_true] at supported
-    simp only [List.map_cons, List.flatten_cons] at layout
-    obtain ⟨vs, hvs, all⟩ := words
-    simp only [evalListHOLExact] at hvs
-    split at hvs
-    · rename_i v rest hv hrest
-      simp only [Option.some.injEq] at hvs
-      subst hvs
-      simp only [List.all_cons, Bool.and_eq_true] at all
-      have headWord : ∃ w, expressionValue s head = some (.val (.word w)) := by
-        cases v with
-        | val word => cases word with | word w => exact ⟨w, hv⟩
-        | rStruct _ => simp [valueIsWord] at all
-        | nStruct _ _ => simp [valueIsWord] at all
-      have a := ihHead supported.1 (fun n m => layout n (List.mem_append_left _ m)) headWord
-      have b := ihTail supported.2 (fun n m => layout n (List.mem_append_right _ m)) ⟨rest, hrest, all.2⟩
-      simp only [panSharpListAllowance, sharpAddrListPrice]; omega
-    · simp at hvs
-  · trivial
-  · intros; trivial
-  · intros; trivial
-
-#print axioms sharp_addr_bound
 
 theorem sharp_size_nil : ∀ shape : ShapeHOL,
     sizeOfShapeWithContextHOL [] shape = sizeOfShapeHOL shape := by
@@ -396,13 +198,12 @@ theorem sharp_expression_bound {F : Type} (s : PanSemStateFiniteExact 64 F)
     have smaller := ih (by simpa [varExpHOL] using layout) supported.2 (by rw [hw]; simp)
     have size : sizeOfShapeWithContextHOL s.structs shape = sizeOfShapeHOL shape := by
       rw [structs]; exact sharp_size_nil shape
-    have replay : (sizeOfShapeHOL shape - 1) * (panSharpAllowance context address + 5) ≤
+    have replay : (sizeOfShapeHOL shape - 1) * (crepHead (compileExpExactHOLW context address).1 + 6) ≤
         (B + 5) * (sizeOfShapeHOL shape - 1) := by
-      rcases supported.1 with small | ⟨scalar, priced⟩
+      rcases supported.1 with small | ⟨grammar, priced⟩
       · have : sizeOfShapeHOL shape - 1 = 0 := by omega
         rw [this]; simp
-      · have addr := sharp_addr_bound s context address scalar
-          (by simpa [varExpHOL] using layout) ⟨w, hw⟩
+      · have addr := head_bound context address grammar
         rw [Nat.mul_comm]
         exact Nat.mul_le_mul_right _ (by omega)
     rw [expressionEvents]
