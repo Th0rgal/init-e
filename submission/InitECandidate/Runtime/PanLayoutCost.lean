@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.PanScalarCostTransfer
+import InitECandidate.Runtime.PanReadPresence
 import Flapjack.Pancake.Proofs.PanToCrep.StateRelFiniteSupport
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -113,6 +114,29 @@ theorem related_scalar_source_to_loop_cost {F G : Type}
     (scoped_scalar_lowering_cost_bound s context expression layout supported))⟩
 
 #print axioms related_scalar_source_to_loop_cost
+
+/-- Successful source evaluation discharges read-local presence automatically.
+Only the existing compiler locals relation and scalar lowering support remain. -/
+theorem successful_scalar_source_to_loop_cost {F G : Type}
+    (s : PanSemStateFiniteExact 64 F) (context : PanToCrepContextExact 64)
+    (targetLocals : HolFiniteMapExact Nat (HolWordLab 64))
+    (related : panToCrepLocalsRelFiniteExact context s.locals targetLocals)
+    (expression : ExpHOL 64) (value : ValueHOL 64)
+    (evaluated : expressionValue s expression = some value)
+    (supported : scalarLowering expression = true)
+    (loopContext : CrepToLoopContextExact) (tmp : Nat) (live : NumSet)
+    (state : LoopSemStateFiniteExact 64 G) :
+    let expressions := (compileExpExactHOLW context expression).1
+    let compiled := compileExpsHOLExact loopContext tmp live expressions
+    ∃ cost, LoopWorkRun state (loopNestedSeqHOL compiled.1)
+        (LoopSemStateFiniteExact.evaluate (loopNestedSeqHOL compiled.1) state) cost ∧
+      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤
+        6 * expressionCost scalarLoweringWeights s expression :=
+  related_scalar_source_to_loop_cost s context targetLocals related expression
+    (expression_success_locals_present s expression value evaluated)
+    supported loopContext tmp live state
+
+#print axioms successful_scalar_source_to_loop_cost
 
 #print axioms related_local_width
 #print axioms localWidthsFit_of_related_coverage

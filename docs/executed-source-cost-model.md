@@ -221,3 +221,11 @@ combines this scoped result with the compiler locals relation and presence of
 the read variables. Extra uninitialized context entries impose no obligation.
 Deriving read-variable presence directly from successful expression evaluation
 remains the next refinement; the RISC-V and guest-bound obligations are unchanged.
+
+`PanReadPresence` now proves that successful exact expression evaluation implies
+presence of every name in `varExpHOL`, covering all constructors and both list
+helpers. `PanLayoutCost.successful_scalar_source_to_loop_cost` uses this fact
+to eliminate the independent read-presence premise: successful evaluation and
+the existing compiler locals relation suffice for the scalar source-to-Loop
+work bound. This still excludes general multiword loads and does not yet cover
+later RISC-V lowering, source statement transfer or the guest's numerical cost.
