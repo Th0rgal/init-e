@@ -233,4 +233,231 @@ theorem actual_payload_header_strong_memzero {F : Type} (state : PanSemStateFini
 
 #print axioms actual_payload_header_strong_memzero
 
+/-- A store keeps the frame: it changes memory only. -/
+theorem actual_payload_header_store_frame_strong {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap : BitVec 64) (destination value : ExpHOL 64) (tail : ProgHOL 64)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (frame : HeapGlobalsFrame state mid) :
+    Reaches mid (.seq (.store destination value) tail)
+      (ActualPayloadHeaderBaseFacts state · pl raw pointer heap) 0 tail := by
+  refine reaches_seq mid (.store destination value) tail 0 _ ?_
+  rcases evaluate_store_cases mid destination value with error | ⟨memory,run⟩
+  · refine Or.inr ?_
+    unfold StAbort
+    rw [error]
+    exact ⟨.error,rfl,by simp,by simp,by simp,by simp⟩
+  · exact Or.inl ⟨{mid with memory:=memory},
+      ⟨facts,fun name different => frame name different⟩,by simp,by simp,run⟩
+
+#print axioms actual_payload_header_store_frame_strong
+
+/-- A single header store step with the strong facts. -/
+theorem actual_payload_header_store_step_strong {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap : BitVec 64) (index : Nat) (tail : ProgHOL 64)
+    (shape : ∃ destination value, actualPayloadHeaderAt index = .seq (.store destination value) tail)
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap)
+    (frame : HeapGlobalsFrame state mid) :
+    Reaches mid (actualPayloadHeaderAt index)
+      (ActualPayloadHeaderBaseFacts state · pl raw pointer heap) 0 tail := by
+  obtain ⟨destination,value,rewrite⟩ := shape
+  rw [rewrite]
+  exact actual_payload_header_store_frame_strong state mid pl raw pointer heap destination value
+    tail facts frame
+
+#print axioms actual_payload_header_store_step_strong
+
+/-- **The stronger prefix through both header stores.**  The actual `h[0] := 1` and
+`h[8] := raw + 0`, which leave every global untouched. -/
+theorem actual_payload_header_strong_stores {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer : BitVec 64)
+    (facts : ActualPayloadHeaderBaseFacts state mid pl raw pointer (allocationEnd pointer (248#64))) :
+    Reaches mid (actualPayloadHeaderAt 4)
+      (ActualPayloadHeaderBaseFacts state · pl raw pointer (allocationEnd pointer (248#64))) 0
+      (actualPayloadHeaderAt 6) := by
+  obtain ⟨baseFacts, frame⟩ := facts
+  rcases actual_payload_header_store_step_strong state mid pl raw pointer
+    (allocationEnd pointer (248#64)) 4 (actualPayloadHeaderAt 5)
+    ⟨_,_,source_actual_payload_header_store_zero⟩ baseFacts frame with
+    ⟨E, pE, c1, c2, sc⟩ | ab
+  · obtain ⟨baseE, frameE⟩ := pE
+    rcases actual_payload_header_store_step_strong state E pl raw pointer
+      (allocationEnd pointer (248#64)) 5 (actualPayloadHeaderAt 6)
+      ⟨_,_,source_actual_payload_header_store_raw⟩ baseE frameE with
+      ⟨G, pG, d1, d2, sd⟩ | ab2
+    · exact Or.inl ⟨G, pG, by omega, by omega, scoped_trans sc sd⟩
+    · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
+  · exact Or.inr ab
+
+#print axioms actual_payload_header_strong_stores
+
+/-- **The stronger prefix through the actual `alloc 32` for `oh`.** -/
+theorem actual_payload_header_strong_alloc_oh {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer : BitVec 64)
+    (facts : ActualPayloadHeaderBaseFacts state mid pl raw pointer (allocationEnd pointer (248#64)))
+    (code : state.code = originalRuntimeCode)
+    (budget : 2 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 6)
+      (fun post => ActualPayloadHeaderBaseFacts state post pl raw pointer
+          (allocationEnd (allocationEnd pointer (248#64)) (32#64)) ∧
+        post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64))))) 2
+      (actualPayloadHeaderAt 7) := by
+  obtain ⟨baseFacts, frame⟩ := facts
+  rw [source_actual_payload_header_alloc_output]
+  refine actual_payload_header_alloc_step mid (ofString "oh") (32#64) (allocationEnd pointer (248#64)) (actualPayloadHeaderAt 7) _
+    baseFacts.2.2.2.1 (by rw [baseFacts.2.2.2.2.2]; exact code) budget ?_
+  intro post memory domain postCode globals
+  refine ⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩,?_⟩
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      baseFacts.1]
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      baseFacts.2.1]
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      baseFacts.2.2.1]
+  · simp only [setVarHOLFinite]
+    rw [globals]
+    simp (config := {decide := true}) [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  · simp only [setVarHOLFinite]
+    rw [domain]
+    exact baseFacts.2.2.2.2.1
+  · simp only [setVarHOLFinite]
+    rw [postCode]
+    exact baseFacts.2.2.2.2.2
+  · exact HeapGlobalsFrame.alloc state mid frame (allocationEnd pointer (248#64)) (32#64) post globals
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+
+#print axioms actual_payload_header_strong_alloc_oh
+
+/-- **The stronger prefix through the actual `alloc 8` for `tmp`.** -/
+theorem actual_payload_header_strong_alloc_tmp {F : Type} (state mid : PanSemStateFiniteExact 64 F)
+    (pl raw pointer : BitVec 64)
+    (facts : ActualPayloadHeaderBaseFacts state mid pl raw pointer (allocationEnd (allocationEnd pointer (248#64)) (32#64)))
+    (ohLocal : mid.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))))
+    (code : state.code = originalRuntimeCode)
+    (budget : 2 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 7)
+      (fun post => ActualPayloadHeaderBaseFacts state post pl raw pointer
+          (allocationEnd (allocationEnd (allocationEnd pointer (248#64)) (32#64)) (8#64)) ∧
+        post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))) ∧
+        post.locals.lookup (ofString "tmp") = some (.val (.word (allocationEnd (allocationEnd pointer (248#64)) (32#64))))) 2
+      (actualPayloadHeaderAt 8) := by
+  obtain ⟨baseFacts, frame⟩ := facts
+  rw [source_actual_payload_header_alloc_tmp]
+  refine actual_payload_header_alloc_step mid (ofString "tmp") (8#64) (allocationEnd (allocationEnd pointer (248#64)) (32#64)) (actualPayloadHeaderAt 8) _
+    baseFacts.2.2.2.1 (by rw [baseFacts.2.2.2.2.2]; exact code) budget ?_
+  intro post memory domain postCode globals
+  refine ⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩,?_,?_⟩
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      baseFacts.1]
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      baseFacts.2.1]
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      baseFacts.2.2.1]
+  · simp only [setVarHOLFinite]
+    rw [globals]
+    simp (config := {decide := true}) [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  · simp only [setVarHOLFinite]
+    rw [domain]
+    exact baseFacts.2.2.2.2.1
+  · simp only [setVarHOLFinite]
+    rw [postCode]
+    exact baseFacts.2.2.2.2.2
+  · exact HeapGlobalsFrame.alloc state mid frame (allocationEnd (allocationEnd pointer (248#64)) (32#64)) (8#64) post globals
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,
+      ohLocal]
+  · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+
+#print axioms actual_payload_header_strong_alloc_tmp
+
+/-- **The stronger prefix through the actual byte store `*(byte*)tmp := 192`.** -/
+theorem actual_payload_header_strong_store_byte {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F) (pl raw pointer : BitVec 64)
+    (facts : ActualPayloadHeaderBaseFacts state mid pl raw pointer (allocationEnd (allocationEnd (allocationEnd pointer (248#64)) (32#64)) (8#64)))
+    (ohLocal : mid.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))))
+    (tmpLocal : mid.locals.lookup (ofString "tmp") = some (.val (.word (allocationEnd (allocationEnd pointer (248#64)) (32#64))))) :
+    Reaches mid (actualPayloadHeaderAt 8)
+      (fun post => ActualPayloadHeaderBaseFacts state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd pointer (248#64)) (32#64)) (8#64)) ∧
+        post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))) ∧
+        post.locals.lookup (ofString "tmp") = some (.val (.word (allocationEnd (allocationEnd pointer (248#64)) (32#64))))) 0 (actualPayloadHeaderAt 9) := by
+  obtain ⟨baseFacts, frame⟩ := facts
+  rw [source_actual_payload_header_store_byte]
+  have step := evaluate_storeByte_reaches mid (.var .local (ofString "tmp")) (.const (192#64))
+    (actualPayloadHeaderAt 9)
+  rcases step with ⟨post, ⟨g,l,c,d⟩, s1, s2, ssc⟩ | ab3
+  · refine Or.inl ⟨post,⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_⟩,?_,?_⟩,by omega,by omega,ssc⟩
+    · rw [l]; exact baseFacts.1
+    · rw [l]; exact baseFacts.2.1
+    · rw [l]; exact baseFacts.2.2.1
+    · rw [g]; exact baseFacts.2.2.2.1
+    · rw [d]; exact baseFacts.2.2.2.2.1
+    · rw [c]; exact baseFacts.2.2.2.2.2
+    · intro name different
+      rw [g]
+      exact frame name different
+    · rw [l]; exact ohLocal
+    · rw [l]; exact tmpLocal
+  · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab3
+    exact Or.inr ⟨x, h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
+
+#print axioms actual_payload_header_strong_store_byte
+
+/-- **The stronger prefix, statement 0 to statement 9, for every outcome.**  The two actual loads,
+the header allocation and the actual `memzero(h, 248)`, both header stores, the `oh` and `tmp`
+allocations and the actual byte store, carrying the prefix facts together with the frame of all
+non-heap globals and the two operand locals.  255 ticks, or abort. -/
+theorem actual_payload_header_strong_prefix_0_to_9 {F : Type}
+    (state : PanSemStateFiniteExact 64 F) (si pl raw pointer : BitVec 64)
+    (siLocal : state.locals.lookup (ofString "si") = some (.val (.word si)))
+    (siDomain : state.memaddrs (si + (0#64)))
+    (siCell : state.memory (si + (0#64)) = .word pl)
+    (plDomain : state.memaddrs (pl + (0#64)))
+    (plCell : state.memory (pl + (0#64)) = .word raw)
+    (code : state.code = originalRuntimeCode)
+    (heapGlobal : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (aligned : pointer.toNat % 8 = 0)
+    (fits : pointer.toNat + 248 ≤ 33806089496)
+    (wordDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (byteDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (panByteAlignHOL (pointer + BitVec.ofNat 64 offset)))
+    (budget : 255 ≤ state.clock) :
+    Reaches state (actualPayloadHeaderAt 0)
+      (fun post => ActualPayloadHeaderBaseFacts state post pl raw pointer (allocationEnd (allocationEnd (allocationEnd pointer (248#64)) (32#64)) (8#64)) ∧
+        post.locals.lookup (ofString "oh") = some (.val (.word (allocationEnd pointer (248#64)))) ∧
+        post.locals.lookup (ofString "tmp") = some (.val (.word (allocationEnd (allocationEnd pointer (248#64)) (32#64))))) 255 (actualPayloadHeaderAt 9) := by
+  rcases actual_payload_header_strong_memzero state si pl raw pointer siLocal siDomain siCell
+    plDomain plCell code heapGlobal aligned fits wordDomain byteDomain (by omega) with
+    ⟨E, ⟨prefixFacts, zeroed⟩, c1, c2, sc⟩ | ab
+  · rcases actual_payload_header_strong_stores state E pl raw pointer prefixFacts with
+      ⟨G, pG, d1, d2, sd⟩ | ab2
+    · rcases actual_payload_header_strong_alloc_oh state G pl raw pointer pG
+        code (by omega) with ⟨H, pH, e1, e2, se⟩ | ab3
+      · rcases actual_payload_header_strong_alloc_tmp state H pl raw pointer
+          pH.1 pH.2 code (by omega) with
+          ⟨I, pI, f1, f2, sf⟩ | ab4
+        · rcases actual_payload_header_strong_store_byte state I pl raw pointer
+            pI.1 pI.2.1 pI.2.2 with ⟨J, pJ, g1, g2, sg⟩ | ab5
+          · refine Or.inl ⟨J, pJ, by omega, by omega,
+              scoped_trans sc (scoped_trans sd (scoped_trans se (scoped_trans sf sg)))⟩
+          · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab5
+            have ck := (scoped_trans sc (scoped_trans sd (scoped_trans se sf))).2.1
+            exact Or.inr ⟨x, (scoped_trans sc (scoped_trans sd (scoped_trans se sf))).1.trans h1,
+              h2, by omega, by omega, fun k => h5 (by omega)⟩
+        · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab4
+          have ck := (scoped_trans sc (scoped_trans sd se)).2.1
+          exact Or.inr ⟨x, (scoped_trans sc (scoped_trans sd se)).1.trans h1, h2, by omega, by omega,
+            fun k => h5 (by omega)⟩
+      · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab3
+        have ck := (scoped_trans sc sd).2.1
+        exact Or.inr ⟨x, (scoped_trans sc sd).1.trans h1, h2, by omega, by omega,
+          fun k => h5 (by omega)⟩
+    · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
+  · exact Or.inr (stAbort_mono state _ 251 255 (by omega) ab)
+
+#print axioms actual_payload_header_strong_prefix_0_to_9
+
 end InitECandidate.Runtime
