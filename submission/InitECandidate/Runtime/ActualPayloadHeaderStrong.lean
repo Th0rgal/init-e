@@ -789,4 +789,31 @@ theorem actual_payload_header_construction_0_to_40 {F : Type}
 
 #print axioms actual_payload_header_construction_0_to_40
 
+/-- **A watched memory word.**  The cell at `address` still holds `value`; this is the memory
+companion of the prefix predicate, which deliberately mentions no memory. -/
+def WatchWord {F : Type} (state : PanSemStateFiniteExact 64 F) (address value : BitVec 64) : Prop :=
+  state.memory address = .word value
+
+/-- A watched word survives any step that leaves memory alone. -/
+theorem WatchWord.of_memory {F : Type} {before after : PanSemStateFiniteExact 64 F}
+    {address value : BitVec 64} (watch : WatchWord before address value)
+    (memory : after.memory = before.memory) : WatchWord after address value := by
+  unfold WatchWord at watch ⊢
+  rw [memory]
+  exact watch
+
+#print axioms WatchWord.of_memory
+
+/-- **The initial extra-length cell.**  The actual loader reads the extra length from `pl + 24`, and
+`pl + 136 ≤ pointer` keeps that cell strictly below the header, so every construction write -- all of
+which start at `pointer` -- leaves it alone. -/
+theorem actual_payload_header_initial_extra_length {F : Type}
+    (state : PanSemStateFiniteExact 64 F) (pl pointer : BitVec 64) (extraLen : BitVec 64)
+    (plCell : state.memory (pl + (24#64)) = .word extraLen)
+    (plDomain : state.memaddrs (pl + (24#64)))
+    (below : pl.toNat + 136 ≤ pointer.toNat) (aligned : pointer.toNat % 8 = 0) :
+    WatchWord state (pl + (24#64)) extraLen := plCell
+
+#print axioms actual_payload_header_initial_extra_length
+
 end InitECandidate.Runtime
