@@ -1,4 +1,6 @@
-import InitECandidate.Runtime.StackExecutionCostClock
+import InitECandidate.Runtime.StackExecutionCostProps
+import Flapjack.Compiler.Backend.LabToTarget.Compile
+import Flapjack.Compiler.Backend.StackProps.EvaluateAddClock
 namespace InitECandidate.Runtime.StackToLab
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Encoders.Asm
