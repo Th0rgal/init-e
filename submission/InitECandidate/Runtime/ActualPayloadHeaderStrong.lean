@@ -4,6 +4,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import InitECandidate.Runtime.ActualPayloadHeaderConstruction
 import InitECandidate.Runtime.KeccakWideFullCallBound
+import InitECandidate.Runtime.HeapDeclarationReturnedContract
+
+set_option maxHeartbeats 8000000
 
 /-!
 # A stronger actual payload-header prefix: the non-heap globals are untouched
@@ -581,6 +584,222 @@ theorem actual_payload_header_strong_keccak_wide {F : Type} (ref state : PanSemS
   exact actual_payload_header_keccak_reaches_of_bounded ref state pl raw pointer heap oh tmp facts
     code 145 bounded
 
-#print axioms actual_payload_header_strong_keccak_wide
+/-- **An allocation step that earns its own heap bound.**  On a successful return the real allocator
+has already checked the request against the memory cap, so the new floor is below the cap; the
+property receives that bound instead of the caller assuming it. -/
+theorem actual_payload_header_alloc_step_earned {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (name : MlS) (size heap : BitVec 64) (continuation : ProgHOL 64)
+    (P : PanSemStateFiniteExact 64 F → Prop)
+    (heapGlobal : s.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)))
+    (code : s.code = originalRuntimeCode) (budget : 2 ≤ s.clock)
+    (property : ∀ post : PanSemStateFiniteExact 64 F,
+      post.memory = s.memory → post.memaddrs = s.memaddrs → post.code = s.code →
+      post.globals = (setGlobalHOLFinite (ofString "heap_ptr") (.val (.word (allocationEnd heap size))) s).globals →
+      (allocationEnd heap size).toNat ≤ 33806089496 →
+      P (setVarHOLFinite name (.val (.word heap)) {post with locals := s.locals})) :
+    Reaches s (.decCall name .one (ofString "alloc") [(.const size)] continuation) P 2 continuation := by
+  have arguments : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+      [(.const size)] = (some [ValueHOL.val (HolWordLab.word size)] : Option (List (ValueHOL 64))) := by
+    simp [evalListHOLFinite,evalListHOLExact,evalHOLExact]
+  refine bounded_decCall_reaches s name (ofString "alloc") .one .one [(.const size)]
+    [ValueHOL.val (HolWordLab.word size)] (sourceFunctionBody Guest.guestFn_alloc) continuation
+    (HolFiniteMapExact.empty.update (ofString "n",.val (.word size))) 1 P arguments ?_ budget ?_ ?_
+  · rw [pan_single_word_lookup _ (ofString "alloc") (ofString "n") (sourceFunctionBody Guest.guestFn_alloc)
+      size (by rw [code]; exact originalRuntimeCode_allocation_lookup)]
+  · have bound := evaluate_source_alloc_uniform_bounded
+      (callEntryStateHOLFinite s (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))) code
+      (by change 1 ≤ s.clock - 1; omega)
+    exact ⟨bound.1,bound.2.1,bound.2.2.1⟩
+  · intro value post returned shapes
+    have sizeLocal : (callEntryStateHOLFinite s
+        (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))).locals.lookup (ofString "n") =
+        (some (ValueHOL.val (HolWordLab.word size)) : Option (ValueHOL 64)) := by
+      change (HolFiniteMapExact.empty.update (ofString "n",
+        ValueHOL.val (HolWordLab.word size))).lookup (ofString "n") = _
+      simp [HolFiniteMapExact.lookup_update,FUPDATE]
+    obtain ⟨guard,floor,valueEq,memory,domain,be,postCode,globals⟩ :=
+      alloc_body_returned (callEntryStateHOLFinite s
+        (HolFiniteMapExact.empty.update (ofString "n",.val (.word size)))) post heap size
+        (by simpa [callEntryStateHOLFinite] using code)
+        (by simpa [callEntryStateHOLFinite] using heapGlobal) sizeLocal value returned
+    subst valueEq
+    exact property post memory domain postCode globals floor
+
+#print axioms actual_payload_header_alloc_step_earned
+
+theorem actual_payload_header_after_keccak_earned {F : Type}
+    (state mid : PanSemStateFiniteExact 64 F) (pl raw pointer heap oh tmp : BitVec 64)
+    (facts : ActualPayloadHeaderCommit state mid pl raw pointer heap oh tmp)
+    (code : state.code = originalRuntimeCode)
+    (wordDomain : ∀ offset : Nat, offset < 33 → state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (budget : 2 ≤ mid.clock) :
+    Reaches mid (actualPayloadHeaderAt 10)
+      (fun post => ActualPayloadHeaderCommit state post pl raw pointer (allocationEnd heap (32#64)) oh tmp ∧
+        post.locals.lookup (ofString "txr") = some (.val (.word heap)) ∧
+        (allocationEnd heap (32#64)).toNat ≤ 33806089496) 2 (actualPayloadHeaderAt 14) := by
+  have storeOh (E : PanSemStateFiniteExact 64 F)
+      (pE : ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp) :
+      Reaches E (actualPayloadHeaderAt 10) (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp)
+        0 (actualPayloadHeaderAt 11) := by
+    rw [source_actual_payload_header_store_oh]
+    exact actual_payload_header_store_stage_commit state E pl raw pointer heap oh tmp (pointer + (16#64)) oh
+      (.op .add [.var .local (ofString "h"), .const (16#64)]) (.var .local (ofString "oh"))
+      (actualPayloadHeaderAt 11) pE
+      (actual_payload_header_eval_word_add E (ofString "h") pointer (16#64) pE.1.2.2.1)
+      (actual_payload_header_eval_local E (ofString "oh") oh pE.2.1)
+      (by rw [pE.1.2.2.2.2.1]; exact wordDomain 16 (by omega))
+  have store32 (E : PanSemStateFiniteExact 64 F)
+      (pE : ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp) :
+      Reaches E (actualPayloadHeaderAt 11) (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp)
+        0 (actualPayloadHeaderAt 12) := by
+    rw [source_actual_payload_header_store_32]
+    exact actual_payload_header_store_stage_commit state E pl raw pointer heap oh tmp (pointer + (24#64))
+      (raw + (32#64)) (.op .add [.var .local (ofString "h"), .const (24#64)])
+      (.op .add [.var .local (ofString "raw"), .const (32#64)]) (actualPayloadHeaderAt 12) pE
+      (actual_payload_header_eval_word_add E (ofString "h") pointer (24#64) pE.1.2.2.1)
+      (actual_payload_header_eval_word_add E (ofString "raw") raw (32#64) pE.1.2.1)
+      (by rw [pE.1.2.2.2.2.1]; exact wordDomain 24 (by omega))
+  have store52 (E : PanSemStateFiniteExact 64 F)
+      (pE : ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp) :
+      Reaches E (actualPayloadHeaderAt 12) (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp)
+        0 (actualPayloadHeaderAt 13) := by
+    rw [source_actual_payload_header_store_52]
+    exact actual_payload_header_store_stage_commit state E pl raw pointer heap oh tmp (pointer + (32#64))
+      (raw + (52#64)) (.op .add [.var .local (ofString "h"), .const (32#64)])
+      (.op .add [.var .local (ofString "raw"), .const (52#64)]) (actualPayloadHeaderAt 13) pE
+      (actual_payload_header_eval_word_add E (ofString "h") pointer (32#64) pE.1.2.2.1)
+      (actual_payload_header_eval_word_add E (ofString "raw") raw (52#64) pE.1.2.1)
+      (by rw [pE.1.2.2.2.2.1]; exact wordDomain 32 (by omega))
+  have stores : Reaches mid (actualPayloadHeaderAt 10)
+      (ActualPayloadHeaderCommit state · pl raw pointer heap oh tmp) 0 (actualPayloadHeaderAt 13) :=
+    reaches_trans mid (actualPayloadHeaderAt 10) (actualPayloadHeaderAt 11) (actualPayloadHeaderAt 13)
+      _ _ 0 0 (storeOh mid facts) (fun E pE =>
+        reaches_trans E (actualPayloadHeaderAt 11) (actualPayloadHeaderAt 12) (actualPayloadHeaderAt 13)
+          _ _ 0 0 (store32 E pE) (fun F pF => store52 F pF))
+  have allocation : ∀ E : PanSemStateFiniteExact 64 F,
+      ActualPayloadHeaderCommit state E pl raw pointer heap oh tmp → 2 ≤ E.clock →
+      Reaches E (actualPayloadHeaderAt 13)
+        (fun post => ActualPayloadHeaderCommit state post pl raw pointer (allocationEnd heap (32#64)) oh tmp ∧
+          post.locals.lookup (ofString "txr") = some (.val (.word heap)) ∧
+          (allocationEnd heap (32#64)).toNat ≤ 33806089496) 2 (actualPayloadHeaderAt 14) := by
+    intro E pE clockBound
+    rw [source_actual_payload_header_alloc_txr]
+    refine actual_payload_header_alloc_step_earned E (ofString "txr") (32#64) heap (actualPayloadHeaderAt 14) _
+      pE.1.2.2.2.1 (by rw [pE.1.2.2.2.2.2]; exact code) clockBound ?_
+    intro post memory domain postCode globals floor
+    refine ⟨⟨⟨?_,?_,?_,?_,?_,?_⟩,?_,?_⟩,?_,floor⟩
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.1.1]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.1.2.1]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.1.2.2.1]
+    · simp only [setVarHOLFinite]
+      rw [globals]
+      simp (config := {decide := true}) [setGlobalHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+    · simp only [setVarHOLFinite]
+      rw [domain]
+      exact pE.1.2.2.2.2.1
+    · simp only [setVarHOLFinite]
+      rw [postCode]
+      exact pE.1.2.2.2.2.2
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.2.1]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,pE.2.2]
+    · simp (config := {decide := true}) [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+  rcases stores with ⟨E, pE, c1, c2, sc⟩ | ab
+  · rcases allocation E pE (by omega) with ⟨post, pP, a1, a2, asc⟩ | ab2
+    · exact Or.inl ⟨post, pP, by omega, by omega, scoped_trans sc asc⟩
+    · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
+  · exact Or.inr (stAbort_mono mid _ 0 2 (by omega) ab)
+
+#print axioms actual_payload_header_after_keccak_earned
+
+/-- The heap floor after the header allocation. -/
+def actualPayloadHeaderOhFloor (pointer : BitVec 64) : BitVec 64 := allocationEnd pointer (248#64)
+
+/-- The heap floor after the `oh` allocation. -/
+def actualPayloadHeaderTmpFloor (pointer : BitVec 64) : BitVec 64 :=
+  allocationEnd (actualPayloadHeaderOhFloor pointer) (32#64)
+
+/-- The heap floor after the `tmp` allocation, i.e. at the keccak call. -/
+def actualPayloadHeaderKeccakFloor (pointer : BitVec 64) : BitVec 64 :=
+  allocationEnd (actualPayloadHeaderTmpFloor pointer) (8#64)
+
+/-- The heap floor after the `txr` allocation, i.e. at statement 14. -/
+def actualPayloadHeaderTxrFloor (pointer : BitVec 64) : BitVec 64 :=
+  allocationEnd (actualPayloadHeaderKeccakFloor pointer) (32#64)
+
+/-- The heap floor at statement 40, after the `z8`, `wr`, `rh` and `bh` allocations. -/
+def actualPayloadHeaderFinal (pointer : BitVec 64) : BitVec 64 :=
+  allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer) (8#64)) (32#64)) (32#64)
+
+/-- **The actual payload-header construction, statement 0 to statement 40, for every outcome.**
+From the real entry -- the two actual loads, the header allocation, the actual `memzero(h, 248)`, the
+header stores, the `oh`/`tmp` allocations, the actual byte store, the actual `keccak256(tmp, 1, oh)`
+call (bounded by the canonical typed-only wide contract), the actual `txr` allocation and the rest of
+the source up to the `block_rlp_length(h, pl)` call -- the construction reaches statement 40 in 419
+ticks, or aborts.  Nothing is assumed about success: every allocation may reject, the call may fail,
+and each of those falls in the abort branch.  The only room the construction needs at the start is
+the header's own 248 bytes; the later floors are earned by the real allocator's request check. -/
+theorem actual_payload_header_construction_0_to_40 {F : Type}
+    (state : PanSemStateFiniteExact 64 F) (si pl raw pointer st pad : BitVec 64)
+    (siLocal : state.locals.lookup (ofString "si") = some (.val (.word si)))
+    (siDomain : state.memaddrs (si + (0#64)))
+    (siCell : state.memory (si + (0#64)) = .word pl)
+    (plDomain : state.memaddrs (pl + (0#64)))
+    (plCell : state.memory (pl + (0#64)) = .word raw)
+    (code : state.code = originalRuntimeCode)
+    (heapGlobal : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (aligned : pointer.toNat % 8 = 0)
+    (fits : pointer.toNat + 248 ≤ 33806089496)
+    (wordDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (byteDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (panByteAlignHOL (pointer + BitVec.ofNat 64 offset)))
+    (stateGlobal : state.globals.lookup (ofString "keccak_st") = some (.val (.word st)))
+    (padGlobal : state.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)))
+    (fullDomain : ∀ address : BitVec 64, address.toNat < 33806089496 → state.memaddrs address)
+    (budget : 419 ≤ state.clock) :
+    Reaches state (actualPayloadHeaderAt 0)
+      (ActualPayloadHeaderPrefix state · pl raw pointer
+        (allocationEnd (allocationEnd (allocationEnd (allocationEnd (actualPayloadHeaderTxrFloor pointer)
+          (8#64)) (32#64)) (32#64)) (32#64))) 419 (actualPayloadHeaderAt 40) := by
+  rcases actual_payload_header_strong_prefix_0_to_9 state si pl raw pointer siLocal siDomain siCell
+    plDomain plCell code heapGlobal aligned fits wordDomain byteDomain (by omega) with
+    ⟨E, ⟨baseFacts, ohE, tmpE⟩, c1, c2, sc⟩ | ab
+  · obtain ⟨baseE, frameE⟩ := baseFacts
+    have commitE : ActualPayloadHeaderCommit state E pl raw pointer
+        (actualPayloadHeaderKeccakFloor pointer) (actualPayloadHeaderOhFloor pointer)
+        (actualPayloadHeaderTmpFloor pointer) := ⟨baseE, ohE, tmpE⟩
+    have codeE : E.code = originalRuntimeCode := baseE.2.2.2.2.2.trans code
+    rcases actual_payload_header_strong_keccak_wide state E pl raw pointer
+      (actualPayloadHeaderKeccakFloor pointer) (actualPayloadHeaderOhFloor pointer)
+      (actualPayloadHeaderTmpFloor pointer) st pad commitE frameE codeE stateGlobal padGlobal
+      (actual_payload_header_floor_aligned pointer (248#64)) (by omega) with
+      ⟨K, commitK, d1, d2, sd⟩ | ab2
+    · rcases actual_payload_header_after_keccak_earned state K pl raw pointer
+        (actualPayloadHeaderKeccakFloor pointer) (actualPayloadHeaderOhFloor pointer)
+        (actualPayloadHeaderTmpFloor pointer) commitK code
+        (fun offset bound => wordDomain offset (by omega)) (by omega) with
+        ⟨L, pL, e1, e2, se⟩ | ab3
+      · rcases actual_payload_header_tail_guarded state L pl raw pointer
+          (actualPayloadHeaderTxrFloor pointer) pL.1.1 code pL.2.2
+          (actual_payload_header_floor_aligned (actualPayloadHeaderKeccakFloor pointer) (32#64))
+          fullDomain (by omega) with ⟨Z, pZ, g1, g2, sg⟩ | ab4
+        · exact Or.inl ⟨Z, pZ, by omega, by omega,
+            scoped_trans sc (scoped_trans sd (scoped_trans se sg))⟩
+        · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab4
+          have ck := (scoped_trans sc (scoped_trans sd se)).2.1
+          exact Or.inr ⟨x, (scoped_trans sc (scoped_trans sd se)).1.trans h1, h2, by omega, by omega,
+            fun k => h5 (by omega)⟩
+      · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab3
+        have ck := (scoped_trans sc sd).2.1
+        exact Or.inr ⟨x, (scoped_trans sc sd).1.trans h1, h2, by omega, by omega,
+          fun k => h5 (by omega)⟩
+    · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
+  · exact Or.inr (stAbort_mono state _ 255 419 (by omega) ab)
+
+#print axioms actual_payload_header_construction_0_to_40
 
 end InitECandidate.Runtime
