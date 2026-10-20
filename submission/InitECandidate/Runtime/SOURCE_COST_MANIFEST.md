@@ -132,3 +132,25 @@ PY
 No source is shadowed (the link is only created when this checkout has no source for the module), and
 the shared build is never written to. Axioms of the reused theorems are those of the canonical shared
 build; every theorem *stated here* still reports exactly `[propext, Classical.choice, Quot.sound]`.
+
+## Fence preservation is free (`HeaderWithdrawalLoopFence`)
+
+`evaluateHOLFiniteState_metadata` gives `post.memaddrs = state.memaddrs` and `post.code = state.code`
+for **every** program and every run, so:
+- `fence_preserved : Fence state.memaddrs DF → Fence (evaluateHOLFiniteState state program).2.memaddrs DF`
+- `code_preserved : state.code = originalRuntimeCode → post.code = originalRuntimeCode`
+
+No encoder-specific domain proof and no heap cap are needed for fence/code preservation.
+
+Wiring (checked): `wdSliceLoopBody_runBounded_of_invariant` discharges the per-iteration `RunBounded`
+of statement 46 from an invariant supplying only (a) the `heap_ptr` value with `heap.toNat ≤
+33806089496`, (b) the fence (free), (c) the evaluated argument; and
+`wdSliceLoop_runBounded_of_invariant` is the statement-46 loop runtime bound with that per-iteration
+hypothesis already discharged. The loop lemmas now take the clock budget in the per-iteration
+hypothesis (`cost ≤ state.clock`), which is what the inductive call actually provides.
+
+Remaining obligation for the unconditional statement-46 corollary: the invariant preservation clauses
+`keep`/`advance`/`noContinue`/`decrease` plus the heap cap, which the frozen
+`HeaderWithdrawalLoopBody` step facts (`wd_slice_step_successor`, `wdSliceLoopStores_adv`,
+`wd_slice_step_clock_ne`, `wd_slice_step_outcome`) supply once the invariant also carries the
+`pl + 48` watched cell (`wd_slice_args`).

@@ -29,7 +29,8 @@ theorem countedWhile_runBounded (counter : MlS) (op : Cmp) (hop : op = .less ∨
     (P : ∀ {F : Type}, PanSemStateFiniteExact 64 F → Prop)
     (run : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
-      state.locals.lookup counter = some (.val (.word w)) → RunBounded state body cost)
+      state.locals.lookup counter = some (.val (.word w)) → cost ≤ state.clock →
+      RunBounded state body cost)
     (keep : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
       state.locals.lookup counter = some (.val (.word w)) →
@@ -72,7 +73,10 @@ theorem countedWhile_runBounded (counter : MlS) (op : Cmp) (hop : op = .less ∨
         simpa [decClockHOLFinite] using code
       have atClock : (decClockHOLFinite state).locals.lookup counter = some (.val (.word w)) := by
         simpa [decClockHOLFinite] using atCounter
-      have stepRun := run (decClockHOLFinite state) w pclock codeClock atClock
+      have stepRun := run (decClockHOLFinite state) w pclock codeClock atClock (by
+        change cost ≤ state.clock - 1
+        have : cost + 1 ≤ n * (cost + 1) := Nat.le_mul_of_pos_left _ positiveRank
+        omega)
       unfold RunBounded at stepRun
       have meta' := evaluateHOLFiniteState_metadata (decClockHOLFinite state) body
       cases bodyRun : evaluateHOLFiniteState (decClockHOLFinite state) body with
@@ -146,7 +150,8 @@ theorem countedWhile_runBounded_var (counter bound : MlS) (op : Cmp) (hop : op =
     (P : ∀ {F : Type}, PanSemStateFiniteExact 64 F → Prop)
     (run : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
-      state.locals.lookup counter = some (.val (.word w)) → RunBounded state body cost)
+      state.locals.lookup counter = some (.val (.word w)) → cost ≤ state.clock →
+      RunBounded state body cost)
     (keep : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
       state.locals.lookup counter = some (.val (.word w)) →
@@ -192,7 +197,10 @@ theorem countedWhile_runBounded_var (counter bound : MlS) (op : Cmp) (hop : op =
         simpa [decClockHOLFinite] using code
       have atClock : (decClockHOLFinite state).locals.lookup counter = some (.val (.word w)) := by
         simpa [decClockHOLFinite] using atCounter
-      have stepRun := run (decClockHOLFinite state) w pclock codeClock atClock
+      have stepRun := run (decClockHOLFinite state) w pclock codeClock atClock (by
+        change cost ≤ state.clock - 1
+        have : cost + 1 ≤ n * (cost + 1) := Nat.le_mul_of_pos_left _ positiveRank
+        omega)
       unfold RunBounded at stepRun
       have meta' := evaluateHOLFiniteState_metadata (decClockHOLFinite state) body
       cases bodyRun : evaluateHOLFiniteState (decClockHOLFinite state) body with
@@ -290,6 +298,7 @@ theorem wdSliceLoop_runBounded (DF : Nat) (nwd : BitVec 64)
     (run : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
       state.locals.lookup (ofString "i") = some (.val (.word w)) →
+      encodeWithdrawalSourceCost DF + 1 ≤ state.clock →
       RunBounded state wdSliceLoopBody (encodeWithdrawalSourceCost DF + 1))
     (keep : ∀ {F : Type} (state : PanSemStateFiniteExact 64 F) (w : BitVec 64), P state →
       state.code = originalRuntimeCode →
