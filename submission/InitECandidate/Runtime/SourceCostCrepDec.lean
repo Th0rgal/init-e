@@ -90,7 +90,8 @@ theorem dec_transfer {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHO
     (evaluated : expressionValue s initializer = some value)
     (shapeMatch : shapeEqHOL shape (shapeOfHOLExact value) = true)
     (rel : SourceCrepRel context s t) (localised : localisedExpHOL initializer = true) :
-    ∃ bodyContext bodyState, SourceCrepRel bodyContext (setVarHOLFinite name value s) bodyState ∧
+    ∃ bodyContext bodyState, bodyContext.funcs = context.funcs ∧
+      SourceCrepRel bodyContext (setVarHOLFinite name value s) bodyState ∧
       ∀ bodyWork, CrepWork bodyState (compileProgExactHOLW bodyContext body) bodyWork →
         CrepWork t (compileProgExactHOLW context (.dec name shape initializer body))
           ((flattenHOL value).length + crepListWork (compileExpExactHOLW context initializer).1 +
@@ -130,7 +131,7 @@ theorem dec_transfer {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHO
       by simp [decCallSlots]⟩
   let slotEntries := (decCallSlots context (shapeOfHOLExact value)).zip (flattenHOL value)
   refine ⟨decCallCtxt context name (shapeOfHOLExact value),
-    ({ t with locals := t.locals.updateListEq slotEntries } : CrepSemHOLState 64 F),
+    ({ t with locals := t.locals.updateListEq slotEntries } : CrepSemHOLState 64 F), rfl,
     ⟨by simpa [panToCrepStateRelFiniteExact, setVarHOLFinite] using rel.state, rel.code,
       rel.exceptions, hlocc⟩,
     ?_⟩
