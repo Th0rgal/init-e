@@ -331,6 +331,116 @@ theorem chargeGasBodyEvents_score (coeff : Work)
     executionWork_nil_score, List.append_nil]
   omega
 
+
+/-- Recorded work of one out-of-gas `charge_gas` helper run: the `dec gl`
+initialiser, the guard that actually fails, the `raise EvmErr 4` statement and
+its payload word, and the restored previous `gl` value. No gas cell is written,
+so this run is the terminal prefix `B` of the loop contract. -/
+noncomputable def chargeGasOutOfGasEvents (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame left used amount : BitVec 64) : List WorkEvent :=
+  let entry := setVarHOLFinite (ofString "gl") (.val (.word left)) s
+  let raiseEvents := .statement ::
+    (expressionEvents entry (.const 4) ++ [.copy (flattenHOL (.val (.word (4 : BitVec 64)))).length])
+  let iteEvents := .statement :: (expressionEvents entry chargeGasCheck ++ raiseEvents)
+  let bodyEvents := .statement :: iteEvents
+  .statement ::
+    (((expressionEvents s (fundingLoad 64) ++
+        [.copy (flattenHOL (.val (.word left))).length, .frame 1]) ++ bodyEvents) ++
+      [.copy (((s.locals.lookup (ofString "gl")).map
+        (fun previous => (flattenHOL previous).length)).getD 0)])
+
+/-- The actual out-of-gas execution trace of the installed helper: the failed
+guard raises the real language exception `EvmErr 4` before either gas cell is
+written. -/
+theorem chargeGas_outOfGas_run (state : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame left amount : BitVec 64)
+    (hFrame : state.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (hAmount : state.locals.lookup (ofString "amount") = some (.val (.word amount)))
+    (exceptionShape : state.eshapes.lookup (ofString "EvmErr") = some .one)
+    (leftDomain : state.memaddrs (frame + 64))
+    (leftCell : state.memory (frame + 64) = .word left)
+    (insufficient : left.toNat < amount.toNat) :
+    StatementRun state (sourceFunctionBody Guest.guestFn_charge_gas)
+      (some (.exception (ofString "EvmErr") (.val (.word 4))))
+      (chargeGasFailurePost state left) (chargeGasOutOfGasEvents state frame left 0 amount) := by
+  classical
+  let entry := setVarHOLFinite (ofString "gl") (.val (.word left)) state
+  let used := (0 : BitVec 64)
+  have names : ofString "amount" ≠ ofString "gl" := by decide_cbv
+  have entryLeft : entry.locals.lookup (ofString "gl") = some (.val (.word left)) := by
+    simp [entry, setVarHOLFinite, FUPDATE]
+  have entryAmount : entry.locals.lookup (ofString "amount") = some (.val (.word amount)) := by
+    simpa [entry, setVarHOLFinite, FUPDATE, names, Ne.symm names] using hAmount
+  have init : CostedExpressionRun state (fundingLoad 64) (some (.val (.word left)))
+      (expressionEvents state (fundingLoad 64)) :=
+    costedExpression_events state _ _ (eval_fundingLoad state frame 64 left hFrame leftDomain leftCell)
+  have shapeMatch : shapeEqHOL .one (shapeOfHOLExact (.val (.word left))) = true := by
+    simp [shapeOfHOLExact, shapeEqHOL]
+  have lower : left.toNat < amount.toNat := insufficient
+  have guardValue : expressionValue entry chargeGasCheck = some (.val (.word 1)) := by
+    unfold expressionValue
+    rw [eval_chargeGasCheck entry left amount entryLeft entryAmount]
+    simp [lower]
+  have guard : CostedExpressionRun entry chargeGasCheck (some (.val (.word 1)))
+      (expressionEvents entry chargeGasCheck) :=
+    costedExpression_events entry chargeGasCheck _ guardValue
+  have payload : CostedExpressionRun entry (.const 4) (some (.val (.word 4)))
+      (expressionEvents entry (.const 4)) :=
+    costedExpression_events entry _ _ (by simp [expressionValue, evalHOLExact])
+  have raiseRun : StatementRun entry (.raise (ofString "EvmErr") (.const 4))
+      (some (.exception (ofString "EvmErr") (.val (.word 4)))) (emptyLocalsHOLFinite entry)
+      (.statement :: (expressionEvents entry (.const 4) ++
+        [.copy (flattenHOL (.val (.word (4 : BitVec 64)))).length])) :=
+    StatementRun.raiseValue (exceptionId := ofString "EvmErr") (expression := .const 4)
+      (shape := .one) payload exceptionShape (by simp [shapeOfHOLExact])
+      (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
+  have iteRun : StatementRun entry
+      (.ite chargeGasCheck (.raise (ofString "EvmErr") (.const 4)) .skip)
+      (some (.exception (ofString "EvmErr") (.val (.word 4)))) (emptyLocalsHOLFinite entry)
+      (.statement :: (expressionEvents entry chargeGasCheck ++
+        (.statement :: (expressionEvents entry (.const 4) ++
+          [.copy (flattenHOL (.val (.word (4 : BitVec 64)))).length])))) :=
+    StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
+      (yes := .raise (ofString "EvmErr") (.const 4)) (no := .skip)
+      guard (by decide) raiseRun
+  have tailRun : StatementRun entry chargeGasTail
+      (some (.exception (ofString "EvmErr") (.val (.word 4)))) (emptyLocalsHOLFinite entry)
+      (.statement :: (.statement :: (expressionEvents entry chargeGasCheck ++
+        (.statement :: (expressionEvents entry (.const 4) ++
+          [.copy (flattenHOL (.val (.word (4 : BitVec 64)))).length]))))) := by
+    rw [chargeGasTail_shape]
+    exact StatementRun.seqStop (by simp)
+      (StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
+        (yes := .raise (ofString "EvmErr") (.const 4)) (no := .skip)
+        guard (by decide) raiseRun)
+  rw [source_chargeGas_body, chargeGasOutOfGasEvents]
+  exact StatementRun.declareValue (name := ofString "gl") (shape := .one)
+    (initializer := fundingLoad 64) (body := chargeGasTail) init shapeMatch tailRun
+
+
+/-- Explicit coefficient price of the out-of-gas prefix: the same over-counted
+statement coefficient, the initialiser and its frame slot, the failing guard,
+the exception payload word, and the restored previous `gl` value. This is the
+`B` term of the loop contract, charged once per run rather than per gas unit. -/
+theorem chargeGasOutOfGasEvents_score (coeff : Work)
+    (s : PanSemStateFiniteExact 64 Guest.HostMemory) (frame left used amount : BitVec 64) :
+    coeff.score (executionWork (chargeGasOutOfGasEvents s frame left used amount)) ≤
+      let entry := setVarHOLFinite (ofString "gl") (.val (.word left)) s
+      16 * coeff.statements +
+        expressionCost coeff s (fundingLoad 64) +
+        coeff.movedWords * (flattenHOL (.val (.word left))).length + coeff.frameSlots +
+        expressionCost coeff entry chargeGasCheck +
+        expressionCost coeff entry (.const (4 : BitVec 64)) +
+        coeff.movedWords * (flattenHOL (.val (.word (4 : BitVec 64)))).length +
+        coeff.movedWords * (((s.locals.lookup (ofString "gl")).map
+          (fun previous => (flattenHOL previous).length)).getD 0) := by
+  unfold chargeGasOutOfGasEvents expressionCost
+  simp only [executionWork_score_cons, executionWork_score_append, score_statement,
+    score_copy, score_frame, score_memory, score_singleton, score_expression,
+    executionWork_nil_score, List.append_nil]
+  omega
+
+#print axioms chargeGas_outOfGas_run
 #print axioms chargeGasBodyEvents_score
 #print axioms chargeGas_call_run
 #print axioms chargeGas_body_run
