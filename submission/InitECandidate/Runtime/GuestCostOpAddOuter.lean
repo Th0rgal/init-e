@@ -286,4 +286,46 @@ theorem opAddOuter_dispatch_body_run (coeff : Work)
   simpa [opAddOuterThirtyTwoEvents] using run
 
 #print axioms opAddOuter_dispatch_body_run
+
+/-- The `op == 1` guard plus arm price splits into the guard and the arm. -/
+theorem opAddOuterOneEvents_score (coeff : Work)
+    (d : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
+    coeff.score (executionWork (opAddOuterOneEvents d bodyPost bodyEvents)) =
+      opAddOuterGuardCost coeff d
+        (.cmp Cmp.equal (.var VarKind.local (ofString "op")) (.const (1 : BitVec 64))) +
+      coeff.score (executionWork (opAddDispatchArmEvents d bodyPost bodyEvents)) := by
+  unfold opAddOuterOneEvents opAddOuterGuardCost
+  simp [executionWork_score_append, executionWork_score_cons]
+  omega
+
+#print axioms opAddOuterOneEvents_score
+
+/-- Exact local price of the dispatcher body for `op = 1`, in terms of the four
+guard expressions and the `op_add` arm. -/
+noncomputable def opAddDispatchBodyLocalCost (coeff : Work)
+    (d : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) : Nat :=
+  opAddOuterGuardCost coeff d
+      (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (32 : BitVec 64))) +
+    opAddOuterGuardCost coeff d
+      (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (16 : BitVec 64))) +
+    coeff.score (executionWork (opAddOuterZeroEvents d)) +
+    opAddOuterGuardCost coeff d
+      (.cmp Cmp.equal (.var VarKind.local (ofString "op")) (.const (1 : BitVec 64))) +
+    opAddDispatchArmLocalCost coeff d bodyPost bodyEvents
+
+/-- Complete executed price of the `op = 1` dispatcher body. -/
+theorem opAddOuter_dispatch_body_score (coeff : Work)
+    (d : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
+    coeff.score (executionWork (opAddOuterThirtyTwoEvents d bodyPost bodyEvents)) =
+      opAddDispatchBodyLocalCost coeff d bodyPost bodyEvents := by
+  rw [opAddOuterThirtyTwoEvents_localCost, opAddOuterOneEvents_score,
+    opAdd_dispatch_arm_score]
+  unfold opAddDispatchBodyLocalCost
+  omega
+
+#print axioms opAddOuter_dispatch_body_score
+
 end InitECandidate.Runtime.FineCost
