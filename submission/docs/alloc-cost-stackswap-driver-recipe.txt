@@ -1,0 +1,48 @@
+Driver recipe: wordPathWork_sValEq_stack_variant (sValEq + TOP-LEVEL nonerror guard)
+==============================================================================
+Checked prerequisites (HEAD, 69 theorems, 0 sorry):
+ * error propagation from a non-erroring parent (reached children only):
+   evaluate_seq_error_fst/snd, evaluate_ite_error_true/false,
+   evaluate_loop_error_body/stop, evaluate_call_error_body/ret/handler.
+ * pointwise-IH call transports: wordPathWork_call_result_at, _call_exception_at
+   (plus the existing _noreturn_sValEq_variant, which is already pointwise).
+ * driver plumbing: fixClock_fst / fixClock_snd_stack / fixClock_snd_locals,
+   cutState_stack_none / cutState_stack_some, sptMem_sptFromAList,
+   sptDomainEqUnion_congr, sFrameValEq_refl, sValEq_cons_self.
+
+Statement:
+  ∀ p s xs, sValEq s.stack xs → (evaluate p s).1 ≠ some .error →
+    wordPathWork p {s with stack := xs} = wordPathWork p s
+  termination_by p s xs => (s.termdep, s.clock, sizeOf p)
+  decreasing_by: copy WordPathWork.lean:82-94 (wordSemLex; fixClock_IMP_LESS_EQ;
+  cutState_clock_termdep; popEnv_clock/termdep; omega).  The .loop STOP call needs
+  the fixClock/cutState equations named in the context, so keep the goal's named
+  matches alive (split) for that call, or re-establish `_h` with rfl.
+
+Per case:
+ .seq: rcases evaluate first s; ihFirst = recursive call (nonerror via
+   evaluate_seq_error_fst); transport via stackSwapPost (generic clause);
+   rw [wordPathWork, wordPathWork, ihFirst, hev, hevT, fixClock_swap_stack];
+   simp only [fixClock, Prod.fst]; cases res; none ⇒ recursive call at second with
+   state (fixClock s (none,middle)).2 and stack st (sValEq from hvalT via
+   fixClock_snd_stack; nonerror via evaluate_seq_error_snd); some ⇒ rfl.
+ .ite: rw [wordPathWork, wordPathWork, getVar_stack, getVarImm_stack, hv, hi, hc];
+   cases (cmp bool); congrArg with the recursive call on the selected branch
+   (nonerror via evaluate_ite_error_true/false).
+ .loop: cutState_stack_some/none; recursive call at body cs with stack xs; then
+   cases res; none / some (.continue 0) ⇒ clock branch, rw [fixClock_swap_stack,
+   decClock_stack] and recursive call at wordSemSTOP (.loop ...) and decClock
+   (fixClock cs (none,middle)).2 with stack st (nonerror via
+   evaluate_loop_error_stop); every other res ⇒ 1+bodyWork both sides.
+ .call: prelude getVars/badDest/findCode; ret = none ⇒ recursive call at prog on
+   callEnv args1 ss (decClock s) (nonerror via evaluate_call_error_body for the
+   returning shape; the noreturn clause returns the callee result directly since
+   wordSemBadFunReturn (some .error) = false); ret = some ⇒ rcases evaluate prog
+   entry, packet evaluateStackSwap gives st/hevT/hvalT; then
+   result branch: hnl/popEnv/hdom cases (tails in the module) else _call_result_at;
+   exception branch: instantiate the packet's ∀ at (fr :: xs) with
+   callEntry_stack_swap's fr and the SAME e0/e (pushEnv frame is identical in both
+   runs), obtain lss' with e'.map fst = lss'.map fst, lss.map snd = lss'.map snd
+   and lss.map fst = e.map fst ⇒ lss = lss' via map_fst_snd_eq ⇒ middleT.locals =
+   middle.locals (sptUnion_env_eq) ⇒ hdomT and middleT = {middle with stack := st};
+   then _call_exception_at; other results ⇒ 1+bodyWork.

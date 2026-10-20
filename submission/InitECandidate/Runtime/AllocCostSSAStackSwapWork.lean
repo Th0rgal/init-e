@@ -2070,4 +2070,60 @@ theorem wordPathWork_call_exception_at {C F : Type}
       (hnd := hnd) (hcut := hcut) (hclk := hclk) (hfix := hfix) (hhand := hhand) (hloc := hloc)
       (hdom := hdom)]
   rw [ihBodyAt, hmidT, setVar_stack, ihHandAt]
+
+/-! ### Driver support lemmas
+
+`fixClock` projections, `cutState` stack projection in constructor form, and the
+`spt` domain key interface used to identify the exception-restored locals
+domains of the two runs. -/
+
+theorem fixClock_fst {C F β : Type} (s : WordSemStateFiniteExact 64 C F)
+    (p : β × WordSemStateFiniteExact 64 C F) : (fixClock s p).1 = p.1 := rfl
+
+theorem fixClock_snd_stack {C F β : Type} (s : WordSemStateFiniteExact 64 C F)
+    (p : β × WordSemStateFiniteExact 64 C F) : (fixClock s p).2.stack = p.2.stack := rfl
+
+theorem fixClock_snd_locals {C F β : Type} (s : WordSemStateFiniteExact 64 C F)
+    (p : β × WordSemStateFiniteExact 64 C F) : (fixClock s p).2.locals = p.2.locals := rfl
+
+theorem cutState_stack_none {C F : Type} (names : WordLangCutsetsHOL)
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (hs : cutState names s = none) : cutState names { s with stack := xs } = none := by
+  rw [cutState_stack names s xs, hs]
+
+theorem cutState_stack_some {C F : Type} (names : WordLangCutsetsHOL)
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (cs : WordSemStateFiniteExact 64 C F) (hs : cutState names s = some cs) :
+    cutState names { s with stack := xs } = some { cs with stack := xs } := by
+  rw [cutState_stack names s xs, hs]
+
+theorem sptMem_sptFromAList {α : Type} (k : Nat) (xs : List (Nat × α)) :
+    sptMem k (sptFromAList xs) ↔ k ∈ xs.map Prod.fst := by
+  induction xs with
+  | nil => simp [sptFromAList, sptMem, sptDomain, sptLookup]
+  | cons head tail ih =>
+      obtain ⟨key, value⟩ := head
+      simp only [sptFromAList, List.map_cons, List.mem_cons]
+      rw [sptMem_sptInsert, ih]
+
+theorem sptDomainEqUnion_congr {α β γ : Type} {lss lss' e0 e0' : List (Nat × α)}
+    {b : Spt β} {c : Spt γ}
+    (h1 : lss.map Prod.fst = lss'.map Prod.fst)
+    (h2 : e0.map Prod.fst = e0'.map Prod.fst)
+    (h : sptDomainEqUnion (sptUnion (sptFromAList lss) (sptFromAList e0)) b c) :
+    sptDomainEqUnion (sptUnion (sptFromAList lss') (sptFromAList e0')) b c := by
+  intro k
+  have h' := h k
+  simp only [sptMem_sptUnion, sptMem_sptFromAList, h1, h2] at h' ⊢
+  exact h'
+
+theorem sFrameValEq_refl (fr : WordSemStackFrame 64) :
+    WordSemStackEq.sFrameValEq fr fr := by
+  obtain ⟨m, l0, l, y⟩ := fr
+  cases y <;> simp [WordSemStackEq.sFrameValEq]
+
+theorem sValEq_cons_self (fr : WordSemStackFrame 64)
+    {as bs : List (WordSemStackFrame 64)}
+    (h : WordSemStackEq.sValEq as bs) : WordSemStackEq.sValEq (fr :: as) (fr :: bs) :=
+  ⟨h, sFrameValEq_refl fr⟩
 end InitECandidate.Runtime.WordToStack
