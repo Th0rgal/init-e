@@ -131,3 +131,87 @@ decreasing_by
       Flapjack.WordSemStateFiniteExact.setVars, Flapjack.WordSemStateFiniteExact.setVar,
       pushEnv_clock, pushEnv_termdep, wordSemSTOP, true_and] at *
     omega
+
+/-! ## Attempt 1 (real code, currently red) -- Sequence case
+
+Two exact failures, saved in work/cost-allocation-stackswap-seq-errors.log:
+
+  (1) `sValEq (s.fixClock (none, middle)).snd.stack st` versus `sValEq middle.stack st`:
+      `simpa using hvalT` does not see that `fixClock` preserves the stack.  Fix:
+      prove `fixClock_stack_proj : (fixClock old r).2.stack = r.2.stack := rfl`
+      and rewrite with it before applying the second IH.
+
+  (2) the `hL`/`hR` obligations `simp only [fixClock]` do not reduce the
+      `match fixClock ... with | (result, middle) => ...` because the scrutinee is
+      a *pair* after zeta; use `dsimp only [fixClock, Prod.fst, Prod.snd]`, or
+      restate the two obligations with the pair already destructured
+      (`rcases hfc : fixClock s ((none, middle) : ... ) with ⟨res', mid'⟩`).
+-/
+
+theorem fixClock_stack {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (r : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64)) :
+    fixClock { s with stack := xs } (r.1, { r.2 with stack := xs }) =
+      ((fixClock s r).1, { (fixClock s r).2 with stack := xs }) := by
+  rcases r with ⟨res, mid⟩
+  simp only [fixClock]
+
+theorem fixClock_stack_proj {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (r : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F) :
+    (fixClock s r).2.stack = r.2.stack := rfl
+
+/-- Sequence case, normal completion. -/
+theorem wordPathWork_seq_sValEq_variant_none {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate first s = (none, middle))
+    (ihFirst : wordPathWork first { s with stack := xs } = wordPathWork first s)
+    (ihSecond : ∀ (m : WordSemStateFiniteExact 64 C F)
+      (st : List (WordSemStackFrame 64)),
+      WordSemStackEq.sValEq m.stack st →
+      wordPathWork second { m with stack := st } = wordPathWork second m) :
+    wordPathWork (.seq first second) { s with stack := xs } =
+      wordPathWork (.seq first second) s := by
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap first s
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  dsimp only [WordSemStackEq.stackSwapRel] at hT
+  obtain ⟨-, -, hrun⟩ := hT
+  obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hval
+  have hL : wordPathWork (.seq first second) { s with stack := xs } =
+      1 + wordPathWork first s +
+        wordPathWork second { (fixClock s ((none, middle) :
+          Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F)).2 with stack := st } := by
+    rw [wordPathWork, hevT, ihFirst]
+    dsimp only [fixClock, Prod.fst, Prod.snd]
+  have hR : wordPathWork (.seq first second) s =
+      1 + wordPathWork first s +
+        wordPathWork second (fixClock s ((none, middle) :
+          Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F)).2 := by
+    rw [wordPathWork]
+    dsimp only [fixClock, Prod.fst, Prod.snd]
+  rw [hL, hR, fixClock_stack_proj s ((none, middle) : _), ihSecond middle st hvalT]
+
+/-- Sequence case, exiting result. -/
+theorem wordPathWork_seq_sValEq_variant_result {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64))
+    (s middle : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate first s = (some (.result location returned), middle))
+    (ihFirst : wordPathWork first { s with stack := xs } = wordPathWork first s) :
+    wordPathWork (.seq first second) { s with stack := xs } =
+      wordPathWork (.seq first second) s := by
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap first s
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  dsimp only [WordSemStackEq.stackSwapRel] at hT
+  obtain ⟨-, -, hrun⟩ := hT
+  obtain ⟨st, hevT, -, -⟩ := hrun xs hval
+  have hL : wordPathWork (.seq first second) { s with stack := xs } =
+      1 + wordPathWork first s := by
+    rw [wordPathWork, hevT, ihFirst]
+    dsimp only [fixClock, Prod.fst, Prod.snd]
+  have hR : wordPathWork (.seq first second) s = 1 + wordPathWork first s := by
+    rw [wordPathWork]
+    dsimp only [fixClock, Prod.fst, Prod.snd]
+  rw [hL, hR]
