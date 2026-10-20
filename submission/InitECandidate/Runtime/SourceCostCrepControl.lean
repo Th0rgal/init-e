@@ -111,50 +111,50 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     ∀ (t : CrepSemHOLState 64 F) (context : PanToCrepContextExact 64),
       r ≠ some .error → SourceCrepRel context s t → localisedProgHOL p = true →
       bulkLoadSitesProg p = true → sourceControlProg p = true →
-      CodeCovered s.code → ReturnSlotsBounded context →
+      CodeCovered s.code →
       CrepWorkPaid t (compileProgExactHOLW context p) events := by
   induction run with
   | skip s =>
-    intro t context _ _ _ _ _ _ _
+    intro t context _ _ _ _ _ _
     exact ⟨1, by simp only [compileProgExactHOLW]; exact CrepWork.skip t, leaf_paid⟩
   | breakStmt s =>
-    intro t context _ _ _ _ _ _ _
+    intro t context _ _ _ _ _ _
     exact ⟨1, by simp only [compileProgExactHOLW]; exact CrepWork.breakStmt t 0, leaf_paid⟩
   | continueStmt s =>
-    intro t context _ _ _ _ _ _ _
+    intro t context _ _ _ _ _ _
     exact ⟨1, by simp only [compileProgExactHOLW]; exact CrepWork.continueStmt t 0, leaf_paid⟩
   | tickStep clock =>
-    intro t context _ _ _ _ _ _ _
+    intro t context _ _ _ _ _ _
     exact ⟨1, by simp only [compileProgExactHOLW]; exact CrepWork.tick t, leaf_paid⟩
   | tickTimeout clock =>
-    intro t context _ _ _ _ _ _ _
+    intro t context _ _ _ _ _ _
     exact ⟨1, by simp only [compileProgExactHOLW]; exact CrepWork.tick t, leaf_paid⟩
   | annotation =>
-    intro t context _ _ _ _ _ _ _
+    intro t context _ _ _ _ _ _
     exact ⟨1, by simp only [compileProgExactHOLW]; exact CrepWork.skip t, leaf_paid⟩
   | @seqNext s first middle second r post left right one two ihOne ihTwo =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
       at localised checked control
     obtain ⟨w1, work1, bound1⟩ :=
-      ihOne t context (by simp) rel localised.1 checked.1 control.1 codeOk slots
+      ihOne t context (by simp) rel localised.1 checked.1 control.1 codeOk
     obtain ⟨r1, t1, run1, state1, code1, exceptions1, rel1⟩ :=
       compiled_source_run t context one.sound (by simp) rel.state rel.code rel.exceptions
         rel.locals localised.1
     obtain ⟨rfl, locals1⟩ := rel1
     obtain ⟨w2, work2, bound2⟩ :=
       ihTwo t1 context result ⟨state1, code1, exceptions1, locals1⟩ localised.2 checked.2
-        control.2 (by rw [run_code one]; exact codeOk) slots
+        control.2 (by rw [run_code one]; exact codeOk)
     refine ⟨1 + w1 + w2, by simp only [compileProgExactHOLW]; exact CrepWork.seqNext work1 run1 work2, ?_⟩
     rw [score_statement_cons, score_append]
     simp only [sourceCrepWeights] at bound1 bound2 ⊢
     omega
   | @seqStop s first second r post left terminal one ihOne =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
       at localised checked control
     obtain ⟨w1, work1, bound1⟩ :=
-      ihOne t context result rel localised.1 checked.1 control.1 codeOk slots
+      ihOne t context result rel localised.1 checked.1 control.1 codeOk
     obtain ⟨r1, t1, run1, _, _, _, rel1⟩ :=
       compiled_source_run t context one.sound result rel.state rel.code rel.exceptions
         rel.locals localised.1
@@ -165,14 +165,14 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     simp only [sourceCrepWeights] at bound1 ⊢
     omega
   | @iteYes s condition yes no value guardEvents r post bodyEvents guard nonzero body ihBody =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
       at localised checked control
     obtain ⟨ce, shape, compiled, guardValue⟩ :=
       compiled_guard guard.sound rel.state rel.code rel.locals localised.1.1
     have guardBound := guard_paid guard rel checked.1.1 compiled
     obtain ⟨wb, workBody, boundBody⟩ :=
-      ihBody t context result rel localised.1.2 checked.1.2 control.1 codeOk slots
+      ihBody t context result rel localised.1.2 checked.1.2 control.1 codeOk
     rw [compile_ite_eq context compiled]
     refine ⟨1 + crepNodeWork ce + wb, CrepWork.iteBranch guardValue ?_, ?_⟩
     · rw [if_pos nonzero]; exact workBody
@@ -180,14 +180,14 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       simp only [sourceCrepWeights] at guardBound boundBody ⊢
       omega
   | @iteNo s condition yes no guardEvents r post bodyEvents guard body ihBody =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
       at localised checked control
     obtain ⟨ce, shape, compiled, guardValue⟩ :=
       compiled_guard guard.sound rel.state rel.code rel.locals localised.1.1
     have guardBound := guard_paid guard rel checked.1.1 compiled
     obtain ⟨wb, workBody, boundBody⟩ :=
-      ihBody t context result rel localised.2 checked.2 control.2 codeOk slots
+      ihBody t context result rel localised.2 checked.2 control.2 codeOk
     rw [compile_ite_eq context compiled]
     refine ⟨1 + crepNodeWork ce + wb, CrepWork.iteBranch guardValue ?_, ?_⟩
     · simpa using workBody
@@ -195,7 +195,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       simp only [sourceCrepWeights] at guardBound boundBody ⊢
       omega
   | @whileFalse s condition body guardEvents guard =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
       at localised checked control
     obtain ⟨ce, shape, compiled, guardValue⟩ :=
@@ -211,7 +211,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       simp only [sourceCrepWeights] at guardBound ⊢
       omega
   | @whileTimeout s condition body value guardEvents guard nonzero clock =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
       at localised checked control
     obtain ⟨ce, shape, compiled, guardValue⟩ :=
@@ -225,7 +225,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     omega
   | @whileNext s condition body value guardEvents middle r post bodyEvents restEvents
       guard nonzero clock one rest ihOne ihRest =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     have localisedWhole := localised
     have checkedWhole := checked
     have controlWhole := control
@@ -238,14 +238,14 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     have relBody : SourceCrepRel context (decClockHOLFinite s) (decClockCrepSemHOL t) :=
       ⟨decClock_state_rel rel.state, rel.code, rel.exceptions, rel.locals⟩
     obtain ⟨wb, workBody, boundBody⟩ :=
-      ihOne (decClockCrepSemHOL t) context (by simp) relBody localised.2 checked.2 control codeOk slots
+      ihOne (decClockCrepSemHOL t) context (by simp) relBody localised.2 checked.2 control codeOk
     obtain ⟨r1, t1, run1, state1, code1, exceptions1, rel1⟩ :=
       compiled_source_run (decClockCrepSemHOL t) context one.sound (by simp) relBody.state
         relBody.code relBody.exceptions relBody.locals localised.2
     obtain ⟨rfl, locals1⟩ := rel1
     obtain ⟨wr, workRest, boundRest⟩ :=
       ihRest t1 context result ⟨state1, code1, exceptions1, locals1⟩ localisedWhole
-        checkedWhole controlWhole (by rw [run_code one]; exact codeOk) slots
+        checkedWhole controlWhole (by rw [run_code one]; exact codeOk)
     rw [compile_while_eq context compiled] at workRest ⊢
     refine ⟨1 + crepNodeWork ce + wb + wr,
       CrepWork.whileLoop guardValue nonzero targetClock workBody run1 (Or.inl rfl) workRest, ?_⟩
@@ -254,7 +254,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     omega
   | @whileContinue s condition body value guardEvents middle r post bodyEvents restEvents
       guard nonzero clock one rest ihOne ihRest =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     have localisedWhole := localised
     have checkedWhole := checked
     have controlWhole := control
@@ -267,14 +267,14 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     have relBody : SourceCrepRel context (decClockHOLFinite s) (decClockCrepSemHOL t) :=
       ⟨decClock_state_rel rel.state, rel.code, rel.exceptions, rel.locals⟩
     obtain ⟨wb, workBody, boundBody⟩ :=
-      ihOne (decClockCrepSemHOL t) context (by simp) relBody localised.2 checked.2 control codeOk slots
+      ihOne (decClockCrepSemHOL t) context (by simp) relBody localised.2 checked.2 control codeOk
     obtain ⟨r1, t1, run1, state1, code1, exceptions1, rel1⟩ :=
       compiled_source_run (decClockCrepSemHOL t) context one.sound (by simp) relBody.state
         relBody.code relBody.exceptions relBody.locals localised.2
     obtain ⟨rfl, locals1⟩ := rel1
     obtain ⟨wr, workRest, boundRest⟩ :=
       ihRest t1 context result ⟨state1, code1, exceptions1, locals1⟩ localisedWhole
-        checkedWhole controlWhole (by rw [run_code one]; exact codeOk) slots
+        checkedWhole controlWhole (by rw [run_code one]; exact codeOk)
     rw [compile_while_eq context compiled] at workRest ⊢
     refine ⟨1 + crepNodeWork ce + wb + wr,
       CrepWork.whileLoop guardValue nonzero targetClock workBody run1 (Or.inr rfl) workRest, ?_⟩
@@ -283,7 +283,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     omega
   | @whileBreak s condition body value guardEvents post bodyEvents guard nonzero clock one
       ihOne =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
       at localised checked control
     obtain ⟨ce, shape, compiled, guardValue⟩ :=
@@ -293,7 +293,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     have relBody : SourceCrepRel context (decClockHOLFinite s) (decClockCrepSemHOL t) :=
       ⟨decClock_state_rel rel.state, rel.code, rel.exceptions, rel.locals⟩
     obtain ⟨wb, workBody, boundBody⟩ :=
-      ihOne (decClockCrepSemHOL t) context (by simp) relBody localised.2 checked.2 control codeOk slots
+      ihOne (decClockCrepSemHOL t) context (by simp) relBody localised.2 checked.2 control codeOk
     obtain ⟨r1, t1, run1, _, _, _, rel1⟩ :=
       compiled_source_run (decClockCrepSemHOL t) context one.sound (by simp) relBody.state
         relBody.code relBody.exceptions relBody.locals localised.2
@@ -306,7 +306,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     omega
   | @whilePropagate s condition body value guardEvents post bodyEvents bodyResult guard nonzero
       clock notBreak notContinue one ihOne =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
       at localised checked control
     obtain ⟨ce, shape, compiled, guardValue⟩ :=
@@ -316,7 +316,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     have relBody : SourceCrepRel context (decClockHOLFinite s) (decClockCrepSemHOL t) :=
       ⟨decClock_state_rel rel.state, rel.code, rel.exceptions, rel.locals⟩
     obtain ⟨wb, workBody, boundBody⟩ :=
-      ihOne (decClockCrepSemHOL t) context result relBody localised.2 checked.2 control codeOk slots
+      ihOne (decClockCrepSemHOL t) context result relBody localised.2 checked.2 control codeOk
     obtain ⟨r1, t1, run1, _, _, _, rel1⟩ :=
       compiled_source_run (decClockCrepSemHOL t) context one.sound result relBody.state
         relBody.code relBody.exceptions relBody.locals localised.2
@@ -328,7 +328,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     simp only [sourceCrepWeights] at guardBound boundBody ⊢
     omega
   | @assignValue s kind name expression value events expr valid =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     cases kind with
     | «global» => simp [localisedProgHOL] at localised
     | «local» =>
@@ -342,7 +342,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       omega
   | @storeValue s destination source address value memory addressEvents valueEvents dst src
       write =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, Bool.and_eq_true] at localised checked
     have paidAddress := expression_paid dst rel checked.1
     have paidValue := expression_paid src rel checked.2
@@ -354,7 +354,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     omega
   | @store32Value s destination source address value memory addressEvents valueEvents dst src
       write =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, Bool.and_eq_true] at localised checked
     have paidAddress := expression_paid dst rel checked.1
     have paidValue := expression_paid src rel checked.2
@@ -365,7 +365,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     omega
   | @storeByteValue s destination source address value memory addressEvents valueEvents dst src
       write =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, Bool.and_eq_true] at localised checked
     have paidAddress := expression_paid dst rel checked.1
     have paidValue := expression_paid src rel checked.2
@@ -375,7 +375,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     simp only [sourceCrepWeights] at paidAddress paidValue ⊢
     omega
   | @returnValue s expression value events expr size =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg] at localised checked
     have paid := expression_paid expr rel checked
     have length := compiled_length expr.sound rel localised
@@ -385,7 +385,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     simp only [sourceCrepWeights] at paid ⊢
     omega
   | @raiseValue s exceptionId expression value events shape expr declared shapeMatches size =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg] at localised checked
     have paid := expression_paid expr rel checked
     have length := compiled_length expr.sound rel localised
@@ -396,7 +396,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     omega
   | @declareValue s name shape initializer body value initEvents bodyEvents result post init
       shapeMatch bodyRun ihBody =>
-    intro t context resultOk rel localised checked control codeOk slots
+    intro t context resultOk rel localised checked control codeOk
     simp only [localisedProgHOL, bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true]
       at localised checked control
     have paid := expression_paid init rel checked.1
@@ -404,7 +404,6 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       dec_transfer init.sound shapeMatch rel localised.1
     obtain ⟨wb, workBody, boundBody⟩ :=
       ihBody bodyState bodyContext resultOk bodyRel localised.2 checked.2 control codeOk
-        (by intro f sh r h; rw [bodyFuncs] at h; exact slots f sh r h)
     refine ⟨_, lift wb workBody, ?_⟩
     simp only [List.append_assoc, List.cons_append, List.nil_append]
     rw [score_statement_cons, score_append, executionWork_score_cons, executionWork_score_cons,
@@ -413,7 +412,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     omega
   | @callDone s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents result post args lookup clock bodyRun plan ihBody =>
-    intro t context resultOk rel localised checked control codeOk slots
+    intro t context resultOk rel localised checked control codeOk
     obtain ⟨vshapes, hsrc, _, _, _⟩ :=
       lookupCodeHOLFinite_some_inv s.code.lookup function values body callee returnShape lookup
     have bodyStatic := codeOk function vshapes body returnShape hsrc
@@ -421,17 +420,17 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     have checkedArgs : bulkLoadSitesExps arguments = true := by
       rcases info with _ | ⟨dest, _ | ⟨a, b, c⟩⟩ <;> simp_all [bulkLoadSitesProg]
     exact call_done_transfer args lookup clock bodyRun plan resultOk rel localised checkedArgs
-      slots (fun t' c' rel' loc' slots' =>
-        ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk slots')
+      (fun t' c' rel' loc' =>
+        ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
   | @callTimeout s info function arguments values body callee returnShape args lookup clock =>
-    intro t context resultOk rel localised checked control codeOk slots
+    intro t context resultOk rel localised checked control codeOk
     have checkedArgs : bulkLoadSitesExps arguments = true := by
       rcases info with _ | ⟨dest, _ | ⟨a, b, c⟩⟩ <;> simp_all [bulkLoadSitesProg]
-    exact call_timeout_transfer args lookup clock rel localised checkedArgs slots
+    exact call_timeout_transfer args lookup clock rel localised checkedArgs
   | @callHandler s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post args lookup clock bodyRun
       plan handlerRun ihBody ihHandler =>
-    intro t context resultOk rel localised checked control codeOk slots
+    intro t context resultOk rel localised checked control codeOk
     obtain ⟨dest, exceptionId, handlerVar, rfl⟩ := handler_plan_info plan
     obtain ⟨exn, _, bodyException, _, _, _, entryEq, _⟩ := handler_plan_inv plan
     simp only [bulkLoadSitesProg, sourceControlProg, Bool.and_eq_true] at checked control
@@ -444,13 +443,13 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       show CodeCovered bodyPost.code
       rw [run_code bodyRun]
       exact codeOk
-    exact call_handler_transfer args lookup clock bodyRun plan rel localised checked.1 slots
-      (fun t' c' rel' loc' slots' =>
-        ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk slots')
-      (fun t' c' rel' loc' slots' =>
-        ihHandler t' c' resultOk rel' loc' checked.2 control handlerCode slots')
+    exact call_handler_transfer args lookup clock bodyRun plan rel localised checked.1
+      (fun t' c' rel' loc' =>
+        ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
+      (fun t' c' rel' loc' =>
+        ihHandler t' c' resultOk rel' loc' checked.2 control handlerCode)
   | _ =>
-    intro t context result rel localised checked control codeOk slots
+    intro t context result rel localised checked control codeOk
     first
       | exact absurd rfl result
       | (simp [sourceControlProg] at control)

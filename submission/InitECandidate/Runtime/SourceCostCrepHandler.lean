@@ -168,10 +168,10 @@ theorem handler_entry_work {F : Type} {s bodyPost : PanSemStateFiniteExact 64 F}
   omega
 
 theorem call_handler_events_score (arguments bodyEvents handlerEvents : List WorkEvent)
-    (a b c : Nat) :
-    sourceCrepWeights.score (executionWork (.statement :: (arguments ++ [.copy a, .frame b] ++
+    (a b f c : Nat) :
+    sourceCrepWeights.score (executionWork (.statement :: (arguments ++ [.copy a, .frame b, .frame f] ++
       bodyEvents ++ [.copy c] ++ handlerEvents))) =
-    24 + sourceCrepWeights.score (executionWork arguments) + 8 * a + 8 * b +
+    8 + sourceCrepWeights.score (executionWork arguments) + 8 * a + 8 * b + 8 * f +
       sourceCrepWeights.score (executionWork bodyEvents) + 8 * c +
       sourceCrepWeights.score (executionWork handlerEvents) := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, score_append,
@@ -199,18 +199,18 @@ theorem call_handler_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     (rel : SourceCrepRel context s t)
     (localised : localisedProgHOL (.call info function arguments) = true)
     (checkedArgs : bulkLoadSitesExps arguments = true)
-    (slots : ReturnSlotsBounded context)
     (ihBody : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' (callEntryStateHOLFinite s callee) t' →
-      localisedProgHOL body = true → ReturnSlotsBounded context' →
+      localisedProgHOL body = true →
       CrepWorkPaid t' (compileProgExactHOLW context' body) bodyEvents)
     (ihHandler : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' handlerEntry t' →
-      localisedProgHOL handlerProgram = true → ReturnSlotsBounded context' →
+      localisedProgHOL handlerProgram = true →
       CrepWorkPaid t' (compileProgExactHOLW context' handlerProgram) handlerEvents) :
     CrepWorkPaid t (compileProgExactHOLW context (.call info function arguments))
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+        [.copy (values.flatMap flattenHOL).length, .frame values.length,
+          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
         [.copy (callPayloadWords bodyResult)] ++ handlerEvents)) := by
   classical
   obtain ⟨dest, handlerId, handlerVar, rfl⟩ := handler_plan_info plan
@@ -219,12 +219,7 @@ theorem call_handler_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     hloc'⟩ :=
     pcCompileCorrectCallPrelude s t context function arguments values body callee returnShape
       args lookup rel.state rel.code rel.exceptions rel.locals (everyArgs_localised localised)
-  have calleeSlots : ReturnSlotsBounded (ctxtFcExactHOL context.funcs context.eids
-      (vshapes.map Prod.fst) (vshapes.map Prod.snd)
-      (List.range (sizeOfShapeHOL (.comb (vshapes.map Prod.snd))))) := by
-    intro f sh r h
-    exact slots f sh r (by simpa [ctxtFcExactHOL] using h)
-  obtain ⟨wb, workBody, boundBody⟩ := ihBody _ _ ⟨hst', hcode', hexcp', hloc'⟩ hprogLoc calleeSlots
+  obtain ⟨wb, workBody, boundBody⟩ := ihBody _ _ ⟨hst', hcode', hexcp', hloc'⟩ hprogLoc
   obtain ⟨r1, t1, hrun1, hs, hc, he, hrr⟩ :=
     compiled_source_run _ _ bodyRun.sound (by simp) hst' hcode' hexcp' hloc' hprogLoc
   simp only [pcCompileCorrectResultRel, ctxtFcExactHOL] at hrr
@@ -251,13 +246,12 @@ theorem call_handler_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     handler_entry_work (s := s) (t := t) (t1 := t1) (handlerProgram := handlerProgram)
       (handlerEvents := handlerEvents) targetLocals rel.locals agree valid hwfvE hglob hs
       (codeRelExactHOLW_ctxtFc context _ _ _ _ _ hc) he
-      (fun t' rel' => ihHandler t' context rel' hlocP slots)
+      (fun t' rel' => ihHandler t' context rel' hlocP)
   have htclock : t.clock ≠ 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
   have argsPaid := arguments_paid rel arguments values args checkedArgs
-  have rshBound := slots function vshapes returnShape hfuncs
-  simp only [returnSlotLimit] at rshBound
+  have rsize := frame_size_eq rel returnShape
   unfold CrepWorkPaid
-  rw [call_handler_events_score]
+  rw [call_handler_events_score, rsize]
   simp only [callPayloadWords]
   generalize sourceCrepWeights.score (executionWork (expressionListEvents s arguments)) = A
     at argsPaid ⊢

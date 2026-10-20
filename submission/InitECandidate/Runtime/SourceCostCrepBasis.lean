@@ -11,7 +11,7 @@ the four/one local vector); statement, memory and frame coefficients pay the
 Crep statements emitted per executed source statement and per moved word.
 These are Crep work units, not native instruction counts. -/
 def sourceCrepWeights : Work :=
-  { statements := 24, expressions := 24, movedWords := 8, memoryAccesses := 8, frameSlots := 8 }
+  { statements := 8, expressions := 24, movedWords := 8, memoryAccesses := 8, frameSlots := 8 }
 
 theorem score_statement_cons (coeff : Work) (rest : List WorkEvent) :
     coeff.score (executionWork (.statement :: rest)) =
