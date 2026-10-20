@@ -274,30 +274,239 @@ theorem eval_stackPopGuardNonzero (s : PanSemStateFiniteExact 64 F) (sp : BitVec
   rw [hcmp]
   rfl
 
-/-- Recorded work of one successful `stack_pop`: initialiser, false guard, skip,
-decrement, store, and the four-word return. -/
-noncomputable def stackPopSuccessEvents (s : PanSemStateFiniteExact 64 F) (frame sp base : BitVec 64)
+/-- The state after the `sp` initialiser of `stack_pop` has run. -/
+noncomputable def stackPopEntry (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64) :
+    PanSemStateFiniteExact 64 F :=
+  setVarHOLFinite (ofString "sp") (.val (.word sp)) s
+
+/-- The state after the successful `sp := sp - 1` assignment. -/
+noncomputable def stackPopAssigned (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64) :
+    PanSemStateFiniteExact 64 F :=
+  setKvarHOLFinite VarKind.local (ofString "sp") (.val (.word (sp - 1))) (stackPopEntry s sp)
+
+/-- The actual post-store state of the successful path: the decremented pointer
+is written into the `ev[16]` cell, leaving every other cell untouched. -/
+noncomputable def stackPopStored (s : PanSemStateFiniteExact 64 F) (frame sp : BitVec 64) :
+    PanSemStateFiniteExact 64 F :=
+  { stackPopAssigned s sp with
+    memory := writeWordMemory (stackPopAssigned s sp) (frame + 16) (sp - 1) }
+
+/-- The initialiser leaves the pointer in the `sp` local. -/
+theorem stackPopEntry_sp (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64) :
+    (stackPopEntry s sp).locals.lookup (ofString "sp") = some (.val (.word sp)) := by
+  simp [stackPopEntry, setVarHOLFinite, FUPDATE]
+
+/-- The assignment leaves the decremented pointer in the `sp` local. -/
+theorem stackPopAssigned_sp (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64) :
+    (stackPopAssigned s sp).locals.lookup (ofString "sp") =
+      some (.val (.word (sp - 1))) := by
+  simp [stackPopAssigned, stackPopEntry, setKvarHOLFinite, setVarHOLFinite, FUPDATE]
+
+/-- The store does not change the locals, so the post-store pointer is `sp - 1`. -/
+theorem stackPopStored_sp (s : PanSemStateFiniteExact 64 F) (frame sp : BitVec 64) :
+    (stackPopStored s frame sp).locals.lookup (ofString "sp") =
+      some (.val (.word (sp - 1))) := by
+  simpa [stackPopStored] using stackPopAssigned_sp s sp
+
+/-- The popped-word address `ev[8]` and the written pointer cell `ev[16]` never
+coincide in a 64-bit frame. -/
+theorem stackPop_frameCell_distinct (frame : BitVec 64) :
+    (frame + 8 : BitVec 64) ≠ frame + 16 := by
+  intro h
+  have h2 : (frame.toNat + 8) % 2 ^ 64 = (frame.toNat + 16) % 2 ^ 64 := by
+    simpa [BitVec.toNat_add] using congrArg BitVec.toNat h
+  omega
+
+/-- The store of the decremented pointer leaves the `ev[8]` base cell intact. -/
+theorem stackPopStored_baseCell (s : PanSemStateFiniteExact 64 F) (frame sp base : BitVec 64)
+    (hBase : (stackPopAssigned s sp).memory (frame + 8) = .word base) :
+    (stackPopStored s frame sp).memory (frame + 8) = .word base := by
+  simp only [stackPopStored, writeWordMemory,
+    if_neg (stackPop_frameCell_distinct frame)]
+  exact hBase
+
+/-- Recorded work of one successful `stack_pop`: the real statement trace of
+initialiser, false guard, skip, decrement, store, and the four-word return. -/
+noncomputable def stackPopSuccessEvents (s : PanSemStateFiniteExact 64 F) (frame sp _base : BitVec 64)
     (w0 w1 w2 w3 : BitVec 64) : List WorkEvent :=
-  let entry := setVarHOLFinite (ofString "sp") (.val (.word sp)) s
-  let assigned := setKvarHOLFinite VarKind.local (ofString "sp") (.val (.word (sp - 1))) entry
-  let stored := { assigned with memory := writeWordMemory assigned (frame + 16) (sp - 1) }
+  let entry := stackPopEntry s sp
+  let assigned := stackPopAssigned s sp
+  let stored := stackPopStored s frame sp
   let payload : ValueHOL 64 :=
     .rStruct [.val (.word w0), .val (.word w1), .val (.word w2), .val (.word w3)]
-  expressionEvents s stackPopSp ++
-    [.copy (flattenHOL (.val (.word sp))).length, .frame 1] ++
-    (.statement :: ((.statement :: (expressionEvents entry stackPopGuard ++ [.statement])) ++
-      (.statement :: (expressionEvents entry
-          (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
-          [.copy (flattenHOL (.val (.word (sp - 1)))).length] ++
-          (.statement :: (expressionEvents assigned (fundingAddress 16) ++
-            expressionEvents assigned (.var VarKind.local (ofString "sp")) ++
-            [.memory (flattenHOL (.val (.word (sp - 1)))).length] ++
-            (.statement :: (expressionEvents stored
-              (.load comb4Shape stackPopValueAddress) ++
-              [.copy (flattenHOL payload).length])))))))) ++
-    [.copy (((s.locals.lookup (ofString "sp")).map
-      (fun previous => (flattenHOL previous).length)).getD 0)]
+  .statement ::
+    (expressionEvents s stackPopSp ++
+      [.copy (flattenHOL (.val (.word sp))).length, .frame 1] ++
+      (.statement ::
+        ((.statement :: (expressionEvents entry stackPopGuard ++ [.statement])) ++
+         (.statement ::
+           ((.statement :: (expressionEvents entry
+               (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
+               [.copy (flattenHOL (.val (.word (sp - 1)))).length])) ++
+            (.statement ::
+              ((.statement :: (expressionEvents assigned (fundingAddress 16) ++
+                  expressionEvents assigned (.var VarKind.local (ofString "sp")) ++
+                  [.memory (flattenHOL (.val (.word (sp - 1)))).length])) ++
+               (.statement :: (expressionEvents stored
+                 (.load comb4Shape stackPopValueAddress) ++
+                 [.copy (flattenHOL payload).length])))))))) ++
+      [.copy (((s.locals.lookup (ofString "sp")).map
+        (fun previous => (flattenHOL previous).length)).getD 0)])
 
-#print axioms eval_stackPopGuardNonzero
+/-- The complete successful execution trace of the installed `stack_pop` helper:
+the nonzero pointer takes the guard's false branch, the pointer is decremented and
+stored, and the four popped words are returned. The popped-word cells are the
+actual cells of the real post-store state. -/
+theorem stackPop_success_run (state : PanSemStateFiniteExact 64 F)
+    (frame sp base w0 w1 w2 w3 : BitVec 64)
+    (hFrame : state.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (domain : state.memaddrs (frame + 16))
+    (memory : state.memory (frame + 16) = .word sp)
+    (nonzero : sp ≠ (0 : BitVec 64))
+    (baseDomain : state.memaddrs (frame + 8))
+    (baseCell : state.memory (frame + 8) = .word base)
+    (addressDomain0 : (stackPopStored state frame sp).memaddrs (base + (sp - 1) * 32))
+    (addressDomain1 : (stackPopStored state frame sp).memaddrs (base + (sp - 1) * 32 + 8))
+    (addressDomain2 : (stackPopStored state frame sp).memaddrs (base + (sp - 1) * 32 + 16))
+    (addressDomain3 : (stackPopStored state frame sp).memaddrs (base + (sp - 1) * 32 + 24))
+    (addressCell0 : (stackPopStored state frame sp).memory (base + (sp - 1) * 32) = .word w0)
+    (addressCell1 : (stackPopStored state frame sp).memory (base + (sp - 1) * 32 + 8) = .word w1)
+    (addressCell2 : (stackPopStored state frame sp).memory (base + (sp - 1) * 32 + 16) = .word w2)
+    (addressCell3 : (stackPopStored state frame sp).memory (base + (sp - 1) * 32 + 24) = .word w3) :
+    StatementRun state (sourceFunctionBody Guest.guestFn_stack_pop)
+      (some (.returned (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
+        .val (.word w3)])))
+      { emptyLocalsHOLFinite (stackPopStored state frame sp) with
+        locals := HolFiniteMapExact.resVarEq
+          (emptyLocalsHOLFinite (stackPopStored state frame sp)).locals
+          (ofString "sp", state.locals.lookup (ofString "sp")) }
+      (stackPopSuccessEvents state frame sp (base + (sp - 1) * 32) w0 w1 w2 w3) := by
+  classical
+  have entrySp : (stackPopEntry state sp).locals.lookup (ofString "sp") =
+      some (.val (.word sp)) := stackPopEntry_sp state sp
+  have entryFrame : (stackPopEntry state sp).globals.lookup (ofString "ev") =
+      some (.val (.word frame)) := by
+    simpa [stackPopEntry, setVarHOLFinite] using hFrame
+  have assignedFrame : (stackPopAssigned state sp).globals.lookup (ofString "ev") =
+      some (.val (.word frame)) := by
+    simpa [stackPopAssigned, stackPopEntry, setKvarHOLFinite, setVarHOLFinite] using entryFrame
+  have assignedSp : (stackPopAssigned state sp).locals.lookup (ofString "sp") =
+      some (.val (.word (sp - 1))) := stackPopAssigned_sp state sp
+  have assignedDomain : (stackPopAssigned state sp).memaddrs (frame + 16) := by
+    simpa [stackPopAssigned, stackPopEntry, setKvarHOLFinite, setVarHOLFinite] using domain
+  have assignedBaseDomain : (stackPopAssigned state sp).memaddrs (frame + 8) := by
+    simpa [stackPopAssigned, stackPopEntry, setKvarHOLFinite, setVarHOLFinite] using baseDomain
+  have assignedBaseCell : (stackPopAssigned state sp).memory (frame + 8) = .word base := by
+    simpa [stackPopAssigned, stackPopEntry, setKvarHOLFinite, setVarHOLFinite] using baseCell
+  have storedFrame : (stackPopStored state frame sp).globals.lookup (ofString "ev") =
+      some (.val (.word frame)) := by
+    simpa [stackPopStored] using assignedFrame
+  have storedBaseDomain : (stackPopStored state frame sp).memaddrs (frame + 8) := by
+    simpa [stackPopStored] using assignedBaseDomain
+  have storedBaseCell : (stackPopStored state frame sp).memory (frame + 8) = .word base :=
+    stackPopStored_baseCell state frame sp base assignedBaseCell
+  have storedSp : (stackPopStored state frame sp).locals.lookup (ofString "sp") =
+      some (.val (.word (sp - 1))) := stackPopStored_sp state frame sp
+  have init : CostedExpressionRun state stackPopSp (some (.val (.word sp)))
+      (expressionEvents state stackPopSp) :=
+    costedExpression_events state _ _ (eval_stackPopSp state frame sp hFrame domain memory)
+  have shapeMatch : shapeEqHOL .one (shapeOfHOLExact (.val (.word sp))) = true := by
+    simp [shapeOfHOLExact, shapeEqHOL]
+  have guardValue : expressionValue (stackPopEntry state sp) stackPopGuard =
+      some (.val (.word 0)) :=
+    eval_stackPopGuardNonzero (stackPopEntry state sp) sp entrySp nonzero
+  have guard : CostedExpressionRun (stackPopEntry state sp) stackPopGuard (some (.val (.word 0)))
+      (expressionEvents (stackPopEntry state sp) stackPopGuard) :=
+    costedExpression_events _ _ _ guardValue
+  have iteRun : StatementRun (stackPopEntry state sp)
+      (.ite stackPopGuard (.raise (ofString "EvmErr") (.const 2)) .skip)
+      none (stackPopEntry state sp)
+      (.statement :: (expressionEvents (stackPopEntry state sp) stackPopGuard ++
+        [.statement])) :=
+    StatementRun.iteNo (r := none) (post := stackPopEntry state sp)
+      (bodyEvents := [.statement]) (yes := .raise (ofString "EvmErr") (.const 2))
+      (no := .skip) guard (StatementRun.skip (stackPopEntry state sp))
+  have assignRun : StatementRun (stackPopEntry state sp)
+      (.assign VarKind.local (ofString "sp")
+        (.op .sub [.var VarKind.local (ofString "sp"), .const 1]))
+      none (stackPopAssigned state sp)
+      (.statement :: (expressionEvents (stackPopEntry state sp)
+          (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
+        [.copy (flattenHOL (.val (.word (sp - 1)))).length])) :=
+    stackPop_assign_run (stackPopEntry state sp) sp entrySp
+  have storeRun : StatementRun (stackPopAssigned state sp)
+      (.store (fundingAddress 16) (.var VarKind.local (ofString "sp")))
+      none (stackPopStored state frame sp)
+      (.statement :: (expressionEvents (stackPopAssigned state sp) (fundingAddress 16) ++
+        expressionEvents (stackPopAssigned state sp) (.var VarKind.local (ofString "sp")) ++
+        [.memory (flattenHOL (.val (.word (sp - 1)))).length])) :=
+    stackPop_store_run (stackPopAssigned state sp) frame (sp - 1) assignedFrame assignedSp
+      assignedDomain
+  have address : expressionValue (stackPopStored state frame sp) stackPopValueAddress =
+      some (.val (.word (base + (sp - 1) * 32))) := by
+    have := eval_stackPopValueAddress (stackPopStored state frame sp) frame base (sp - 1)
+      storedFrame storedBaseDomain storedBaseCell storedSp
+    simpa [expressionValue] using this
+  have retRun : StatementRun (stackPopStored state frame sp)
+      (.return (.load comb4Shape stackPopValueAddress))
+      (some (.returned (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
+        .val (.word w3)])))
+      (emptyLocalsHOLFinite (stackPopStored state frame sp))
+      (.statement :: (expressionEvents (stackPopStored state frame sp)
+          (.load comb4Shape stackPopValueAddress) ++
+        [.copy (flattenHOL (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
+          .val (.word w3)])).length])) :=
+    stackPop_return_run (stackPopStored state frame sp) (base + (sp - 1) * 32)
+      w0 w1 w2 w3 address addressDomain0 addressDomain1 addressDomain2 addressDomain3
+      addressCell0 addressCell1 addressCell2 addressCell3
+  have tailRun := StatementRun.seqNext assignRun (StatementRun.seqNext storeRun retRun)
+  rw [stackPop_prefix_installed]
+  refine StatementRun.declareValue (name := ofString "sp") (shape := .one)
+    (initializer := stackPopSp)
+    (body := (.seq (.ite stackPopGuard (.raise (ofString "EvmErr") (.const 2)) .skip)
+      (.seq (.assign VarKind.local (ofString "sp")
+          (.op .sub [.var VarKind.local (ofString "sp"), .const 1]))
+        (.seq (.store (fundingAddress 16) (.var VarKind.local (ofString "sp")))
+          (.return (.load comb4Shape stackPopValueAddress))))))
+    init shapeMatch ?_
+  simpa [stackPopSuccessEvents, stackPopEntry, stackPopAssigned, stackPopStored] using
+    StatementRun.seqNext iteRun tailRun
+
+/-- Explicit coefficient price of the same successful `stack_pop` trace: nine
+executed statements, four expressions, three copied values, one frame slot, one
+word write, and the restored previous pointer. -/
+theorem stackPopSuccessEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
+    (frame sp base : BitVec 64) (w0 w1 w2 w3 : BitVec 64) :
+    coeff.score (executionWork (stackPopSuccessEvents s frame sp base w0 w1 w2 w3)) ≤
+      9 * coeff.statements +
+        expressionCost coeff s stackPopSp +
+        coeff.movedWords * (flattenHOL (.val (.word sp))).length +
+        coeff.frameSlots * 1 +
+        expressionCost coeff (stackPopEntry s sp) stackPopGuard +
+        expressionCost coeff (stackPopEntry s sp)
+          (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) +
+        coeff.movedWords * (flattenHOL (.val (.word (sp - 1)))).length +
+        expressionCost coeff (stackPopAssigned s sp) (fundingAddress 16) +
+        expressionCost coeff (stackPopAssigned s sp) (.var VarKind.local (ofString "sp")) +
+        coeff.memoryAccesses * (flattenHOL (.val (.word (sp - 1)))).length +
+        expressionCost coeff (stackPopStored s frame sp)
+          (.load comb4Shape stackPopValueAddress) +
+        coeff.movedWords * (flattenHOL (.rStruct [.val (.word w0), .val (.word w1),
+          .val (.word w2), .val (.word w3)])).length +
+        coeff.movedWords * (((s.locals.lookup (ofString "sp")).map
+          (fun previous => (flattenHOL previous).length)).getD 0) := by
+  unfold stackPopSuccessEvents expressionCost
+  dsimp only [stackPopEntry, stackPopAssigned, stackPopStored]
+  simp only [executionWork_score_cons, executionWork_score_append, score_statement,
+    guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
+    executionWork_nil_score, List.append_nil]
+  omega
+
+#print axioms stackPopEntry_sp
+#print axioms stackPopAssigned_sp
+#print axioms stackPopStored_sp
+#print axioms stackPop_frameCell_distinct
+#print axioms stackPop_success_run
+#print axioms stackPopSuccessEvents_score
 
 end InitECandidate.Runtime.FineCost
