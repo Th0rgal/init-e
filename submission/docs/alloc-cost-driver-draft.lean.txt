@@ -252,6 +252,37 @@ theorem callBody_transport_exception {C F : Type}
 
 
 
+/-- A non-returning call (`ret = none`, `handler = none`) errors whenever its body errors. -/
+theorem evaluate_call_error_body_noreturn {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (s : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (hget : WordSemStateFiniteExact.getVars args s = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (ReturnValue := List Nat) (ReturnNames := WordLangCutsetsHOL)
+          (ReturnHandler := WordLangProgHOL (BitVec 64)) none locs)
+        s.code s.stackSize = some (args1, prog, ss))
+    (hclk : s.clock ≠ 0)
+    (h : (evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (Flapjack.WordSemStateFiniteExact.decClock s))).1 = some (WordSemResult.error)) :
+    (evaluate (.call none dest args none) s).1 = some (WordSemResult.error) := by
+  rw [evaluate]
+  simp only [hget]
+  rw [if_neg (by rw [hbad]; simp)]
+  simp only [hfind]
+  rcases hev : evaluate prog
+      (WordSemStateFiniteExact.callEnv args1 ss
+        (Flapjack.WordSemStateFiniteExact.decClock s)) with ⟨res, st'⟩
+  rw [hev] at h
+  simp only [Option.some.injEq] at h
+  subst h
+  rw [dif_neg hclk]
+  split <;> rfl
+
+#print axioms evaluate_call_error_body_noreturn
+
 /-- Tail of the loop clause at the stop state: swapping the stack under `decClock`
 does not change the cost, so the clock-guarded tail of the transported run equals the
 clock-guarded tail of the source run. -/
