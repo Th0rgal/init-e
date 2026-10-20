@@ -71,10 +71,13 @@ without a universal return-slot bound.
 
 | Stage/modules | Proven result | Scope/remaining obligation |
 | --- | --- | --- |
-| `SourceCostCrepWork`, `SourceCostCrepBasis`, `SourceCostCrepLeaf`, `SourceCostCrepDec`, `SourceCostCrepCall`, `SourceCostCrepHandler`, `SourceCostCrepDecCall`, `SourceCostCrepPrimitive`, `SourceCostCrepAtomic`, `SourceCostCrepControl` | Executed Crep work paid by source events for control paths, declarations, local assignments, stores, returns/raises, calls/declaration-calls, primitive/external/shared operations, including caught exceptions and timeout; return slots paid by requested size | All localized constructors under original state/code/exception/locals relations and non-error result, with program/callee bulk-load premises; preprocessing and Crep-to-Loop transfer remain open |
+| `SourceCostCrepWork`, `SourceCostCrepBasis`, `SourceCostCrepLeaf`, `SourceCostCrepDec`, `SourceCostCrepCall`, `SourceCostCrepHandler`, `SourceCostCrepDecCall`, `SourceCostCrepPrimitive`, `SourceCostCrepAtomic`, `SourceCostCrepControl` | Executed Crep work paid by source events for control paths, declarations, local assignments, stores, returns/raises, calls/declaration-calls, primitive/external/shared operations, including caught exceptions and timeout; return slots paid by requested size | All localized constructors under original state/code/exception/locals relations and non-error result, with program/callee bulk-load premises; structures/globals preprocessing and whole-program entry remain open |
 | `AllocCostModel`, `AllocCostSSA`, `AllocCostPasses`, `AllocCostCompose`, `AllocCostExecuted` | SSA prologue/instruction moves, three-to-two rewrite-site costs, nonamplifying allocation/colouring, and actual path budget for their composed output | Certified straight-line fragments; recursive call/loop reconciliation remains open |
 | `AllocCostOptimizer`, `AllocCostCse`, `AllocCostUnreach` | Local static envelopes for must-terminate/dead-code removal, copy propagation, CSE, sequence cleanup and unreachable removal; expansion charged by rewrite sites | Straight-line fragment bounds; grammar/composed optimizer and dynamic control transfer remain separate |
 | `AllocCostReconcile`, `AllocCostSSAControl` | Static local syntax envelopes for renaming, reconciliation, loop setup/back-edges, break/continue targets and tail-call argument moves, using actual live sets | Dynamic semantic execution transfer must still charge each occurrence; returning-call composition remains open |
+| `SourceCostCrepSimp` | Actual arithmetic simplification never increases executed Crep work, including calls and handlers; original result/state relation retained | Same clock; no recursive cost multiplier |
+| `SourceCostLoopCode`, `SourceCostLoopLeaf`, `SourceCostLoopTransfer`, `SourceCostLoopIf`, `SourceCostLoopDec`, `SourceCostLoopWhile*`, `SourceCostLoopCall*`, `SourceCostLoopControl`, `SourceCostLoopSource` | Full localized source-to-Crep-to-arithmetic-simplification-to-Loop per-statement execution transfer, with real guards, actual iterations/callees/handlers and all original compiler relations; optimizer premise discharged | Generic factor-seven coverage envelope is too loose for final score; structures/globals preprocessing and whole-program entry still open |
+| `SourceCostPanSimp*` | Full pinned `pan_simp` sequence reassociation, tail-call rewriting and installed-callee code-map transport preserve/decrease source event costs under EVERY coefficient vector | Actual source traces retained, including timeout/exception prefixes; structures/globals passes separate |
 | `SourceCostLoopWork` | Output-indexed exact Loop execution work, soundness and equal-work lifting to a larger clock for non-timeout runs; selected branches, each loop iteration, callees/continuations/handlers exposed | Actual Crep-to-Loop transfer is a separate stage |
 | `SourceCostLoopOptimise` and `SourceCostLoopLive*` | Full actual call rewrite, liveness shrink and marking preserve or decrease executed work at coefficient ONE, under original terminal-result guards and exact original initial/final states | Discharges `LoopOptimiseWork`; no recursive optimizer multiplier |
 | `AllocCostSSAExecuted` | Actual-state executed budgets for reconciliation and setup fragments, back-edge work at each reached intermediate state, and break/continue exit moves | Whole-loop SSA semantic iteration induction and returning-call exception composition remain open |
@@ -191,12 +194,15 @@ Marking preserves exact work. The original terminal guards and original initial
 and final states are retained by the combined theorem.
 
 The sequencing refinement was independently checked through global source trace
-completeness and all existing localized source-to-Crep modules. Guest helper
-modules last checked under the previous event model need their exact Seq event
-lists migrated and independently replayed; this is pending. The source worker
-has a complete source-to-simp-Crep-to-Loop per-statement transfer with the
-optimizer premise discharged, but that larger snapshot is awaiting independent
-review/replay and integration. Source preprocessing remains open.
+completeness and all existing localized source-to-Crep modules. The complete
+source-to-simplified-Crep-to-Loop per-statement transfer and five-module pan_simp
+execution/code-map transfer were source-reviewed and independently replayed from
+worker snapshot966c5a8d2. The former preserves all original compiler relations and
+uses the proved optimizer interface. The latter is nonamplifying under every
+coefficient vector, including reached compiled callees, continuations and
+handlers. Structures/globals preprocessing and whole-program entry remain open.
+Guest helper modules last checked under the previous event model still need
+exact Seq event migration and independent replay.
 
 ## Numerical budget audit
 
@@ -213,9 +219,10 @@ expressions. Preserve semantic coverage proofs while refining those inequalities
 
 ## Remaining end-to-end obligations
 
-1. Execute-cost transfer through source preprocessing and Crep-to-Loop. The
-   localized source-to-Crep statement transfer is checked for non-error runs
-   under original semantic relations and explicit bulk-load premises.
+1. Execute-cost transfer through structures/globals preprocessing and actual
+   installed-program entry. Localized source-to-simplified-Crep-to-Loop and
+   pan_simp transfers are checked; retain their original semantic premises and
+   explicit load-site certificates while sharpening numeric costs.
 2. Word optimizer/SSA/allocation cost transfer, charging inserted moves at each
    actual execution site, including loop/call reconciliation.
 3. Compose downstream local work across full control flow and native encoding;
