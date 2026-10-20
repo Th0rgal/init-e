@@ -248,9 +248,79 @@ theorem ssaLoop_executed_transfer_originalRel {width : Nat} [NeZero width] {C F 
   ssaLoop_executed_transfer names targetNames exits targetExits body targetBody
     bodyBudget backBudget _ step s t rel
 
+/-- Concrete discharge of `SsaLoopStep` for an identical source/target loop
+under the identity relation.  This is the semantic base instance: both cuts
+are the same state, the same body runs to the same result and state, and the
+one-execution work is identical.  It shows the step is a genuine semantic
+obligation, not a cost oracle. -/
+theorem ssaLoopStep_same {width : Nat} [NeZero width] {C F : Type}
+    (names : Spt Unit) (body : WordLangProgHOL (BitVec width)) :
+    SsaLoopStep names names body body
+      (fun s t : WordSemStateFiniteExact width C F => s = t) 0 := by
+  intro s t same
+  subst t
+  constructor
+  · constructor <;> intro sameCut <;> simpa using sameCut
+  · intro cs ct csCut ctCut
+    have csEq : cs = ct := by
+      rw [csCut] at ctCut
+      exact Option.some.inj ctCut
+    subst ct
+    refine ⟨rfl, ?_⟩
+    intro result sm run
+    refine ⟨sm, ?_, rfl, rfl, ?_⟩
+    · simpa using run
+    · omega
+
+/-- Concrete semantic discharge of `SsaLoopStep` for a body compiled to
+itself under the original frame relation plus agreement of the actual cut
+states.  The cut equality forces the two cut states to be the same state, so
+the identical body runs to the same result/state and has identical work. -/
+theorem ssaLoopStep_sameBody_frame {width : Nat} [NeZero width] {C F : Type}
+    (names : Spt Unit) (body : WordLangProgHOL (BitVec width)) :
+    SsaLoopStep names names body body
+      (fun s t : WordSemStateFiniteExact width C F =>
+        Flapjack.WordAlloc.wordStateEqRel s t ∧
+          cutState (names, .ln) s = cutState (names, .ln) t) 0 := by
+  intro s t related
+  constructor
+  · rw [related.2]
+  · intro cs ct csCut ctCut
+    have csEq : cs = ct := by
+      have cutEq := related.2
+      rw [csCut, ctCut] at cutEq
+      exact Option.some.inj cutEq
+    subst ct
+    refine ⟨⟨?_, rfl⟩, ?_⟩
+    · simp [Flapjack.WordAlloc.wordStateEqRel]
+    · intro result sm run
+      refine ⟨sm, ?_, ?_, rfl, ?_⟩
+      · simpa using run
+      · constructor
+        · simp [Flapjack.WordAlloc.wordStateEqRel]
+        · rfl
+      · omega
+
+/-- Whole-loop executed transfer with no one-step premise for a body compiled
+to itself, using the concrete frame/cut-relation instance above. -/
+theorem ssaLoop_executed_transfer_sameBody_frame {width : Nat} [NeZero width] {C F : Type}
+    (names exits targetExits : Spt Unit)
+    (body : WordLangProgHOL (BitVec width))
+    (s t : WordSemStateFiniteExact width C F)
+    (related : Flapjack.WordAlloc.wordStateEqRel s t ∧
+      cutState (names, .ln) s = cutState (names, .ln) t) :
+    wordPathWork (.loop names body targetExits) t ≤
+      wordPathWork (.loop names body exits) s +
+        ssaLoopExtra body names 0 0 s :=
+  ssaLoop_executed_transfer names names exits targetExits body body 0 0
+    _ (ssaLoopStep_sameBody_frame names body) s t related
+
 #print axioms ssaLoopExtra
 #print axioms ssaLoopExtra_le_work
 #print axioms ssaLoop_executed_transfer
 #print axioms ssaLoop_compiled_executed_transfer
 #print axioms ssaLoop_executed_transfer_originalRel
+#print axioms ssaLoopStep_same
+#print axioms ssaLoopStep_sameBody_frame
+#print axioms ssaLoop_executed_transfer_sameBody_frame
 end InitECandidate.Runtime.FineCost

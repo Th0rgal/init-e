@@ -176,11 +176,34 @@ Compile order and module stems (checker role `allocation`):
    - `SsaLoopStateRel`: the original `wordStateEqRel` plus `ssaLocalsRel`;
      `ssaLoop_executed_transfer_originalRel` states the same whole-loop bound
      over that original relation.
+   - `ssaLoopStep_sameBody_frame`: a concrete discharge of `SsaLoopStep` for a
+     body compiled to itself, over the original `wordStateEqRel` plus actual
+     cut-state agreement.
+   - `ssaLoop_executed_transfer_sameBody_frame`: the corresponding whole-loop
+     transfer with no one-step premise.
 
-   The remaining semantic premise, stated explicitly rather than hidden, is
-   the derivation of `SsaLoopStep` from `ssaCcTransCorrectLoop` for the actual
-   source/target states.  The whole-loop induction and per-iteration charging
-   are mechanized; the one-step relation is not assumed as a cost oracle.
+12. `AllocCostSSABodyWork` — quantitative base body cases
+   - `wordControlCost`: an executed control-node cost for straight fragments
+     that counts a parallel move as one node, matching `wordPathWork` rather
+     than `wordNodeCost` (which counts move words).
+   - `wordPathWork_le_controlCost_straight`: on straight fragments the actual
+     executed work is bounded by this control-node cost.
+   - `ssaBody_skip_executed_le`, `ssaBody_move_executed_le`,
+     `ssaBody_return_executed_le`, `ssaBody_raise_executed_le`: actual
+     one-execution bounds for the base SSA instruction expansions.
+   - `bodySimulationRunWork_skip`, `bodySimulationRunWork_move`,
+     `bodySimulationRunWork_return`, `bodySimulationRunWork_raise`: public
+     quantitative analogues of the pinned private `bodySimulationRun` for the
+     base instructions.  Each starts from the actual `ssaSimulation` premise,
+     derives the same source/target result and `wordStateEqRel` post state, and
+     proves the executed work transfer.  These are the first local cases of
+     the genuinely missing quantitative body-simulation lemma.
+
+   The remaining semantic obligation is now narrower: extend the quantitative
+   `bodySimulationRun` from these base instructions through the control
+   constructors, then instantiate the original SSA source/target cut relation.
+   The whole-loop induction and per-iteration charging are mechanized; no
+   cost oracle is assumed.
 
 All modules are checked with only `propext`, `Classical.choice` and
 `Quot.sound` in their axiom closure; there is no `sorry`, `admit`, custom
@@ -192,13 +215,14 @@ axiom, `unsafe`, `native_decide` or `bv_decide`.
   earlier theorems.  The reconciliation *budgets* for loops, `break`,
   `continue` and exception handlers are now proved in `AllocCostReconcile`, and
   the loop and call-none transfer is proved in `AllocCostSSAControl`.  The
-  remaining semantic gaps are the whole-loop induction over actual iterations
-  and the exception-handler branch of the returning call.  The per-execution
-  reconciliation charges, the return-handler local call composition and the
-  `fixInconsistencies` handler budget are proved; what remains is threading
-  them through every actual iteration and through the exception-handler
-  symbolic state.  These are exposed as explicit premises, not assumed
-  silently.
+  whole-loop induction over actual iterations is mechanized in
+  `AllocCostSSALoopExecuted`.  The remaining semantic gaps are the quantitative
+  `bodySimulationRun` control-constructor cases and the exception-handler
+  branch of the returning call.  Base-instruction quantitative cases are
+  proved in `AllocCostSSABodyWork`; the per-execution reconciliation charges,
+  the return-handler local call composition and the `fixInconsistencies`
+  handler budget are proved.  These are exposed as explicit premises, not
+  assumed silently.
 - `WordSimp`/`instSelect` selection is taken as the root participant's
   `selectionLeaves ≤ 2 * wordExpressionWork` bridge.  This note starts from the
   selected straight-line fragment and does not re-prove that bridge.
