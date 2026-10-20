@@ -2,6 +2,7 @@ import InitECandidate.Runtime.ValidateHeadersParentCarry
 import InitECandidate.Runtime.HeaderDecoderBodyBound
 import InitECandidate.Runtime.BoundedDecCallReach
 import InitECandidate.Runtime.PanTwoWordShapeLookup
+import InitECandidate.Runtime.HeaderDecoderBodyOuterTable
 /-!
 The validation loop's decode call reaches its own tail with the decoded parent record.
 
@@ -24,6 +25,10 @@ arena the caller already justifies.
 The room premise `heapCapped` is an explicit interim invariant: the heap at the call has room
 for the largest header record.  It is stated on `heapStart` only, so it says nothing about the
 caller's slice table.
+
+The reached state also keeps everything the loop's own invariant reads back: every memory word
+in `[ceiling, heapStart)` - the slice-witness table and the header-pointer buffer - is
+unchanged, and the outer input witness prefix at `older` is retained.
 -/
 namespace InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -44,6 +49,37 @@ theorem header_prefix_whole_le_body (inputLimit : Nat) :
     headerDecoderUnitCost, headerDecoderBodyCost, headerRlpFieldCost]
   omega
 
+/-- What the loop body's decode call hands the loop, as one named predicate so the validation
+loop can carry it as a component of its own invariant: the returned header record is bound to
+`h`, its generated state root word is readable at `record + 32` and inside the arena, the
+record extent stays below the heap cap, the heap moves to the record's state-root allocation,
+the frame globals and the code are restored, and everything the loop reads back - the words of
+`[ceiling, heapStart)` and the outer input witness prefix - is retained.  The whole predicate is
+about the actual returned run, which `validate_headers_parent_reaches` derives from the entry
+state and never assumes. -/
+def parentRecordCarry {F : Type} (s next : PanSemStateFiniteExact 64 F) (heapStart pointer length : BitVec 64)
+    (ceiling : Nat) (older outerInput outerLength olderCount : BitVec 64) : Prop :=
+  ∃ value : ValueHOL 64, ∃ post : PanSemStateFiniteExact 64 F, ∃ count record rooted : BitVec 64,
+    evaluateHOLFiniteState (callEntryStateHOLFinite s (rlpHeaderCallee pointer length)) (decodeHeaderAt 0) =
+      (some (.returned value),post) ∧
+    shapeEqHOL (shapeOfHOLExact value) .one = true ∧
+    value = .val (.word record) ∧
+    record = allocationEnd heapStart (count * 16) ∧
+    next = validateHeadersContinuation s post record ∧
+    next.locals.lookup (ofString "h") = some (.val (.word record)) ∧
+    next.memory (record + 32#64) = .word rooted ∧
+    next.memaddrs (record + 32#64) ∧
+    next.memaddrs = s.memaddrs ∧ next.code = s.code ∧
+    next.globals.lookup (ofString "heap_ptr") =
+      some (.val (.word (allocationEnd (allocationEnd heapStart (count * 16)) 248))) ∧
+    next.globals.lookup (ofString "scratch_ptr") = s.globals.lookup (ofString "scratch_ptr") ∧
+    next.globals.lookup (ofString "frame_mem_ptr") = s.globals.lookup (ofString "frame_mem_ptr") ∧
+    heapStart.toNat + 21 * 16 ≤ record.toNat ∧ record.toNat + 248 ≤ 33806089496 ∧
+    (∀ address : BitVec 64, ceiling ≤ address.toNat → address.toNat < heapStart.toNat →
+      next.memory address = s.memory address) ∧
+    RlpSliceInputPrefix post older outerInput outerLength olderCount.toNat ∧
+    count.toNat ≤ 23
+
 /-- The validation loop's actual header-decode call reaches the loop tail with the decoded
 parent record bound to `h`, the record's generated state root word readable at `record + 32`
 and inside the caller's arena, and the record extent below the heap cap.  Nothing about the
@@ -51,7 +87,7 @@ callee's execution is assumed: the body run, its bound and the installed lookup 
 derived from the entry invariants. -/
 theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 64 F)
     (array heapStart index pointer length input inputLength scratch frame : BitVec 64)
-    (ceiling inputLimit : Nat)
+    (older olderCount outerInput outerLength : BitVec 64) (ceiling inputLimit : Nat)
     (atArray : s.locals.lookup (ofString "arr") = some (.val (.word array)))
     (atIndex : s.locals.lookup (ofString "i") = some (.val (.word index)))
     (entry : RlpSliceInputEntry s array index pointer length input inputLength)
@@ -69,26 +105,14 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
       s.memaddrs address)
     (ceilingAligned : ceiling % 8 = 0) (inputAfter : ceiling ≤ pointer.toNat)
     (inputBeforeHeap : pointer.toNat + length.toNat ≤ heapStart.toNat)
+    (olderTable : RlpSliceInputPrefix s older outerInput outerLength olderCount.toNat)
+    (olderAbove : ceiling ≤ older.toNat)
+    (olderBefore : older.toNat + olderCount.toNat * 16 ≤ heapStart.toNat)
     (budget : headerDecoderBodyCost inputLimit + 2 ≤ s.clock) :
     Reaches s validateHeadersFirstBody
-      (fun next => ∃ value : ValueHOL 64, ∃ post : PanSemStateFiniteExact 64 F,
-        ∃ count record rooted : BitVec 64,
-        evaluateHOLFiniteState (callEntryStateHOLFinite s (rlpHeaderCallee pointer length)) (decodeHeaderAt 0) =
-          (some (.returned value),post) ∧
-        shapeEqHOL (shapeOfHOLExact value) .one = true ∧
-        value = .val (.word record) ∧
-        record = allocationEnd heapStart (count * 16) ∧
-        next = validateHeadersContinuation s post record ∧
-        next.locals.lookup (ofString "h") = some (.val (.word record)) ∧
-        next.memory (record + 32#64) = .word rooted ∧
-        next.memaddrs (record + 32#64) ∧
-        next.memaddrs = s.memaddrs ∧ next.code = s.code ∧
-        next.globals.lookup (ofString "heap_ptr") =
-          some (.val (.word (allocationEnd (allocationEnd heapStart (count * 16)) 248))) ∧
-        next.globals.lookup (ofString "scratch_ptr") = s.globals.lookup (ofString "scratch_ptr") ∧
-        next.globals.lookup (ofString "frame_mem_ptr") = s.globals.lookup (ofString "frame_mem_ptr") ∧
-        heapStart.toNat + 21 * 16 ≤ record.toNat ∧ record.toNat + 248 ≤ 33806089496)
+      (parentRecordCarry s · heapStart pointer length ceiling older outerInput outerLength olderCount)
       (headerDecoderBodyCost inputLimit + 1) validateHeadersFirstTail := by
+  unfold parentRecordCarry
   let entryState := callEntryStateHOLFinite s (rlpHeaderCallee pointer length)
   have args := eval_validate_headers_decode_arguments s array index pointer length input inputLength atArray
     atIndex entry
@@ -124,6 +148,15 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
     orderedFrame framePositive scratchBelow arena heapGlobal (by omega)
     countLimit heapArena ceilingAligned inputAfter inputBeforeHeap contractBudget value
     (by simpa only [source_decode_header_body] using run)
+  have olderEntry : RlpSliceInputPrefix entryState older outerInput outerLength olderCount.toNat :=
+    olderTable.after_memory_below s entryState older olderCount outerInput outerLength heapStart olderBefore rfl
+      (fun _ _ => rfl)
+  have retained := header_decoder_body_returned_outer_table entryState post pointer length scratch frame
+    heapStart ceiling inputLimit p len noWrap lengthBound limitBound scratchGlobal frameGlobal (code.trans (by rfl))
+    orderedFrame framePositive scratchBelow arena heapGlobal (by omega) countLimit heapArena ceilingAligned
+    inputAfter inputBeforeHeap bodyBudget older olderCount outerInput outerLength olderEntry olderAbove
+    olderBefore value run
+  obtain ⟨_,_,_,_,_,_,_,_,_,_,_,_,_,window,outerRetained⟩ := retained
   obtain ⟨count,flag,record,valueEq,countTwentyOne,countBound,heapPost,⟨rooted,rootMem⟩,domainPost,codePost,
     scratchPost,framePost,beforePost,_,recordEq,startCap⟩ := contract
   have sizeNat : (count * 16).toNat = count.toNat * 16 := by
@@ -150,7 +183,7 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
   have hLocal : continuation.locals.lookup (ofString "h") = some (.val (.word record)) := by
     simp [continuation,validateHeadersContinuation,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
   refine ⟨value,post,count,record,rooted,(by simpa only [source_decode_header_body] using run),checked.1,
-    valueEq,recordEq,?_,?_,?_,?_,?_,?_,?_,?_,?_,beforePost,recordInside⟩
+    valueEq,recordEq,?_,?_,?_,?_,?_,?_,?_,?_,?_,beforePost,recordInside,?_,?_,?_⟩
   · rw [valueEq]
     rfl
   · rw [valueEq]
@@ -178,6 +211,52 @@ theorem validate_headers_parent_reaches {F : Type} (s : PanSemStateFiniteExact 6
   · rw [valueEq]
     change post.globals.lookup (ofString "frame_mem_ptr") = s.globals.lookup (ofString "frame_mem_ptr")
     exact framePost
+  · intro address above below
+    rw [valueEq]
+    change post.memory address = s.memory address
+    exact window address above below
+  · exact outerRetained
+  · exact countBound
 
 #print axioms validate_headers_parent_reaches
+
+/-- The loop-consumable part of the carry: `h` holds the returned record, the record's generated
+state root word is readable at `record + 32` and that address is inside the arena, the record
+extent stays below the heap cap, and the memory domain and the code are the caller's. -/
+theorem parent_record_carry_facts {F : Type} (s next : PanSemStateFiniteExact 64 F)
+    (heapStart pointer length : BitVec 64) (ceiling : Nat) (older outerInput outerLength olderCount : BitVec 64)
+    (carried : parentRecordCarry s next heapStart pointer length ceiling older outerInput outerLength olderCount) :
+    ∃ record rooted : BitVec 64,
+      next.locals.lookup (ofString "h") = some (.val (.word record)) ∧
+      next.memory (record + 32#64) = .word rooted ∧ next.memaddrs (record + 32#64) ∧
+      next.memaddrs = s.memaddrs ∧ next.code = s.code ∧
+      heapStart.toNat + 21 * 16 ≤ record.toNat ∧ record.toNat + 248 ≤ 33806089496 := by
+  obtain ⟨_,_,_,record,rooted,_,_,_,_,_,atRecord,rootMem,rootHere,domain,codeHere,_,_,_,before,room,_,_⟩ :=
+    carried
+  exact ⟨record,rooted,atRecord,rootMem,rootHere,domain,codeHere,before,room⟩
+
+#print axioms parent_record_carry_facts
+
+/-- The parent-record part of the carry survives any later run that keeps the loop's view of
+`h`, the memory domain, the code and the record's root cell, so an iteration that follows the
+decode call with its own tail still hands the next iteration a decoded parent record. -/
+theorem parent_record_carry_frame {F : Type} (s next later : PanSemStateFiniteExact 64 F)
+    (heapStart pointer length : BitVec 64) (ceiling : Nat) (older outerInput outerLength olderCount : BitVec 64)
+    (carried : parentRecordCarry s next heapStart pointer length ceiling older outerInput outerLength olderCount)
+    (hKeep : later.locals.lookup (ofString "h") = next.locals.lookup (ofString "h"))
+    (domainKeep : later.memaddrs = next.memaddrs) (codeKeep : later.code = next.code)
+    (rootKeep : ∀ record rooted : BitVec 64, next.memory (record + 32#64) = .word rooted →
+      later.memory (record + 32#64) = .word rooted) :
+    ∃ record rooted : BitVec 64,
+      later.locals.lookup (ofString "h") = some (.val (.word record)) ∧
+      later.memory (record + 32#64) = .word rooted ∧ later.memaddrs (record + 32#64) ∧
+      later.memaddrs = s.memaddrs ∧ later.code = s.code ∧
+      heapStart.toNat + 21 * 16 ≤ record.toNat ∧ record.toNat + 248 ≤ 33806089496 := by
+  obtain ⟨record,rooted,atRecord,rootMem,rootHere,domain,codeHere,before,room⟩ :=
+    parent_record_carry_facts s next heapStart pointer length ceiling older outerInput outerLength olderCount
+      carried
+  exact ⟨record,rooted,hKeep.trans atRecord,rootKeep record rooted rootMem,by rw [domainKeep]; exact rootHere,
+    domainKeep.trans domain,codeKeep.trans codeHere,before,room⟩
+
+#print axioms parent_record_carry_frame
 end InitECandidate.Runtime
