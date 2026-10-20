@@ -160,3 +160,174 @@ theorem originalGlobalsFrame_local_decCall (name : MlS) (shape : ShapeHOL) (func
 #print axioms originalGlobalsFrame_tail_call
 #print axioms originalGlobalsFrame_local_call
 #print axioms originalGlobalsFrame_local_decCall
+
+/-- A declaration call step, with everything the goal determines kept implicit. -/
+theorem globalsFrame_declCall_step {function : MlS} {parameters : List (MlS × ShapeHOL)}
+    {body : ProgHOL 64} {returnShape : ShapeHOL} {name : MlS} {shape : ShapeHOL}
+    {continuation : ProgHOL 64} {arguments : List (ExpHOL 64)}
+    (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
+    (bodyFrame : OriginalGlobalsFrame body) (contFrame : OriginalGlobalsFrame continuation) :
+    OriginalGlobalsFrame (.decCall name shape function arguments continuation) :=
+  originalGlobalsFrame_local_decCall name shape function parameters body returnShape installed
+    bodyFrame continuation contFrame arguments
+
+/-- A local-bound call step, with everything the goal determines kept implicit. -/
+theorem globalsFrame_localCall_step {function : MlS} {parameters : List (MlS × ShapeHOL)}
+    {body : ProgHOL 64} {returnShape : ShapeHOL} {name : MlS} {arguments : List (ExpHOL 64)}
+    (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
+    (frame : OriginalGlobalsFrame body) :
+    OriginalGlobalsFrame (.call (some ((some (.local,name)),none)) function arguments) :=
+  originalGlobalsFrame_local_call name function parameters body returnShape installed frame arguments
+
+/-- A discarded call step, with everything the goal determines kept implicit. -/
+theorem globalsFrame_discard_step {function : MlS} {parameters : List (MlS × ShapeHOL)}
+    {body : ProgHOL 64} {returnShape : ShapeHOL} {arguments : List (ExpHOL 64)}
+    (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
+    (frame : OriginalGlobalsFrame body) :
+    OriginalGlobalsFrame (.call (some (none,none)) function arguments) :=
+  originalGlobalsFrame_discard_call function parameters body returnShape installed frame arguments
+
+/-- A tail-call step, with everything the goal determines kept implicit. -/
+theorem globalsFrame_tailStep {function : MlS} {parameters : List (MlS × ShapeHOL)}
+    {body : ProgHOL 64} {returnShape : ShapeHOL} {arguments : List (ExpHOL 64)}
+    (installed : originalRuntimeCode.lookup function = some (parameters,body,returnShape))
+    (frame : OriginalGlobalsFrame body) :
+    OriginalGlobalsFrame (.call none function arguments) :=
+  originalGlobalsFrame_tail_call function parameters body returnShape installed frame arguments
+
+theorem rlpBeLen_globals_frame :
+    OriginalGlobalsFrame (sourceFunctionBody Guest.guestFn_rlp_be_len) := by
+  rw [source_rlpBeLen_body]
+  exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+
+theorem rlpPutBe_globals_frame :
+    OriginalGlobalsFrame (sourceFunctionBody Guest.guestFn_rlp_put_be) := by
+  rw [source_rlpPutBe_body,rlpPutBeLoop,rlpPutBeStep]
+  exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+
+theorem rlpHeaderLen_globals_frame :
+    OriginalGlobalsFrame (sourceFunctionBody Guest.guestFn_rlp_header_len) := by
+  rw [source_rlpHeaderLen_body]
+  apply originalGlobalsFrame_sequence
+  · apply originalGlobalsFrame_conditional
+    · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+    · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+  · have tail : OriginalGlobalsFrame (.return (.op .add [.const (1#64),
+        .var .local (ofString "ll")])) :=
+      originalGlobalsFrame_leaf _ (by intro watched; rfl)
+    apply globalsFrame_declCall_step originalRuntimeCode_rlp_be_len_lookup
+      rlpBeLen_globals_frame
+    exact tail
+
+theorem rlpListHeaderLen_globals_frame :
+    OriginalGlobalsFrame (sourceFunctionBody Guest.guestFn_rlp_list_header_len) := by
+  rw [source_rlpListHeaderLen_body]
+  exact globalsFrame_tailStep originalRuntimeCode_rlp_header_len_lookup rlpHeaderLen_globals_frame
+
+theorem rlpWriteHeader_globals_frame :
+    OriginalGlobalsFrame (sourceFunctionBody Guest.guestFn_rlp_write_header) := by
+  rw [source_rlpWriteHeader_body,rlpWriteHeaderPrefix,rlpWriteHeaderTail]
+  apply originalGlobalsFrame_sequence
+  · apply originalGlobalsFrame_conditional
+    · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+    · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+  · have tail : OriginalGlobalsFrame
+        (.seq (.storeByte (.var .local (ofString "dst"))
+            (.op .add [.var .local (ofString "base"), .const (55#64),
+              .var .local (ofString "ll")]))
+          (.seq (.call (some (none,none)) (ofString "rlp_put_be")
+              [.op .add [.var .local (ofString "dst"), .const (1#64)],
+               .var .local (ofString "n"), .var .local (ofString "ll")])
+            (.return (.op .add [.const (1#64), .var .local (ofString "ll")])))) :=
+      originalGlobalsFrame_sequence _ _
+        (originalGlobalsFrame_leaf _ (by intro watched; rfl))
+        (originalGlobalsFrame_sequence _ _
+          (globalsFrame_discard_step originalRuntimeCode_rlp_put_be_lookup rlpPutBe_globals_frame)
+          (originalGlobalsFrame_leaf _ (by intro watched; rfl)))
+    apply globalsFrame_declCall_step originalRuntimeCode_rlp_be_len_lookup
+      rlpBeLen_globals_frame
+    exact tail
+
+theorem rlpEncodeListHeader_globals_frame :
+    OriginalGlobalsFrame (sourceFunctionBody Guest.guestFn_rlp_encode_list_header) := by
+  rw [source_rlpEncodeListHeader_body]
+  exact globalsFrame_tailStep originalRuntimeCode_rlp_write_header_lookup
+    rlpWriteHeader_globals_frame
+
+theorem rlpEncodeBytes_globals_frame :
+    OriginalGlobalsFrame (sourceFunctionBody Guest.guestFn_rlp_encode_bytes) := by
+  rw [source_rlpEncodeBytes_body,rlpEncodeBytesPrefix,rlpEncodeBytesTail]
+  apply originalGlobalsFrame_sequence
+  · apply originalGlobalsFrame_conditional
+    · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+    · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+  · have tail : OriginalGlobalsFrame
+        (.seq (.call (some (none,none)) (ofString "memcpy")
+            [.op .add [.var .local (ofString "dst"), .var .local (ofString "h")],
+             .var .local (ofString "src"), .var .local (ofString "n")])
+          (.return (.op .add [.var .local (ofString "h"),
+            .var .local (ofString "n")]))) :=
+      originalGlobalsFrame_sequence _ _
+        (globalsFrame_discard_step originalRuntimeCode_memcpy_lookup memcpy_body_globals_frame)
+        (originalGlobalsFrame_leaf _ (by intro watched; rfl))
+    apply globalsFrame_declCall_step originalRuntimeCode_rlp_write_header_lookup
+      rlpWriteHeader_globals_frame
+    exact tail
+
+theorem rlpFinishList_globals_frame :
+    OriginalGlobalsFrame (sourceFunctionBody Guest.guestFn_rlp_finish_list) := by
+  rw [source_rlpFinishList_body,rlpFinishListPayloadInit,rlpFinishListTorso]
+  apply originalGlobalsFrame_declaration
+  have tail : OriginalGlobalsFrame
+      (.seq (.call (some (none,none)) (ofString "memcpy")
+          [.op .add [.var .local (ofString "dst"), .var .local (ofString "hl")],
+           .op .add [.var .local (ofString "dst"), .const (9#64)],
+           .var .local (ofString "payload")])
+        (.seq (.call (some (none,none)) (ofString "rlp_encode_list_header")
+            [.var .local (ofString "dst"), .var .local (ofString "payload")])
+          (.return (.op .add [.var .local (ofString "hl"),
+            .var .local (ofString "payload")])))) :=
+    originalGlobalsFrame_sequence _ _
+      (globalsFrame_discard_step originalRuntimeCode_memcpy_lookup memcpy_body_globals_frame)
+      (originalGlobalsFrame_sequence _ _
+        (globalsFrame_discard_step originalRuntimeCode_rlp_encode_list_header_lookup
+          rlpEncodeListHeader_globals_frame)
+        (originalGlobalsFrame_leaf _ (by intro watched; rfl)))
+  apply globalsFrame_declCall_step originalRuntimeCode_rlp_list_header_len_lookup
+    rlpListHeaderLen_globals_frame
+  exact tail
+
+theorem rlpEncodeWord_globals_frame :
+    OriginalGlobalsFrame (sourceFunctionBody Guest.guestFn_rlp_encode_word) := by
+  rw [source_rlpEncodeWord_body,rlpEncodeWordZero,rlpEncodeWordSmall,rlpEncodeWordLong]
+  apply originalGlobalsFrame_sequence
+  · apply originalGlobalsFrame_conditional
+    · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+    · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+  · apply originalGlobalsFrame_sequence
+    · apply originalGlobalsFrame_conditional
+      · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+      · exact originalGlobalsFrame_leaf _ (by intro watched; rfl)
+    · have tail : OriginalGlobalsFrame
+          (.seq (.storeByte (.var .local (ofString "dst"))
+              (.op .add [.const (128#64), .var .local (ofString "ll")]))
+            (.seq (.call (some (none,none)) (ofString "rlp_put_be")
+                [.op .add [.var .local (ofString "dst"), .const (1#64)],
+                 .var .local (ofString "w"), .var .local (ofString "ll")])
+              (.return (.op .add [.const (1#64), .var .local (ofString "ll")])))) :=
+        originalGlobalsFrame_sequence _ _
+          (originalGlobalsFrame_leaf _ (by intro watched; rfl))
+          (originalGlobalsFrame_sequence _ _
+            (globalsFrame_discard_step originalRuntimeCode_rlp_put_be_lookup rlpPutBe_globals_frame)
+            (originalGlobalsFrame_leaf _ (by intro watched; rfl)))
+      apply globalsFrame_declCall_step originalRuntimeCode_rlp_be_len_lookup
+        rlpBeLen_globals_frame
+      apply tail
+
+#print axioms rlpBeLen_globals_frame
+#print axioms rlpHeaderLen_globals_frame
+#print axioms rlpWriteHeader_globals_frame
+#print axioms rlpEncodeBytes_globals_frame
+#print axioms rlpFinishList_globals_frame
+#print axioms rlpEncodeWord_globals_frame
+end InitECandidate.Runtime
