@@ -568,3 +568,30 @@ These are local recursive constructor rules, not the completed compiler
 bound. Callee terminal propagation, unhandled exceptions, other call forms,
 and the full recursive driver and Word pricing transfer still need completion.
 The full guest gas/input bound and finite submission score remain open.
+
+### Propagated calls, raw calls, and JumpLower
+
+`StackWeightedCallPropagate` charges actual returning-call entry and terminal
+callee work when neither local continuation runs. `callResultPropagates`
+excludes returns, Break, and Continue, and permits an exception only without a
+handler. `StackWeightedCallPropagateExit` supplies the corresponding control
+exit, including an unhandled exception. `StackWeightedCallExit` supplies tail
+call exits.
+
+`StackWeightedRawCall` and `StackWeightedRawCallExit` enter the actual installed
+body at label 1, skipping the prologue. They charge the reached direct jump
+(two native instructions) and body work. The original source clock unit pays
+for the jump; no extra label-clock supply is inserted.
+
+`StackWeightedJumpLowerFallthrough` prices the actual non-taken branch encoding
+and leaves the source clock unchanged. `StackWeightedJumpLower` and
+`StackWeightedJumpLowerExit` price a taken branch at three native instructions
+plus the reached callee's terminal/control-exit work. Actual register reads,
+comparison, lookup, installation, and original compiler relations justify the
+trace. No callee or unused prologue is charged on fall-through.
+
+Checks: `stack-call-propagate2`, `stack-raw-call1`, `stack-call-exits1`,
+`stack-jump-lower2`, `stack-jump-lower-fall1`, and `stack-jump-lower-exit1`; all
+printed axioms are standard. Full recursive compiler assembly and the transfer
+from fine Word prices remain open; these constructor rules do not yet prove
+a finite submission score.
