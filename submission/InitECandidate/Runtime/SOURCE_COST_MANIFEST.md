@@ -106,3 +106,29 @@ Explicit remaining obligations for the unconditional statement-46 corollary (all
 frozen `HeaderWithdrawalLoopBody` step lemmas supply the counter/heap/code parts
 (`wdSliceLoopStores_adv`, `wd_slice_step_successor`, `wd_slice_step_clock_ne`,
 `wd_slice_step_outcome`); the missing piece is `Fence`-preservation of the encoder's writes.
+
+## Import infrastructure note (reproducibility)
+
+The canonical encoder runtime bounds (`EncodeWithdrawalCallBound`, `EncodeWithdrawalRuntimeBound`,
+`RlpWritersRuntimeBound`, `RlpLengthRuntimeBounds`, `EncFenceBase`, …) live on the sibling branch
+`feat/finite-score-vm` and are already built in the canonical shared build. They are *imported*
+(not copied into this checkout): because Lean resolves a module in the first `LEAN_PATH` entry that
+contains its prefix, the private import tree must also carry those oleans. They are symlinked from
+the canonical shared build, only for modules whose sources are absent from this checkout:
+
+```bash
+python3 - <<'PY'
+import os,glob
+B='.../finite-score-build/.lake/build/lib/lean/InitECandidate'
+OUT='.../finite-flash-work/lib/lean/InitECandidate'
+SRC='.../finite-flash-checkout/submission/InitECandidate'
+for p in glob.glob(B+'/**/*.olean',recursive=True):
+    rel=os.path.relpath(p,B); src=os.path.join(SRC,rel[:-6]+'.lean'); dst=os.path.join(OUT,rel)
+    if os.path.exists(src) or os.path.exists(dst) or os.path.islink(dst): continue
+    os.makedirs(os.path.dirname(dst),exist_ok=True); os.symlink(os.path.abspath(p),dst)
+PY
+```
+
+No source is shadowed (the link is only created when this checkout has no source for the module), and
+the shared build is never written to. Axioms of the reused theorems are those of the canonical shared
+build; every theorem *stated here* still reports exactly `[propext, Classical.choice, Quot.sound]`.
