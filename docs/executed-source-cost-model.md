@@ -408,6 +408,15 @@ This supplies static PC offsets for compositional native proofs without adding
 unselected code to runtime costs. Its recursion and three geometry corollaries
 checked in `stack-flatten-shape8` with only standard axioms.
 
+`StackWeightedGeneralIf` lifts arbitrary selected bodies through the actual
+two-nonempty-arm join layout when both static nonreturning flags are false.
+Normal, control-exit and terminal outcomes are handled on both guard values.
+Only normal completion of the first emitted body pays the join jump (2); exits
+and terminal prefixes omit it. The unexecuted body contributes only its PC
+offset. The layout and six composition theorems checked independently in
+`stack-general-if-full2`. The two layouts placing a statically nonreturning
+body first remain to be composed.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
