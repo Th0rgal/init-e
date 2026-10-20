@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.BoundedDecCallReach
 import InitECandidate.Runtime.HtabGrowRehash
 import InitECandidate.Runtime.AllocationUniformBound
+import InitECandidate.Runtime.FrameHalt
 import InitECandidate.Runtime.MemzeroAlignedCall
 import InitECandidate.Runtime.AllocationInitializersBound
 import InitECandidate.Runtime.OriginalAttemptWrapperCode
@@ -56,7 +57,7 @@ theorem source_actual_payload_header_memzero :
 #print axioms source_actual_payload_header_memzero
 
 /-- Evaluating a one-word load from a typed local with a readable cell. -/
-theorem eval_load_word {F : Type} (state : PanSemStateFiniteExact 64 F) (name : MlS)
+theorem actual_payload_header_eval_load_word {F : Type} (state : PanSemStateFiniteExact 64 F) (name : MlS)
     (base offset value : BitVec 64)
     (entryLocal : state.locals.lookup name = some (.val (.word base)))
     (domain : state.memaddrs (base + offset)) (cell : state.memory (base + offset) = .word value) :
@@ -65,7 +66,7 @@ theorem eval_load_word {F : Type} (state : PanSemStateFiniteExact 64 F) (name : 
       (some (ValueHOL.val (HolWordLab.word value)) : Option (ValueHOL 64)) := by
   simp [evalHOLExact,evalListHOLExact,wordOpHOL,wordOp,valueIsWord,valueWord,isWfShapeExactHOL,
     memLoadHOLExact,entryLocal,domain,cell]
-#print axioms eval_load_word
+#print axioms actual_payload_header_eval_load_word
 
 /-- The typed entry facts of the actual construction prefix at the state just before `alloc 248`. -/
 def ActualPayloadHeaderLoads (state post : PanSemStateFiniteExact 64 F) (pl raw : BitVec 64) : Prop :=
@@ -101,7 +102,7 @@ theorem actual_payload_header_prefix_reaches {F : Type} (state : PanSemStateFini
     rw [source_actual_payload_header_pl]
     apply reaches_dec
     intro value evaluated
-    rw [eval_load_word state (ofString "si") si (0#64) pl siLocal siDomain siCell] at evaluated
+    rw [actual_payload_header_eval_load_word state (ofString "si") si (0#64) pl siLocal siDomain siCell] at evaluated
     cases Option.some.inj evaluated
     exact ⟨pl,rfl,rfl⟩
   have second : Reaches (setVarHOLFinite (ofString "pl") (.val (.word pl)) state)
@@ -111,7 +112,7 @@ theorem actual_payload_header_prefix_reaches {F : Type} (state : PanSemStateFini
     rw [source_actual_payload_header_raw]
     apply reaches_dec
     intro found evaluated
-    rw [eval_load_word (setVarHOLFinite (ofString "pl") (.val (.word pl)) state) (ofString "pl") pl (0#64) raw
+    rw [actual_payload_header_eval_load_word (setVarHOLFinite (ofString "pl") (.val (.word pl)) state) (ofString "pl") pl (0#64) raw
       (by simp [setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE])
       (by simpa [setVarHOLFinite] using plDomain) (by simpa [setVarHOLFinite] using plCell)] at evaluated
     cases Option.some.inj evaluated
@@ -251,5 +252,154 @@ theorem actual_payload_header_prefix_memzero {F : Type} (state : PanSemStateFini
       exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
   · exact Or.inr (stAbort_mono state _ 2 251 (by omega) ab)
 #print axioms actual_payload_header_prefix_memzero
+
+/-- Statement 4 is the actual store `h[0] := 1`. -/
+theorem source_actual_payload_header_store_zero :
+    actualPayloadHeaderAt 4 = .seq (.store (.op .add [.var .local (ofString "h"), .const (0#64)]) (.const (1#64)))
+      (actualPayloadHeaderAt 5) := by
+  unfold actualPayloadHeaderAt
+  rfl
+
+/-- Statement 5 is the actual store `h[8] := raw + 0`. -/
+theorem source_actual_payload_header_store_raw :
+    actualPayloadHeaderAt 5 = .seq (.store (.op .add [.var .local (ofString "h"), .const (8#64)])
+      (.op .add [.var .local (ofString "raw"), .const (0#64)])) (actualPayloadHeaderAt 6) := by
+  unfold actualPayloadHeaderAt
+  rfl
+
+/-- A `local + constant` address expression evaluates to the shifted word. -/
+theorem actual_payload_header_eval_word_add {F : Type} (state : PanSemStateFiniteExact 64 F) (name : MlS)
+    (base offset : BitVec 64) (entryLocal : state.locals.lookup name = some (.val (.word base))) :
+    @evalHOLExact 64 F _ state.toExact (fun a => Classical.propDecidable (state.memaddrs a))
+      (.op .add [.var .local name, .const offset]) =
+      (some (ValueHOL.val (HolWordLab.word (base + offset))) : Option (ValueHOL 64)) := by
+  simp [evalHOLExact,evalListHOLExact,wordOpHOL,wordOp,valueIsWord,valueWord,isWfShapeExactHOL,
+    entryLocal]
+
+/-- A word constant evaluates to itself. -/
+theorem actual_payload_header_eval_word_const {F : Type} (state : PanSemStateFiniteExact 64 F) (k : BitVec 64) :
+    @evalHOLExact 64 F _ state.toExact (fun a => Classical.propDecidable (state.memaddrs a)) (.const k) =
+      (some (ValueHOL.val (HolWordLab.word k)) : Option (ValueHOL 64)) := by
+  simp [evalHOLExact]
+
+#print axioms actual_payload_header_eval_word_add
+#print axioms actual_payload_header_eval_word_const
+
+/-- One actual word store, from typed local and cell premises only: the address and value premises of
+`evaluate_store_word` are discharged here with the explicit `@evalHOLExact` form, so call sites never
+rebuild the evaluation instance. -/
+theorem actual_payload_header_store_word {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (name : MlS) (base offset : BitVec 64) (stored : BitVec 64)
+    (entryLocal : state.locals.lookup name = some (.val (.word base)))
+    (domain : state.memaddrs (base + offset)) :
+    evaluateHOLFiniteState state (.store (.op .add [.var .local name, .const offset]) (.const stored)) =
+      (none, sourceWriteWord state (base + offset) stored) := by
+  exact evaluate_store_word state (base + offset) stored _ _
+    (actual_payload_header_eval_word_add state name base offset entryLocal)
+    (actual_payload_header_eval_word_const state stored) domain
+
+/-- One actual word store whose value expression is a `local + constant`. -/
+theorem actual_payload_header_store_local {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (destination name : MlS) (base valueBase offset valueOffset : BitVec 64)
+    (destinationLocal : state.locals.lookup destination = some (.val (.word base)))
+    (valueLocal : state.locals.lookup name = some (.val (.word valueBase)))
+    (domain : state.memaddrs (base + offset)) :
+    evaluateHOLFiniteState state (.store (.op .add [.var .local destination, .const offset])
+      (.op .add [.var .local name, .const valueOffset])) =
+      (none, sourceWriteWord state (base + offset) (valueBase + valueOffset)) := by
+  exact evaluate_store_word state (base + offset) (valueBase + valueOffset) _ _
+    (actual_payload_header_eval_word_add state destination base offset destinationLocal)
+    (actual_payload_header_eval_word_add state name valueBase valueOffset valueLocal) domain
+
+#print axioms actual_payload_header_store_word
+#print axioms actual_payload_header_store_local
+
+/-- The construction facts at a point of the actual header prefix. -/
+def ActualPayloadHeaderPrefix {F : Type} (state post : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap : BitVec 64) : Prop :=
+  post.locals.lookup (ofString "pl") = some (.val (.word pl)) ∧
+  post.locals.lookup (ofString "raw") = some (.val (.word raw)) ∧
+  post.locals.lookup (ofString "h") = some (.val (.word pointer)) ∧
+  post.globals.lookup (ofString "heap_ptr") = some (.val (.word heap)) ∧
+  post.memaddrs = state.memaddrs ∧ post.code = state.code
+
+/-- A header store keeps every construction fact: stores change only memory. -/
+theorem ActualPayloadHeaderPrefix.write {F : Type} {state mid : PanSemStateFiniteExact 64 F}
+    {pl raw pointer heap address value : BitVec 64}
+    (facts : ActualPayloadHeaderPrefix state mid pl raw pointer heap) :
+    ActualPayloadHeaderPrefix state (sourceWriteWord mid address value) pl raw pointer heap := by
+  obtain ⟨plLocal,rawLocal,hLocal,heapLocal,domain,code⟩ := facts
+  refine ⟨?_,?_,?_,?_,?_,?_⟩
+  · simpa [sourceWriteWord] using plLocal
+  · simpa [sourceWriteWord] using rawLocal
+  · simpa [sourceWriteWord] using hLocal
+  · simpa [sourceWriteWord] using heapLocal
+  · simpa [sourceWriteWord] using domain
+  · simpa [sourceWriteWord] using code
+
+#print axioms ActualPayloadHeaderPrefix.write
+
+/-- **The actual construction prefix through both header stores.**  Continuing the real entry after
+`memzero(h, 248)`: the actual stores `h[0] := 1` and `h[8] := raw + 0`, ending immediately at the
+actual `alloc 32` for `oh`. -/
+theorem actual_payload_header_prefix_stores {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (si pl raw pointer : BitVec 64)
+    (siLocal : state.locals.lookup (ofString "si") = some (.val (.word si)))
+    (siDomain : state.memaddrs (si + (0#64)))
+    (siCell : state.memory (si + (0#64)) = .word pl)
+    (plDomain : state.memaddrs (pl + (0#64)))
+    (plCell : state.memory (pl + (0#64)) = .word raw)
+    (code : state.code = originalRuntimeCode)
+    (heapGlobal : state.globals.lookup (ofString "heap_ptr") = some (.val (.word pointer)))
+    (aligned : pointer.toNat % 8 = 0)
+    (fits : pointer.toNat + 248 ≤ 33806089496)
+    (wordDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (pointer + BitVec.ofNat 64 offset))
+    (byteDomain : ∀ offset : Nat, offset < 248 →
+      state.memaddrs (panByteAlignHOL (pointer + BitVec.ofNat 64 offset)))
+    (budget : 251 ≤ state.clock) :
+    Reaches state (actualPayloadHeaderAt 0)
+      (fun post => ActualPayloadHeaderPrefix state post pl raw pointer (allocationEnd pointer (248#64)))
+      251 (actualPayloadHeaderAt 6) := by
+  rcases actual_payload_header_prefix_memzero state si pl raw pointer siLocal siDomain siCell plDomain
+    plCell code heapGlobal aligned fits wordDomain byteDomain budget with ⟨mid, facts, c1, c2, sc⟩ | ab
+  · obtain ⟨zeroed,hLocal,plLocal,rawLocal,heapLocal,domain,codeMid⟩ := facts
+    have storeZero : Reaches mid (actualPayloadHeaderAt 4)
+        (fun post => post = sourceWriteWord mid (pointer + (0#64)) (1#64)) 0 (actualPayloadHeaderAt 5) := by
+      rw [source_actual_payload_header_store_zero]
+      refine reaches_seq mid (.store (.op .add [.var .local (ofString "h"), .const (0#64)]) (.const (1#64)))
+        (actualPayloadHeaderAt 5) 0 _ ?_
+      refine Or.inl ⟨sourceWriteWord mid (pointer + (0#64)) (1#64),rfl,by simp [sourceWriteWord],
+        by simp [sourceWriteWord],?_⟩
+      exact actual_payload_header_store_word mid (ofString "h") pointer (0#64) (1#64) hLocal
+        (by rw [domain]; exact wordDomain 0 (by omega))
+    have storeRaw : Reaches (sourceWriteWord mid (pointer + (0#64)) (1#64)) (actualPayloadHeaderAt 5)
+        (fun post => post = sourceWriteWord (sourceWriteWord mid (pointer + (0#64)) (1#64))
+          (pointer + (8#64)) (raw + (0#64))) 0 (actualPayloadHeaderAt 6) := by
+      rw [source_actual_payload_header_store_raw]
+      refine reaches_seq (sourceWriteWord mid (pointer + (0#64)) (1#64))
+        (.store (.op .add [.var .local (ofString "h"), .const (8#64)])
+          (.op .add [.var .local (ofString "raw"), .const (0#64)])) (actualPayloadHeaderAt 6) 0 _ ?_
+      refine Or.inl ⟨_,rfl,by simp [sourceWriteWord],by simp [sourceWriteWord],?_⟩
+      exact actual_payload_header_store_local (sourceWriteWord mid (pointer + (0#64)) (1#64))
+        (ofString "h") (ofString "raw") pointer raw (8#64) (0#64)
+        (by change mid.locals.lookup (ofString "h") = some (.val (.word pointer)); exact hLocal)
+        (by change mid.locals.lookup (ofString "raw") = some (.val (.word raw)); exact rawLocal)
+        (by change mid.memaddrs (pointer + (8#64)); rw [domain]; exact wordDomain 8 (by omega))
+    have chain : Reaches mid (actualPayloadHeaderAt 4)
+        (fun post => post = sourceWriteWord (sourceWriteWord mid (pointer + (0#64)) (1#64))
+          (pointer + (8#64)) (raw + (0#64))) 0 (actualPayloadHeaderAt 6) :=
+      reaches_trans mid (actualPayloadHeaderAt 4) (actualPayloadHeaderAt 5) (actualPayloadHeaderAt 6) _ _
+        0 0 storeZero (fun E equal => equal ▸ storeRaw)
+    rcases chain with ⟨post, equal, d1, d2, sc2⟩ | ab2
+    · subst equal
+      refine Or.inl ⟨_,?_,by omega,by omega,scoped_trans sc sc2⟩
+      exact ActualPayloadHeaderPrefix.write (ActualPayloadHeaderPrefix.write
+        ⟨plLocal,rawLocal,hLocal,heapLocal,domain,codeMid⟩)
+    · obtain ⟨x, h1, h2, h3, h4, h5⟩ := ab2
+      have ck := sc.2.1
+      exact Or.inr ⟨x, sc.1.trans h1, h2, by omega, by omega, fun k => h5 (by omega)⟩
+  · exact Or.inr (stAbort_mono state _ 251 251 (by omega) ab)
+#print axioms actual_payload_header_prefix_stores
 
 end InitECandidate.Runtime
