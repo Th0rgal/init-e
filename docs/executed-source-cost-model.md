@@ -641,3 +641,26 @@ All results checked with standard axioms in `stack-execution-native-basis1`,
 recursive compiler assembly, conditional/call integration with this model,
 encoding-price instantiation, fine Word transfer, and the whole-guest bound
 remain open. These results do not yet establish a finite score.
+
+### Complete conditional executed-cost interface
+
+`StackExecutionNativeIf` derives the static normal-body flag from the actual
+fall-through run, using the pinned `noRetCorrect` theorem. It connects the
+executed cost to both selected normal arms across every conditional layout.
+`StackExecutionNativeIfExit` covers both arms with control-exiting and terminal
+outcomes. `StackExecutionNativeConditional` exposes one rule per outcome,
+without requiring callers to choose a static layout. The selected body alone
+contributes recursive work. The local price premise covers the actual branch
+encoding plus at most the two-instruction join allowance; this is a local
+price envelope, not a whole-program cost multiplier.
+
+`StackExecutionNativeCalls` connects terminal/control-exit tail calls and raw
+calls to the independent executed cost. The only local quantitative premise
+is the actual entry-jump allowance; the callee's executed cost supplies the
+recursive budget. Raw calls enter after the prologue.
+
+Checks: `stack-execution-native-if3`, `stack-execution-native-ifexit2`,
+`stack-execution-native-cond1`, and `stack-execution-native-calls1`; all printed
+axioms are standard. Returning-call/model integration, recursive assembly,
+concrete encoding-price bounds, fine Word transfer, and whole-guest gas/input
+bounds remain open. The submission still claims infinity.
