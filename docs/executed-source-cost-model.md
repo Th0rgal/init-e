@@ -370,6 +370,14 @@ These statements concern the existing additional-clock counter `wordPathWork`.
 They do not yet prove transfer of the finer, price-parametric
 `WordExecutionCost`, nor do they supply the final native instruction budget.
 
+`StackWeightedThenSkipIf` reuses the empty-else weighted proofs for an empty
+then arm through equality of the literal compiler output and successful source
+evaluation under a negated guard. Normal, control-exit and terminal outcomes
+retain the selected body's price. Selecting the empty arm costs only the taken
+branch (3); when both arms are empty the compiler emits no branch and the native
+prefix costs zero. The complete module checked with standard axioms in
+`stack-then-skip-if4`.
+
 ## Remaining end-to-end obligations
 
 1. Execute-cost transfer through structures/globals preprocessing and actual
