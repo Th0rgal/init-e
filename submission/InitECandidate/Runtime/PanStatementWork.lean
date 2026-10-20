@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.PanTotalExpressionCost
+import InitECandidate.Runtime.PanCallCostPlan
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -182,6 +182,70 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       StatementRun s (.dec name shape initializer body) (some .error) s
         (.statement :: initEvents)
 
+  | callDone {s info function arguments values body callee returnShape bodyResult bodyPost
+      bodyEvents result post}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
+      (clock : s.clock ≠ 0)
+      (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+      (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post) :
+      StatementRun s (.call info function arguments) result post
+        (.statement :: (expressionListEvents s arguments ++
+          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+          [.copy (callPayloadWords bodyResult)]))
+  | callHandler {s info function arguments values body callee returnShape bodyResult bodyPost
+      bodyEvents handlerEntry handlerProgram handlerEvents result post}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
+      (clock : s.clock ≠ 0)
+      (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+      (plan : callCostPlan s info returnShape bodyResult bodyPost = .handler handlerEntry handlerProgram)
+      (handlerRun : StatementRun handlerEntry handlerProgram result post handlerEvents) :
+      StatementRun s (.call info function arguments) result post
+        (.statement :: (expressionListEvents s arguments ++
+          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+          [.copy (callPayloadWords bodyResult)] ++ handlerEvents))
+  | callArgumentsFailure {s info function arguments}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = none) :
+      StatementRun s (.call info function arguments) (some .error) s
+        (.statement :: expressionListEvents s arguments)
+  | callLookupFailure {s info function arguments values}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (lookup : lookupCodeHOLFinite s.code.lookup function values = none) :
+      StatementRun s (.call info function arguments) (some .error) s
+        (.statement :: expressionListEvents s arguments)
+  | callTimeout {s info function arguments values body callee returnShape}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
+      (clock : s.clock = 0) :
+      StatementRun s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
+        (.statement :: expressionListEvents s arguments)
+
+  | declareCallReturn {s name shape function arguments continuation values body callee returnShape
+      value bodyPost bodyEvents continuationEvents result post}
+      (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+        arguments = some values)
+      (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
+      (clock : s.clock ≠ 0)
+      (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body
+        (some (.returned value)) bodyPost bodyEvents)
+      (shapeMatch : (shapeEqHOL (shapeOfHOLExact value) shape &&
+        shapeEqHOL (shapeOfHOLExact value) returnShape) = true)
+      (continuationRun : StatementRun
+        (setVarHOLFinite name value { bodyPost with locals := s.locals })
+        continuation result post continuationEvents) :
+      StatementRun s (.decCall name shape function arguments continuation) result
+        { post with locals := HolFiniteMapExact.resVarEq post.locals (name, s.locals.lookup name) }
+        (.statement :: (expressionListEvents s arguments ++
+          [.copy (values.flatMap flattenHOL).length, .frame values.length] ++ bodyEvents ++
+          [.copy (flattenHOL value).length] ++ continuationEvents ++
+          [.copy (((s.locals.lookup name).map (fun old => (flattenHOL old).length)).getD 0)]))
+
 theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
     (run : StatementRun s p r post events) : evaluateHOLFiniteState s p = (r, post) := by
@@ -363,6 +427,27 @@ theorem StatementRun.sound {F : Type} {s post : PanSemStateFiniteExact 64 F}
     unfold expressionValue at he
     rw [evaluateHOLFiniteState_dec_total]
     simp only [he]
+
+  | @callDone state info function arguments values body callee returnShape bodyResult bodyPost bodyEvents result post args lookup clock bodyRun plan ih =>
+    have hc := evaluate_call_cost_plan _ info _ _ _ _ _ _ _ _ args lookup clock ih
+    simpa only [plan, evaluateCallCostPlan] using hc
+  | @callHandler state info function arguments values body callee returnShape bodyResult bodyPost bodyEvents handlerEntry handlerProgram handlerEvents result post args lookup clock bodyRun plan handlerRun ihBody ihHandler =>
+    have hc := evaluate_call_cost_plan _ info _ _ _ _ _ _ _ _ args lookup clock ihBody
+    simpa only [plan, evaluateCallCostPlan, ihHandler] using hc
+  | callArgumentsFailure args =>
+    rw [evaluateHOLFiniteState_call]
+    simp only [args]
+  | callLookupFailure args lookup =>
+    rw [evaluateHOLFiniteState_call]
+    simp only [args, lookup]
+  | callTimeout args lookup clock =>
+    rw [evaluateHOLFiniteState_call]
+    simp only [args, lookup, clock, ↓reduceIte]
+
+  | declareCallReturn args lookup clock bodyRun shapeMatch continuationRun ihBody ihContinuation =>
+    rw [evaluateHOLFiniteState_decCall_total]
+    simp only [args, lookup, clock, ↓reduceIte, fixClockHOLFinite_evaluateState]
+    simp only [ihBody, shapeMatch, ↓reduceIte, ihContinuation]
 
 #print axioms StatementRun.sound
 end InitECandidate.Runtime.FineCost

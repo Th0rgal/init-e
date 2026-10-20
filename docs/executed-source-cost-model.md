@@ -140,3 +140,15 @@ actual output words for copying; failed prechecks skip guarded children.
 Every attempted expression pays its entry cost. The source-cost scalarization
 is still parameterized: its relation to the compiler-aware lowering allowance,
 full statement coverage and native coefficients remain proof obligations.
+
+Ordinary call rules now expose argument evaluation, callee execution, terminal
+exit dispatch and any matched handler execution. `PanCallCostPlan` proves that
+pure dispatch exactly matches the authoritative call clause, including return
+shape/assignment checks, exception identity/shape checks and all fallback
+results. Statement traces charge actual argument words, argument slots and
+returned/exception payload words. Lookup/argument failure and clock exhaustion
+have separate prefixes. The successful `DecCall` rule also includes its
+continuation and binding restoration. Other `DecCall` outcomes, FFI/shared
+memory/primitive clauses, malformed-control cases and whole-statement
+completeness remain open. Compiler-generated frame/spill costs still require
+layout-sensitive bounds beyond these source argument-slot events.
