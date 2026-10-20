@@ -1,94 +1,304 @@
 'InitECandidate.Runtime.WordToStack.pushEnv_stack_swap' depends on axioms: [propext, Quot.sound]
 'InitECandidate.Runtime.WordToStack.callEnv_stack_swap' depends on axioms: [propext, Quot.sound]
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:206:20: error: Application type mismatch: The argument
-  names
-has type
-  WordLangCutsetsHOL
-but is expected to have type
-  WordLangNumSetHOL
-in the application
-  Prod.mk names
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:212:39: error: Application type mismatch: The argument
-  names
-has type
-  WordLangCutsetsHOL
-but is expected to have type
-  WordLangNumSetHOL
-in the application
-  WordLangProgHOL.loop names
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:213:41: error: Application type mismatch: The argument
-  names
-has type
-  WordLangCutsetsHOL
-but is expected to have type
-  WordLangNumSetHOL
-in the application
-  WordLangProgHOL.loop names
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:214:24: error: Application type mismatch: The argument
-  names
-has type
-  WordLangCutsetsHOL
-but is expected to have type
-  WordLangNumSetHOL
-in the application
-  WordLangProgHOL.loop names
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:215:26: error: Application type mismatch: The argument
-  names
-has type
-  WordLangCutsetsHOL
-but is expected to have type
-  WordLangNumSetHOL
-in the application
-  WordLangProgHOL.loop names
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:219:11: error: unsolved goals
-case none
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:215:53: error: unsolved goals
+case h_1.isTrue.isFalse
 C F : Type
-names : WordLangCutsetsHOL
+names : WordLangNumSetHOL
 body : WordLangProgHOL (BitVec 64)
-exitNames : WordLangCutsetsHOL
+exitNames : WordLangNumSetHOL
 s cs middle : WordSemStateFiniteExact 64 C F
 xs : List (WordSemStackFrame 64)
-hs :
-  (match wordSemCutEnv (sorry (), Spt.ln) s.locals with
-    | none => none
-    | some env =>
-      some
-        { locals := env, localsSize := s.localsSize, fpRegs := s.fpRegs, store := s.store, stack := s.stack,
-          stackLimit := s.stackLimit, stackMax := s.stackMax, stackSize := s.stackSize, memory := s.memory,
-          mdomain := s.mdomain, shMdomain := s.shMdomain, permute := s.permute, compile := s.compile,
-          compileOracle := s.compileOracle, codeBuffer := s.codeBuffer, dataBuffer := s.dataBuffer, gcFun := s.gcFun,
-          handler := s.handler, clock := s.clock, termdep := s.termdep, code := s.code, be := s.be, ffi := s.ffi }) =
-    some cs
+hs : cutState (names, Spt.ln) s = some cs
 hval : WordSemStackEq.sValEq s.stack xs
 hev : evaluate body cs = (none, middle)
-ihBody :
-  wordPathWork body
-      { locals := cs.locals, localsSize := cs.localsSize, fpRegs := cs.fpRegs, store := cs.store, stack := xs,
-        stackLimit := cs.stackLimit, stackMax := cs.stackMax, stackSize := cs.stackSize, memory := cs.memory,
-        mdomain := cs.mdomain, shMdomain := cs.shMdomain, permute := cs.permute, compile := cs.compile,
-        compileOracle := cs.compileOracle, codeBuffer := cs.codeBuffer, dataBuffer := cs.dataBuffer, gcFun := cs.gcFun,
-        handler := cs.handler, clock := cs.clock, termdep := cs.termdep, code := cs.code, be := cs.be, ffi := cs.ffi } =
-    wordPathWork body cs
+st : List (WordSemStackFrame 64)
+cutSource✝ : WordSemStateFiniteExact 64 C F
+result✝¹ : Option (WordSemResult 64)
+middle✝¹ : WordSemStateFiniteExact 64 C F
+result✝ : Option (WordSemResult 64)
+middle✝ : WordSemStateFiniteExact 64 C F
+ihBody : wordPathWork body cutSource✝ = wordPathWork body cs
 ihStop :
   ∀ (m : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64)),
     WordSemStackEq.sValEq m.stack st →
-      wordPathWork (wordSemSTOP (WordLangProgHOL.loop sorry body sorry))
+      wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames))
           { locals := m.locals, localsSize := m.localsSize, fpRegs := m.fpRegs, store := m.store, stack := st,
             stackLimit := m.stackLimit, stackMax := m.stackMax, stackSize := m.stackSize, memory := m.memory,
             mdomain := m.mdomain, shMdomain := m.shMdomain, permute := m.permute, compile := m.compile,
             compileOracle := m.compileOracle, codeBuffer := m.codeBuffer, dataBuffer := m.dataBuffer, gcFun := m.gcFun,
             handler := m.handler, clock := m.clock, termdep := m.termdep, code := m.code, be := m.be, ffi := m.ffi } =
-        wordPathWork (wordSemSTOP (WordLangProgHOL.loop sorry body sorry)) m
-⊢ cs.stack = s.stack
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:221:8: error: `simp` made no progress
-submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:229:24: error: Application type mismatch: The argument
-  names
-has type
-  WordLangCutsetsHOL
-but is expected to have type
-  WordLangNumSetHOL
-in the application
-  Prod.mk names
+        wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames)) m
+hcsStack : cs.stack = s.stack
+hrun :
+  ∀ (xs : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq s.stack xs →
+      ∃ st,
+        evaluate body
+              { locals := cs.locals, localsSize := cs.localsSize, fpRegs := cs.fpRegs, store := cs.store, stack := xs,
+                stackLimit := cs.stackLimit, stackMax := cs.stackMax, stackSize := cs.stackSize, memory := cs.memory,
+                mdomain := cs.mdomain, shMdomain := cs.shMdomain, permute := cs.permute, compile := cs.compile,
+                compileOracle := cs.compileOracle, codeBuffer := cs.codeBuffer, dataBuffer := cs.dataBuffer,
+                gcFun := cs.gcFun, handler := cs.handler, clock := cs.clock, termdep := cs.termdep, code := cs.code,
+                be := cs.be, ffi := cs.ffi } =
+            (none,
+              { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs,
+                store := middle.store, stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax,
+                stackSize := middle.stackSize, memory := middle.memory, mdomain := middle.mdomain,
+                shMdomain := middle.shMdomain, permute := middle.permute, compile := middle.compile,
+                compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer, dataBuffer := middle.dataBuffer,
+                gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock, termdep := middle.termdep,
+                code := middle.code, be := middle.be, ffi := middle.ffi }) ∧
+          WordSemStackEq.sValEq middle.stack st ∧ WordSemStackEq.sKeyEq xs st
+hevT :
+  evaluate body cutSource✝ =
+    (none,
+      { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs, store := middle.store,
+        stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax, stackSize := middle.stackSize,
+        memory := middle.memory, mdomain := middle.mdomain, shMdomain := middle.shMdomain, permute := middle.permute,
+        compile := middle.compile, compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer,
+        dataBuffer := middle.dataBuffer, gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock,
+        termdep := middle.termdep, code := middle.code, be := middle.be, ffi := middle.ffi })
+hvalT : WordSemStackEq.sValEq middle.stack st
+hmid :
+  middle✝¹ =
+    { locals := middle✝.locals, localsSize := middle✝.localsSize, fpRegs := middle✝.fpRegs, store := middle✝.store,
+      stack := st, stackLimit := middle✝.stackLimit, stackMax := middle✝.stackMax, stackSize := middle✝.stackSize,
+      memory := middle✝.memory, mdomain := middle✝.mdomain, shMdomain := middle✝.shMdomain, permute := middle✝.permute,
+      compile := middle✝.compile, compileOracle := middle✝.compileOracle, codeBuffer := middle✝.codeBuffer,
+      dataBuffer := middle✝.dataBuffer, gcFun := middle✝.gcFun, handler := middle✝.handler, clock := middle✝.clock,
+      termdep := middle✝.termdep, code := middle✝.code, be := middle✝.be, ffi := middle✝.ffi }
+heq✝¹ :
+  { locals := cs.locals, localsSize := cs.localsSize, fpRegs := cs.fpRegs, store := cs.store, stack := xs,
+      stackLimit := cs.stackLimit, stackMax := cs.stackMax, stackSize := cs.stackSize, memory := cs.memory,
+      mdomain := cs.mdomain, shMdomain := cs.shMdomain, permute := cs.permute, compile := cs.compile,
+      compileOracle := cs.compileOracle, codeBuffer := cs.codeBuffer, dataBuffer := cs.dataBuffer, gcFun := cs.gcFun,
+      handler := cs.handler, clock := cs.clock, termdep := cs.termdep, code := cs.code, be := cs.be, ffi := cs.ffi } =
+    cutSource✝
+h✝² : wordSemContLoop result✝¹ = true
+heq✝ : cs.fixClock (none, middle) = (result✝, middle✝)
+h✝¹ : wordSemContLoop result✝ = true
+h✝ : ¬middle✝.clock = 0
+⊢ wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames))
+      { locals := middle✝.decClock.locals, localsSize := middle✝.decClock.localsSize, fpRegs := middle✝.decClock.fpRegs,
+        store := middle✝.decClock.store, stack := st, stackLimit := middle✝.decClock.stackLimit,
+        stackMax := middle✝.decClock.stackMax, stackSize := middle✝.decClock.stackSize,
+        memory := middle✝.decClock.memory, mdomain := middle✝.decClock.mdomain, shMdomain := middle✝.decClock.shMdomain,
+        permute := middle✝.decClock.permute, compile := middle✝.decClock.compile,
+        compileOracle := middle✝.decClock.compileOracle, codeBuffer := middle✝.decClock.codeBuffer,
+        dataBuffer := middle✝.decClock.dataBuffer, gcFun := middle✝.decClock.gcFun, handler := middle✝.decClock.handler,
+        clock := middle✝.decClock.clock, termdep := middle✝.decClock.termdep, code := middle✝.decClock.code,
+        be := middle✝.decClock.be, ffi := middle✝.decClock.ffi } =
+    wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames)) middle✝.decClock
+
+case h_1.isFalse
+C F : Type
+names : WordLangNumSetHOL
+body : WordLangProgHOL (BitVec 64)
+exitNames : WordLangNumSetHOL
+s cs middle : WordSemStateFiniteExact 64 C F
+xs : List (WordSemStackFrame 64)
+hs : cutState (names, Spt.ln) s = some cs
+hval : WordSemStackEq.sValEq s.stack xs
+hev : evaluate body cs = (none, middle)
+st : List (WordSemStackFrame 64)
+cutSource✝ : WordSemStateFiniteExact 64 C F
+result✝¹ : Option (WordSemResult 64)
+middle✝¹ : WordSemStateFiniteExact 64 C F
+result✝ : Option (WordSemResult 64)
+middle✝ : WordSemStateFiniteExact 64 C F
+ihBody : wordPathWork body cutSource✝ = wordPathWork body cs
+ihStop :
+  ∀ (m : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq m.stack st →
+      wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames))
+          { locals := m.locals, localsSize := m.localsSize, fpRegs := m.fpRegs, store := m.store, stack := st,
+            stackLimit := m.stackLimit, stackMax := m.stackMax, stackSize := m.stackSize, memory := m.memory,
+            mdomain := m.mdomain, shMdomain := m.shMdomain, permute := m.permute, compile := m.compile,
+            compileOracle := m.compileOracle, codeBuffer := m.codeBuffer, dataBuffer := m.dataBuffer, gcFun := m.gcFun,
+            handler := m.handler, clock := m.clock, termdep := m.termdep, code := m.code, be := m.be, ffi := m.ffi } =
+        wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames)) m
+hcsStack : cs.stack = s.stack
+hrun :
+  ∀ (xs : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq s.stack xs →
+      ∃ st,
+        evaluate body
+              { locals := cs.locals, localsSize := cs.localsSize, fpRegs := cs.fpRegs, store := cs.store, stack := xs,
+                stackLimit := cs.stackLimit, stackMax := cs.stackMax, stackSize := cs.stackSize, memory := cs.memory,
+                mdomain := cs.mdomain, shMdomain := cs.shMdomain, permute := cs.permute, compile := cs.compile,
+                compileOracle := cs.compileOracle, codeBuffer := cs.codeBuffer, dataBuffer := cs.dataBuffer,
+                gcFun := cs.gcFun, handler := cs.handler, clock := cs.clock, termdep := cs.termdep, code := cs.code,
+                be := cs.be, ffi := cs.ffi } =
+            (none,
+              { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs,
+                store := middle.store, stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax,
+                stackSize := middle.stackSize, memory := middle.memory, mdomain := middle.mdomain,
+                shMdomain := middle.shMdomain, permute := middle.permute, compile := middle.compile,
+                compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer, dataBuffer := middle.dataBuffer,
+                gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock, termdep := middle.termdep,
+                code := middle.code, be := middle.be, ffi := middle.ffi }) ∧
+          WordSemStackEq.sValEq middle.stack st ∧ WordSemStackEq.sKeyEq xs st
+hevT :
+  evaluate body cutSource✝ =
+    (none,
+      { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs, store := middle.store,
+        stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax, stackSize := middle.stackSize,
+        memory := middle.memory, mdomain := middle.mdomain, shMdomain := middle.shMdomain, permute := middle.permute,
+        compile := middle.compile, compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer,
+        dataBuffer := middle.dataBuffer, gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock,
+        termdep := middle.termdep, code := middle.code, be := middle.be, ffi := middle.ffi })
+hvalT : WordSemStackEq.sValEq middle.stack st
+hmid :
+  middle✝¹ =
+    { locals := middle✝.locals, localsSize := middle✝.localsSize, fpRegs := middle✝.fpRegs, store := middle✝.store,
+      stack := st, stackLimit := middle✝.stackLimit, stackMax := middle✝.stackMax, stackSize := middle✝.stackSize,
+      memory := middle✝.memory, mdomain := middle✝.mdomain, shMdomain := middle✝.shMdomain, permute := middle✝.permute,
+      compile := middle✝.compile, compileOracle := middle✝.compileOracle, codeBuffer := middle✝.codeBuffer,
+      dataBuffer := middle✝.dataBuffer, gcFun := middle✝.gcFun, handler := middle✝.handler, clock := middle✝.clock,
+      termdep := middle✝.termdep, code := middle✝.code, be := middle✝.be, ffi := middle✝.ffi }
+heq✝¹ :
+  { locals := cs.locals, localsSize := cs.localsSize, fpRegs := cs.fpRegs, store := cs.store, stack := xs,
+      stackLimit := cs.stackLimit, stackMax := cs.stackMax, stackSize := cs.stackSize, memory := cs.memory,
+      mdomain := cs.mdomain, shMdomain := cs.shMdomain, permute := cs.permute, compile := cs.compile,
+      compileOracle := cs.compileOracle, codeBuffer := cs.codeBuffer, dataBuffer := cs.dataBuffer, gcFun := cs.gcFun,
+      handler := cs.handler, clock := cs.clock, termdep := cs.termdep, code := cs.code, be := cs.be, ffi := cs.ffi } =
+    cutSource✝
+h✝² : wordSemContLoop result✝¹ = true
+h✝¹ : ¬middle✝.clock = 0
+heq✝ : cs.fixClock (none, middle) = (result✝, middle✝)
+h✝ : wordSemContLoop result✝ = false
+⊢ wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames))
+      { locals := middle✝.decClock.locals, localsSize := middle✝.decClock.localsSize, fpRegs := middle✝.decClock.fpRegs,
+        store := middle✝.decClock.store, stack := st, stackLimit := middle✝.decClock.stackLimit,
+        stackMax := middle✝.decClock.stackMax, stackSize := middle✝.decClock.stackSize,
+        memory := middle✝.decClock.memory, mdomain := middle✝.decClock.mdomain, shMdomain := middle✝.decClock.shMdomain,
+        permute := middle✝.decClock.permute, compile := middle✝.decClock.compile,
+        compileOracle := middle✝.decClock.compileOracle, codeBuffer := middle✝.decClock.codeBuffer,
+        dataBuffer := middle✝.decClock.dataBuffer, gcFun := middle✝.decClock.gcFun, handler := middle✝.decClock.handler,
+        clock := middle✝.decClock.clock, termdep := middle✝.decClock.termdep, code := middle✝.decClock.code,
+        be := middle✝.decClock.be, ffi := middle✝.decClock.ffi } =
+    0
+
+case h_1.isTrue.isFalse
+C F : Type
+names : WordLangNumSetHOL
+body : WordLangProgHOL (BitVec 64)
+exitNames : WordLangNumSetHOL
+s cs middle : WordSemStateFiniteExact 64 C F
+xs : List (WordSemStackFrame 64)
+hs : cutState (names, Spt.ln) s = some cs
+hval : WordSemStackEq.sValEq s.stack xs
+hev : evaluate body cs = (none, middle)
+st : List (WordSemStackFrame 64)
+cutSource✝ : WordSemStateFiniteExact 64 C F
+result✝¹ : Option (WordSemResult 64)
+middle✝¹ : WordSemStateFiniteExact 64 C F
+result✝ : Option (WordSemResult 64)
+middle✝ : WordSemStateFiniteExact 64 C F
+ihBody : wordPathWork body cutSource✝ = wordPathWork body cs
+ihStop :
+  ∀ (m : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq m.stack st →
+      wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames))
+          { locals := m.locals, localsSize := m.localsSize, fpRegs := m.fpRegs, store := m.store, stack := st,
+            stackLimit := m.stackLimit, stackMax := m.stackMax, stackSize := m.stackSize, memory := m.memory,
+            mdomain := m.mdomain, shMdomain := m.shMdomain, permute := m.permute, compile := m.compile,
+            compileOracle := m.compileOracle, codeBuffer := m.codeBuffer, dataBuffer := m.dataBuffer, gcFun := m.gcFun,
+            handler := m.handler, clock := m.clock, termdep := m.termdep, code := m.code, be := m.be, ffi := m.ffi } =
+        wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames)) m
+hcsStack : cs.stack = s.stack
+hrun :
+  ∀ (xs : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq s.stack xs →
+      ∃ st,
+        evaluate body
+              { locals := cs.locals, localsSize := cs.localsSize, fpRegs := cs.fpRegs, store := cs.store, stack := xs,
+                stackLimit := cs.stackLimit, stackMax := cs.stackMax, stackSize := cs.stackSize, memory := cs.memory,
+                mdomain := cs.mdomain, shMdomain := cs.shMdomain, permute := cs.permute, compile := cs.compile,
+                compileOracle := cs.compileOracle, codeBuffer := cs.codeBuffer, dataBuffer := cs.dataBuffer,
+                gcFun := cs.gcFun, handler := cs.handler, clock := cs.clock, termdep := cs.termdep, code := cs.code,
+                be := cs.be, ffi := cs.ffi } =
+            (none,
+              { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs,
+                store := middle.store, stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax,
+                stackSize := middle.stackSize, memory := middle.memory, mdomain := middle.mdomain,
+                shMdomain := middle.shMdomain, permute := middle.permute, compile := middle.compile,
+                compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer, dataBuffer := middle.dataBuffer,
+                gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock, termdep := middle.termdep,
+                code := middle.code, be := middle.be, ffi := middle.ffi }) ∧
+          WordSemStackEq.sValEq middle.stack st ∧ WordSemStackEq.sKeyEq xs st
+hevT :
+  evaluate body cutSource✝ =
+    (none,
+      { locals := middle.locals, localsSize := middle.localsSize, fpRegs := middle.fpRegs, store := middle.store,
+        stack := st, stackLimit := middle.stackLimit, stackMax := middle.stackMax, stackSize := middle.stackSize,
+        memory := middle.memory, mdomain := middle.mdomain, shMdomain := middle.shMdomain, permute := middle.permute,
+        compile := middle.compile, compileOracle := middle.compileOracle, codeBuffer := middle.codeBuffer,
+        dataBuffer := middle.dataBuffer, gcFun := middle.gcFun, handler := middle.handler, clock := middle.clock,
+        termdep := middle.termdep, code := middle.code, be := middle.be, ffi := middle.ffi })
+hvalT : WordSemStackEq.sValEq middle.stack st
+hmid :
+  middle✝¹ =
+    { locals := middle✝.locals, localsSize := middle✝.localsSize, fpRegs := middle✝.fpRegs, store := middle✝.store,
+      stack := st, stackLimit := middle✝.stackLimit, stackMax := middle✝.stackMax, stackSize := middle✝.stackSize,
+      memory := middle✝.memory, mdomain := middle✝.mdomain, shMdomain := middle✝.shMdomain, permute := middle✝.permute,
+      compile := middle✝.compile, compileOracle := middle✝.compileOracle, codeBuffer := middle✝.codeBuffer,
+      dataBuffer := middle✝.dataBuffer, gcFun := middle✝.gcFun, handler := middle✝.handler, clock := middle✝.clock,
+      termdep := middle✝.termdep, code := middle✝.code, be := middle✝.be, ffi := middle✝.ffi }
+heq✝¹ :
+  { locals := cs.locals, localsSize := cs.localsSize, fpRegs := cs.fpRegs, store := cs.store, stack := xs,
+      stackLimit := cs.stackLimit, stackMax := cs.stackMax, stackSize := cs.stackSize, memory := cs.memory,
+      mdomain := cs.mdomain, shMdomain := cs.shMdomain, permute := cs.permute, compile := cs.compile,
+      compileOracle := cs.compileOracle, codeBuffer := cs.codeBuffer, dataBuffer := cs.dataBuffer, gcFun := cs.gcFun,
+      handler := cs.handler, clock := cs.clock, termdep := cs.termdep, code := cs.code, be := cs.be, ffi := cs.ffi } =
+    cutSource✝
+h✝² : wordSemContLoop result✝¹ = false
+heq✝ : cs.fixClock (none, middle) = (result✝, middle✝)
+h✝¹ : wordSemContLoop result✝ = true
+h✝ : ¬middle✝.clock = 0
+⊢ wordPathWork (wordSemSTOP (WordLangProgHOL.loop names body exitNames)) middle✝.decClock = 0
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:244:32: warning: This simp argument is unused:
+  ihBody
+
+Hint: Omit it from the simp argument list.
+  [apply] simp_all only [hevT, hev, hmid, hdec, ihStop, decClock_stack, WordSemStackEq.sValEqRefl, cutState_stack]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:244:40: warning: This simp argument is unused:
+  hevT
+
+Hint: Omit it from the simp argument list.
+  [apply] simp_all only [ihBody, hev, hmid, hdec, ihStop, decClock_stack, WordSemStackEq.sValEqRefl, cutState_stack]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:244:46: warning: This simp argument is unused:
+  hev
+
+Hint: Omit it from the simp argument list.
+  [apply] simp_all only [ihBody, hevT, hmid, hdec, ihStop, decClock_stack, WordSemStackEq.sValEqRefl, cutState_stack]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:244:51: warning: This simp argument is unused:
+  hmid
+
+Hint: Omit it from the simp argument list.
+  [apply] simp_all only [ihBody, hevT, hev, hdec, ihStop, decClock_stack, WordSemStackEq.sValEqRefl, cutState_stack]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:244:57: warning: This simp argument is unused:
+  hdec
+
+Hint: Omit it from the simp argument list.
+  [apply] simp_all only [ihBody, hevT, hev, hmid, ihStop, decClock_stack, WordSemStackEq.sValEqRefl, cutState_stack]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/InitECandidate/Runtime/AllocCostSSAStackSwapWork.lean:244:63: warning: This simp argument is unused:
+  ihStop
+
+Hint: Omit it from the simp argument list.
+  [apply] simp_all only [ihBody, hevT, hev, hmid, hdec, decClock_stack, WordSemStackEq.sValEqRefl, cutState_stack]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
 'InitECandidate.Runtime.WordToStack.wordPathWork_loop_sValEq_variant_of_none' depends on axioms: [propext,
  sorryAx,
  Classical.choice,

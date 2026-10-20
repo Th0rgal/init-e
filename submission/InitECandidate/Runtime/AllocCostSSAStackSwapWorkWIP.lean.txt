@@ -243,32 +243,37 @@ theorem wordPathWork_ite_sValEq_variant {C F : Type}
 
 end InitECandidate.Runtime.WordToStack
 
-/-! ## Loop case: real attempt, currently red (errors in
-submission/docs/alloc-cost-stackswap-loop-errors.log)
+/-! ## Loop case: near-final attempt (statement now typechecks; ONE residual goal)
 
-Exact errors to repair next:
-  * `cutState (names, .ln)` -- the pair's second component and `wordSemCutEnv`'s
-    argument shape must be read off `WordPathWork.lean` (the `cutState_stack`
-    helper in the compiled module is stated for the *pair*, so `hs` must be
-    unfolded with the same pair shape);
-  * `simp at hs` makes no progress in the `none` branch of `wordSemCutEnv`
-    -- use `cases hce : wordSemCutEnv ...` plus `rw [hce] at hs` and
-    `cases hs` instead;
-  * the record-update `{ cs with stack := xs }` in `hcs'`/`hmid` must use the
-    same shape that `cutState_stack` produces (it produced `some {c with
-    stack := xs}` only after rewriting `cutState_stack` at the *pair*).
-The rest of the plan is unchanged and already validated in the Seq case:
-`ihBody` at the swapped cut state, `hevT` from `evaluateStackSwap`, `hmid`/
-`hdec` record equalities, then `ihStop` at `decClock` of the fixed middle.
+Fixed in this attempt: the `.loop` fields are `WordLangNumSetHOL` (not
+`WordLangCutsetsHOL`), and `cutState` takes the *pair* `(names, Spt.ln)`, so the
+cut-state equation is `hs : cutState (names, Spt.ln) s = some cs` and the swapped
+one follows from `cutState_stack (names, Spt.ln) s xs`.
+
+The proof now reaches a single residual goal in the `contLoop`/clock branches:
+
+  wordPathWork (wordSemSTOP (.loop names body exitNames))
+      { middle✝.decClock with stack := st }
+    = wordPathWork (wordSemSTOP (.loop names body exitNames)) middle✝.decClock
+
+where `middle✝` is the split-generated state of
+`fixClock cutSource✝ (evaluate body cutSource✝)`.  It is exactly
+`ihStop middle✝.decClock st _`; the missing side condition is
+`sValEq (decClock middle✝).stack st`, which follows from `hevT`
+(`evaluate body cutSource✝ = (none, {middle with stack := st})`) but is not
+present in the `split` context: the fix is to bind the fixClock result with
+`obtain ⟨r, m, hm⟩ : ∃ r m, fixClock ... = (r, m) := ⟨_, _, rfl⟩` *before*
+splitting, so `hm` records the middle state and `sValEq m.stack st` can be
+derived from `hevT`/`hvalT` by `rw [← hm.symm]`.
 -/
 
-/-- **Loop case, body completes normally.**  The cut state is only changed in its
-locals (so the swapped loop body runs from the value-equal cut state), the body
-run transports by `evaluateStackSwap`, and the recursive `wordSemSTOP` call is
-discharged by the clock-decreasing induction hypothesis. -/
+/-- **Loop case, body completes normally.**  The cut state only changes locals,
+so the swapped loop body starts from the value-equal cut state; the body run
+transports by `evaluateStackSwap` and the recursive `wordSemSTOP` call is
+discharged by the clock-decreasing hypothesis `ihStop`. -/
 theorem wordPathWork_loop_sValEq_variant_of_none {C F : Type}
-    (names : WordLangCutsetsHOL) (body : WordLangProgHOL (BitVec 64))
-    (exitNames : WordLangCutsetsHOL)
+    (names : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (exitNames : WordLangNumSetHOL)
     (s cs middle : WordSemStateFiniteExact 64 C F)
     (xs : List (WordSemStackFrame 64))
     (hs : cutState (names, .ln) s = some cs)
@@ -283,11 +288,9 @@ theorem wordPathWork_loop_sValEq_variant_of_none {C F : Type}
       wordPathWork (.loop names body exitNames) s := by
   have hcsStack : cs.stack = s.stack := by
     unfold WordSemStateFiniteExact.cutState at hs
-    cases wordSemCutEnv names s.locals with
-    | none => simp at hs
-    | some env =>
-        simp only [Option.some.injEq] at hs
-        rw [← hs]
+    cases hce : wordSemCutEnv (names, .ln) s.locals with
+    | none => rw [hce] at hs; cases hs
+    | some env => rw [hce] at hs; cases hs; rfl
   have hvalCs : WordSemStackEq.sValEq cs.stack xs := by rw [hcsStack]; exact hval
   have hT := Flapjack.WordSemStackEq.evaluateStackSwap body cs
   rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
@@ -295,7 +298,7 @@ theorem wordPathWork_loop_sValEq_variant_of_none {C F : Type}
   obtain ⟨-, -, hrun⟩ := hT
   obtain ⟨st, hevT, hvalT, -⟩ := hrun xs hvalCs
   have hcs' : cutState (names, .ln) { s with stack := xs } = some { cs with stack := xs } := by
-    rw [cutState_stack, hs]
+    rw [cutState_stack (names, .ln) s xs, hs]
   have hmid : (fixClock { cs with stack := xs }
       ((none : Option (WordSemResult 64)), { middle with stack := st })).2 =
       { (fixClock cs ((none : Option (WordSemResult 64)), middle)).2 with stack := st } := by
@@ -305,7 +308,13 @@ theorem wordPathWork_loop_sValEq_variant_of_none {C F : Type}
       { decClock (fixClock cs ((none : Option (WordSemResult 64)), middle)).2 with
           stack := st } := by
     simp only [decClock]
-  rw [wordPathWork, wordPathWork, hcs', hs, ihBody, hevT, hev, hmid, hdec,
-    ihStop _ st (by rw [fixClock_stack_proj]; exact hvalT)]
-  split <;> rfl
+  rw [wordPathWork, wordPathWork, hcs', hs]
+  repeat' split
+  all_goals (try simp_all)
+  all_goals (try rw [ihBody, hevT, hev, hmid, hdec,
+    ihStop _ st (by rw [fixClock_stack_proj]; exact hvalT)])
+  all_goals (try rfl)
+  all_goals (try simp_all only [ihBody, hevT, hev, hmid, hdec, ihStop, decClock_stack,
+    WordSemStackEq.sValEqRefl, cutState_stack])
+  all_goals (try simp_all)
 
