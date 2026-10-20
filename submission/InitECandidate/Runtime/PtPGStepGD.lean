@@ -108,7 +108,7 @@ theorem aqgd_stw_pg {A : GA → Prop} {Vn : MlS → Prop} {LP : GA → Prop} (Ta
 /-- `name = alloc(N)` (constant size) in the final phase: the block `X ≥ Hb`, `X + N ≤ HEAP_END`. -/
 theorem aqgd_decCall_allocC_pg {LP LP' : GA → Prop} {Q Q2 : GA → Mem → GA → Prop} (name : MlS) (Nn Taa Pa : BitVec 64)
     {cont : ProgHOL 64} (hup : ∀ L v, LP L → LP' (L.update (name,v)))
-    (hcont : ∀ X : BitVec 64, Hb.toNat ≤ X.toNat → X.toNat + Nn.toNat ≤ 33806089496 →
+    (hcont : ∀ X : BitVec 64, Hb.toNat ≤ X.toNat → X.toNat + Nn.toNat ≤ 33806089496 → X.toNat % 8 = 0 →
       AQGD D B (JWSBUS SP0 P0 FM G0 J C SKB Bo U Sc) w (fun _ => False)
         (fun L M G => ((LP' L ∧ L.lookup name = some (.val (.word X))) ∧
           PG n c T Out ko D B Excl Lo Hg Hb Nj M0 M G) ∧ TabV Taa Taa Pa M) Q RR cont)
@@ -122,13 +122,13 @@ theorem aqgd_decCall_allocC_pg {LP LP' : GA → Prop} {Q Q2 : GA → Mem → GA 
       L.lookup (ofString "n") = some (.val (.word Nn)) ∧ M = M0' ∧ G = G0')
     (RRe := fun (_ : GA) (M0' : Mem) (G0' : GA) (v : ValueHOL 64) (M' : Mem) (G' : GA) =>
       ∃ X : BitVec 64, HeapIs G0' X ∧ (v = .val (.word X) ∧ M' = M0' ∧ ∃ H' : BitVec 64, HeapIs G' H' ∧
-        X.toNat + Nn.toNat ≤ H'.toNat ∧ H'.toNat ≤ 33806089496) ∧
+        X.toNat + Nn.toNat ≤ H'.toNat ∧ H'.toNat ≤ 33806089496) ∧ X.toNat % 8 = 0 ∧
         G'.lookup (ofString "journal_n") = some (.val (.word Nj)))
     (Pc := fun L M G => ∃ X : BitVec 64, (((LP' L ∧ L.lookup name = some (.val (.word X))) ∧
       PG n c T Out ko D B Excl Lo Hg Hb Nj M0 M G) ∧ TabV Taa Taa Pa M) ∧
-        (Hb.toNat ≤ X.toNat ∧ X.toNat + Nn.toNat ≤ 33806089496)) (Qc := Q)
+        (Hb.toNat ≤ X.toNat ∧ X.toNat + Nn.toNat ≤ 33806089496 ∧ X.toNat % 8 = 0)) (Qc := Q)
     _ _ _ _ _ _ _ originalRuntimeCode_allocation_lookup (by simp) ?_ ?_ (fun h => h.elim) ?_
-    (aqgd_exE (fun X => aqgd_pureE (fun ⟨a,b⟩ => hcont X a b))) hres
+    (aqgd_exE (fun X => aqgd_pureE (fun ⟨a,b,c⟩ => hcont X a b c))) hres
   · intro L0 M0' G0' ⟨⟨_,⟨Hc,hH,_⟩,_,hn,_⟩,_⟩
     refine aqgd_conseq (aqgd_jwsbus (U := U) (Bo := Bo) (Sc := Sc) (aqgd_jws (aqgd_of_aqg (aqg_of_aqmh_j (J := J)
       (C := C) (N := Nj) originalRuntimeCode_allocation_lookup (by decide_cbv) (by decide_cbv) (by decide_cbv)
@@ -140,8 +140,8 @@ theorem aqgd_decCall_allocC_pg {LP LP' : GA → Prop} {Q Q2 : GA → Mem → GA 
     · intro L M G ⟨hl,hM,hG⟩
       subst hM hG
       exact ⟨hn,Hc,hH,hl,rfl,rfl⟩
-    · intro v M' G' ⟨hn',H',hH',eM,ev,_,_,c1,c2,_,_⟩
-      exact ⟨Hc,hH,⟨ev,eM,H',hH',c1,c2⟩,hn'⟩
+    · intro v M' G' ⟨hn',H',hH',eM,ev,_,_,c1,c2,_,al⟩
+      exact ⟨Hc,hH,⟨ev,eM,H',hH',c1,c2⟩,al,hn'⟩
   · intro F s values callee rs _ H _ _ _ args lookup
     obtain ⟨x,rfl,ex⟩ := evalList_single s _ values args
     simp [EV,evalHOLExact] at ex
@@ -150,13 +150,35 @@ theorem aqgd_decCall_allocC_pg {LP LP' : GA → Prop} {Q Q2 : GA → Mem → GA 
     simp only [Option.some.injEq,Prod.mk.injEq] at lookup
     obtain ⟨_,rfl,_⟩ := lookup
     exact ⟨by simp [HolFiniteMapExact.lookup_update,FUPDATE],rfl,rfl⟩
-  · intro L M G v M' G' ⟨⟨lp,pg⟩,tv⟩ ⟨X,hH,⟨ev,eM,H',hH',c1,c2⟩,hn'⟩ _
+  · intro L M G v M' G' ⟨⟨lp,pg⟩,tv⟩ ⟨X,hH,⟨ev,eM,H',hH',c1,c2⟩,al,hn'⟩ _
     subst ev eM
     obtain ⟨H1,hH1,le1⟩ := pg.1
     have e := heapIs_unique hH1 hH
     subst e
-    exact ⟨H1,⟨⟨⟨hup L _ lp,lookup_update_eq' _ _ _⟩,pg_glob pg ⟨H',hH',by omega⟩ hn'⟩,tv⟩,le1,by omega⟩
+    exact ⟨H1,⟨⟨⟨hup L _ lp,lookup_update_eq' _ _ _⟩,pg_glob pg ⟨H',hH',by omega⟩ hn'⟩,tv⟩,le1,by omega,al⟩
 
 #print axioms aqgd_decCall_allocC_pg
+
+/-- A word store into `[Lo, Hg)` keeps `PG`. -/
+theorem aqgd_stw_pg0 {A : GA → Prop} {Vn : MlS → Prop} {LP : GA → Prop}
+    (hw : w.toNat < Lo.toNat) (hcLo : ∀ i, (c i).toNat < Lo.toNat) (hOutLo : ∀ x, Out x → x.toNat < Lo.toNat)
+    (d v : ExpHOL 64)
+    (hd : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), LP s.locals →
+      ∃ a : BitVec 64, EV s d = some (.val (.word a)) ∧ Lo.toNat ≤ a.toNat ∧ a.toNat < Hg.toNat)
+    (hv : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F) x, LP s.locals → EV s v = some x →
+      ∃ y : BitVec 64, x = .val (.word y)) :
+    AQGD D B A w Vn (fun L M G => LP L ∧ PG n c T Out ko D B Excl Lo Hg Hb Nj M0 M G)
+      (fun L M G => LP L ∧ PG n c T Out ko D B Excl Lo Hg Hb Nj M0 M G) RR (.store d v) := by
+  refine aqgd_storeD _ _ (fun s H _ _ hG ⟨lp,pg⟩ _ => ?_) (fun s x _ _ _ _ pre _ ev => hv s x pre.1 ev)
+  unfold GIs at hG; subst hG
+  obtain ⟨a,ha,lo,hi⟩ := hd s lp
+  refine ⟨a,ha,fun e => by subst e; omega,fun y _ => ⟨lp,pg_in (fun x => x = a) pg ?_ ?_⟩⟩
+  · intro x hx; subst hx
+    refine ⟨⟨lo,hi⟩,fun i e => ?_,fun ho => ?_⟩
+    · have := hcLo i; rw [← e] at this; omega
+    · have := hOutLo x ho; omega
+  · intro x _ hx; simp [hx]
+
+#print axioms aqgd_stw_pg0
 end ps
 end InitECandidate.Runtime
