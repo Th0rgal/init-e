@@ -149,6 +149,52 @@ theorem wd_slice_stores_globals_frame : OriginalGlobalsFrame wdSliceLoopStores :
 
 #print axioms wd_slice_stores_globals_frame
 
+/-- Outcome shape of one withdrawal loop iteration: a normal completion forces the encoder to return
+the two-word slice record. -/
+theorem wd_slice_step_outcome {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (argumentWord : BitVec 64)
+    (code : t.code = originalRuntimeCode) (clock : 3 ≤ t.clock)
+    (hargs : evalListHOLFinite t (h := fun a => Classical.propDecidable (t.memaddrs a))
+      [.op .add [.load .one (.op .add [.var .local (ofString "pl"), .const (48#64)]),
+        .panop .mul [.var .local (ofString "i"), .const (44#64)]]] =
+      some [ValueHOL.val (HolWordLab.word argumentWord)])
+    (normal : (evaluateHOLFiniteState t wdSliceLoopBody).1 = none) :
+    ∃ (first second : BitVec 64) (st : PanSemStateFiniteExact 64 F),
+      evaluateHOLFiniteState (callEntryStateHOLFinite t (wdEncoderCallee argumentWord))
+        (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) =
+        (some (.returned (.rStruct [.val (.word first),.val (.word second)])),st) ∧
+      shapeEqHOL (shapeOfHOLExact (.rStruct [.val (.word first),.val (.word second)]))
+        (.comb [.one,.one]) = true := by
+  have installed : t.code.lookup (ofString "encode_withdrawal_rlp") =
+      some ([(ofString "wd",.one)],sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp,
+        .comb [.one,.one]) := by
+    rw [code]; exact originalRuntimeCode_encode_withdrawal_rlp_lookup
+  have lookup := pan_single_word_lookup_shape t.code.lookup (ofString "encode_withdrawal_rlp")
+    (ofString "wd") (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) argumentWord
+    (.comb [.one,.one]) installed
+  rw [wdSliceLoopBody,evaluateHOLFiniteState_decCall_total,hargs] at normal
+  dsimp only at normal
+  rw [lookup] at normal
+  dsimp only at normal
+  rw [if_neg (by omega)] at normal
+  cases bodyRun : evaluateHOLFiniteState (callEntryStateHOLFinite t (wdEncoderCallee argumentWord))
+      (sourceFunctionBody Guest.guestFn_encode_withdrawal_rlp) with
+  | mk rb st =>
+    rw [bodyRun] at normal
+    dsimp only at normal
+    cases rb with
+    | none => simp_all
+    | some rr =>
+      cases rr with
+      | «returned» value =>
+        dsimp only at normal
+        cases hshape : shapeEqHOL (shapeOfHOLExact value) (ShapeHOL.comb [ShapeHOL.one,ShapeHOL.one]) with
+        | false => simp_all
+        | true =>
+          obtain ⟨first,second,rfl⟩ := valueWords_of_comb hshape
+          exact ⟨first,second,st,rfl,hshape⟩
+      | _ => simp_all
+
 /-- Successor facts for one withdrawal loop iteration: on the normal path the counter advances by
 one, `nwd`/`pl`/the result variable are untouched, and the heap pointer moves to the end of the
 iteration's 64-byte encoder buffer. -/
