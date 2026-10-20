@@ -154,6 +154,71 @@ theorem normalWeightedFlatten_loop_continue {F : Type}
   · simpa only [Nat.add_assoc] using joined
 
 
+/-- Leaving one loop pops exactly one break/continue label stack. Actual
+return/exception locations propagate unchanged. -/
+theorem weighted_loop_exit_resultView (bodyResult outerResult : StackSemResult 64)
+    (stopped : StackSemControl.contLoop (some bodyResult) = false)
+    (exited : StackSemControl.exitLoop (some bodyResult) = some outerResult)
+    (sectionId labelId : Nat) (continues breaks : List Nat) :
+    resultView bodyResult sectionId (labelId :: continues) ((labelId + 1) :: breaks) =
+      resultView outerResult sectionId continues breaks := by
+  cases bodyResult with
+  | «break» index =>
+    cases index <;> simp_all [StackSemControl.exitLoop, resultView,
+      Flapjack.Compiler.Backend.StackToLab.findLabHOL]
+    subst outerResult
+    rfl
+  | «continue» index =>
+    cases index <;> simp_all [StackSemControl.contLoop, StackSemControl.exitLoop, resultView,
+      Flapjack.Compiler.Backend.StackToLab.findLabHOL]
+    subst outerResult
+    rfl
+  | result value | exception value | halt value =>
+    simp only [StackSemControl.exitLoop, Option.some.injEq] at exited
+    subst outerResult
+    cases value <;> rfl
+  | _ =>
+    simp only [StackSemControl.exitLoop, Option.some.injEq] at exited
+    subst outerResult
+    rfl
+
+/-- A noncontinuing body exit propagates through the loop with its original
+weighted prefix. Positive break/continue indices are popped by the semantic
+exit rule; return/exception destinations are retained. -/
+theorem exitWeightedFlatten_loop_exit {F : Type}
+    (body : HolProg 64) (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (bodyResult outerResult : StackSemResult 64) (price : LabProgHOL 64 → Nat → Nat)
+    (bodyRun : ∃ post, StackSemEvaluate.evaluate (body, source) = (some bodyResult, post))
+    (stopped : StackSemControl.contLoop (some bodyResult) = false)
+    (exited : StackSemControl.exitLoop (some bodyResult) = some outerResult)
+    (bodyBound : ExitWeightedFlatten body source bodyResult price) :
+    ExitWeightedFlatten (.loop body) source outerResult price := by
+  intro flag post sectionId labelId continues breaks start encoded hyps
+  rcases hyps with ⟨evaluated, nonerror, related, args, installed, labels⟩
+  obtain ⟨middle, run⟩ := bodyRun
+  rw [StackSemEvaluate.evaluate_loop, StackSemEvaluateClock.fixClockEvaluate, run] at evaluated
+  simp only [stopped, Bool.false_eq_true, ↓reduceIte, exited, Prod.mk.injEq, true_and] at evaluated
+  subst post
+  simp only [Flapjack.Compiler.Backend.StackProps.callArgs] at args
+  have layout := weightedLoopLayout_of_installed body flag sectionId labelId continues breaks start installed labels
+  obtain ⟨final, steps, work, finalRelated, code, destination, bound, trace⟩ :=
+    bodyBound false middle sectionId (labelId + 2) (labelId :: continues)
+      ((labelId + 1) :: breaks) start encoded
+      ⟨run, by
+        intro failure
+        have eq := Option.some.inj failure
+        subst bodyResult
+        simp only [StackSemControl.exitLoop, Option.some.injEq] at exited
+        subst outerResult
+        exact nonerror rfl,
+        related, args, layout.bodyInstalled, layout.labels⟩
+  have view := weighted_loop_exit_resultView bodyResult outerResult stopped exited sectionId labelId continues breaks
+  have outerDestination : WeightedExitDestination outerResult sectionId continues breaks final := by
+    simpa only [WeightedExitDestination, view] using destination
+  exact ⟨final, steps, work, finalRelated, code, outerDestination, bound, trace⟩
+
+#print axioms weighted_loop_exit_resultView
+#print axioms exitWeightedFlatten_loop_exit
 #print axioms normalWeightedFlatten_loop_continue
 #print axioms normalWeightedFlatten_loop_step
 #print axioms normalWeightedFlatten_loop_break

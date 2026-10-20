@@ -288,8 +288,12 @@ across cases. `normalWeightedFlatten_loop_step` and `_loop_continue` compose
 actual normal/Continue 0 iterations with the recursively certified next run,
 at price `bodyPrice + 2 + restPrice`. The back jump consumes the original
 semantic-clock tick while its native work is charged separately; no recursion
-or nesting multiplier is introduced. Propagated exits, terminal/resource
-outcomes and a complete recursive driver still need their remaining rules.
+or nesting multiplier is introduced. `exitWeightedFlatten_loop_exit` transfers
+noncontinuing control exits using the original index-pop rule and unchanged
+return/exception locations. `StackWeightedLoopExit` composes normal/Continue 0
+iterations when a later iteration has such an exit, at the same additive
+`bodyPrice + 2 + restPrice` ceiling. Terminal/resource outcomes and a complete
+recursive driver still need their remaining rules.
 
 ## Remaining end-to-end obligations
 
