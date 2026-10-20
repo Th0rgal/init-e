@@ -3,7 +3,7 @@ import InitECandidate.Runtime.PtBalLstGD
 import InitECandidate.Runtime.OriginalBalCode
 /-!
 Owned-region block-access-list objects: `LstO E O Lh M` is a list header at `Lh` (`buf P, n N, cap Cp`, `N ≤ Cp`,
-`0 < Cp`, 8-aligned) with header words and buffer `[P, P + E·Cp)` inside the owned region `O`, the buffer apart from the
+`0 < Cp`, header before buffer) with header words and buffer `[P, P + E·Cp)` inside the owned region `O`, the buffer apart from the
 header. The actual `e = lst_upsert_idx(l, esz, idx)` on such a list keeps it with `O` grown by the fresh heap
 `[H, Hc)`, returns an element `[e, e + esz)` inside the grown region off the header, and changes no word below `H`
 outside `O`.
@@ -14,16 +14,17 @@ open Flapjack.Basis.Pure.MlString
 
 /-- An owned-region list. -/
 def LstO (E : BitVec 64) (O : BitVec 64 → Prop) (Lh : BitVec 64) (M : Mem) : Prop :=
-  ∃ P N Cp : BitVec 64, LHd Lh P N Cp M ∧ N.toNat ≤ Cp.toNat ∧ 0 < Cp.toNat ∧ Lh.toNat % 8 = 0 ∧
+  ∃ P N Cp : BitVec 64, LHd Lh P N Cp M ∧ N.toNat ≤ Cp.toNat ∧ 0 < Cp.toNat ∧ Lh.toNat + 24 ≤ P.toNat ∧
     (∀ x, HdW Lh x → O x) ∧
-    ∀ x : BitVec 64, P.toNat ≤ x.toNat → x.toNat < P.toNat + E.toNat * Cp.toNat → O x ∧ ¬ HdW Lh x
+    ∀ x : BitVec 64, P.toNat ≤ x.toNat → x.toNat < P.toNat + E.toNat * Cp.toNat →
+      O x ∧ ¬ HdW Lh x ∧ O (panByteAlignHOL x)
 
 section lo
 variable {E Lh : BitVec 64} {O O' : BitVec 64 → Prop} {M M' : Mem}
 
 theorem lstO_sub (h : LstO E O Lh M) (sub : ∀ x, O x → O' x) : LstO E O' Lh M :=
   let ⟨P,N,Cp,hd,a,b,c,hh,hb⟩ := h
-  ⟨P,N,Cp,hd,a,b,c,fun x hx => sub x (hh x hx),fun x l u => let ⟨o,n⟩ := hb x l u; ⟨sub x o,n⟩⟩
+  ⟨P,N,Cp,hd,a,b,c,fun x hx => sub x (hh x hx),fun x l u => let ⟨o,n,g⟩ := hb x l u; ⟨sub x o,n,sub _ g⟩⟩
 
 theorem lstO_frame (h : LstO E O Lh M) (keep : ∀ x, O x → M' x = M x) : LstO E O Lh M' := by
   obtain ⟨P,N,Cp,⟨h0,h8,h16⟩,a,b,c,hh,hb⟩ := h
@@ -39,6 +40,14 @@ theorem buf_le {P K H : Nat} (hP : P < 2 ^ 64) (hH : H < 2 ^ 64) (hK : 0 < K)
   by_contra hc
   have := h (BitVec.ofNat 64 (max P H)) (by rw [BitVec.toNat_ofNat]; omega) (by rw [BitVec.toNat_ofNat]; omega)
   rw [BitVec.toNat_ofNat] at this; omega
+
+/-- The aligned word of a byte at or above an aligned bound `H` lies in `[H, x]`. -/
+theorem byteAlign_ge {H x : BitVec 64} (hal : H.toNat % 8 = 0) (hx : H.toNat ≤ x.toNat) :
+    H.toNat ≤ (panByteAlignHOL x).toNat ∧ (panByteAlignHOL x).toNat ≤ x.toNat := by
+  rw [panByteAlign_toNat64]
+  have := Nat.div_mul_le_self x.toNat 8
+  have := Nat.mod_add_div x.toNat 8
+  constructor <;> omega
 
 /-- Element facts of an owned list. -/
 theorem elem_in {P E Cn Nn j S : Nat} (hj : j < Nn) (hN : Nn ≤ Cn) (hS : S = P + j * E) :
@@ -59,6 +68,7 @@ theorem aqgd_decCall_lstUpsert_o {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA
     (M1 : Mem) (G1 : GA) (lo : LstO E O Lh M1) (hH1 : HeapIs G1 H)
     (hn1 : G1.lookup (ofString "journal_n") = some (.val (.word Nj)))
     (hO : ∀ x, O x → x.toNat < H.toNat) (hwO : ¬ O w) (hwH : w.toNat < H.toNat) (hE1 : 1 ≤ E.toNat)
+    (hHal : H.toNat % 8 = 0)
     (hargs : ∀ {F : Type} (s : PanSemStateFiniteExact 64 F), s.memaddrs = D → s.memory = M1 → s.globals = G1 →
       LP s.locals → evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [el,eE,eI] =
         some [.val (.word Lh),.val (.word E),.val (.word I)])
@@ -78,8 +88,6 @@ theorem aqgd_decCall_lstUpsert_o {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA
   have hCE : 0 < E.toNat * Cp.toNat := Nat.mul_pos (by omega) hC0
   have hbuf : P.toNat + E.toNat * Cp.toNat ≤ H.toNat :=
     buf_le P.isLt hHl hCE (fun x l u => hO x (hBuf x l u).1)
-  have h16 : (Lh + 16#64).toNat < H.toNat := hO _ (hHd _ (Or.inr (Or.inr rfl)))
-  have h0 : Lh.toNat < H.toNat := hO Lh (hHd Lh (Or.inl rfl))
   refine aqgd_decCallSpecD (Vn' := fun _ => True)
     (Pe := fun (_ : GA) (M0' : Mem) (G0' : GA) (L : GA) (M : Mem) (G : GA) =>
       (LK [(ofString "l",Lh),(ofString "esz",E),(ofString "idx",I)] L ∧ M = M0' ∧ G = G0') ∧
@@ -94,7 +102,6 @@ theorem aqgd_decCall_lstUpsert_o {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA
       (fun _ _ g aw ⟨⟨_,_,hg⟩,_⟩ => by
         rw [hg] at aw; exact ⟨aw.2,(jws_heap_facts aw.1.1.1 hH1).2.1,(jws_heap_facts aw.1.1.1 hH1).2.2⟩) ?_
     intro ⟨hsc,hHE,hal⟩
-    have e16 : (Lh + 16#64).toNat = Lh.toNat + 16 := by rw [BitVec.toNat_add]; simp; omega
     have hsz : E.toNat * Cp.toNat * 2 < 2 ^ 64 := by omega
     have hwh : ¬ HdW Lh w := fun h => hwO (hHd w h)
     have hwB : ¬ (P.toNat ≤ w.toNat ∧ w.toNat < P.toNat + E.toNat * Cp.toNat) := fun ⟨a,b⟩ => hwO (hBuf w a b).1
@@ -111,7 +118,7 @@ theorem aqgd_decCall_lstUpsert_o {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA
       (aqgd_conseq (aqgd_keepScr (Sc := Sc) (keepsScr_of_installed originalRuntimeCode_lstUpsertIdx_lookup (by decide))
         (lstUpsertIdx_spec (D := D) (B := B) (SP0 := SP0) (P0 := P0) (FM := FM) (G0 := G0) (J := J) (C := C)
           (SKB := SKB) (Nj := Nj) (w := w) Lh E I P N Cp H M1 G1 (by omega) hwH hwh hd hNC hC0 hE1 hbuf hsz hwB
-          (fun x l u => (hBuf x l u).2)))
+          (fun x l u => (hBuf x l u).2.1)))
         (fun _ _ _ h => h) (fun _ _ _ h => h.1.elim) (fun _ _ _ h => h)))
       (fun _ _ _ h => h) (fun _ _ _ h => h.elim) (fun _ _ _ h => h)
   · intro F s values callee rs _ dom H' hG ⟨lp,hM,hG1⟩ _ args lookup
@@ -129,19 +136,26 @@ theorem aqgd_decCall_lstUpsert_o {LP : GA → Prop} {Pc Qc Q : GA → Mem → GA
   · intro L M G v M' G' ⟨lp,hM,_⟩ ⟨⟨⟨_,S,Pn,Nn,Cn,Hc,ev,hd',hHc,le,hNn,hCn,hPn,⟨j,hj,hS⟩,old,_,fr⟩,_⟩,hn'⟩ _
     subst ev hM
     have bufN : ∀ x : BitVec 64, Pn.toNat ≤ x.toNat → x.toNat < Pn.toNat + E.toNat * Cn.toNat →
-        (O x ∨ (H.toNat ≤ x.toNat ∧ x.toNat < Hc.toNat)) ∧ ¬ HdW Lh x := by
+        (O x ∨ (H.toNat ≤ x.toNat ∧ x.toNat < Hc.toNat)) ∧ ¬ HdW Lh x ∧
+          (O (panByteAlignHOL x) ∨ (H.toNat ≤ (panByteAlignHOL x).toNat ∧ (panByteAlignHOL x).toNat < Hc.toNat)) := by
       intro x l u
       rcases old with ⟨rfl,rfl⟩ | ⟨hp,_⟩
-      · exact ⟨Or.inl (hBuf x l u).1,(hBuf x l u).2⟩
-      · refine ⟨Or.inr ⟨by omega,by omega⟩,fun h => ?_⟩
+      · exact ⟨Or.inl (hBuf x l u).1,(hBuf x l u).2.1,Or.inl (hBuf x l u).2.2⟩
+      · have ba := byteAlign_ge hHal (show H.toNat ≤ x.toNat by omega)
+        refine ⟨Or.inr ⟨by omega,by omega⟩,fun h => ?_,Or.inr ⟨ba.1,by omega⟩⟩
         have := hO x (hHd x h); omega
-    refine hres L S Hc M' G' lp hHc le hn' ⟨Pn,Nn,Cn,hd',hNn,hCn,al,fun x h => Or.inl (hHd x h),bufN⟩
-      (fun x l u => bufN x (elem_in hj hNn hS x.toNat l u).1 (elem_in hj hNn hS x.toNat l u).2) ?_
+    have alN : Lh.toNat + 24 ≤ Pn.toNat := by
+      rcases old with ⟨rfl,rfl⟩ | ⟨hp,_⟩
+      · exact al
+      · omega
+    refine hres L S Hc M' G' lp hHc le hn' ⟨Pn,Nn,Cn,hd',hNn,hCn,alN,fun x h => Or.inl (hHd x h),bufN⟩
+      (fun x l u => (fun b => ⟨b.1,b.2.1⟩) (bufN x (elem_in hj hNn hS x.toNat l u).1 (elem_in hj hNn hS x.toNat l u).2))
+      ?_
     intro x hx ho
     refine fr x hx (fun h => ho (hHd x h)) (fun e => ?_)
     rw [e] at hx ho
     have hin := elem_in hj hNn hS S.toNat (le_refl _) (by omega)
-    rcases bufN S hin.1 hin.2 with ⟨h | ⟨h,_⟩,_⟩
+    rcases bufN S hin.1 hin.2 with ⟨h | ⟨h,_⟩,_,_⟩
     · exact ho h
     · omega
 

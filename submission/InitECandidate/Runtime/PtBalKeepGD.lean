@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.PtNewRVGD
+import InitECandidate.Runtime.PtBalStGD
 import InitECandidate.Runtime.GlobalKeepAllProgram
 /-!
 The block-access-list globals (`bal_accounts`, `bal_idx_accts`, `bal_idx_stor`, `bal_key_buf`, `bal_index`, assigned
