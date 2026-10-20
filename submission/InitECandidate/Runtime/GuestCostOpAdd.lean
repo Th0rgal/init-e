@@ -32,4 +32,31 @@ theorem source_opAdd_body :
 
 #print axioms source_opAdd_body
 
+/-- The empty argument list evaluates to the empty value list. -/
+theorem evalListHOLFinite_nil (s : PanSemStateFiniteExact 64 F) :
+    evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) [] =
+      some [] := by
+  simp [evalListHOLFinite, evalListHOLExact]
+
+/-- A single constant argument evaluates to its word. -/
+theorem evalListHOLFinite_singleton_const (s : PanSemStateFiniteExact 64 F)
+    (w : BitVec 64) :
+    evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+      [.const w] = some [.val (.word w)] := by
+  simp [evalListHOLFinite, evalListHOLExact, evalHOLExact]
+
+/-- Two local-variable arguments evaluate to their bound values. -/
+theorem evalListHOLFinite_two_vars (s : PanSemStateFiniteExact 64 F)
+    (vx vy : ValueHOL 64)
+    (hx : s.locals.lookup (ofString "x") = some vx)
+    (hy : s.locals.lookup (ofString "y") = some vy) :
+    evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
+      [.var VarKind.local (ofString "x"), .var VarKind.local (ofString "y")] =
+      some [vx, vy] := by
+  simp [evalListHOLFinite, evalListHOLExact, evalHOLExact, hx, hy]
+
+#print axioms evalListHOLFinite_nil
+#print axioms evalListHOLFinite_singleton_const
+#print axioms evalListHOLFinite_two_vars
+
 end InitECandidate.Runtime.FineCost
