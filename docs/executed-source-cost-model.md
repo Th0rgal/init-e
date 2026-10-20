@@ -11,7 +11,7 @@ whole-compiler transfer and finite certificate are still unfinished;
 Namespace `InitECandidate.Runtime.FineCost` uses typed `WorkEvent` traces.
 `PanWorkVector.Work` records statements, expressions, scalar operations, memory
 accesses, moved words, frame slots, transfer bytes, primitive blocks and native
-events. `executionWork` adds events; `Work.score` takes a dot product with a
+events, global-access counts and global words. `executionWork` adds events; `Work.score` takes a dot product with a
 coefficient vector. Both compose additively over trace concatenation.
 Coefficients must be justified by compiler/runtime proofs; a source unit does
 not automatically equal one native instruction.
@@ -29,6 +29,7 @@ exceptions, rejections and timeouts retain their executed prefixes.
 | --- | --- |
 | Fixed-width arithmetic/comparison/shift | Scalar operation count; numeric magnitude of a 64-bit constant is not a work count |
 | Variadic operation | Operand/reduction work, with all evaluator children retained |
+| Global reads/writes and call results stored into globals | Dedicated `globalAccess words` event records fixed setup separately from flattened words; local reads are unchanged |
 | Structured variable/construction/projection/copy | Actual flattened words produced/moved |
 | Structured memory | Logical scalar accesses for the requested flattened shape; rejection conservatively pays request size |
 | Byte/32-bit memory | Logical access count; native coefficient must cover admitted alignment expansion |
@@ -222,7 +223,8 @@ overall 900-billion/200-million ratio before other helpers.
 
 The integrated sharp route instead prices the SAME canonical events as
 `10*statements + 5*expressions + 5*movedWords + 12*memoryAccesses + 4*frameSlots
-+ 45*replayUnits`. Replay units sum `k-1` for each `.memory k` event. A static
++ 40*globalAccesses + 17*globalWords + 45*replayUnits`. Replay units sum `k-1`
+for each `.memory k` or `.globalAccess k` event. A static
 `sharpSitesProg 40` certificate bounds the scalar address price at multiword
 load sites; no whole-program expression maximum is multiplied into all work.
 The source-to-Loop theorem preserves this allowance with factor ONE through
@@ -237,6 +239,27 @@ guest trace to that function; `sourceSharpExecutionCost_pays_loop` applies the
 compiler theorem directly to it. Worker snapshot bb442a0d3 was frozen, its price
 and semantic interfaces reviewed, and all 56 source compiler-chain modules were
 independently rebuilt. The selected-cost bridge was checked separately.
+
+The global-access accounting from worker snapshot `01c6a5439` was independently
+rebuilt through 52 source/compiler modules, including completeness and unique
+canonical traces. A global access records both an occurrence and its flattened
+word count so even zero-word accesses can pay fixed setup. The sharp global
+allowance is `40 + 17*n + 45*(n-1)`; local expression and ordinary memory prices
+are unchanged. The actual `pan_globals` transfer remains a separate pending
+proof; the price definition alone does not discharge it.
+
+`pan_simp` now preserves every additive per-event price, including replay and
+global-access charges. `SourceCostPanStructsId` proves structures preprocessing
+is the identity under a checked syntactic no-named-structures predicate;
+`SourceCostCrepInlineId` proves Crep inlining is the identity when no function
+is inlinable. Their concrete guest predicates still need kernel certificates.
+
+Existing root guest helpers were replayed with the new model. Generic
+`callEvents`/`callLocalCost` accept optional final call info (default `none`)
+and include the global-write event/price when applicable; the generic installed
+`charge_gas` call theorem retains arbitrary destination info. `expressionCost_var`
+retains the extra global price explicitly. New worker opcode/invariant modules
+remain queued for review and migration after their current live check.
 
 ## Actual Word execution counter
 

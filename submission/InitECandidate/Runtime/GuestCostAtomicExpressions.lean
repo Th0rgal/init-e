@@ -32,11 +32,29 @@ theorem expressionCost_const (coeff : Work) (s : PanSemStateFiniteExact 64 F)
 theorem expressionCost_var (coeff : Work) (s : PanSemStateFiniteExact 64 F)
     (kind : VarKind) (name : MlStringHOL) :
     expressionCost coeff s (.var kind name) =
-      coeff.expressions + coeff.movedWords * resultWords s (.var kind name) := by
+      coeff.expressions + coeff.movedWords * resultWords s (.var kind name) +
+        coeff.score (executionWork (globalEvents kind (resultWords s (.var kind name)))) := by
   unfold expressionCost
   rw [expressionEvents]
   rw [executionWork_score_cons, score_expression]
-  simp [executionWork, WorkEvent.units, Work.score, Work.plus]
+  cases kind <;> simp [globalEvents, executionWork, WorkEvent.units, Work.score, Work.plus] <;> omega
+
+/-- Local reads retain their original expression/copy prices. -/
+theorem expressionCost_local_var (coeff : Work) (s : PanSemStateFiniteExact 64 F)
+    (name : MlStringHOL) :
+    expressionCost coeff s (.var .local name) =
+      coeff.expressions + coeff.movedWords * resultWords s (.var .local name) := by
+  simpa [globalEvents, executionWork, Work.score] using expressionCost_var coeff s .local name
+
+/-- Global reads additionally pay fixed setup and actual flattened words. -/
+theorem expressionCost_global_var (coeff : Work) (s : PanSemStateFiniteExact 64 F)
+    (name : MlStringHOL) :
+    expressionCost coeff s (.var .global name) =
+      coeff.expressions + coeff.movedWords * resultWords s (.var .global name) +
+        coeff.globalAccesses + coeff.globalWords * resultWords s (.var .global name) := by
+  have price := expressionCost_var coeff s .global name
+  simp only [globalEvents, score_singleton, score_globalAccess] at price
+  simpa only [Nat.add_assoc] using price
 
 /-- The recorded events of a binary operator, as the score lemmas consume them. -/
 theorem expressionEvents_op (s : PanSemStateFiniteExact 64 F) (op : BinOp)
@@ -75,6 +93,8 @@ theorem expressionCost_cmp (coeff : Work) (s : PanSemStateFiniteExact 64 F)
   rw [score_singleton, score_scalar]
   omega
 
+#print axioms expressionCost_local_var
+#print axioms expressionCost_global_var
 #print axioms expressionCost_const
 #print axioms expressionCost_var
 #print axioms expressionCost_op

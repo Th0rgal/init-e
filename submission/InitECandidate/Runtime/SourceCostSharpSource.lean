@@ -48,11 +48,13 @@ theorem source_loop_sharp_work {F : Type}
   exact ⟨extra, wl, work, by omega, runRel⟩
 
 /-- The sharp score as an explicit dot product over the canonical event
-vector plus the replay count. -/
+vector plus the replay count, which is `k - 1` for every `memory k` and every
+`globalAccess k`. -/
 theorem sharpScore_eq (ev : List WorkEvent) :
     sharpScore ev = 10 * (executionWork ev).statements + 5 * (executionWork ev).expressions +
       5 * (executionWork ev).movedWords + 12 * (executionWork ev).memoryAccesses +
-      4 * (executionWork ev).frameSlots + 45 * replayUnits ev := by
+      4 * (executionWork ev).frameSlots + 40 * (executionWork ev).globalAccesses +
+      17 * (executionWork ev).globalWords + 45 * replayUnits ev := by
   simp only [sharpScore, sharpSourceScore, sharpSourceWeights, Work.score, sharpReplayBound]
   omega
 
@@ -62,9 +64,10 @@ accesses, no replay) is priced at 836 Loop units. -/
 theorem sharpScore_u256_add_counts (ev : List WorkEvent)
     (statements : (executionWork ev).statements = 9) (expressions : (executionWork ev).expressions = 44)
     (moved : (executionWork ev).movedWords = 102) (memory : (executionWork ev).memoryAccesses = 0)
-    (frames : (executionWork ev).frameSlots = 4) (replay : replayUnits ev = 0) :
+    (frames : (executionWork ev).frameSlots = 4) (globals : (executionWork ev).globalAccesses = 0)
+    (globalWords : (executionWork ev).globalWords = 0) (replay : replayUnits ev = 0) :
     sharpScore ev = 836 := by
-  rw [sharpScore_eq, statements, expressions, moved, memory, frames, replay]
+  rw [sharpScore_eq, statements, expressions, moved, memory, frames, globals, globalWords, replay]
 
 #print axioms source_loop_sharp_work
 #print axioms sharpScore_eq

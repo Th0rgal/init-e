@@ -103,6 +103,28 @@ theorem compile_while_eq (context : PanToCrepContextExact 64) {condition : ExpHO
       .while ce (compileProgExactHOLW context body) := by
   simp only [compileProgExactHOLW, compileWhileExactHOLW, compiled]
 
+/-- A localised call has no global destination, so it emits no global event. -/
+theorem callGlobalEvents_localised {info : Option (Option (VarKind × MlStringHOL) ×
+      Option (MlStringHOL × MlStringHOL × ProgHOL 64))} {function : MlStringHOL}
+    {arguments : List (ExpHOL 64)} (localised : localisedProgHOL (.call info function arguments) = true)
+    (result : Option (PanSemResultExact 64)) : callGlobalEvents info result = [] := by
+  rcases info with _ | ⟨_ | ⟨kind, name⟩, handler⟩
+  · cases result with
+    | none => rfl
+    | some r => cases r <;> rfl
+  · cases result with
+    | none => rfl
+    | some r => cases r <;> rfl
+  · cases kind
+    · cases result with
+      | none => rfl
+      | some r => cases r <;> rfl
+    · rcases handler with _ | ⟨a, b, h⟩ <;>
+        first
+        | simp only [localisedProgHOL, Bool.and_false, Bool.false_eq_true] at localised
+        | simp_all [localisedProgHOL]
+        | (unfold localisedProgHOL at localised; simp at localised)
+
 /-- Control-statement transfer: sequential actual successors, selected
 conditional branches, every loop guard and iteration, loop exits and timeouts.
 Uses the full original Pan-to-Crep premises; the static guest load-site
@@ -336,6 +358,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
       have length := compiled_length expr.sound rel localised
       simp only [compileProgExactHOLW]
       refine bounded_paid (bounded_local_assign context name expression) ?_
+      simp only [globalEvents]
       rw [score_statement_cons, score_append, score_copy, length]
       simp only [sourceCrepWeights] at paid ⊢
       omega
@@ -418,6 +441,7 @@ theorem source_control_crep_work {F : Type} {s post : PanSemStateFiniteExact 64 
     have bodyOk := call_body_ok plan resultOk
     have checkedArgs : bulkLoadSitesExps arguments = true := by
       rcases info with _ | ⟨dest, _ | ⟨a, b, c⟩⟩ <;> simp_all [bulkLoadSitesProg]
+    rw [callGlobalEvents_localised localised, List.append_nil]
     exact call_done_transfer args lookup clock bodyRun plan resultOk rel localised checkedArgs
       (fun t' c' rel' loc' =>
         ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)

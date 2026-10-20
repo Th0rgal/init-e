@@ -23,7 +23,7 @@ theorem simp_smartSeq_split {F : Type} {pre a b : ProgHOL 64} {s : PanSemStateFi
     | seqNext one two => exact Or.inl ⟨_, _, _, one, two, SimpWorkLe.refl _⟩
     | seqStop terminal one =>
       refine Or.inr ⟨_, terminal, one, fun c => ?_⟩
-      (try simp only [executionWork_score_cons]); omega
+      (try simp only [eventSum_cons]); omega
   · rw [simp_smartSeq_ne _ hp] at run
     rw [simp_smartSeq_ne _ hp]
     cases run with
@@ -31,10 +31,10 @@ theorem simp_smartSeq_split {F : Type} {pre a b : ProgHOL 64} {s : PanSemStateFi
       cases two with
       | seqNext a1 b1 =>
         refine Or.inl ⟨_, _, _, .seqNext one a1, b1, fun c => ?_⟩
-        (try simp only [executionWork_score_cons, executionWork_score_append]); omega
+        (try simp only [eventSum_cons, eventSum_append]); omega
       | seqStop terminal a1 =>
         refine Or.inr ⟨_, terminal, .seqNext one a1, fun c => ?_⟩
-        (try simp only [executionWork_score_cons, executionWork_score_append]); omega
+        (try simp only [eventSum_cons, eventSum_append]); omega
     | seqStop terminal one =>
       exact Or.inr ⟨_, terminal, .seqStop terminal one, SimpWorkLe.refl _⟩
 
@@ -51,10 +51,10 @@ theorem simp_seqAssoc_run {F : Type} :
       | seqNext one two =>
         obtain ⟨rfl, rfl, rfl⟩ := simp_skip_run two
         refine ⟨_, one, fun c => ?_⟩
-        (try simp only [executionWork_score_cons, executionWork_score_append]); omega
+        (try simp only [eventSum_cons, eventSum_append]); omega
       | seqStop terminal one =>
         refine ⟨_, one, fun c => ?_⟩
-        (try simp only [executionWork_score_cons]); omega
+        (try simp only [eventSum_cons]); omega
   | .annot tag text, pre => by
     unfold seqAssocHOL
     intro run
@@ -68,10 +68,10 @@ theorem simp_seqAssoc_run {F : Type} :
       | seqNext one two =>
         cases two
         refine ⟨_, one, fun c => ?_⟩
-        (try simp only [executionWork_score_cons, executionWork_score_append]); omega
+        (try simp only [eventSum_cons, eventSum_append]); omega
       | seqStop terminal one =>
         refine ⟨_, one, fun c => ?_⟩
-        (try simp only [executionWork_score_cons]); omega
+        (try simp only [eventSum_cons]); omega
   | .seq a b, pre => by
     rw [simp_seqAssoc_seq]
     intro run
@@ -84,14 +84,14 @@ theorem simp_seqAssoc_run {F : Type} :
         · rw [hA] at rA ⊢
           obtain ⟨-, rfl, rfl⟩ := simp_skip_run rA
           refine ⟨ev2, r2, fun c => ?_⟩
-          (try simp only [executionWork_score_cons, executionWork_score_append]); omega
+          (try simp only [eventSum_cons, eventSum_append]); omega
         · rw [simp_smartSeq_ne _ hA]
           exact ⟨_, .seqNext rA r2, SimpWorkLe.refl _⟩
       obtain ⟨e, re, le2⟩ := comb
       obtain ⟨e', re', le3⟩ := simp_seqAssoc_run b (seqAssocHOL pre a) re
       refine ⟨e', re', fun c => ?_⟩
       have := le c; have := leA c; have := le2 c; have := le3 c
-      try simp only [executionWork_score_cons, executionWork_score_append] at *
+      try simp only [eventSum_cons, eventSum_append] at *
       omega
     · obtain ⟨evA, rA, leA⟩ := simp_seqAssoc_run a pre r1
       have hA : seqAssocHOL pre a ≠ .skip := by
@@ -102,7 +102,7 @@ theorem simp_seqAssoc_run {F : Type} :
       obtain ⟨e', re', le3⟩ := simp_seqAssoc_run b (seqAssocHOL pre a) re
       refine ⟨e', re', fun c => ?_⟩
       have := le c; have := leA c; have := le3 c
-      try simp only [executionWork_score_cons, executionWork_score_append] at *
+      try simp only [eventSum_cons, eventSum_append] at *
       omega
   | .dec name shape value body, pre => by
     have e : seqAssocHOL pre (.dec name shape value body) =

@@ -256,18 +256,19 @@ the zero-initialized return-slot frame), plus the explicit helper price, plus th
 returned payload. Both the recorded body work and the price are concrete: no
 unconstrained `bodyEvents` variable remains.
 
-This bounds the successful trace only. Source-trace uniqueness is not available
-globally, so bounding every trace of the statement (handler, timeout and
-rejection paths) stays an explicit separate obligation. -/
+This bounds the successful trace only. Canonical source-trace uniqueness identifies this successful witness with
+any other trace of the same run. Handler, timeout and rejection paths still
+require their own actual-run bounds. -/
 theorem chargeGas_call_cost_bound (coeff : Work)
     (state : PanSemStateFiniteExact 64 Guest.HostMemory) (frame : BitVec 64)
-    (argument : ExpHOL 64) (amount : BitVec 64) (funding : GasFunding) :
+    (argument : ExpHOL 64) (amount : BitVec 64) (funding : GasFunding)
+    (info : CallEventInfo := none) :
     let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
       HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))
     coeff.score (executionWork (callEvents state [argument] [.val (.word amount)] .one
         (some (.returned (.val (.word 0))))
         (chargeGasBodyEvents (callEntryStateHOLFinite state callee) frame
-          funding.left funding.used amount))) ≤
+          funding.left funding.used amount) info)) ≤
       coeff.statements +
         coeff.score (executionWork (expressionListEvents state [argument])) +
         coeff.movedWords * ([.val (.word amount)].flatMap flattenHOL).length +
@@ -275,14 +276,15 @@ theorem chargeGas_call_cost_bound (coeff : Work)
         coeff.frameSlots * sizeOfShapeWithContextHOL state.structs .one +
         chargeGasBodyBound coeff (callEntryStateHOLFinite state callee) frame
           funding.left funding.used amount +
-        coeff.movedWords * callPayloadWords (some (.returned (.val (.word 0)))) := by
+        coeff.movedWords * callPayloadWords (some (.returned (.val (.word 0)))) +
+        coeff.score (executionWork (callGlobalEvents info (some (.returned (.val (.word 0)))))) := by
   intro callee
   have body : coeff.score (executionWork (chargeGasBodyEvents
       (callEntryStateHOLFinite state callee) frame funding.left funding.used amount)) ≤
       chargeGasBodyBound coeff (callEntryStateHOLFinite state callee) frame
         funding.left funding.used amount :=
     chargeGasBodyEvents_score coeff _ frame _ _ _
-  rw [callEvents_score]
+  rw [callEvents_score (info := info)]
   unfold callLocalCost
   simp only [List.length_singleton, List.flatMap_cons, List.flatMap_nil, List.append_nil,
     Nat.mul_one]
@@ -413,13 +415,13 @@ theorem chargeGas_call_run (coeff : Work) (state : PanSemStateFiniteExact 64 Gue
           (some (.returned (.val (.word 0))))
           (chargeGasBodyEvents (callEntryStateHOLFinite state
             (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
-            frame funding.left funding.used amount)) ∧
+            frame funding.left funding.used amount) info) ∧
       coeff.score (executionWork
         (callEvents state [argument] [.val (.word amount)] .one
           (some (.returned (.val (.word 0))))
           (chargeGasBodyEvents (callEntryStateHOLFinite state
             (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
-            frame funding.left funding.used amount))) ≤
+            frame funding.left funding.used amount) info)) ≤
         coeff.statements +
           coeff.score (executionWork (expressionListEvents state [argument])) +
           coeff.movedWords * ([.val (.word amount)].flatMap flattenHOL).length +
@@ -428,7 +430,8 @@ theorem chargeGas_call_run (coeff : Work) (state : PanSemStateFiniteExact 64 Gue
           chargeGasBodyBound coeff (callEntryStateHOLFinite state
             (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
             frame funding.left funding.used amount +
-          coeff.movedWords * callPayloadWords (some (.returned (.val (.word 0)))) := by
+          coeff.movedWords * callPayloadWords (some (.returned (.val (.word 0)))) +
+          coeff.score (executionWork (callGlobalEvents info (some (.returned (.val (.word 0)))))) := by
   classical
   let callee : HolFiniteMapExact MlS (ValueHOL 64) :=
     HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))
@@ -472,7 +475,7 @@ theorem chargeGas_call_run (coeff : Work) (state : PanSemStateFiniteExact 64 Gue
     (function := ofString "charge_gas") (body := sourceFunctionBody Guest.guestFn_charge_gas)
     (bodyResult := some (.returned value)) (bodyPost := bodyPost)
     coeff arguments lookup clock bodyRun planEq
-  exact ⟨result, post, bodyRun, planEq, call.1, chargeGas_call_cost_bound coeff state frame argument amount funding⟩
+  exact ⟨result, post, bodyRun, planEq, call.1, chargeGas_call_cost_bound coeff state frame argument amount funding info⟩
 
 
 

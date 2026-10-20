@@ -73,6 +73,16 @@ def callPayloadWords : Option (PanSemResultExact 64) → Nat
   | some (.returned value) | some (.exception _ value) => (flattenHOL value).length
   | _ => 0
 
+/-- A returned value stored into a global destination is a global access. -/
+def callGlobalEvents (info : Option (Option (VarKind × MlStringHOL) ×
+      Option (MlStringHOL × MlStringHOL × ProgHOL 64))) :
+    Option (PanSemResultExact 64) → List WorkEvent
+  | some (.returned value) =>
+      match info with
+      | some (some (kind, _), _) => globalEvents kind (flattenHOL value).length
+      | _ => []
+  | _ => []
+
 def declareCallStopPlan {F : Type} (result : Option (PanSemResultExact 64))
     (post : PanSemStateFiniteExact 64 F) : Option (PanSemResultExact 64) × PanSemStateFiniteExact 64 F :=
   match result with

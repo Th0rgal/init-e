@@ -12,7 +12,8 @@ exact Loop prices (`CrepWorkS`). -/
 lowering (`sharp_expression_bound`); statement, memory and frame weights pay
 the Crep statements emitted per executed statement, stored word and frame slot. -/
 def sharpSourceWeights : Work :=
-  { statements := 10, expressions := 5, movedWords := 5, memoryAccesses := 12, frameSlots := 4 }
+  { statements := 10, expressions := 5, movedWords := 5, memoryAccesses := 12, frameSlots := 4,
+    globalAccesses := 40, globalWords := 17 }
 
 /-- Sharp source score of an event list with replay certificate `B`. -/
 def sharpSourceScore (B : Nat) (ev : List WorkEvent) : Nat :=
@@ -58,6 +59,14 @@ theorem sharpSourceScore_cons (B : Nat) (event : WorkEvent) (rest : List WorkEve
 @[simp] theorem sharpSource_memory (B n : Nat) :
     sharpSourceWeights.score (WorkEvent.memory n).units + (B + 5) * replayUnits [.memory n] =
       12 * n + (B + 5) * (n - 1) := by
+  simp [sharpSourceWeights, Work.score, WorkEvent.units, replayUnits]
+
+/-- A global access pays its `pan_globals` expansion: the `TopAddr`-relative
+address (three expressions, two copies), the memory words with their replay,
+and, for a call result, the temporary's declaration, read and store. -/
+@[simp] theorem sharpSource_global (B n : Nat) :
+    sharpSourceWeights.score (WorkEvent.globalAccess n).units + (B + 5) * replayUnits [.globalAccess n] =
+      40 + 17 * n + (B + 5) * (n - 1) := by
   simp [sharpSourceWeights, Work.score, WorkEvent.units, replayUnits]
 
 theorem sharpExprScore_le_source (B : Nat) (ev : List WorkEvent) :
@@ -139,6 +148,10 @@ theorem sharpScore_scalar (n : Nat) (rest : List WorkEvent) :
 theorem sharpScore_memory (n : Nat) (rest : List WorkEvent) :
     sharpScore (.memory n :: rest) = 12 * n + 45 * (n - 1) + sharpScore rest := by
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_memory, sharpReplayBound]
+
+theorem sharpScore_global (n : Nat) (rest : List WorkEvent) :
+    sharpScore (.globalAccess n :: rest) = 40 + 17 * n + 45 * (n - 1) + sharpScore rest := by
+  simp only [sharpScore, sharpSourceScore_cons, sharpSource_global, sharpReplayBound]
 
 /-- Expression form at the fixed certificate. -/
 theorem compiled_expression_sharp_score {F : Type} (s : PanSemStateFiniteExact 64 F)
