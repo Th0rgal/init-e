@@ -460,4 +460,39 @@ theorem actual_payload_header_strong_prefix_0_to_9 {F : Type}
 
 #print axioms actual_payload_header_strong_prefix_0_to_9
 
+/-- **The actual `keccak256(tmp, 1, oh)` call with the globals derived from the entry state.**  The
+`keccak_st` and `keccak_pad` globals are read from the entry state and transported to the reached
+state by the frame: the construction only ever rebinds `heap_ptr`. -/
+theorem actual_payload_header_strong_keccak {F : Type} (ref state : PanSemStateFiniteExact 64 F)
+    (pl raw pointer heap oh tmp st pad : BitVec 64)
+    (facts : ActualPayloadHeaderCommit ref state pl raw pointer heap oh tmp)
+    (frame : HeapGlobalsFrame ref state)
+    (code : state.code = originalRuntimeCode)
+    (stateGlobal : ref.globals.lookup (ofString "keccak_st") = some (.val (.word st)))
+    (padGlobal : ref.globals.lookup (ofString "keccak_pad") = some (.val (.word pad)))
+    (ticks : 360 ≤ state.clock)
+    (stateSmall : st.toNat + 200 ≤ 33806089496) (stateAligned : st.toNat % 8 = 0)
+    (stateWords : ∀ offset : Nat, offset < 200 → state.memaddrs (st + BitVec.ofNat 64 offset))
+    (stateBytes : ∀ offset : Nat, offset < 200 →
+      state.memaddrs (panByteAlignHOL (st + BitVec.ofNat 64 offset)))
+    (small : pad.toNat + 136 ≤ 33806089496) (padAligned : pad.toNat % 8 = 0)
+    (tmpAligned : tmp.toNat % 8 = 0) (ohAligned : oh.toNat % 8 = 0)
+    (words : ∀ offset : Nat, offset < 136 → state.memaddrs (pad + BitVec.ofNat 64 offset))
+    (bytes : ∀ offset : Nat, offset < 136 →
+      state.memaddrs (panByteAlignHOL (pad + BitVec.ofNat 64 offset)))
+    (sourceWords : ∀ offset : Nat, offset < 1 → state.memaddrs (tmp + BitVec.ofNat 64 offset))
+    (sourceBytes : ∀ offset : Nat, offset < 1 →
+      state.memaddrs (panByteAlignHOL (tmp + BitVec.ofNat 64 offset))) :
+    Reaches state (actualPayloadHeaderAt 9)
+      (ActualPayloadHeaderCommit ref · pl raw pointer heap oh tmp) 360 (actualPayloadHeaderAt 10) := by
+  refine actual_payload_header_keccak_reaches ref state pl raw pointer heap oh tmp st pad facts code
+    ?_ ?_ ticks stateSmall stateAligned stateWords stateBytes small padAligned tmpAligned ohAligned
+    words bytes sourceWords sourceBytes
+  · rw [frame (ofString "keccak_st") (by decide)]
+    exact stateGlobal
+  · rw [frame (ofString "keccak_pad") (by decide)]
+    exact padGlobal
+
+#print axioms actual_payload_header_strong_keccak
+
 end InitECandidate.Runtime
