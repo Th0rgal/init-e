@@ -80,12 +80,12 @@ declaration is free; and then statement 46's loop costs at most
 The arena facts (`slices` at the arena base, `heap_ptr` at the exact 8-aligned end, the per-iteration
 windows and the slice cells above the payload area) are all taken from the source allocation facts. -/
 theorem wdSliceLoop_count_alloc (DF : Nat) {F : Type} (state : PanSemStateFiniteExact 64 F)
-    (nwd size heapBase pl read X : BitVec 64)
+    (nwd size heapBase oldSlices pl read X : BitVec 64)
     (sizeVal : size = nwd * 16#64 + 16#64)
     (readEq : read = pl + 48#64)
     (atNwd : state.locals.lookup (ofString "nwd") = some (ValueHOL.val (HolWordLab.word nwd)))
     (atGlobal : state.globals.lookup (ofString "wd_rlp_slices") =
-      some (ValueHOL.val (HolWordLab.word heapBase)))
+      some (ValueHOL.val (HolWordLab.word oldSlices)))
     (atHeap : state.globals.lookup (ofString "heap_ptr") =
       some (ValueHOL.val (HolWordLab.word heapBase)))
     (code : state.code = originalRuntimeCode) (clock : state.clock ≠ 0)
@@ -119,13 +119,13 @@ theorem wdSliceLoop_count_alloc (DF : Nat) {F : Type} (state : PanSemStateFinite
           (setVarHOLFinite (ofString "i") (ValueHOL.val (HolWordLab.word 0#64)) ready)
           wdSliceLoop).1 ≠ some .timeOut := by
   obtain ⟨ready, run, memory, domain, locals, postCode, wdSlices, heapPtr, endToNat, endAligned⟩ :=
-    wd_slices_alloc_entry state nwd size heapBase sizeVal atNwd atGlobal atHeap code clock args al
-      sizeAl bounded
+    wd_slices_alloc_entry state nwd size heapBase oldSlices sizeVal atNwd atGlobal atHeap code clock args
+      al sizeAl bounded
   let ready' : PanSemStateFiniteExact 64 F :=
     setVarHOLFinite (ofString "i") (ValueHOL.val (HolWordLab.word 0#64)) ready
   have readyClock : ready.clock = state.clock - 1 := by
     obtain ⟨ready2, run2, clocks, _⟩ :=
-      evaluate_alloc_global_call state _ heapBase size heapBase (ofString "wd_rlp_slices") args
+      evaluate_alloc_global_call state _ heapBase size oldSlices (ofString "wd_rlp_slices") args
         code clock atHeap atGlobal (by decide)
         (allocationGuard_of_sum_bound heapBase size bounded) (by rw [endToNat]; omega)
     rw [run] at run2

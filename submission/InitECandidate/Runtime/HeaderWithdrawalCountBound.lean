@@ -235,7 +235,7 @@ theorem payloadHeader46_window_from_source {F : Type} (s : PanSemStateFiniteExac
   have bounded : slices.toNat + size.toNat ≤ 33806089496 := by rw [sizeEqV]; omega
   have alloc := wd_slices_alloc_entry
     (setVarHOLFinite (ofString "nwd") (ValueHOL.val (HolWordLab.word nwd)) s)
-    nwd size slices sizeVal (wd_nwd_binding s nwd)
+    nwd size slices slices sizeVal (wd_nwd_binding s nwd)
     (by simpa [setVarHOLFinite] using atSlicesOld) (by simpa [setVarHOLFinite] using atHeapOld)
     (by simpa [setVarHOLFinite] using code) clock allocArgs alSlices alSize bounded
   obtain ⟨ready, rest⟩ := alloc

@@ -293,3 +293,24 @@ state `payloadHeader43_reaches` with `Q := WdLoopInv (fun a => s.memaddrs a) 0#6
   (`∃ heap, heap_ptr = heap ∧ heap.toNat ≤ 33806089496`) via `wdLoopInv_heapOf`.
 - The earlier `payloadHeader43_reaches` (postcondition `True`) is preserved unchanged for the bounded
   clock-only statement.
+
+## APPLICABILITY REPAIR: `oldSlices` is independent of the heap base (pre-44)
+
+Source fact (review finding): `wd_rlp_slices` is a guest global initialized to `0`; statement 44's
+allocator needs its *old* value only as an arbitrary word, and only *after* the call does the global hold
+the new slice array (the pre-call heap base). The pre-44 theorems had specialized the old value to the heap
+base, which is not implied by the source. Generalized:
+
+- `wd_slices_alloc_entry` — new parameter `oldSlices`; `atGlobal` is `wd_rlp_slices = oldSlices` and
+  `oldSlices` is passed to `evaluate_alloc_global_call`'s `oldValue` slot. `atHeap` remains the heap base.
+  The post-state `wd_rlp_slices = heapBase` conclusion is unchanged (it is the allocation result).
+- `wdSliceLoop_count_alloc` — same generalization (both the entry binding and the second
+  `evaluate_alloc_global_call`).
+- `payloadHeader43_reaches`, `payloadHeader43_reaches_exit`, `payloadHeader43_reaches_exit_heap` — carry
+  an arbitrary `oldSlices : BitVec 64` with `atSlices : wd_rlp_slices = oldSlices`; the loop-entry state
+  after 44 keeps `wd_rlp_slices = loopHeap`.
+- `HeaderWithdrawalCountBound`'s window theorem is a caller of `wd_slices_alloc_entry` whose own hypothesis
+  states the old value equals its heap base, so it passes `oldSlices := slices`; the window statement does
+  not depend on the old value.
+
+All four modules re-verified `OK` with only `[propext, Classical.choice, Quot.sound]`.

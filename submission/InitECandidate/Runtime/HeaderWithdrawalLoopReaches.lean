@@ -171,12 +171,12 @@ Non-returning outcomes (including an encoder error inside the loop) are routed t
 `reaches_seq_of_runBounded`, so there is no encoder-success premise. The builder callee after statement
 47 is not touched. -/
 theorem payloadHeader43_reaches (DF : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F)
-    (nwd size loopHeap pl read X : BitVec 64)
+    (nwd size loopHeap oldSlices pl read X : BitVec 64)
     (readEq : read = pl + 48#64)
     (atPl : s.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
     (freshE : s.locals.lookup (ofString "e") = none)
     (atSlices : s.globals.lookup (ofString "wd_rlp_slices") =
-      some (ValueHOL.val (HolWordLab.word loopHeap)))
+      some (ValueHOL.val (HolWordLab.word oldSlices)))
     (atHeap : s.globals.lookup (ofString "heap_ptr") =
       some (ValueHOL.val (HolWordLab.word loopHeap)))
     (code : s.code = originalRuntimeCode) (clock : s.clock ≠ 0)
@@ -225,7 +225,7 @@ theorem payloadHeader43_reaches (DF : Nat) {F : Type} (s : PanSemStateFiniteExac
     subst hE
     have args := wd_slice_size_args declared nwd size atNwdDeclared sizeVal fitSize
     obtain ⟨ready, runAlloc, mainClock, mainLe, mainNoTO⟩ :=
-      wdSliceLoop_count_alloc DF declared nwd size loopHeap pl read X sizeVal readEq atNwdDeclared
+      wdSliceLoop_count_alloc DF declared nwd size loopHeap oldSlices pl read X sizeVal readEq atNwdDeclared
         (by rw [declVars.1]; exact atSlices) (by rw [declVars.1]; exact atHeap)
         (by rw [declVars.2.2.2.1]; exact code) (by rw [declVars.2.2.2.2]; exact clock) args al
         sizeAl bounded fit limit smallNwd readBelow noWrapCells (by rw [declVars.2.2.1]; exact fence)
@@ -236,7 +236,7 @@ theorem payloadHeader43_reaches (DF : Nat) {F : Type} (s : PanSemStateFiniteExac
         (by rw [declVars.2.2.1]; exact addrRead) (by rw [declVars.2.1]; exact memRead)
         (by rw [declVars.2.2.2.2]; omega)
     obtain ⟨ready2, run2, clocks0, memory0, locals0, postCode0, domain0, _, slicesLookup, heapLookup, _⟩ :=
-      evaluate_alloc_global_call declared _ loopHeap size loopHeap (ofString "wd_rlp_slices") args
+      evaluate_alloc_global_call declared _ loopHeap size oldSlices (ofString "wd_rlp_slices") args
         (by rw [declVars.2.2.2.1]; exact code) (by rw [declVars.2.2.2.2]; exact clock)
         (by rw [declVars.1]; exact atHeap) (by rw [declVars.1]; exact atSlices) (by decide)
         (allocationGuard_of_sum_bound loopHeap size bounded)
@@ -558,12 +558,12 @@ theorem payloadHeader46_reaches_exit {F : Type} (t : PanSemStateFiniteExact 64 F
 
 #print axioms payloadHeader46_reaches_exit
 theorem payloadHeader43_reaches_exit (DF : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F)
-    (nwd size loopHeap pl read X : BitVec 64)
+    (nwd size loopHeap oldSlices pl read X : BitVec 64)
     (readEq : read = pl + 48#64)
     (atPl : s.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
     (freshE : s.locals.lookup (ofString "e") = none)
     (atSlices : s.globals.lookup (ofString "wd_rlp_slices") =
-      some (ValueHOL.val (HolWordLab.word loopHeap)))
+      some (ValueHOL.val (HolWordLab.word oldSlices)))
     (atHeap : s.globals.lookup (ofString "heap_ptr") =
       some (ValueHOL.val (HolWordLab.word loopHeap)))
     (code : s.code = originalRuntimeCode) (clock : s.clock ≠ 0)
@@ -622,7 +622,7 @@ theorem payloadHeader43_reaches_exit (DF : Nat) {F : Type} (s : PanSemStateFinit
     subst hE
     have args := wd_slice_size_args declared nwd size atNwdDeclared sizeVal fitSize
     obtain ⟨ready, runAlloc, mainClock, mainLe, mainNoTO⟩ :=
-      wdSliceLoop_count_alloc DF declared nwd size loopHeap pl read X sizeVal readEq atNwdDeclared
+      wdSliceLoop_count_alloc DF declared nwd size loopHeap oldSlices pl read X sizeVal readEq atNwdDeclared
         (by rw [declVars.1]; exact atSlices) (by rw [declVars.1]; exact atHeap)
         (by rw [declVars.2.2.2.1]; exact code) (by rw [declVars.2.2.2.2]; exact clock) args al
         sizeAl bounded fit limit smallNwd readBelow noWrapCells (by rw [declVars.2.2.1]; exact fence)
@@ -633,7 +633,7 @@ theorem payloadHeader43_reaches_exit (DF : Nat) {F : Type} (s : PanSemStateFinit
         (by rw [declVars.2.2.1]; exact addrRead) (by rw [declVars.2.1]; exact memRead)
         (by rw [declVars.2.2.2.2]; omega)
     obtain ⟨ready2, run2, clocks0, memory0, locals0, postCode0, domain0, _, slicesLookup, heapLookup, _⟩ :=
-      evaluate_alloc_global_call declared _ loopHeap size loopHeap (ofString "wd_rlp_slices") args
+      evaluate_alloc_global_call declared _ loopHeap size oldSlices (ofString "wd_rlp_slices") args
         (by rw [declVars.2.2.2.1]; exact code) (by rw [declVars.2.2.2.2]; exact clock)
         (by rw [declVars.1]; exact atHeap) (by rw [declVars.1]; exact atSlices) (by decide)
         (allocationGuard_of_sum_bound loopHeap size bounded)
@@ -763,12 +763,12 @@ theorem payloadHeader43_reaches_exit (DF : Nat) {F : Type} (s : PanSemStateFinit
 #print axioms payloadHeader43_reaches_exit
 
 theorem payloadHeader43_reaches_exit_heap (DF : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F)
-    (nwd size loopHeap pl read X : BitVec 64)
+    (nwd size loopHeap oldSlices pl read X : BitVec 64)
     (readEq : read = pl + 48#64)
     (atPl : s.locals.lookup (ofString "pl") = some (ValueHOL.val (HolWordLab.word pl)))
     (freshE : s.locals.lookup (ofString "e") = none)
     (atSlices : s.globals.lookup (ofString "wd_rlp_slices") =
-      some (ValueHOL.val (HolWordLab.word loopHeap)))
+      some (ValueHOL.val (HolWordLab.word oldSlices)))
     (atHeap : s.globals.lookup (ofString "heap_ptr") =
       some (ValueHOL.val (HolWordLab.word loopHeap)))
     (code : s.code = originalRuntimeCode) (clock : s.clock ≠ 0)
@@ -808,7 +808,7 @@ theorem payloadHeader43_reaches_exit_heap (DF : Nat) {F : Type} (s : PanSemState
     (1 + nwd.toNat * ((encodeWithdrawalSourceCost DF + 1) + 1)) (Nat.le_refl _)
     (fun E inv => wdLoopInv_heapOf (fun a => s.memaddrs a) 0#64 nwd pl loopHeap read X
       (wdHeapWord (allocationEnd loopHeap size)) frontier E inv)
-    (payloadHeader43_reaches_exit DF s nwd size loopHeap pl read X readEq atPl freshE atSlices atHeap
+    (payloadHeader43_reaches_exit DF s nwd size loopHeap oldSlices pl read X readEq atPl freshE atSlices atHeap
       code clock countAddr countMem sizeVal al sizeAl bounded fitSize fit limit smallNwd readBelow
       noWrapCells fence smallDF bigDF addrRead memRead budget frontier outRead sliceRead heapStep)
 

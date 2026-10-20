@@ -111,11 +111,11 @@ theorem payloadHeader46_window_geometry {F : Type} (t : PanSemStateFiniteExact 6
 geometry: the slice array starts exactly at the old heap frontier, the frontier advances to the exact
 8-aligned end, and the caller's memory, address domain, locals and code are untouched. -/
 theorem wd_slices_alloc_entry {F : Type} (state : PanSemStateFiniteExact 64 F)
-    (nwd size heapBase : BitVec 64)
+    (nwd size heapBase oldSlices : BitVec 64)
     (sizeVal : size = nwd * 16#64 + 16#64)
     (atNwd : state.locals.lookup (ofString "nwd") = some (ValueHOL.val (HolWordLab.word nwd)))
     (atGlobal : state.globals.lookup (ofString "wd_rlp_slices") =
-      some (ValueHOL.val (HolWordLab.word heapBase)))
+      some (ValueHOL.val (HolWordLab.word oldSlices)))
     (atHeap : state.globals.lookup (ofString "heap_ptr") =
       some (ValueHOL.val (HolWordLab.word heapBase)))
     (code : state.code = originalRuntimeCode) (clock : state.clock ≠ 0)
@@ -140,7 +140,7 @@ theorem wd_slices_alloc_entry {F : Type} (state : PanSemStateFiniteExact 64 F)
   have finishBound : (allocationEnd heapBase size).toNat ≤ 33806089496 := by
     rw [endExact.1]; omega
   obtain ⟨ready,run,_,memory,locals,postCode,domain,_,wdSlices,heapPtr,_⟩ :=
-    evaluate_alloc_global_call state _ heapBase size heapBase (ofString "wd_rlp_slices") args code clock
+    evaluate_alloc_global_call state _ heapBase size oldSlices (ofString "wd_rlp_slices") args code clock
       atHeap atGlobal (by decide) (allocationGuard_of_sum_bound heapBase size bounded) finishBound
   exact ⟨ready,run,memory,domain,locals,postCode,wdSlices,heapPtr,endExact.1,endExact.2⟩
 
