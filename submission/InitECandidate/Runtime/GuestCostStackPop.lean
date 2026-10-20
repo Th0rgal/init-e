@@ -201,6 +201,37 @@ theorem stackPop_store_run (s : PanSemStateFiniteExact 64 F) (frame sp' : BitVec
     (source := .var VarKind.local (ofString "sp")) dst src write
 
 
+
+/-- Address expression of the popped word: `ev[8] + sp * 32`. -/
+noncomputable def stackPopValueAddress : ExpHOL 64 :=
+  .op .add [(.load .one (fundingAddress 8)),
+    (.panop .mul [.var VarKind.local (ofString "sp"), .const 32])]
+
+theorem panOpHOL_mul_pair (x y : BitVec 64) :
+    Flapjack.panOpHOL .mul [x, y] = some (x * y) := rfl
+
+/-- The popped word address evaluates from the actual frame word and pointer. -/
+theorem eval_stackPopValueAddress (s : PanSemStateFiniteExact 64 F) (frame base sp' : BitVec 64)
+    (hFrame : s.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (hBase : s.memaddrs (frame + 8)) (baseMemory : s.memory (frame + 8) = .word base)
+    (hSp : s.locals.lookup (ofString "sp") = some (.val (.word sp'))) :
+    @evalHOLExact 64 F _ s.toExact
+      (fun address => Classical.propDecidable (s.memaddrs address)) stackPopValueAddress =
+      some (.val (.word (base + sp' * 32))) := by
+  classical
+  unfold stackPopValueAddress
+  simp only [evalHOLExact, evalListHOLExact]
+  have addrEval : @evalHOLExact 64 F _ s.toExact
+      (fun address => Classical.propDecidable (s.memaddrs address)) (fundingAddress 8) =
+      some (.val (.word (frame + 8))) := eval_fundingAddress s frame 8 hFrame
+  rw [addrEval]
+  simp only [evalHOLExact, evalListHOLExact, memLoadHOLExact, hBase, baseMemory, if_true,
+    Flapjack.Compiler.Encoders.Asm.wordCmpHOL]
+  simp [evalHOLExact, evalListHOLExact, toExact, hSp, valueIsWord, valueWord, wordOpHOL, wordOp,
+    panOpHOL]
+
+#print axioms panOpHOL_mul_pair
+#print axioms eval_stackPopValueAddress
 #print axioms eval_stackPopSub
 #print axioms stackPop_assign_run
 #print axioms stackPop_store_run
