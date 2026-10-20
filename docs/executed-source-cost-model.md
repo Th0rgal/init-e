@@ -565,3 +565,31 @@ its own proof. The remaining premises are static facts about the program:
 - the parameterless `start` function.
 
 For the guest, these are certified on the exact compiler stages.
+
+## Guest instantiation
+
+`GuestCostSourceLoopTop.guest_source_loop` is the guest statement. It starts
+from `sourceInitialState input` and the authoritative declaration evaluation
+of `Guest.guestAst.map declToHOL`. The `main` run starts from the resulting
+state, at any clock, and must not end in an error. Three Word-side facts stay
+explicit hypotheses:
+
+- `hmem`: memory agreement;
+- `hnolabels`: no labels in the target memory;
+- `hmdomain`: the domain equation.
+
+The conclusion bounds the installed Loop entry's `LoopWork` by
+`sharpScore ev + 5330`.
+
+The proof proceeds as follows:
+
+- `original_declaration_evaluation` moves from the original declarations to
+  the main-first `sourceDeclarations` that the compiler receives.
+- The static premises are certified on `pass0` and `pass2`.
+- The one-time Init is 5330 = 20 + 4·1 + 57·93 + 5·1:
+  - `main` returns one word;
+  - the generated entry has 93 constant global stores;
+  - the payload is at most one word, from `guest_entry_payload`.
+- The payload bound comes from `GuestCostEntryShapes`. It certifies that every
+  `main` entry returns one well-formed word and that every declared exception
+  carries one.
