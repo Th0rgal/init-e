@@ -202,4 +202,42 @@ theorem opAddOuter_lt32_run (coeff : Work)
 
 #print axioms opAddOuter_lt32_run
 
+
+/-- Price of one dispatcher guard statement and its condition. -/
+noncomputable def opAddOuterGuardCost (coeff : Work)
+    (d : PanSemStateFiniteExact 64 Guest.HostMemory) (condition : ExpHOL 64) : Nat :=
+  coeff.score (executionWork (.statement :: expressionEvents d condition))
+
+/-- The outer guard trace splits into the `op < 32` guard and the inner trace. -/
+theorem opAddOuterThirtyTwoEvents_score (coeff : Work)
+    (d : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
+    coeff.score (executionWork (opAddOuterThirtyTwoEvents d bodyPost bodyEvents)) =
+      opAddOuterGuardCost coeff d
+        (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (32 : BitVec 64))) +
+      coeff.score (executionWork (opAddOuterSixteenEvents d bodyPost bodyEvents)) := by
+  unfold opAddOuterThirtyTwoEvents opAddOuterGuardCost
+  simp [executionWork_score_append, executionWork_score_cons]
+  omega
+
+#print axioms opAddOuterThirtyTwoEvents_score
+
+/-- The full outer guard price is the two lower guards, the zero guard skip, and
+the `op == 1` arm price. -/
+theorem opAddOuterThirtyTwoEvents_localCost (coeff : Work)
+    (d : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
+    coeff.score (executionWork (opAddOuterThirtyTwoEvents d bodyPost bodyEvents)) =
+      opAddOuterGuardCost coeff d
+        (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (32 : BitVec 64))) +
+      opAddOuterGuardCost coeff d
+        (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (16 : BitVec 64))) +
+      coeff.score (executionWork (opAddOuterZeroEvents d)) +
+      coeff.score (executionWork (opAddOuterOneEvents d bodyPost bodyEvents)) := by
+  unfold opAddOuterThirtyTwoEvents opAddOuterSixteenEvents opAddOuterGuardCost
+  simp [executionWork_score_append, executionWork_score_cons]
+  omega
+
+#print axioms opAddOuterThirtyTwoEvents_localCost
+
 end InitECandidate.Runtime.FineCost
