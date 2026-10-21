@@ -130,7 +130,7 @@ inductive LoopWork {F : Type} : LoopSemStateFiniteExact 64 F → HolLoopProg 64 
         continuation output wc) :
       LoopWork s (.call (some (names, live)) target arguments
           (some (exceptionName, handlerProgram, continuation, liveOut)))
-        (LoopSemStateFiniteExact.cutRes liveOut output) (1 + arguments.length + wb + returned.length + wc)
+        (LoopSemStateFiniteExact.cutRes liveOut output) (2 + arguments.length + wb + returned.length + wc)
   | callHandle {s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry exn post wb output wh}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)

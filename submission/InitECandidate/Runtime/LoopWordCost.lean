@@ -32,7 +32,7 @@ theorem wordCostLe_callRetPlain {C F : Type} {s entry post : LoopSemStateFiniteE
         exact absurd plain (by assumption)
     · simp [loopRetPlain] at plain
   obtain ⟨namesCtxt, -, -, -⟩ := handler_acc acc
-  obtain ⟨args1, ss1, ctxt1, l1, cutEnv, hwgv, hbad, hwf, -, -, hce, nz, -, -, -, hbody, hacc1⟩ :=
+  obtain ⟨args1, ss1, ctxt1, l1, cutEnv, hwgv, hbad, hwf, hne, hnd, hce, nz, -, -, -, hbody, hacc1⟩ :=
     ret_call_entry l rel locals ret namesCtxt args find nodup cut
   rcases hc1 : LoopToWord.compHOL ctxt p1 (l.1, l.2 + 1) with ⟨w1, lab1⟩
   rcases hc2 : LoopToWord.compHOL ctxt p2 lab1 with ⟨w2, lab2⟩
@@ -43,14 +43,18 @@ theorem wordCostLe_callRetPlain {C F : Type} {s entry post : LoopSemStateFiniteE
         (some (LoopToWord.findVarHOL ctxt n, w1, lab2))) .tick := by
     unfold LoopToWord.compHOL; simp only [hc1, hc2]
   rw [unfold]
-  refine Nat.le_trans (wordCost_seq_le _ _ _ _ 1 fun m => by rw [wordCost_tick]; simp [loopWordPrice]) ?_
   obtain ⟨relB, localsB, retB⟩ := hbody (some (LoopToWord.findVarHOL ctxt n, w1, lab2))
   have okBody : result ≠ some .error := by rcases stops with rfl | ⟨f, rfl⟩ <;> simp
   obtain ⟨t1, res1, he, -, rc⟩ := word_run bodyW.sound okBody l1 relB localsB retB dim
     (by simp [wordSemIsWordLoc]) hacc1
   have body := ih okBody _ ctxt1 (.loc l.1 l.2) l1 relB localsB retB dim (by simp [wordSemIsWordLoc]) hacc1
+  have hres0 : res1 = some .timeOut ∨ ∃ f, res1 = some (.finalFfi f) := by
+    rcases stops with rfl | ⟨f, rfl⟩
+    · exact Or.inl rc
+    · exact Or.inr ⟨f, rc⟩
+  rw [wordCost_seq_stop _ _ _ _ (ret_call_eval_stop _ _ _ _ _ _ _ _ t hwgv hbad (hwf w2) hne hnd hce nz he hres0)]
   simp only [loopWordPrice, Nat.zero_add]
-  refine Nat.le_trans (Nat.add_le_add_right (ret_call_cost_le _ _ _ _ _ _ _ _ t hwgv hbad (hwf w2) hce nz he) 1) ?_
+  refine Nat.le_trans (ret_call_cost_le _ _ _ _ _ _ _ _ t hwgv hbad (hwf w2) hce nz he) ?_
   have hres : res1 = some .timeOut ∨ ∃ f, res1 = some (.finalFfi f) := by
     rcases stops with rfl | ⟨f, rfl⟩
     · exact Or.inl rc

@@ -615,7 +615,7 @@ handler jump.
 | `Set`, `Store`, `ShareInst` | 1 + expression work |
 | `Return` | 1 + values |
 | Tail call | its arguments, including the return location |
-| Returning call | its arguments, plus its return names only when the callee body actually returns a value of that arity with the clock nonzero |
+| Returning call | 1 + its arguments, plus its return names only when the callee body actually returns a value of that arity with the clock nonzero |
 | Other leaves | 1 |
 
 The returning-call price depends on the state. The native return suffix of
@@ -629,7 +629,9 @@ no cutset component.
 
 A compiled Loop `loop` is `Tick; loop; Tick`. To pay for it, a `LoopWork`
 loop iteration now costs 3, and a `CrepWorkP` `while` iteration costs one more
-unit. The coarse and sharp Pan-to-Crep `while` proofs absorb this with their
+unit. A returning call with a continuation (`callRetCont`) costs 2 instead of 1
+in `LoopWork`, paying the call's own unit and the `Tick` after it; the
+Crep-to-Loop call proof absorbs this with existing slack. The coarse and sharp Pan-to-Crep `while` proofs absorb this with their
 existing slack, so `sharpScore` is unchanged.
 
 ### Production route
