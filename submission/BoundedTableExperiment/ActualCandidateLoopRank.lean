@@ -1,3 +1,4 @@
+import ActualCandidateLoopGuardCost
 import ActualCandidateLoopBodyBound
 import ActualWhileBoundedStep
 
@@ -281,3 +282,133 @@ end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.guard_value_word
 #print axioms BoundedTableExperiment.whileCount_counter_le_cap_strict
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Capacity-init loop cost is linear in the actual cap: `n <= cap` and the
+actual work is at most `cap * perIteration + base` for the frozen header loops
+`while i < cap { st vals + i*8, i+2; i = i+1 }`. -/
+theorem candidate_capacity_init_cost_linear {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F}
+    {r : Option (PanSemResultExact 64)} {events : List WorkEvent} {n : Nat}
+    {b : BitVec 64}
+    (count : WhileCount fn
+      (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+      (.seq (.store (.op .add [.var .local (ofString "vals"),
+          .panop .mul [.var .local (ofString "i"), .const (BitVec.ofNat 64 8)]])
+        (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 2)]))
+        (.assign .local (ofString "i")
+          (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 1)])))
+      s r post events n)
+    (hcap : ∀ (t : PanSemStateFiniteExact 64 F),
+      t.locals.lookup (ofString "cap") = some (.val (.word b)))
+    (hword : ∀ (t : PanSemStateFiniteExact 64 F),
+      ∃ a : BitVec 64, t.locals.lookup (ofString "i") = some (.val (.word a)))
+    (hvals : ∀ (t : PanSemStateFiniteExact 64 F),
+      ∃ w : BitVec 64, t.locals.lookup (ofString "vals") = some (.val (.word w)))
+    (hguardWord : ∀ (t : PanSemStateFiniteExact 64 F) (value : Option (ValueHOL 64))
+      (guardEvents : List WorkEvent),
+      CostedExpressionRun t
+        (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+        value guardEvents →
+      ∃ w : BitVec 64, value = some (.val (.word w)))
+    (step : ∀ (t middle : PanSemStateFiniteExact 64 F)
+      (result : Option (PanSemResultExact 64)) (bodyEvents : List WorkEvent),
+      StatementRun fn (decClockHOLFinite t)
+        (.seq (.store (.op .add [.var .local (ofString "vals"),
+            .panop .mul [.var .local (ofString "i"), .const (BitVec.ofNat 64 8)]])
+          (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 2)]))
+          (.assign .local (ofString "i")
+            (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 1)])))
+        result middle bodyEvents →
+        (result = none ∨ result = some .continue) →
+        counterRank middle = counterRank t + 1)
+    (start : counterRank s ≤ b.toNat)
+    (coeff : Work) :
+    n ≤ b.toNat ∧ coeff.score (executionWork events) ≤
+      b.toNat * ((coeff.score WorkEvent.statement.units +
+        coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+        coeff.nativeCost * 98 + (bodyStoreBound coeff + bodyAssignBound coeff)) +
+      (coeff.score WorkEvent.statement.units +
+        ((coeff.score WorkEvent.statement.units +
+          coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+          coeff.nativeCost * 98)) := by
+  have hshape : ∀ (t : PanSemStateFiniteExact 64 F) (value : Option (ValueHOL 64))
+      (guardEvents : List WorkEvent),
+      CostedExpressionRun t
+        (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+        value guardEvents →
+      valueInfo t.locals (ofString "i") = some (ShapeHOL.one, 1) ∧
+        valueInfo t.locals (ofString "cap") = some (ShapeHOL.one, 1) := by
+    intro t value guardEvents run
+    obtain ⟨a, ha⟩ := hword t
+    have hv := valueInfo_of_word ha
+    have hcv := valueInfo_of_word (hcap t)
+    exact ⟨hv, hcv⟩
+  have hbody : ∀ (t u v : PanSemStateFiniteExact 64 F)
+      (result : Option (PanSemResultExact 64)) (bodyEvents : List WorkEvent),
+      StatementRun fn v
+        (.seq (.store (.op .add [.var .local (ofString "vals"),
+            .panop .mul [.var .local (ofString "i"), .const (BitVec.ofNat 64 8)]])
+          (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 2)]))
+          (.assign .local (ofString "i")
+            (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 1)])))
+        result u bodyEvents →
+      coeff.score (executionWork bodyEvents) ≤
+        bodyStoreBound coeff + bodyAssignBound coeff := by
+    intro t u v result bodyEvents run
+    obtain ⟨wv, hwv⟩ := hvals v
+    obtain ⟨wi, hwi⟩ := hword v
+    exact body_run_bound coeff run (valueInfo_of_word hwv) (valueInfo_of_word hwi)
+  have hmissing : ∀ (t : PanSemStateFiniteExact 64 F) (value : Option (ValueHOL 64))
+      (guardEvents : List WorkEvent),
+      CostedExpressionRun t
+        (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+        value guardEvents →
+      coeff.score (executionWork (WorkEvent.statement :: guardEvents)) ≤
+        (coeff.score WorkEvent.statement.units +
+          ((coeff.score WorkEvent.statement.units +
+            coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+            coeff.nativeCost * 98)) := by
+    intro t value guardEvents run
+    have hg := loop_guard_score_bound coeff run
+      (valueInfo_of_word (hword t).choose_spec)
+      (valueInfo_of_word (hcap t))
+    rw [executionWork_score_cons]
+    omega
+  have hterminal : (coeff.score WorkEvent.statement.units +
+      coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+      coeff.nativeCost * 98 ≤
+      (coeff.score WorkEvent.statement.units +
+        ((coeff.score WorkEvent.statement.units +
+          coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+          coeff.nativeCost * 98)) := by
+    omega
+  have hiter := candidate_loop_uniform_cost_literal count coeff
+    (bodyStoreBound coeff + bodyAssignBound coeff)
+    (coeff.score WorkEvent.statement.units +
+      ((coeff.score WorkEvent.statement.units +
+        coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+        coeff.nativeCost * 98)) hshape hbody hmissing hterminal
+  have hcount := whileCount_counter_le_cap_strict count hcap hword hguardWord step start
+  refine ⟨by omega, ?_⟩
+  refine le_trans hiter ?_
+  have hmono : n * ((coeff.score WorkEvent.statement.units +
+      coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+      coeff.nativeCost * 98 + (bodyStoreBound coeff + bodyAssignBound coeff)) ≤
+      b.toNat * ((coeff.score WorkEvent.statement.units +
+      coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+      coeff.nativeCost * 98 + (bodyStoreBound coeff + bodyAssignBound coeff)) :=
+    Nat.mul_le_mul_right _ (by omega)
+  omega
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidate_capacity_init_cost_linear
