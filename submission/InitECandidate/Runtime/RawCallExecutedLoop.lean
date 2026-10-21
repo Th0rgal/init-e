@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.RawCallExecutedIf
-import InitECandidate.Runtime.RawCallLoopBudget
+import Flapjack.Compiler.Backend.StackRawCall.Proofs.CompCorrect.Loop
 
 namespace InitECandidate.Runtime.StackRawCall
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang

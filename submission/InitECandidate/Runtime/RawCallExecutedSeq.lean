@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.RawCallSeqBudget
+import Flapjack.Compiler.Backend.StackRawCall.Proofs.CompCorrect.Seq.Standard
 import InitECandidate.Runtime.StackExecutionCostAddClock
 
 namespace InitECandidate.Runtime.StackRawCall

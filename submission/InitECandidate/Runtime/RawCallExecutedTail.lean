@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.RawCallExecutedOptimized
-import InitECandidate.Runtime.RawCallTailBudget
+import Flapjack.Compiler.Backend.StackRawCall.Proofs.CompCorrect.Call.Tail
 
 namespace InitECandidate.Runtime.StackRawCall
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
