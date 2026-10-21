@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.WordStackReturningPreludeBound
 import InitECandidate.Runtime.WordStackCallDestCost
 import InitECandidate.Runtime.WordStackCallSetupCost
 import InitECandidate.Runtime.StackCostSeqAssoc
@@ -43,38 +44,9 @@ theorem compiledCall_cost_from_prelude {F : Type} (ac : AsmConfigExact 64)
     simpa only [Bool.false_eq_true, ↓reduceIte] using (Prod.mk.inj shape).1.symm
   have prefixBound : ∀ s : StackSemStateFiniteExact 64 LabToTarget.Config F,
       stackExecutionCost (fun p _ => price p) prelude s ≤
-        26 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k := by
-    intro s
-    have destinationBound : ∀ st : StackSemStateFiniteExact 64 LabToTarget.Config F,
-        stackExecutionCost (fun p _ => price p) destinationCode st ≤ 7 := by
-      intro st
-      have eq : (callDestNative dest args (k,f,frame)).1 = destinationCode := congrArg Prod.fst destinationCompile
-      rw [← eq]
-      exact (ConservativeRemovalPrice.execution (price := price) _ st).trans
-        (wordStack_callDest_cost dest args _ frameSmall st)
-    have saveBound : ∀ st : StackSemStateFiniteExact 64 LabToTarget.Config F,
-        stackExecutionCost (fun p _ => price p) savedCode st ≤ 19 := by
-      intro st
-      have eq : (wLiveNative names (bs,n) (k,f,frame)).1 = savedCode := congrArg Prod.fst savedCompile
-      rw [← eq]
-      exact (ConservativeRemovalPrice.execution (price := price) _ st).trans
-        (wordStack_live_cost names (bs,n) (k,f,frame) st)
-    have argumentsBound : ∀ st : StackSemStateFiniteExact 64 LabToTarget.Config F,
-        stackExecutionCost (fun p _ => price p) argsCode st ≤
-          39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k := by
-      intro st
-      exact (ConservativeRemovalPrice.execution (price := price) argsCode st).trans
-        (wordStack_stackArgs_cost destination (args.length+1) (k,f,frame) frameSmall argsSmall st)
-    have savedArgs : ∀ st : StackSemStateFiniteExact 64 LabToTarget.Config F,
-        stackExecutionCost (fun p _ => price p) (.seq savedCode argsCode) st ≤
-        19 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k := by
-      intro st
-      exact stackCost_seq_le (price) savedCode argsCode
-        19 _ (ConservativeRemovalPrice.freeSeq _ _) saveBound argumentsBound st
-    have bound := stackCost_seq_le (price) destinationCode
-      (.seq savedCode argsCode) 7 _ (ConservativeRemovalPrice.freeSeq _ _) destinationBound savedArgs s
-    change stackExecutionCost _ prelude s ≤ _ at bound
-    omega
+        26 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k :=
+    fun s => returningPrelude_cost k f frame names dest args bs savedBitmaps n savedIndex
+      destinationCode savedCode destination destinationCompile savedCompile frameSmall argsSmall s
   have preludeShift := Compiler.Backend.StackProps.evaluateAddClock (extra)
     prelude source none moved ⟨completePrelude, by simp⟩
   have reached := stackCost_seq_run (price := price) prelude (.seq .skip callCode)
