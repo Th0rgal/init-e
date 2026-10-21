@@ -19,7 +19,7 @@ theorem wordCostLeP_callRetPlain (D : WordDominates wp lp) {s entry post : LoopS
     (plain : loopRetPlain result names (some (n, p1, p2, liveOut)))
     (ih : WordCostLeP C wp { entry with locals := env } prog (result, post) wb) :
     WordCostLeP C wp s (.call (some (names, live)) target arguments (some (n, p1, p2, liveOut)))
-      (loopRetExit result post entry names) (lp.call + lp.arg * arguments.length + wb + lp.ret * loopRetWords result) := by
+      (loopRetExit result post entry names) (lp.call + lp.argCost arguments.length + wb + lp.ret * loopRetWords result) := by
   intro ok t ctxt retv l rel locals ret dim notWord acc
   have stops : result = some .timeOut ∨ ∃ f, result = some (.finalFfi f) := by
     rcases result with _ | (_ | _ | _ | _ | v | e | _)
@@ -63,7 +63,7 @@ theorem wordCostLeP_callRetPlain (D : WordDominates wp lp) {s entry post : LoopS
   have hpaid := ret_paid_le D.R (names.map (LoopToWord.findVarHOL ctxt)) (LoopToWord.mkNewCutsetHOL ctxt live, .ln)
     w2 l.1 l.2 target (arguments.map (LoopToWord.findVarHOL ctxt)) (some (LoopToWord.findVarHOL ctxt n, w1, lab2))
     t hwgv (hwf w2) hce he
-  have hA : D.A * arguments.length ≤ lp.arg * arguments.length := Nat.mul_le_mul_right _ D.argOk
+  have hA := D.argOk arguments.length
   have hU := D.tailOk
   have hres : res1 = some .timeOut ∨ ∃ f, res1 = some (.finalFfi f) := by
     rcases stops with rfl | ⟨f, rfl⟩

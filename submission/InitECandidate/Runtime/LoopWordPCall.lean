@@ -12,10 +12,10 @@ variable {C F : Type} {wp : WordLangProgHOL (BitVec 64) → WordSemStateFiniteEx
 theorem tail_price_le (D : WordDominates wp lp) (d : Option Nat) (n : Nat) (args : List Nat)
     (h : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat)) (s : WordSemStateFiniteExact 64 C F)
     (len : args.length = n + 1) :
-    wp (.call none d args h) s ≤ lp.call + lp.arg * n := by
+    wp (.call none d args h) s ≤ lp.call + lp.argCost n := by
   have h1 := D.tailCall d args h s
   have h2 := D.tailOk
-  have h3 : D.A * n ≤ lp.arg * n := Nat.mul_le_mul_right _ D.argOk
+  have h3 := D.argOk n
   rw [len, Nat.add_sub_cancel] at h1
   omega
 
@@ -23,18 +23,18 @@ theorem ret_price_zero_le (D : WordDominates wp lp) (rets : List Nat) (cut : Wor
     (rc : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat) (d : Option Nat) (args : List Nat)
     (h : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat)) (s : WordSemStateFiniteExact 64 C F)
     (zero : s.clock = 0) :
-    wp (.call (some (rets, cut, rc, l1, l2)) d args h) s ≤ lp.call + lp.arg * args.length := by
+    wp (.call (some (rets, cut, rc, l1, l2)) d args h) s ≤ lp.call + lp.argCost args.length := by
   have h1 := D.retCall rets cut rc l1 l2 d args h s
   rw [if_neg (fun hr => hr.1 zero)] at h1
   have h2 := D.tailOk
-  have h3 : D.A * args.length ≤ lp.arg * args.length := Nat.mul_le_mul_right _ D.argOk
+  have h3 := D.argOk args.length
   omega
 
 theorem wordCostLeP_callShort (D : WordDominates wp lp) {s : LoopSemStateFiniteExact 64 F}
     {returns target arguments handler output}
     (short : loopCallShort s returns target arguments handler)
     (run : LoopSemStateFiniteExact.evaluate (.call returns target arguments handler) s = output) :
-    WordCostLeP C wp s (.call returns target arguments handler) output (lp.call + lp.arg * arguments.length) := by
+    WordCostLeP C wp s (.call returns target arguments handler) output (lp.call + lp.argCost arguments.length) := by
   intro ok t ctxt retv l rel locals ret dim notWord acc
   have zero : t.clock = 0 := by
     obtain ⟨len, hm, hmd, hsmd, hclock, -⟩ := rel
@@ -59,7 +59,7 @@ theorem wordCostLeP_callTail (D : WordDominates wp lp) {s post : LoopSemStateFin
     (noHandler : handler.isSome = false) (clock : s.clock ≠ 0)
     (ih : WordCostLeP C wp { LoopSemStateFiniteExact.decClock s with locals := env } prog (result, post) wb) :
     WordCostLeP C wp s (.call none target arguments handler) (loopTailExit result post)
-      (lp.call + lp.arg * arguments.length + wb) := by
+      (lp.call + lp.argCost arguments.length + wb) := by
   intro ok t ctxt retv l rel locals ret dim notWord acc
   have hh : handler = none := by cases handler <;> simp_all
   subst hh
@@ -95,7 +95,7 @@ theorem wordCostLeP_callRet (D : WordDominates wp lp) {s entry post : LoopSemSta
     (bodyW : LoopWorkP lp { entry with locals := env } prog (result, post) wb)
     (ih : WordCostLeP C wp { entry with locals := env } prog (result, post) wb) :
     WordCostLeP C wp s (.call (some (names, live)) target arguments none) (loopRetExit result post entry names)
-      (lp.call + lp.arg * arguments.length + wb + lp.ret * loopRetWords result) := by
+      (lp.call + lp.argCost arguments.length + wb + lp.ret * loopRetWords result) := by
   intro ok t ctxt retv l rel locals ret dim notWord acc
   have okBody : result ≠ some .error := by
     intro h; subst h; exact ok rfl
@@ -120,7 +120,7 @@ theorem wordCostLeP_callRet (D : WordDominates wp lp) {s entry post : LoopSemSta
   have hpaid := ret_paid_le D.R (names.map (LoopToWord.findVarHOL ctxt)) (LoopToWord.mkNewCutsetHOL ctxt live, .ln)
     .skip l.1 l.2 target (arguments.map (LoopToWord.findVarHOL ctxt)) none t hwgv (hwf .skip) hce hrun
   have hR : D.R * wordRetWords r ≤ lp.ret * loopRetWords result := Nat.mul_le_mul D.retOk words
-  have hA : D.A * arguments.length ≤ lp.arg * arguments.length := Nat.mul_le_mul_right _ D.argOk
+  have hA := D.argOk arguments.length
   have hU := D.tailOk
   simp only [List.length_map] at hp hpaid ⊢
   rcases r with _ | x

@@ -43,7 +43,7 @@ noncomputable def loopWordDominates {C F : Type} : WordDominates (C := C) (F := 
   I := 1
   L := 1
   U := 1
-  A := 1
+  argW := fun n => n
   R := 1
   seqZero := fun _ _ _ => by simp [loopWordPrice]
   skipZero := fun _ => by simp [loopWordPrice]
@@ -56,7 +56,7 @@ noncomputable def loopWordDominates {C F : Type} : WordDominates (C := C) (F := 
   iteOk := by decide
   iterOk := by decide
   tailOk := by decide
-  argOk := by decide
+  argOk := fun n => by simp [defaultLoopPrice]; omega
   retOk := by decide
   contOk := by decide
 

@@ -22,7 +22,7 @@ theorem wordCostLeP_callRetCont (D : WordDominates wp lp) {s entry post : LoopSe
       continuation output wc) :
     WordCostLeP C wp s (.call (some (names, live)) target arguments
         (some (exceptionName, handlerProgram, continuation, liveOut)))
-      (LoopSemStateFiniteExact.cutRes liveOut output) (lp.call + lp.cont + lp.arg * arguments.length + wb + lp.ret * returned.length + wc) := by
+      (LoopSemStateFiniteExact.cutRes liveOut output) (lp.call + lp.cont + lp.argCost arguments.length + wb + lp.ret * returned.length + wc) := by
   intro ok t ctxt retv l rel locals ret dim notWord acc
   obtain ⟨namesCtxt, -, -, accCont⟩ := handler_acc acc
   obtain ⟨args1, ss1, ctxt1, l1, cutEnv, hwgv, hbad, hwf, -, -, hce, nz, hentry, hlr, h0r, hbody, hacc1⟩ :=
@@ -87,7 +87,7 @@ theorem wordCostLeP_callRetCont (D : WordDominates wp lp) {s entry post : LoopSe
   have hpaid := ret_paid_le D.R (names.map (LoopToWord.findVarHOL ctxt)) (LoopToWord.mkNewCutsetHOL ctxt live, .ln)
     w2 l.1 l.2 target (arguments.map (LoopToWord.findVarHOL ctxt)) (some (LoopToWord.findVarHOL ctxt exceptionName, w1, lab2))
     t hwgv (hwf w2) hce he
-  have hA : D.A * arguments.length ≤ lp.arg * arguments.length := Nat.mul_le_mul_right _ D.argOk
+  have hA := D.argOk arguments.length
   have hU := D.tailOk
   have hC := D.contOk
   have hR : D.R * returned.length ≤ lp.ret * returned.length := Nat.mul_le_mul_right _ D.retOk
@@ -106,7 +106,7 @@ theorem wordCostLeP_callHandle (D : WordDominates wp lp) {s entry post : LoopSem
       handlerProgram output wh) :
     WordCostLeP C wp s (.call (some (names, live)) target arguments
         (some (exceptionName, handlerProgram, continuation, liveOut)))
-      (LoopSemStateFiniteExact.cutRes liveOut output) (lp.call + lp.cont + lp.arg * arguments.length + wb + wh) := by
+      (LoopSemStateFiniteExact.cutRes liveOut output) (lp.call + lp.cont + lp.argCost arguments.length + wb + wh) := by
   intro ok t ctxt retv l rel locals ret dim notWord acc
   obtain ⟨namesCtxt, nameCtxt, accHandler, -⟩ := handler_acc acc
   obtain ⟨args1, ss1, ctxt1, l1, cutEnv, hwgv, hbad, hwf, -, -, hce, nz, hentry, hlr, h0r, hbody, hacc1⟩ :=
@@ -184,7 +184,7 @@ theorem wordCostLeP_callHandle (D : WordDominates wp lp) {s entry post : LoopSem
   have hpaid := ret_paid_le D.R (names.map (LoopToWord.findVarHOL ctxt)) (LoopToWord.mkNewCutsetHOL ctxt live, .ln)
     w2 l.1 l.2 target (arguments.map (LoopToWord.findVarHOL ctxt)) (some (LoopToWord.findVarHOL ctxt exceptionName, w1, lab2))
     t hwgv (hwf w2) hce he
-  have hA : D.A * arguments.length ≤ lp.arg * arguments.length := Nat.mul_le_mul_right _ D.argOk
+  have hA := D.argOk arguments.length
   have hU := D.tailOk
   have hC := D.contOk
   simp only [List.length_map, wordRetWords, Nat.mul_zero] at handle hp hpaid ⊢

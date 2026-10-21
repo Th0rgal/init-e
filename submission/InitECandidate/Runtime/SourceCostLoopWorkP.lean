@@ -6,14 +6,14 @@ open Flapjack Flapjack.LoopSemStateFiniteExact
 `defaultLoopPrice`. -/
 
 /-- Local Loop prices: non-recursive statements, a conditional, a loop
-iteration, a call node, each argument, each returned word, and the extra unit
+iteration, a call node, its arguments (by arity), each returned word, and the extra unit
 of a call with a continuation or handler. -/
 structure LoopPrice where
   leaf : HolLoopProg 64 â†’ Option Nat
   ite : Nat
   iter : Nat
   call : Nat
-  arg : Nat
+  argCost : Nat â†’ Nat
   ret : Nat
   cont : Nat
 
@@ -23,7 +23,7 @@ def defaultLoopPrice : LoopPrice where
   ite := 37
   iter := 16
   call := 189
-  arg := 39
+  argCost := fun n => 39 * n
   ret := 49
   cont := 7
 
@@ -72,14 +72,14 @@ inductive LoopWorkP (lp : LoopPrice) {F : Type} : LoopSemStateFiniteExact 64 F â
   | callShort {s returns target arguments handler output}
       (short : loopCallShort s returns target arguments handler)
       (run : evaluate (.call returns target arguments handler) s = output) :
-      LoopWorkP lp s (.call returns target arguments handler) output (lp.call + lp.arg * arguments.length)
+      LoopWorkP lp s (.call returns target arguments handler) output (lp.call + lp.argCost arguments.length)
   | callTail {s target arguments handler values env prog result post wb}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
       (find : LoopSemStateFiniteExact.findCode target values s.code = some (env, prog))
       (noHandler : handler.isSome = false) (clock : s.clock â‰  0)
       (body : LoopWorkP lp { LoopSemStateFiniteExact.decClock s with locals := env } prog (result, post) wb) :
       LoopWorkP lp s (.call none target arguments handler) (loopTailExit result post)
-        (lp.call + lp.arg * arguments.length + wb)
+        (lp.call + lp.argCost arguments.length + wb)
   | callRet {s names live target arguments handler values env prog entry result post wb}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
       (find : LoopSemStateFiniteExact.findCode target values s.code = some (env, prog))
@@ -87,7 +87,7 @@ inductive LoopWorkP (lp : LoopPrice) {F : Type} : LoopSemStateFiniteExact 64 F â
       (body : LoopWorkP lp { entry with locals := env } prog (result, post) wb)
       (plain : loopRetPlain result names handler) :
       LoopWorkP lp s (.call (some (names, live)) target arguments handler)
-        (loopRetExit result post entry names) (lp.call + lp.arg * arguments.length + wb + lp.ret * loopRetWords result)
+        (loopRetExit result post entry names) (lp.call + lp.argCost arguments.length + wb + lp.ret * loopRetWords result)
   | callRetCont {s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry returned post wb output wc}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
@@ -99,7 +99,7 @@ inductive LoopWorkP (lp : LoopPrice) {F : Type} : LoopSemStateFiniteExact 64 F â
         continuation output wc) :
       LoopWorkP lp s (.call (some (names, live)) target arguments
           (some (exceptionName, handlerProgram, continuation, liveOut)))
-        (LoopSemStateFiniteExact.cutRes liveOut output) (lp.call + lp.cont + lp.arg * arguments.length + wb + lp.ret * returned.length + wc)
+        (LoopSemStateFiniteExact.cutRes liveOut output) (lp.call + lp.cont + lp.argCost arguments.length + wb + lp.ret * returned.length + wc)
   | callHandle {s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry exn post wb output wh}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
@@ -110,7 +110,7 @@ inductive LoopWorkP (lp : LoopPrice) {F : Type} : LoopSemStateFiniteExact 64 F â
         handlerProgram output wh) :
       LoopWorkP lp s (.call (some (names, live)) target arguments
           (some (exceptionName, handlerProgram, continuation, liveOut)))
-        (LoopSemStateFiniteExact.cutRes liveOut output) (lp.call + lp.cont + lp.arg * arguments.length + wb + wh)
+        (LoopSemStateFiniteExact.cutRes liveOut output) (lp.call + lp.cont + lp.argCost arguments.length + wb + wh)
 
 theorem LoopWorkP.sound {F : Type} {s : LoopSemStateFiniteExact 64 F} {p : HolLoopProg 64}
     {output} {w : Nat} {lp : LoopPrice} (work : LoopWorkP lp s p output w) : evaluate p s = output := by

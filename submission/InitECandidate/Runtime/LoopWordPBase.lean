@@ -10,7 +10,7 @@ open Classical in
 /-- Local domination of a Word price by a Loop price. Structural composition is
 free; ticks, conditionals and loop nodes have uniform bounds; every compiled
 non-recursive Loop statement costs at most its Loop leaf price; calls pay a
-unit, each argument, and (returning calls) each returned word only when the
+unit, an arity-dependent argument charge, and (returning calls) each returned word only when the
 callee returns that arity. -/
 structure WordDominates {C F : Type} (wp : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
     (lp : LoopPrice) where
@@ -18,7 +18,7 @@ structure WordDominates {C F : Type} (wp : WordLangProgHOL (BitVec 64) → WordS
   I : Nat
   L : Nat
   U : Nat
-  A : Nat
+  argW : Nat → Nat
   R : Nat
   seqZero : ∀ a b s, wp (.seq a b) s = 0
   skipZero : ∀ s, wp .skip s = 0
@@ -27,15 +27,15 @@ structure WordDominates {C F : Type} (wp : WordLangProgHOL (BitVec 64) → WordS
   loop : ∀ n b e s, wp (.loop n b e) s ≤ L
   leafOk : ∀ (ctxt : Spt Nat) (p : HolLoopProg 64) (l : Nat × Nat) (s : WordSemStateFiniteExact 64 C F) cost,
     lp.leaf p = some cost → wordExecutionCost wp (LoopToWord.compHOL ctxt p l).1 s ≤ cost
-  tailCall : ∀ d args h s, wp (.call none d args h) s ≤ U + A * (args.length - 1)
+  tailCall : ∀ d args h s, wp (.call none d args h) s ≤ U + argW (args.length - 1)
   retCall : ∀ rets cut rc l1 l2 d args h s,
     wp (.call (some (rets, cut, rc, l1, l2)) d args h) s ≤
-      U + A * args.length +
+      U + argW args.length +
         if wordCallReturned (.call (some (rets, cut, rc, l1, l2)) d args h) s then R * rets.length else 0
   iteOk : I + T ≤ lp.ite
   iterOk : 2 * T + L ≤ lp.iter
   tailOk : U ≤ lp.call
-  argOk : A ≤ lp.arg
+  argOk : ∀ n, argW n ≤ lp.argCost n
   retOk : R ≤ lp.ret
   contOk : T ≤ lp.cont
 
