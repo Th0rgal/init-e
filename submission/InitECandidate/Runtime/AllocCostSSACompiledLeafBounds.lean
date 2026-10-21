@@ -1208,4 +1208,32 @@ theorem ssaCcTrans_seq_transfer_compiled {C F : Type}
 
 #print axioms refinedWordLocalPrice_seq_zero
 #print axioms ssaCcTrans_seq_transfer_compiled
+
+/-! ## Quantitative SSA simulation
+
+The compiler's `ssaSimulation` (SSASemanticControl.lean:12) carries a source permutation
+witness and witnesses that the compiled program's actual run matches the source run with
+the post relation.  The transfer needs the counter on top, so this strengthening adds
+exactly one conjunct: the executed cost of the ACTUAL compiled program is bounded by the
+source program's cost plus a stated extra. -/
+noncomputable def quantSsaSimulation {C F : Type}
+    (prog : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat) : Prop := by
+  classical
+  exact ∃ permutation : Nat → Nat → Nat,
+    let sourceRun := WordSemStateFiniteExact.evaluate prog {source with permute := permutation}
+    if sourceRun.1 = some .error then True else
+      let compiled := ssaCcTrans prog ssa next tables
+      let targetRun := WordSemStateFiniteExact.evaluate compiled.1 target
+      sourceRun.1 = targetRun.1 ∧ Flapjack.WordAlloc.wordStateEqRel sourceRun.2 targetRun.2 ∧
+        (match sourceRun.1 with
+        | none => ssaLocalsRel compiled.2.2 compiled.2.1 sourceRun.2.locals targetRun.2.locals
+        | _ => True) ∧
+        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+          compiled.1 target <=
+        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+          prog source + extra
+
 end InitECandidate.Runtime.FineCost
