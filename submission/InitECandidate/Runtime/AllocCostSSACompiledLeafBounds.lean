@@ -1216,24 +1216,48 @@ witness and witnesses that the compiled program's actual run matches the source 
 the post relation.  The transfer needs the counter on top, so this strengthening adds
 exactly one conjunct: the executed cost of the ACTUAL compiled program is bounded by the
 source program's cost plus a stated extra. -/
+/-! ## Quantitative SSA simulation
+
+The compiler's `ssaSimulation` (SSASemanticControl.lean:12) supplies, in one package: the
+source permutation witness, the ACTUAL runs of the source and of the compiled program, their
+outcome equality, and the post relation `wordStateEqRel` together with the full outcome match
+(`none` -> `ssaLocalsRel`; `break n`/`continue n` -> `strongLocalsRel` through the table; other
+-> locals equality).  That match cannot be restated by hand without duplicating the compiler's
+table indexing, so the quantitative version CONJOINS the executed cost instead of re-deriving
+the post relation.  Everything the transfer needs stays available: the witness and the runs are
+inside the compiler's component, and the cost is the executed cost of the actual compiled
+program priced by the canonical `refinedWordLocalPrice`. -/
 noncomputable def quantSsaSimulation {C F : Type}
     (prog : WordLangProgHOL (BitVec 64))
     (source target : WordSemStateFiniteExact 64 C F)
     (ssa : Spt Nat) (next : Nat)
-    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat) : Prop := by
-  classical
-  exact ∃ permutation : Nat → Nat → Nat,
-    let sourceRun := WordSemStateFiniteExact.evaluate prog {source with permute := permutation}
-    if sourceRun.1 = some .error then True else
-      let compiled := ssaCcTrans prog ssa next tables
-      let targetRun := WordSemStateFiniteExact.evaluate compiled.1 target
-      sourceRun.1 = targetRun.1 ∧ Flapjack.WordAlloc.wordStateEqRel sourceRun.2 targetRun.2 ∧
-        (match sourceRun.1 with
-        | none => ssaLocalsRel compiled.2.2 compiled.2.1 sourceRun.2.locals targetRun.2.locals
-        | _ => True) ∧
-        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-          compiled.1 target <=
-        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-          prog source + extra
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat) : Prop :=
+  ssaSimulation prog source target ssa next tables ∧
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (ssaCcTrans prog ssa next tables).1 target ≤
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog source + extra
 
+/-- The quantitative simulation yields the compiler's simulation: the compiler's component is
+kept verbatim, so this is a projection (no post-relation transport at all). -/
+theorem quantSsaSimulation.toSsaSimulation {C F : Type}
+    (prog : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat)
+    (h : quantSsaSimulation (C := C) (F := F) prog source target ssa next tables extra) :
+    ssaSimulation prog source target ssa next tables :=
+  h.1
+
+/-- The cost component of a quantitative simulation, for composing stages. -/
+theorem quantSsaSimulation.costBound {C F : Type}
+    (prog : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat)
+    (h : quantSsaSimulation (C := C) (F := F) prog source target ssa next tables extra) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (ssaCcTrans prog ssa next tables).1 target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog source + extra :=
+  h.2
+
+#print axioms quantSsaSimulation.toSsaSimulation
+#print axioms quantSsaSimulation.costBound
 end InitECandidate.Runtime.FineCost

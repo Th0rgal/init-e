@@ -195,3 +195,34 @@ outcome equality gives `targetRun = (none, midT)` whenever the source falls thro
 and `midT` are obtained, not assumed); the second body's IH is instantiated at the threaded
 `secondOut` of `ssaCcTrans_seq_shape` and at the reached middles; `ssaCcTrans_seq_transfer_compiled`
 composes the cost; `seq_transfer_escape_refined` covers the escaping outcome.
+
+## Resolution: the quantitative predicate CONJOINS the cost
+
+The refactor recorded above (explicit `sourceRun`/`targetRun` existentials) was implemented and
+it exposed why hand-restating the post relation cannot work: `ssaSimulation`'s outcome match is
+not just `none => ssaLocalsRel | _ => True`.  Its real shape is a match on the run's first
+component with four branches --- `none => ssaLocalsRel`, `break n` and `continue n` =>
+`strongLocalsRel` looked up through `tables[n]?`, and `some val => locals equality` --- carrying
+`strongLocalsRel`, `sptDomain`, and table indexing.  Any hand-written copy of that relation is a
+duplicate of the compiler's semantics, and the transport step fails precisely because the copies
+are not syntactically identical.
+
+So `quantSsaSimulation` is now stated as the conjunction
+
+    ssaSimulation prog source target ssa next tables
+      ∧ wordExecutionCost refinedWordLocalPrice (ssaCcTrans prog ssa next tables).1 target
+          ≤ wordExecutionCost refinedWordLocalPrice prog source + extra
+
+i.e. the compiler's component verbatim (source permutation witness, actual runs, outcome
+equality, the full post match) plus exactly one new conjunct: the executed cost of the ACTUAL
+compiled program at the canonical price, against the source program's cost.
+
+- `quantSsaSimulation.toSsaSimulation` is a projection (`h.1`) --- no post-relation transport;
+- `quantSsaSimulation.costBound` extracts the cost half (`h.2`), which is what the stage
+  compositions consume.
+
+Both are green with axioms `propext`/`Classical.choice`/`Quot.sound`.  This keeps the witness and
+the post relation faithful by construction instead of by transcription, and it makes the seq case
+purely a matter of the two compositions that already exist:
+`ssaCcTransCorrectSeq` for the simulation half and `ssaCcTrans_seq_transfer_compiled` (fall-through)
+/ `seq_transfer_escape_refined` (escape) for the cost half.
