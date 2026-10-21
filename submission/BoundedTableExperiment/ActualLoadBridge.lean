@@ -235,3 +235,65 @@ end BoundedTableExperiment
 #print axioms BoundedTableExperiment.eval_candidateFindLeafMask
 #print axioms BoundedTableExperiment.eval_candidateFindLeafChildGuard
 #print axioms BoundedTableExperiment.candidateFindLeafChild_links
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Concrete `.dec` split of `candidateFindLeafByte`. -/
+theorem candidateFindLeafByte_dec_split {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s candidateFindLeafByte none post events) :
+    ∃ (value : ValueHOL 64) (initEvents bodyEvents : List WorkEvent)
+      (bodyPost : PanSemStateFiniteExact 64 F),
+      events = .statement :: (initEvents ++ [.frame 1] ++ bodyEvents) ∧
+      CostedExpressionRun s
+        (.loadByte (.op .add [.var .local (ofString "key"),
+          .shift .asr (.var .local (ofString "route")) (.const (BitVec.ofNat 64 8))]))
+        (some value) initEvents ∧
+      post = { bodyPost with locals :=
+        (HolFiniteMapExact.resVarEq bodyPost.locals
+          (ofString "b", s.locals.lookup (ofString "b"))) } ∧
+      StatementRun fn (setVarHOLFinite (ofString "b") value s)
+        candidateFindLeafMask none bodyPost bodyEvents := by
+  change StatementRun fn s
+    (.dec (ofString "b") .one
+      (.loadByte (.op .add [.var .local (ofString "key"),
+        .shift .asr (.var .local (ofString "route")) (.const (BitVec.ofNat 64 8))]))
+      candidateFindLeafMask) none post events at run
+  cases run with
+  | declareValue init shapeMatch bodyRun =>
+      exact ⟨_, _, _, _, rfl, init, rfl, bodyRun⟩
+
+/-- Concrete `.dec` split of `candidateFindLeafMask`. -/
+theorem candidateFindLeafMask_dec_split {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s candidateFindLeafMask none post events) :
+    ∃ (value : ValueHOL 64) (initEvents bodyEvents : List WorkEvent)
+      (bodyPost : PanSemStateFiniteExact 64 F),
+      events = .statement :: (initEvents ++ [.frame 1] ++ bodyEvents) ∧
+      CostedExpressionRun s
+        (.op .xor [.var .local (ofString "route"),.const (BitVec.ofNat 64 255)])
+        (some value) initEvents ∧
+      post = { bodyPost with locals :=
+        (HolFiniteMapExact.resVarEq bodyPost.locals
+          (ofString "m", s.locals.lookup (ofString "m"))) } ∧
+      StatementRun fn (setVarHOLFinite (ofString "m") value s)
+        candidateFindLeafChild none bodyPost bodyEvents := by
+  change StatementRun fn s
+    (.dec (ofString "m") .one
+      (.op .xor [.var .local (ofString "route"),.const (BitVec.ofNat 64 255)])
+      candidateFindLeafChild) none post events at run
+  cases run with
+  | declareValue init shapeMatch bodyRun =>
+      exact ⟨_, _, _, _, rfl, init, rfl, bodyRun⟩
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidateFindLeafByte_dec_split
+#print axioms BoundedTableExperiment.candidateFindLeafMask_dec_split
