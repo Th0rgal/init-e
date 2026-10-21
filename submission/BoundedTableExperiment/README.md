@@ -1091,3 +1091,12 @@ link block and bsearch/growth composition remain.
 into the root store (`store (t+72) new_int`) or the `pp` scope containing the
 `dir`-selected left/right parent store. Axioms are `propext`,
 `Classical.choice`, `Quot.sound`.
+
+## 51. Actual binary-search loop unfolding
+
+`CandidateHtabSetBsearchTrace.lean` defines the literal one-iteration body
+`candidateHtabSetBsearchStep` and proves any actual successful
+`candidateHtabSetBsearch` run is one of: false-guard stop, `whileNext`
+iteration, `whileBreak`, or `whileContinue`, with the actual event prefix
+`.statement :: .cost (whileOverhead + loopMoves fn) :: ...` and the actual
+guard/body/rest runs. Axioms are `propext`, `Classical.choice`, `Quot.sound`.
