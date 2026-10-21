@@ -29,7 +29,7 @@ noncomputable def callLocalCost {F : Type} (coeff : Work) (s : PanSemStateFinite
     (arguments : List (ExpHOL 64)) (values : List (ValueHOL 64)) (returnShape : ShapeHOL)
     (bodyResult : Option (PanSemResultExact 64)) (bodyEvents : List WorkEvent)
     (info : Option (Option (VarKind × MlStringHOL) ×
-      Option (MlStringHOL × MlStringHOL × ProgHOL 64))) : Nat :=
+      Option (MlStringHOL × MlStringHOL × ProgHOL 64)) := none) : Nat :=
   coeff.score (executionWork
     (callEvents s arguments values returnShape bodyResult bodyEvents info))
 

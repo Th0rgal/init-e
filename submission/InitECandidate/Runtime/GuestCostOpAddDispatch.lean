@@ -44,16 +44,13 @@ noncomputable def opAddDispatchArmEvents (d : PanSemStateFiniteExact 64 Guest.Ho
     List WorkEvent :=
   callEvents d [] [] .one (some (.returned (.val (.word 0)))) bodyEvents ++
     (.statement :: (expressionEvents (opAddDispatchCallPost d bodyPost) (.const (0 : BitVec 64)) ++
-      [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length]))
+      [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)]))
 
 /-- Local price of that dispatcher arm. -/
 noncomputable def opAddDispatchArmLocalCost (coeff : Work)
     (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) : Nat :=
-  callLocalCost coeff d [] [] .one (some (.returned (.val (.word 0)))) bodyEvents +
-    coeff.score (executionWork (.statement ::
-      (expressionEvents (opAddDispatchCallPost d bodyPost) (.const (0 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])))
+  coeff.score (executionWork (opAddDispatchArmEvents d bodyPost bodyEvents))
 
 /-- The dispatcher's `.call "op_add"` arm followed by its `return 0`, with the
 call-entry, argument, frame-slot, returned-word and old-local events. -/
@@ -79,7 +76,7 @@ theorem opAdd_dispatch_arm_run (coeff : Work) (d : PanSemStateFiniteExact 64 Gue
   have retRun : StatementRun (opAddDispatchCallPost d bodyPost) (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (.statement :: (expressionEvents (opAddDispatchCallPost d bodyPost) (.const (0 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (0 : BitVec 64))
       (costedExpression_events (opAddDispatchCallPost d bodyPost) _ _
         (by simp [expressionValue, evalHOLExact]))
@@ -94,11 +91,7 @@ theorem opAdd_dispatch_arm_score (coeff : Work)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
     coeff.score (executionWork (opAddDispatchArmEvents d bodyPost bodyEvents)) =
       opAddDispatchArmLocalCost coeff d bodyPost bodyEvents := by
-  unfold opAddDispatchArmEvents opAddDispatchArmLocalCost callEvents callLocalCost
-  simp only [executionWork_score_append, executionWork_score_cons, score_statement,
-    score_frame, guest_score_copy, score_singleton, score_pair, executionWork_nil_score,
-    List.append_nil]
-  omega
+  rfl
 
 #print axioms opAdd_dispatch_arm_score
 
@@ -116,7 +109,7 @@ theorem opAdd_dispatch_ite_run (d : PanSemStateFiniteExact 64 Guest.HostMemory)
         (.seq (.call (some (none, none)) (ofString "op_add") [])
           (.return (.const (0 : BitVec 64)))) .skip)
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
-      (.statement :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+      (.statement :: .cost statementUnit :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
         (.const (1 : BitVec 64))) ++ opAddDispatchArmEvents d bodyPost bodyEvents)) := by
   have guardValue : expressionValue d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
       (.const (1 : BitVec 64))) = some (.val (.word 1)) := by

@@ -9,28 +9,28 @@ set_option maxHeartbeats 2000000
 /-- The `op == 0` guard skip trace. -/
 noncomputable def opAddOuterZeroEvents (d : PanSemStateFiniteExact 64 Guest.HostMemory) :
     List WorkEvent :=
-  .statement :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+  .statement :: .cost statementUnit :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
     (.const (0 : BitVec 64))) ++ [.statement])
 
 /-- The `op == 1` guard and `op_add` arm trace. -/
 noncomputable def opAddOuterOneEvents (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
     List WorkEvent :=
-  .statement :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+  .statement :: .cost statementUnit :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
     (.const (1 : BitVec 64))) ++ opAddDispatchArmEvents d bodyPost bodyEvents)
 
 /-- The `op < 16` guard and its selected zero/one guards and arm. -/
 noncomputable def opAddOuterSixteenEvents (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
     List WorkEvent :=
-  .statement :: (expressionEvents d (.cmp Cmp.lower (.var VarKind.local (ofString "op"))
+  .statement :: .cost statementUnit :: (expressionEvents d (.cmp Cmp.lower (.var VarKind.local (ofString "op"))
     (.const (16 : BitVec 64))) ++ (opAddOuterZeroEvents d ++ opAddOuterOneEvents d bodyPost bodyEvents))
 
 /-- The full outer dispatcher guard trace for `op = 1`. -/
 noncomputable def opAddOuterThirtyTwoEvents (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
     List WorkEvent :=
-  .statement :: (expressionEvents d (.cmp Cmp.lower (.var VarKind.local (ofString "op"))
+  .statement :: .cost statementUnit :: (expressionEvents d (.cmp Cmp.lower (.var VarKind.local (ofString "op"))
     (.const (32 : BitVec 64))) ++ opAddOuterSixteenEvents d bodyPost bodyEvents)
 
 
@@ -203,7 +203,7 @@ theorem opAddOuter_lt32_run (coeff : Work)
 /-- Price of one dispatcher guard statement and its condition. -/
 noncomputable def opAddOuterGuardCost (coeff : Work)
     (d : PanSemStateFiniteExact 64 Guest.HostMemory) (condition : ExpHOL 64) : Nat :=
-  coeff.score (executionWork (.statement :: expressionEvents d condition))
+  coeff.score (executionWork (.statement :: .cost statementUnit :: expressionEvents d condition))
 
 /-- The outer guard trace splits into the `op < 32` guard and the inner trace. -/
 theorem opAddOuterThirtyTwoEvents_score (coeff : Work)
