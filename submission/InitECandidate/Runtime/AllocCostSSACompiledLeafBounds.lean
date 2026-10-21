@@ -457,6 +457,17 @@ theorem allocMovePrice_le (pairs : List (Nat × Nat)) :
   rw [physPairs_filter_length]
   split <;> omega
 
+/-- **One currency on the same node.**  Composing finite-auth's `goSeq_move` with
+`allocMovePrice_le` puts the certified schedule directly in terms of the physical
+nonself count my charge is built from:
+`12 * (parmove (physPairs pairs)).length <= 28 * nonselfCount pairs`. -/
+theorem move_node_schedule_le {pri : Nat} {pairs : List (Nat × Nat)} {before : Nat}
+    (ok : (goSeq before (.move pri pairs)).1 = true) :
+    12 * (Flapjack.Compiler.Backend.Parmove.parmove (physPairs pairs)).length ≤
+      28 * nonselfCount pairs :=
+  le_trans (goSeq_move ok) (allocMovePrice_le pairs)
+
+#print axioms move_node_schedule_le
 #print axioms allocMovePrice_le
 #print axioms physPairs_filter_length
 #print axioms bne_decide_eq
