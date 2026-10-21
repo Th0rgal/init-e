@@ -918,3 +918,12 @@ left child, right child, and route words. It proves:
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. These are actual
 semantics link-write preservation lemmas; linking them into the full
 `htab_set` run remains open.
+
+## 40. Path invariant framing under outside stores
+
+`PathMemoryInv.store_other` proves that an actual one-word store at any address
+outside every recorded path slot leaves `PathMemoryInv s base depth routes`
+unchanged. This is the framing half needed when `htab_set` writes nodes, key
+bytes, or table arrays while the path buffer remains live.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.

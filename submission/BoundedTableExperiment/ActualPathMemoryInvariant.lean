@@ -55,6 +55,26 @@ theorem PathMemoryInv.push {F : Type} {s : PanSemStateFiniteExact 64 F}
     rw [hroute]
     simp [same]
 
+/-- An actual one-word store outside every recorded path slot preserves the
+path invariant. -/
+theorem PathMemoryInv.store_other {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {base : BitVec 64} {depth : Nat} {routes : Nat → BitVec 64}
+    (inv : PathMemoryInv s base depth routes)
+    {watched : BitVec 64} (value : HolWordLab 64)
+    (separate : ∀ i, i < depth → pathAddr base i ≠ watched)
+    {postMem : BitVec 64 → HolWordLab 64}
+    (store : @panMemStoresHOL 64 _ watched [value]
+      s.memaddrs (Classical.decPred _) s.memory = some postMem) :
+    PathMemoryInv { s with memory := postMem } base depth routes := by
+  constructor
+  intro i hi
+  letI : DecidablePred s.memaddrs := Classical.decPred _
+  have frame := actual_one_word_store_frame watched (pathAddr base i)
+    s.memaddrs s.memory value (separate i hi) postMem store
+  dsimp only
+  rw [frame, inv.routeAt i hi]
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.PathMemoryInv.push
+#print axioms BoundedTableExperiment.PathMemoryInv.store_other
