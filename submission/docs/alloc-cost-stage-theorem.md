@@ -491,3 +491,38 @@ loop's cost is decomposed one step per iteration with the recursive call explici
 the loop's clock TOGETHER with the compiler's `wordStateEqRel`, because the body must transfer at every
 iteration state and the recursion's state is not the caller's.  That is why the loop is not the ite's one-shot
 assembly.
+
+## The loop case: both halves done, and what the induction still needs
+
+Landed (all green):
+
+| cost | run |
+| --- | --- |
+| `wec_loop_stop_transfer` | `evaluate_loop_stop` |
+| `wec_loop_cont_done_transfer` | (exhausted branch, no recursion to run) |
+| `wec_loop_cont_live_transfer` | `evaluate_loop_cont` |
+
+Cost shapes: node price 2 plus the body's work on both sides; the live-continuing shape charges one further
+iteration and its budget is DOUBLED (one extra for the body, one for the recursion) - with a single extra the
+statement is false, so the loop's budget must scale with the iteration count.
+Run shapes: the stop case returns `wordSemExitLoop result` at the body's state (NOT the body's result), and the
+`break 0` result is routed through `cutState` at `exitNames` instead, hence its explicit exclusion; the
+live-continuing case recurses at `wordSemSTOP (.loop ...)` with the decremented clock, the same point the cost
+side recurses at.
+
+### Why the induction cannot be finished from the run half alone
+
+`evaluate_loop_stop` produces `(wordSemExitLoop result, middle)` - the body's RESULT and the body's STATE. Two
+iterations therefore agree on the outcome only if their states agree too, and the loop's recursion feeds `middle`
+back in. So the loop's induction needs a state relation between the source and target iterations (the compiler's
+`wordStateEqRel`), preserved by `cutState` and by the body's evaluation, exactly as `ssaCcTransCorrectLoop` uses
+it. The run half alone is not enough, which is why the loop is not assembled from `evaluate_loop_stop/cont` by
+arithmetic the way the ite was assembled from `evaluate_ite_true/false`.
+
+### Two rewrite traps worth keeping
+
+- after `rw [h]` on the body's `fixClock` result, a dependent `match _h : (result, middle)` does NOT reduce on
+  the pair literal: `dsimp only` first (same in the call clause);
+- close the continuation-flag goal with `rw [if_pos (by rw [hc])]` and do NOT append `rfl`: `rw` already
+  discharges `true = true`, and the extra `rfl` then fails with "no goals to be solved" while Lean still reports
+  the lemma's axioms as clean, so the error looks like it is on a different line.
