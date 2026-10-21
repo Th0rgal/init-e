@@ -81,3 +81,47 @@ theorem candidateFindLeafBump_preserves_node {F : Type} {fn : MlS}
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateFindLeafBump_preserves_node
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Guard, push and bump preserve the original node; the walk's route stage
+starts from a state whose node local is still the input node. -/
+theorem candidateFindLeafStep_walk_node {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    {node : BitVec 64}
+    (run : StatementRun fn s candidateFindLeafStep none post events)
+    (nodeLocal : s.locals.lookup (ofString "node") = some (.val (.word node))) :
+    ∃ (afterGuard afterPush afterBump : PanSemStateFiniteExact 64 F)
+      (guardEvents pushEvents bumpEvents routeEvents : List WorkEvent),
+      events = guardEvents ++ (pushEvents ++ (bumpEvents ++ routeEvents)) ∧
+      afterGuard = s ∧
+      afterPush.locals.lookup (ofString "node") = some (.val (.word node)) ∧
+      afterBump.locals.lookup (ofString "node") = some (.val (.word node)) ∧
+      StatementRun fn afterBump candidateFindLeafRoute none post routeEvents := by
+  obtain ⟨afterGuard, afterPush, afterBump, guardEvents, pushEvents,
+    bumpEvents, routeEvents, eventsEq, guardRun, pushRun, bumpRun, routeRun⟩ :=
+    candidateFindLeafStep_trace run
+  have hguard := candidateFindLeafGuard_skip guardRun
+  have hpush := candidateFindLeafPush_preserves_node pushRun
+  have hpushNode :
+      afterPush.locals.lookup (ofString "node") = some (.val (.word node)) := by
+    rw [hpush, hguard]
+    exact nodeLocal
+  have hbump := candidateFindLeafBump_preserves_node bumpRun hpushNode
+  have hbumpNode :
+      afterBump.locals.lookup (ofString "node") = some (.val (.word node)) := by
+    rw [hbump]
+    exact hpushNode
+  exact ⟨afterGuard, afterPush, afterBump, guardEvents, pushEvents,
+    bumpEvents, routeEvents, eventsEq, hguard, hpushNode, hbumpNode, routeRun⟩
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidateFindLeafStep_walk_node
