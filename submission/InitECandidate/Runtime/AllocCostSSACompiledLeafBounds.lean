@@ -1563,4 +1563,46 @@ theorem ite_stage_else {C F : Type}
 
 #print axioms ite_stage_then
 #print axioms ite_stage_else
+/-! ## Program-parametric quantitative transfer
+
+`quantSsaSimulation` ties the cost to the compiler's own output, which is right for the whole
+program but too rigid for a constructor whose compiled branch is `body ++ allocator-suffix`:
+there the source program is the source BODY while the compiled program is the body's
+compilation followed by the suffix.  `quantTransfer` therefore takes the compiled program as an
+explicit parameter, so a constructor can be composed from branch transfers. -/
+noncomputable def quantTransfer {C F : Type}
+    (prog compiledProg : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (extra : Nat) : Prop :=
+  (∃ rS : Option (WordSemResult 64), ∃ sS : WordSemStateFiniteExact 64 C F, ∃ rT : Option (WordSemResult 64), ∃ sT : WordSemStateFiniteExact 64 C F,
+    WordSemStateFiniteExact.evaluate prog source = (rS, sS) ∧
+    WordSemStateFiniteExact.evaluate compiledProg target = (rT, sT) ∧
+    rS = rT) ∧
+  wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice compiledProg target ≤
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog source + extra
+
+/-- **ite composition** in the program-parametric language: when both ites select the then
+branch, the transfer of the compiled branch against the source branch yields the transfer of
+the compiled ite against the source ite.  The branch transfer is the recursive IH, and it is
+where the compiled branch's allocator suffix (if any) is accounted for. -/
+theorem ite_quantTransfer_then {C F : Type}
+    (cmp : Cmp) (left left' : Nat)
+    (immediate immediate' : WordRegImm (BitVec 64))
+    (first second thenB elseB : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (extra : Nat)
+    (xS yS xT yT : WordLocW 64)
+    (hxS : getVar left source = some xS) (hyS : getVarImm immediate source = some yS)
+    (hcS : wordSemWordCmp cmp xS yS = some true)
+    (hxT : getVar left' target = some xT) (hyT : getVarImm immediate' target = some yT)
+    (hcT : wordSemWordCmp cmp xT yT = some true)
+    (hbr : quantTransfer (C := C) (F := F) first thenB source target extra) :
+    quantTransfer (C := C) (F := F) (.ite cmp left immediate first second)
+      (.ite cmp left' immediate' thenB elseB) source target extra := by
+  obtain ⟨⟨rS, sS, rT, sT, hrunS, hrunT, hout⟩, hcost⟩ := hbr
+  refine ⟨⟨rS, sS, rT, sT, ?_, ?_, hout⟩, ?_⟩
+  · rw [evaluate_ite_true cmp left immediate first second source xS yS hxS hyS hcS, hrunS]
+  · rw [evaluate_ite_true cmp left' immediate' thenB elseB target xT yT hxT hyT hcT, hrunT]
+  · exact ite_transfer_then_canonical cmp left left' immediate immediate' first second
+      thenB elseB source target xS yS xT yT hxS hyS hcS hxT hyT hcT extra hcost
+
+#print axioms ite_quantTransfer_then
 end InitECandidate.Runtime.FineCost
