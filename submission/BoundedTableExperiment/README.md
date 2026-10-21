@@ -1084,3 +1084,10 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`.
 
 This covers the actual child-link writes at `nip`/`nip+8`; the root/parent
 link block and bsearch/growth composition remain.
+
+## 50. Actual root-or-parent link split
+
+`candidateHtabSetLink_outer` splits an actual successful run of the link block
+into the root store (`store (t+72) new_int`) or the `pp` scope containing the
+`dir`-selected left/right parent store. Axioms are `propext`,
+`Classical.choice`, `Quot.sound`.

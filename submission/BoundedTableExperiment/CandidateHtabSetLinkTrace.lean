@@ -60,7 +60,37 @@ theorem candidateHtabSetSideStorePair_trace {F : Type} {fn : MlS}
   | seqNext one two => exact ⟨_, _, _, rfl, one, two⟩
   | seqStop terminal _ => exact absurd rfl terminal
 
+/-- Outer split of the root-or-parent link block: either the root store or the
+`pp` scope run. -/
+theorem candidateHtabSetLink_outer {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s candidateHtabSetLink none post events) :
+    ∃ (value : BitVec 64) (guardEvents branchEvents : List WorkEvent),
+      events = .statement :: .cost (statementUnit + branchMoves fn) ::
+        (guardEvents ++ branchEvents) ∧
+      CostedExpressionRun s
+        (.cmp .equal (.var .local (ofString "parent")) (.const (BitVec.ofNat 64 0)))
+        (some (.val (.word value))) guardEvents ∧
+      ((value ≠ 0 ∧
+        StatementRun fn s (.store (off "t" 72) (.var .local (ofString "new_int")))
+          none post branchEvents) ∨
+       (value = 0 ∧
+        StatementRun fn s
+          (.dec (ofString "pp") .one (.var .local (ofString "parent"))
+            (.ite (.cmp .notEqual (.var .local (ofString "dir")) (.const (BitVec.ofNat 64 0)))
+              (.store (.op .add [.var .local (ofString "pp"), .const (BitVec.ofNat 64 8)])
+                (.var .local (ofString "new_int")))
+              (.store (.var .local (ofString "pp")) (.var .local (ofString "new_int")))))
+          none post branchEvents)) := by
+  rw [candidateHtabSetLeaf_link] at run
+  cases run with
+  | iteYes guard nonzero body =>
+      exact ⟨_, _, _, rfl, guard, Or.inl ⟨nonzero, body⟩⟩
+  | iteNo guard body =>
+      exact ⟨_, _, _, rfl, guard, Or.inr ⟨rfl, body⟩⟩
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateHtabSetSideStores_trace
 #print axioms BoundedTableExperiment.candidateHtabSetSideStorePair_trace
+#print axioms BoundedTableExperiment.candidateHtabSetLink_outer
