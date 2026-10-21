@@ -77,7 +77,7 @@ without a universal return-slot bound.
 
 | Stage/modules | Proven result | Scope/remaining obligation |
 | --- | --- | --- |
-| `SourceCostCrepWork`, `SourceCostCrepBasis`, `SourceCostCrepLeaf`, `SourceCostCrepDec`, `SourceCostCrepCall`, `SourceCostCrepHandler`, `SourceCostCrepDecCall`, `SourceCostCrepPrimitive`, `SourceCostCrepAtomic`, `SourceCostCrepControl` | Executed Crep work paid by source events for control paths, declarations, local assignments, stores, returns/raises, calls/declaration-calls, primitive/external/shared operations, including caught exceptions and timeout; return slots paid by requested size | All localized constructors under original state/code/exception/locals relations and non-error result, with program/callee bulk-load premises; structures/globals preprocessing and whole-program entry remain open |
+| `SourceCostCrepWork`, `SourceCostCrepBasis` (the coarse per-constructor transfer modules were removed 2026-10-21; the sharp chain `SourceCostSharpCrep*` supersedes them) | Executed Crep work paid by source events for control paths, declarations, local assignments, stores, returns/raises, calls/declaration-calls, primitive/external/shared operations, including caught exceptions and timeout; return slots paid by requested size | All localized constructors under original state/code/exception/locals relations and non-error result, with program/callee bulk-load premises; structures/globals preprocessing and whole-program entry remain open |
 | `AllocCostModel`, `AllocCostSSA`, `AllocCostPasses`, `AllocCostCompose`, `AllocCostExecuted` | SSA prologue/instruction moves, three-to-two rewrite-site costs, nonamplifying allocation/colouring, and actual path budget for their composed output | Certified straight-line fragments; recursive call/loop reconciliation remains open |
 | `AllocCostOptimizer`, `AllocCostCse`, `AllocCostUnreach` | Local static envelopes for must-terminate/dead-code removal, copy propagation, CSE, sequence cleanup and unreachable removal; expansion charged by rewrite sites | Straight-line fragment bounds; grammar/composed optimizer and dynamic control transfer remain separate |
 | `AllocCostReconcile`, `AllocCostSSAControl` | Static local syntax envelopes for renaming, reconciliation, loop setup/back-edges, break/continue targets and tail-call argument moves, using actual live sets | Dynamic semantic execution transfer must still charge each occurrence; returning-call composition remains open |
@@ -155,8 +155,7 @@ The checked `GuestCostWorkScore`, `GuestCostCallRule`, `GuestCostSequence` and
 `GuestCostAtomicExpressions` provide additive event prices and local trace
 composition. `GuestCostChargeFamily` traces and prices the pinned `charge_gas`
 successful body and out-of-gas prefix; `GuestCostArithmeticFamily` pins and
-traces both `add_sat` helper paths. Combined imports with the compiler transfer
-are checked in `GuestCostCombinedSmoke`. These do not cover any complete EVM
+traces both `add_sat` helper paths. These do not cover any complete EVM
 opcode arm yet. The installed `charge_gas` call theorem now supplies its concrete trace and
 price together. `GuestCostPcAdd` pins the actual `pc_add` body and derives its
 stored value from the frame cell/domain and local `n`, then traces and prices
@@ -1101,8 +1100,9 @@ its statement coefficient stay small; trace existence proofs are unchanged.
 executed statement and the scalar node work of every evaluated expression,
 following the exact evaluator's successor states (selected branch, every loop
 guard, actual callee body, matched handler, early failures). Calls also charge
-argument words and returned payload words. `SourceCostCrepControl.source_crep_executed_work`
-proves, for every exact source `StatementRun` with a non-error result, the four
+argument words and returned payload words. The removed coarse module
+`SourceCostCrepControl.source_crep_executed_work` proved (superseded by the sharp
+`SourceCostSharpCrep*` chain), for every exact source `StatementRun` with a non-error result, the four
 original `pc_compile_correct` relations, `localised_prog`, and the guest
 load-site certificate on the program and every function body, that the
 compiled Crep execution has a `CrepWork` derivation bounded by
