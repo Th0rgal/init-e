@@ -1511,4 +1511,56 @@ theorem ite_transfer_else_canonical {C F : Type}
 
 #print axioms ite_transfer_then_canonical
 #print axioms ite_transfer_else_canonical
+/-- `ite` stage (then branch): both runs and the counter bound in one package.  The source
+and the compiled ite are compared with their own (possibly renamed) condition registers;
+when both select the same branch, the runs are that branch's runs and the cost transfer
+is the branch's transfer - the 23 node price cancels because it is the same on both sides. -/
+theorem ite_stage_then {C F : Type}
+    (cmp : Cmp) (left left' : Nat)
+    (immediate immediate' : WordRegImm (BitVec 64))
+    (first second thenT elseT : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (xS yS xT yT : WordLocW 64)
+    (hxS : getVar left source = some xS) (hyS : getVarImm immediate source = some yS)
+    (hcS : wordSemWordCmp cmp xS yS = some true)
+    (hxT : getVar left' target = some xT) (hyT : getVarImm immediate' target = some yT)
+    (hcT : wordSemWordCmp cmp xT yT = some true)
+    (extra : Nat)
+    (hb : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice thenT target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice first source + extra) :
+    WordSemStateFiniteExact.evaluate (.ite cmp left immediate first second) source = WordSemStateFiniteExact.evaluate first source ∧
+    WordSemStateFiniteExact.evaluate (.ite cmp left' immediate' thenT elseT) target = WordSemStateFiniteExact.evaluate thenT target ∧
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp left' immediate' thenT elseT) target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp left immediate first second) source + extra := ⟨
+  evaluate_ite_true cmp left immediate first second source xS yS hxS hyS hcS,
+  evaluate_ite_true cmp left' immediate' thenT elseT target xT yT hxT hyT hcT,
+  ite_transfer_then_canonical cmp left left' immediate immediate' first second thenT elseT
+    source target xS yS xT yT hxS hyS hcS hxT hyT hcT extra hb⟩
+
+/-- `ite` stage (else branch): both runs and the counter bound in one package.  The source
+and the compiled ite are compared with their own (possibly renamed) condition registers;
+when both select the same branch, the runs are that branch's runs and the cost transfer
+is the branch's transfer - the 23 node price cancels because it is the same on both sides. -/
+theorem ite_stage_else {C F : Type}
+    (cmp : Cmp) (left left' : Nat)
+    (immediate immediate' : WordRegImm (BitVec 64))
+    (first second thenT elseT : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (xS yS xT yT : WordLocW 64)
+    (hxS : getVar left source = some xS) (hyS : getVarImm immediate source = some yS)
+    (hcS : wordSemWordCmp cmp xS yS = some false)
+    (hxT : getVar left' target = some xT) (hyT : getVarImm immediate' target = some yT)
+    (hcT : wordSemWordCmp cmp xT yT = some false)
+    (extra : Nat)
+    (hb : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice elseT target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice second source + extra) :
+    WordSemStateFiniteExact.evaluate (.ite cmp left immediate first second) source = WordSemStateFiniteExact.evaluate second source ∧
+    WordSemStateFiniteExact.evaluate (.ite cmp left' immediate' thenT elseT) target = WordSemStateFiniteExact.evaluate elseT target ∧
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp left' immediate' thenT elseT) target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp left immediate first second) source + extra := ⟨
+  evaluate_ite_false cmp left immediate first second source xS yS hxS hyS hcS,
+  evaluate_ite_false cmp left' immediate' thenT elseT target xT yT hxT hyT hcT,
+  ite_transfer_else_canonical cmp left left' immediate immediate' first second thenT elseT
+    source target xS yS xT yT hxS hyS hcS hxT hyT hcT extra hb⟩
+
+#print axioms ite_stage_then
+#print axioms ite_stage_else
 end InitECandidate.Runtime.FineCost
