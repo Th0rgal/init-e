@@ -19,7 +19,7 @@ theorem work_nestedDecs_eval {σ : Type} (expressions : List (CrepExpHOL 64))
     (bodyRun : CrepWorkM M fn { t with locals := t.locals.updateListEq (names.zip values) } body
       bodyWork) :
     CrepWorkM M fn t (nestedDecsHOL names expressions body)
-      (nodePriceListK M.K expressions + bodyWork) := by
+      (M.prs expressions + bodyWork) := by
   induction expressions generalizing names values t with
   | nil =>
     cases names with
@@ -28,7 +28,7 @@ theorem work_nestedDecs_eval {σ : Type} (expressions : List (CrepExpHOL 64))
       cases values with
       | cons => simp at evaluated
       | nil =>
-        simp only [nestedDecsHOL, List.length_nil, nodePriceListK_nil, Nat.zero_add]
+        simp only [nestedDecsHOL, List.length_nil, prs_nil, Nat.zero_add]
         have : ({ t with locals := t.locals.updateListEq ([] : List (Nat × HolWordLab 64)) } :
             CrepSemHOLState 64 σ) = t := by
           cases t; simp only [CrepSemHOLState.mk.injEq, and_true]
@@ -65,7 +65,7 @@ theorem work_nestedDecs_eval {σ : Type} (expressions : List (CrepExpHOL 64))
           simp only [bound, List.zip_cons_cons, updateListEq_cons_eq]
         have rest := ih names values bound tailBound (by simpa using lengths) distinctTail
           (List.nodup_cons.mp nodup).2 (by rw [bodyState]; exact bodyRun)
-        simp only [nestedDecsHOL, List.length_cons, nodePriceListK_cons]
+        simp only [nestedDecsHOL, List.length_cons, prs_cons]
         have := CrepWorkF.dec (name := name) (body := nestedDecsHOL names expressions body) head rest
         refine (congrArg (CrepWorkM M fn t _) ?_).mp this
         omega
@@ -79,11 +79,12 @@ theorem dec_transfer {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHO
     (evaluated : expressionValue s initializer = some value)
     (shapeMatch : shapeEqHOL shape (shapeOfHOLExact value) = true)
     (rel : SourceCrepRel context s t) (localised : localisedExpHOL initializer = true) :
-    ∃ bodyContext bodyState, bodyContext.funcs = context.funcs ∧
+    ∃ bodyContext bodyState, bodyContext = decCallCtxt context name (shapeOfHOLExact value) ∧
+      bodyContext.funcs = context.funcs ∧
       SourceCrepRel bodyContext (setVarHOLFinite name value s) bodyState ∧
       ∀ bodyWork, CrepWorkM M fn bodyState (compileProgExactHOLW bodyContext body) bodyWork →
         CrepWorkM M fn t (compileProgExactHOLW context (.dec name shape initializer body))
-          (nodePriceListK M.K (compileExpExactHOLW context initializer).1 +
+          (M.prs (compileExpExactHOLW context initializer).1 +
             bodyWork) := by
   classical
   rcases hc : compileExpExactHOLW context initializer with ⟨es, cs⟩
@@ -120,7 +121,7 @@ theorem dec_transfer {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHO
       by simp [decCallSlots]⟩
   let slotEntries := (decCallSlots context (shapeOfHOLExact value)).zip (flattenHOL value)
   refine ⟨decCallCtxt context name (shapeOfHOLExact value),
-    ({ t with locals := t.locals.updateListEq slotEntries } : CrepSemHOLState 64 F), rfl,
+    ({ t with locals := t.locals.updateListEq slotEntries } : CrepSemHOLState 64 F), rfl, rfl,
     ⟨by simpa [panToCrepStateRelFiniteExact, setVarHOLFinite] using rel.state, rel.code,
       rel.exceptions, hlocc⟩,
     ?_⟩

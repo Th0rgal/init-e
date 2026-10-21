@@ -70,7 +70,7 @@ theorem compileList_length' (context : PanToCrepContextExact 64) (es : List (Exp
 
 /-- Sharp source weights. -/
 def sharpSourceWeights : Work :=
-  { movedWords := 14, nativeEvents := 37, nativeCost := 1,
+  { movedWords := 24, nativeEvents := 37, nativeCost := 1,
     globalAccesses := 176, globalWords := 166 }
 
 /-- Sharp source score of an event list. The certificate argument is kept for
@@ -96,7 +96,7 @@ theorem sharpSourceScore_cons (B : Nat) (event : WorkEvent) (rest : List WorkEve
 @[simp] theorem sharpSource_expression : sharpSourceWeights.score WorkEvent.expression.units = 0 := by
   simp [sharpSourceWeights, Work.score, WorkEvent.units]
 
-@[simp] theorem sharpSource_copy (n : Nat) : sharpSourceWeights.score (WorkEvent.copy n).units = 14 * n := by
+@[simp] theorem sharpSource_copy (n : Nat) : sharpSourceWeights.score (WorkEvent.copy n).units = 24 * n := by
   simp [sharpSourceWeights, Work.score, WorkEvent.units]
 
 @[simp] theorem sharpSource_frame (n : Nat) : sharpSourceWeights.score (WorkEvent.frame n).units = 0 := by
@@ -165,7 +165,7 @@ theorem sharpScore_expression (rest : List WorkEvent) :
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_expression, Nat.zero_add]
 
 theorem sharpScore_copy (n : Nat) (rest : List WorkEvent) :
-    sharpScore (.copy n :: rest) = 14 * n + sharpScore rest := by
+    sharpScore (.copy n :: rest) = 24 * n + sharpScore rest := by
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_copy]
 
 theorem sharpScore_frame (n : Nat) (rest : List WorkEvent) :

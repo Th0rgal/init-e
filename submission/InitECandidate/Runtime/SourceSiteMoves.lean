@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.AllocFunctionTables
 import InitECandidate.Runtime.CallSiteTable
+import InitECandidate.Runtime.TailSiteTable
 import InitE.SourceDeclarationsCore
 import Flapjack.Pancake.PanGlobals
 namespace InitECandidate.Runtime.FineCost
@@ -44,9 +45,11 @@ def callMoves (fn callee : MlS) : Nat := (tableOf (fnLabel fn)).call (functionLa
 
 /-- WordSimp constant re-insert surcharge charged to a call of `callee` from
 `fn`: the certified caller+callee table entry (`CallSiteTable`), in Word price
-units. Kept separate from the allocator moves. -/
+units, plus the callee's certified tail-call surcharge (`TailSiteTable`). Kept
+separate from the allocator moves. -/
 def callSites (fn callee : MlS) : Nat :=
-  24 * (callTabGet (fnLabel fn, functionLabel callee) + callTabGet (fnLabel fn, none))
+  24 * (callTabGet (fnLabel fn, functionLabel callee) + callTabGet (fnLabel fn, none)) +
+    ((functionLabel callee).map srcTailSitesL).getD 0
 
 /-- Branch-merge moves charged to an `if` of `fn`. -/
 def branchMoves (fn : MlS) : Nat := (tableOf (fnLabel fn)).merge

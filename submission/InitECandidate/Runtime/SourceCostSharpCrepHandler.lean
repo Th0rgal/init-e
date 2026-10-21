@@ -172,7 +172,7 @@ theorem call_handler_events_score_sharp (arguments bodyEvents handlerEvents : Li
     (a f x m : Nat) :
     sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f + m)] ++
       bodyEvents ++ [.cost x] ++ handlerEvents))) =
-    sharpScore arguments + (196 + 40 * a + 19 * f + m) + sharpScore bodyEvents + x +
+    sharpScore arguments + (196 + 40 * a + 24 * f + m) + sharpScore bodyEvents + x +
       sharpScore handlerEvents := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
     sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead]

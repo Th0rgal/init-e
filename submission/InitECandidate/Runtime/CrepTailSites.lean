@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.SourceCostLoopWorkWs
+import InitECandidate.Runtime.TailSiteTable
 namespace InitECandidate.Runtime.FineCost
 open Flapjack
 
@@ -117,7 +118,14 @@ theorem wsTail_le_tailSitesL (l : Nat) : wsTail (some l) ≤ tailSitesL l := by
 
 theorem wsTail_none : wsTail none = 0 := by decide +kernel
 
+/-- The source-side copy of the tail table is the certified one. -/
+theorem tailSitesL_src (l : Nat) : tailSitesL l = srcTailSitesL l := rfl
+
+theorem wsTail_le_srcTailSitesL (l : Nat) : wsTail (some l) ≤ srcTailSitesL l :=
+  tailSitesL_src l ▸ wsTail_le_tailSitesL l
+
 #print axioms tailEnv_le
 #print axioms wsTail_le_tailSitesL
 #print axioms wsTail_none
+#print axioms wsTail_le_srcTailSitesL
 end InitECandidate.Runtime.FineCost

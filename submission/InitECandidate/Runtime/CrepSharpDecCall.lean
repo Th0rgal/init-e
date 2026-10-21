@@ -29,11 +29,11 @@ theorem decCall_prelude {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSe
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (bodyOk : bodyResult ≠ some .error)
-    (rel : SourceCrepRel context s t)
+    (rel : SourceCrepRel context s t) (small : VarsSmall context) (fsmall : FuncsSmall context)
     (localisedArgs : everyExpListHOL localisedExpHOL arguments = true)
     (ihBody : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' (callEntryStateHOLFinite s callee) t' →
-      localisedProgHOL body = true →
+      localisedProgHOL body = true → VarsSmall context' → FuncsSmall context' →
       M.CrepWorkPaidM (fn := function) t' (compileProgExactHOLW context' body) bodyEvents
         (M.stopP bodyResult)) :
     ∃ (calleeContext : PanToCrepContextExact 64) (crepBody : CrepProgHOL 64)
@@ -56,6 +56,8 @@ theorem decCall_prelude {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSe
     pcCompileCorrectCallPrelude s t context function arguments values body callee returnShape
       args lookup rel.state rel.code rel.exceptions rel.locals localisedArgs
   obtain ⟨wb, workBody, boundBody⟩ := ihBody _ _ ⟨hst', hcode', hexcp', hloc'⟩ hprogLoc
+    (varsSmall_ctxtFc _ _ _ _ _ (fun sh h => by
+      obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact (fsmall _ _ _ hfuncs).1 p hp)) fsmall
   obtain ⟨r1, t1, hrun1, hs, hc, he, hrr⟩ :=
     compiled_source_run _ _ bodyRun.sound bodyOk hst' hcode' hexcp' hloc' hprogLoc
   exact ⟨ctxtFcExactHOL context.funcs context.eids (vshapes.map Prod.fst) (vshapes.map Prod.snd)
@@ -80,16 +82,17 @@ theorem decCall_return_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
       (some (.returned value)) bodyPost bodyEvents)
     (shapeMatch : (shapeEqHOL (shapeOfHOLExact value) shape &&
       shapeEqHOL (shapeOfHOLExact value) returnShape) = true)
-    (rel : SourceCrepRel context s t)
+    (rel : SourceCrepRel context s t) (small : VarsSmall context) (fsmall : FuncsSmall context) (widthShape : sizeOfShapeHOL shape ≤ 21)
     (localised : localisedProgHOL (.decCall name shape function arguments continuation) = true)
     (checkedArgs : sharpSitesList sharpReplayBound arguments = true)
     (ihBody : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' (callEntryStateHOLFinite s callee) t' →
-      localisedProgHOL body = true →
+      localisedProgHOL body = true → VarsSmall context' → FuncsSmall context' →
       M.CrepWorkPaidM (fn := function) t' (compileProgExactHOLW context' body) bodyEvents
         (M.stopP (some (.returned value))))
     (ihContinuation : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' (setVarHOLFinite name value { bodyPost with locals := s.locals }) t' →
+      VarsSmall context' → FuncsSmall context' →
       M.CrepWorkPaidM (fn := fn) t' (compileProgExactHOLW context' continuation) continuationEvents x) :
     M.CrepWorkPaidM (fn := fn) t (compileProgExactHOLW context (.decCall name shape function arguments
         continuation))
@@ -104,7 +107,7 @@ theorem decCall_return_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     simpa [localisedProgHOL] using localised
   obtain ⟨calleeContext, crepBody, locals, wb, r1, t1, _, htargs, htlookup, workBody, boundBody,
     hrun1, hs, hc, he, hrr⟩ :=
-    M.decCall_prelude args lookup bodyRun (by simp) rel localisedAll.1 ihBody
+    M.decCall_prelude args lookup bodyRun (by simp) rel small fsmall localisedAll.1 ihBody
   simp only [pcCompileCorrectResultRel] at hrr
   subst hrr
   simp only [Bool.and_eq_true] at shapeMatch
@@ -154,6 +157,7 @@ theorem decCall_return_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     ({ t1 with locals := t.locals.updateListEq ((decCallSlots context shape).zip
       (flattenHOL value)) } : CrepSemHOLState 64 F) (decCallCtxt context name shape)
     ⟨by simpa [panToCrepStateRelFiniteExact, setVarHOLFinite] using hs, hc, he, hlocc⟩
+    (varsSmall_decCallCtxt small name widthShape) fsmall
   have inner := CrepWorkF.seqNext (fn := fn) (second := compileProgExactHOLW
       (decCallCtxt context name shape) continuation)
     (CrepWorkF.callBody (fn := fn) (t := zeroSlotState_sharp t (decCallSlots context shape))
@@ -164,17 +168,18 @@ theorem decCall_return_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
   have argLen := mapM_some_length_sharp _ _ _ htargs
   have slots := M.slotOk (sizeOfShapeHOL shape)
   have callFit := M.callOk fn function
-  have argFit : ∀ n, M.callP fn function n +
+  have argFit : ∀ n, n ≤ 21 → M.callP fn function n +
       M.S.argP ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length ≤
       callOverhead (values.flatMap flattenHOL).length + callSites fn function := by
-    intro n; rw [← argLen]; exact callFit n _
+    intro n hn; rw [← argLen]; exact callFit n _ hn
   unfold CrepWorkPaidM
   rw [compileDecCallShape, decCall_events_score, frame_size_eq_sharp rel shape]
   have copy := M.retWOk (flattenHOL value).length
   have stop0 : M.stopP (some (.returned value)) = 0 := rfl
   rw [stop0] at boundBody
-  refine ⟨_, M.work_zero_slots t _ _ _ hnodup inner, ?_⟩
-  have := argFit (decCallSlots context shape).length
+  obtain ⟨wz, workZ, boundZ⟩ := M.work_zero_slots t _ _ _ hnodup inner
+  refine ⟨wz, workZ, Nat.le_trans boundZ ?_⟩
+  have := argFit (decCallSlots context shape).length (by simpa [decCallSlots] using widthShape)
   have hsl : (decCallSlots context shape).length = sizeOfShapeHOL shape := by simp [decCallSlots]
   simp only [crepRetCount, StmtK.exit] at this ⊢
   rw [hsl] at this ⊢
@@ -190,7 +195,7 @@ theorem decCall_timeout_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock = 0)
-    (rel : SourceCrepRel context s t)
+    (rel : SourceCrepRel context s t) (small : VarsSmall context) (fsmall : FuncsSmall context) (widthShape : sizeOfShapeHOL shape ≤ 21)
     (localised : localisedProgHOL (.decCall name shape function arguments continuation) = true)
     (checkedArgs : sharpSitesList sharpReplayBound arguments = true) :
     M.CrepWorkPaidM (fn := fn) t (compileProgExactHOLW context (.decCall name shape function arguments
@@ -223,7 +228,7 @@ theorem decCall_timeout_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     (some (decCallSlots context shape, none)) function _ _ _ _ zeroArgs htlookup hg htclock
   have inner := CrepWorkF.seqStop (fn := fn) (second := compileProgExactHOLW
       (decCallCtxt context name shape) continuation)
-    (CrepWorkF.callShort (fn := fn) (price := nodePriceK M.K) (priceList := nodePriceListK M.K) (K := M.S)
+    (CrepWorkF.callShort (fn := fn) (price := M.pr) (priceList := M.prs) (K := M.S)
       (callP := M.callP) (shortP := M.shortP) (t := zeroSlotState_sharp t (decCallSlots context shape))
       (returnInfo := some (decCallSlots context shape, none)) (function := function)
       (Or.inr ⟨_, zeroArgs, Or.inr (Or.inr htclock)⟩)) run
@@ -231,15 +236,16 @@ theorem decCall_timeout_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
   have argLen := mapM_some_length_sharp _ _ _ htargs
   have slots := M.slotOk (sizeOfShapeHOL shape)
   have callFit := M.callOk fn function
-  have argFit : ∀ n, M.callP fn function n +
+  have argFit : ∀ n, n ≤ 21 → M.callP fn function n +
       M.S.argP ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length ≤
       callOverhead (values.flatMap flattenHOL).length + callSites fn function := by
-    intro n; rw [← argLen]; exact callFit n _
+    intro n hn; rw [← argLen]; exact callFit n _ hn
   unfold CrepWorkPaidM
   rw [compileDecCallShape, frame_size_eq_sharp rel shape]
   simp only [stopP, sharpScore_statement, sharpScore_append, sharpScore_cost, sharpScore_nil]
-  refine ⟨_, M.work_zero_slots t _ _ _ hnodup inner, ?_⟩
-  have := argFit (decCallSlots context shape).length
+  obtain ⟨wz, workZ, boundZ⟩ := M.work_zero_slots t _ _ _ hnodup inner
+  refine ⟨wz, workZ, Nat.le_trans boundZ ?_⟩
+  have := argFit (decCallSlots context shape).length (by simpa [decCallSlots] using widthShape)
   have hsl : (decCallSlots context shape).length = sizeOfShapeHOL shape := by simp [decCallSlots]
   simp only [crepRetCount] at this ⊢
   rw [hsl] at this ⊢
@@ -262,12 +268,12 @@ theorem decCall_stopped_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (stop : bodyResult = some .timeOut ∨ (∃ f, bodyResult = some (.finalFfi f)) ∨
       ∃ eid v, bodyResult = some (.exception eid v))
-    (rel : SourceCrepRel context s t)
+    (rel : SourceCrepRel context s t) (small : VarsSmall context) (fsmall : FuncsSmall context) (widthShape : sizeOfShapeHOL shape ≤ 21)
     (localised : localisedProgHOL (.decCall name shape function arguments continuation) = true)
     (checkedArgs : sharpSitesList sharpReplayBound arguments = true)
     (ihBody : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' (callEntryStateHOLFinite s callee) t' →
-      localisedProgHOL body = true →
+      localisedProgHOL body = true → VarsSmall context' → FuncsSmall context' →
       M.CrepWorkPaidM (fn := function) t' (compileProgExactHOLW context' body) bodyEvents
         (M.stopP bodyResult)) :
     M.CrepWorkPaidM (fn := fn) t (compileProgExactHOLW context (.decCall name shape function arguments
@@ -285,7 +291,7 @@ theorem decCall_stopped_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     rcases stop with rfl | ⟨f, rfl⟩ | ⟨eid, v, rfl⟩ <;> simp
   obtain ⟨calleeContext, crepBody, locals, wb, r1, t1, _, htargs, htlookup, workBody, boundBody,
     hrun1, _, _, _, hrr⟩ :=
-    M.decCall_prelude args lookup bodyRun bodyOk rel localisedAll.1 ihBody
+    M.decCall_prelude args lookup bodyRun bodyOk rel small fsmall localisedAll.1 ihBody
   have payload := M.exit_le hrr
   have hnodup := decCallSlots_nodup context shape
   have hdist := pcCompileCorrectCallRetSlotsDistinct context arguments (sizeOfShapeHOL shape)
@@ -307,14 +313,15 @@ theorem decCall_stopped_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
   have argLen := mapM_some_length_sharp _ _ _ htargs
   have slots := M.slotOk (sizeOfShapeHOL shape)
   have callFit := M.callOk fn function
-  have argFit : ∀ n, M.callP fn function n +
+  have argFit : ∀ n, n ≤ 21 → M.callP fn function n +
       M.S.argP ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length ≤
       callOverhead (values.flatMap flattenHOL).length + callSites fn function := by
-    intro n; rw [← argLen]; exact callFit n _
+    intro n hn; rw [← argLen]; exact callFit n _ hn
   unfold CrepWorkPaidM
   rw [compileDecCallShape, call_events_score, frame_size_eq_sharp rel shape]
-  refine ⟨_, M.work_zero_slots t _ _ _ hnodup inner, ?_⟩
-  have := argFit (decCallSlots context shape).length
+  obtain ⟨wz, workZ, boundZ⟩ := M.work_zero_slots t _ _ _ hnodup inner
+  refine ⟨wz, workZ, Nat.le_trans boundZ ?_⟩
+  have := argFit (decCallSlots context shape).length (by simpa [decCallSlots] using widthShape)
   have hsl : (decCallSlots context shape).length = sizeOfShapeHOL shape := by simp [decCallSlots]
   simp only [crepRetCount] at this ⊢
   rw [hsl] at this ⊢

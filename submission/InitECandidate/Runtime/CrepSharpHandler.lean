@@ -8,13 +8,14 @@ variable (M : SharpModel) {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem bounded_load_globals (names : List Nat) (address : BitVec 5) :
     CrepBoundedM M (crepNestedSeqHOL (panMap2 (fun destination source => .assign destination source)
-      names (loadGlobalsHOL address names.length))) (names.length * M.K.var) := by
+      names (loadGlobalsHOL address names.length))) (names.length * M.V) := by
   induction names generalizing address with
   | nil => simpa [panMap2, crepNestedSeqHOL] using M.bounded_skip
   | cons name names ih =>
     simp only [List.length_cons, loadGlobalsHOL, panMap2, crepNestedSeqHOL]
     refine M.bounded_mono (M.bounded_seq (M.bounded_assign name (.loadGlob address)) (ih (address + 1))) ?_
-    simp only [nodePriceK, Nat.succ_mul]
+    have := M.globOk address
+    simp only [Nat.succ_mul]
     omega
 
 /-- Handler entry: `exp_hdl` copies the exception payload from globals into the
@@ -39,7 +40,7 @@ theorem handler_entry_work {F : Type} {s bodyPost : PanSemStateFiniteExact 64 F}
       M.CrepWorkPaidM (fn := fn) t' (compileProgExactHOLW context handlerProgram) handlerEvents x) :
     ∃ w, CrepWorkM M fn { t1 with locals := targetLocals }
         (.seq (expHdlExact context.vars handlerVar) (compileProgExactHOLW context handlerProgram)) w ∧
-      w ≤ (flattenHOL exn).length * M.K.var +
+      w ≤ (flattenHOL exn).length * M.V +
         sharpScore handlerEvents + x := by
   classical
   cases hold : s.locals.lookup handlerVar with
@@ -149,17 +150,17 @@ theorem call_handler_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     (clock : s.clock ≠ 0)
     (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s info returnShape bodyResult bodyPost = .handler handlerEntry handlerProgram)
-    (rel : SourceCrepRel context s t)
+    (rel : SourceCrepRel context s t) (small : VarsSmall context) (fsmall : FuncsSmall context)
     (localised : localisedProgHOL (.call info function arguments) = true)
     (checkedArgs : sharpSitesList sharpReplayBound arguments = true)
     (ihBody : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' (callEntryStateHOLFinite s callee) t' →
-      localisedProgHOL body = true →
+      localisedProgHOL body = true → VarsSmall context' → FuncsSmall context' →
       M.CrepWorkPaidM (fn := function) t' (compileProgExactHOLW context' body) bodyEvents
         (M.stopP bodyResult))
     (ihHandler : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' handlerEntry t' →
-      localisedProgHOL handlerProgram = true →
+      localisedProgHOL handlerProgram = true → VarsSmall context' → FuncsSmall context' →
       M.CrepWorkPaidM (fn := fn) t' (compileProgExactHOLW context' handlerProgram) handlerEvents x) :
     M.CrepWorkPaidM (fn := fn) t (compileProgExactHOLW context (.call info function arguments))
       (.statement :: (expressionListEvents s arguments ++
@@ -175,6 +176,8 @@ theorem call_handler_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     pcCompileCorrectCallPrelude s t context function arguments values body callee returnShape
       args lookup rel.state rel.code rel.exceptions rel.locals (everyArgs_localised_sharp localised)
   obtain ⟨wb, workBody, boundBody⟩ := ihBody _ _ ⟨hst', hcode', hexcp', hloc'⟩ hprogLoc
+    (varsSmall_ctxtFc _ _ _ _ _ (fun sh h => by
+      obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact (fsmall _ _ _ hfuncs).1 p hp)) fsmall
   obtain ⟨r1, t1, hrun1, hs, hc, he, hrr⟩ :=
     compiled_source_run _ _ bodyRun.sound (by simp) hst' hcode' hexcp' hloc' hprogLoc
   simp only [pcCompileCorrectResultRel, ctxtFcExactHOL] at hrr
@@ -201,17 +204,17 @@ theorem call_handler_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     M.handler_entry_work (fn := fn) (s := s) (t := t) (t1 := t1) (handlerProgram := handlerProgram)
       (handlerEvents := handlerEvents) targetLocals rel.locals agree valid hwfvE hglob hs
       (codeRelExactHOLW_ctxtFc context _ _ _ _ _ hc) he
-      (fun t' rel' => ihHandler t' context rel' hlocP)
+      (fun t' rel' => ihHandler t' context rel' hlocP small fsmall)
   have htclock : t.clock ≠ 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
   have argsPaid := M.arguments_paid rel arguments values args (everyArgs_localised_sharp localised)
   have rsize := frame_size_eq_sharp rel returnShape
   have argLen := mapM_some_length_sharp _ _ _ htargs
   have slots := M.slotOk (sizeOfShapeHOL returnShape)
   have callFit := M.callOk fn function
-  have argFit : ∀ n, M.callP fn function n +
+  have argFit : ∀ n, n ≤ 21 → M.callP fn function n +
       M.S.argP ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length ≤
       callOverhead (values.flatMap flattenHOL).length + callSites fn function := by
-    intro n; rw [← argLen]; exact callFit n _
+    intro n hn; rw [← argLen]; exact callFit n _ hn
   have hdl := M.handlerOk (flattenHOL exn).length
   have bodyStop : M.stopP (some (.exception handlerId exn)) = 0 := rfl
   rw [bodyStop] at boundBody
@@ -224,8 +227,9 @@ theorem call_handler_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
   generalize sharpScore handlerEvents = H at handlerWork ⊢
   generalize callOverhead (values.flatMap flattenHOL).length = C at argFit ⊢
   generalize slotOverhead (sizeOfShapeHOL returnShape) = D at slots ⊢
-  rcases compileCallSomeShapeHdl context dest (some (handlerId, handlerVar, handlerProgram))
-      function arguments vshapes returnShape rel.locals.1 hfuncs with hc | ⟨_, hnone⟩ | ⟨rts0, hnd0, hc⟩
+  have retSmall := (fsmall _ _ _ hfuncs).2
+  rcases compileCallSomeShapeHdl_small context dest (some (handlerId, handlerVar, handlerProgram))
+      function arguments vshapes returnShape rel.locals.1 small hfuncs with hc | ⟨_, hnone⟩ | ⟨rts0, hnd0, hrs, hc⟩
   · rw [hc, hfire]
     have hnodup : ((List.range (sizeOfShapeHOL returnShape)).map
         (fun i => context.vmax + i + 1)).Nodup :=
@@ -250,15 +254,16 @@ theorem call_handler_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
         omega)
     have inner := CrepWorkF.callHandler (fn := fn) (t := zeroSlotState_sharp t _) zeroArgs htlookup hnodup htclock
       workBody hrun1 workH
-    refine ⟨_, M.work_zero_slots t _ _ _ hnodup inner, ?_⟩
-    have := argFit (sizeOfShapeHOL returnShape)
+    obtain ⟨wz, workZ, boundZ⟩ := M.work_zero_slots t _ _ _ hnodup inner
+    refine ⟨wz, workZ, Nat.le_trans boundZ ?_⟩
+    have := argFit (sizeOfShapeHOL returnShape) retSmall
     simp only [crepRetCount, List.length_map, List.length_range] at this ⊢
     omega
   · rw [hfire] at hnone; exact absurd hnone (by simp)
   · rw [hc, hfire]
     obtain ⟨wh, workH, boundH⟩ := handlerWork t.locals (fun _ _ => rfl)
     exact ⟨_, CrepWorkF.callHandler htargs htlookup hnd0 htclock workBody hrun1 workH, by
-      have := argFit rts0.length; omega⟩
+      have := argFit rts0.length hrs; omega⟩
 
 end SharpModel
 

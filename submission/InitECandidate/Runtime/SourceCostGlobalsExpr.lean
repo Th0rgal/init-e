@@ -79,7 +79,7 @@ theorem srcScore_expression (B : Nat) (rest : List WorkEvent) :
   simp only [sharpSourceScore_cons, sharpSource_expression, Nat.zero_add]
 
 theorem srcScore_copy (B n : Nat) (rest : List WorkEvent) :
-    sharpSourceScore B (.copy n :: rest) = 14 * n + sharpSourceScore B rest := by
+    sharpSourceScore B (.copy n :: rest) = 24 * n + sharpSourceScore B rest := by
   simp only [sharpSourceScore_cons, sharpSource_copy]
 
 theorem srcScore_frame (B n : Nat) (rest : List WorkEvent) :

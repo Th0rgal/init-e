@@ -8,7 +8,7 @@ variable (M : SharpModel) {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem bounded_dec (name : Nat) (value : CrepExpHOL 64) {body : CrepProgHOL 64} {b : Nat}
     (bodyBounded : CrepBoundedM M body b) :
-    CrepBoundedM M (.dec name value body) (nodePriceK M.K value + b) := by
+    CrepBoundedM M (.dec name value body) (M.pr value + b) := by
   intro σ fn t
   rcases evaluated : evalCrepSemHOLExp t value with _ | word
   · exact ⟨_, CrepWorkF.decFailure (fn := fn) evaluated, by omega⟩
@@ -21,11 +21,11 @@ theorem word_paid {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHOLSt
     (evaluated : expressionValue s expression = some (.val (.word word)))
     (rel : SourceCrepRel context s t) (localised : localisedExpHOL expression = true)
     (compiled : compileExpExactHOLW context expression = ([ce], .one)) :
-    nodePriceK M.K ce ≤ sharpScore ((expressionEvents s expression)) := by
+    M.pr ce ≤ sharpScore ((expressionEvents s expression)) := by
   have bound := M.expression_paid s context t.locals rel.locals expression _
     evaluated localised
   rw [compiled] at bound
-  simp only [nodePriceListK_cons, nodePriceListK_nil] at bound
+  simp only [prs_cons, prs_nil] at bound
   omega
 
 theorem external_transfer {F : Type} {s post : PanSemStateFiniteExact 64 F}

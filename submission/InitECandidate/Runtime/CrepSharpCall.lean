@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.CrepSharpDec
+import InitECandidate.Runtime.CrepSharpWidth
 import InitECandidate.Runtime.SourceCostSharpCrepCall
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -50,9 +51,9 @@ theorem arguments_paid {F : Type} {s : PanSemStateFiniteExact 64 F}
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments =
         some values →
       everyExpListHOL localisedExpHOL arguments = true →
-      nodePriceListK M.K ((compileExpExactHOLWList context arguments).flatMap Prod.fst) ≤
+      M.prs ((compileExpExactHOLWList context arguments).flatMap Prod.fst) ≤
         sharpScore ((expressionListEvents s arguments))
-  | [], _, _, _ => by simp [compileExpExactHOLWList, nodePriceListK]
+  | [], _, _, _ => by simp [compileExpExactHOLWList, prs]
   | head :: tail, values, evaluated, checked => by
     simp only [evalListHOLFinite, evalListHOLExact] at evaluated
     cases headValue : @evalHOLExact 64 F _ s.toExact
@@ -67,30 +68,22 @@ theorem arguments_paid {F : Type} {s : PanSemStateFiniteExact 64 F}
         have headBound := M.expression_paid s context t.locals rel.locals
           head value headValue (everyExpHOL_root checked.1)
         have tailBound := arguments_paid rel tail rest tailValue checked.2
-        rw [compileExpExactHOLWList, List.flatMap_cons, nodePriceListK_append,
+        rw [compileExpExactHOLWList, List.flatMap_cons, M.prs_append,
           expressionList_cons_events_sharp, sharpScore_append]
         omega
 
-theorem zero_consts_price (n : Nat) :
-    nodePriceListK M.K (List.replicate n (CrepExpHOL.const (0 : BitVec 64))) = n * M.K.cst := by
-  induction n with
-  | zero => simp [nodePriceListK]
-  | succ n ih =>
-    simp only [List.replicate_succ, nodePriceListK_cons, nodePriceK]
-    rw [ih, Nat.succ_mul]; omega
 
 /-- A compiled Crep call wrapped in zero-initialized return slots. -/
 theorem work_zero_slots {σ : Type} (t : CrepSemHOLState 64 σ) (rts : List Nat)
     (program : CrepProgHOL 64) (w : Nat) (nodup : rts.Nodup)
     (inner : CrepWorkM M fn (zeroSlotState_sharp t rts) program w) :
-    CrepWorkM M fn t (nestedDecsHOL rts (List.replicate rts.length (.const (0 : BitVec 64))) program)
-      (rts.length * M.K.cst + w) := by
+    ∃ w', CrepWorkM M fn t (nestedDecsHOL rts (List.replicate rts.length (.const (0 : BitVec 64))) program) w' ∧
+      w' ≤ rts.length * M.C + w := by
   have work := M.work_nestedDecs_eval (List.replicate rts.length (.const (0 : BitVec 64))) rts
     (List.replicate rts.length (HolWordLab.word (0 : BitVec 64))) program t w
     (by simp [evalCrepSemHOLExp]) (by simp)
     (by simp [distinctListsHol, crepExpVarsHOL]) nodup inner
-  rw [zero_consts_price] at work
-  exact work
+  exact ⟨_, work, by have := M.prs_consts rts.length (0 : BitVec 64); omega⟩
 
 theorem exit_le {F : Type} {context : PanToCrepContextExact 64}
     {post : PanSemStateFiniteExact 64 F} {t1 : CrepSemHOLState 64 F}
@@ -136,12 +129,12 @@ theorem call_done_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post)
     (resultOk : result ≠ some .error)
-    (rel : SourceCrepRel context s t)
+    (rel : SourceCrepRel context s t) (small : VarsSmall context) (fsmall : FuncsSmall context)
     (localised : localisedProgHOL (.call info function arguments) = true)
     (checkedArgs : sharpSitesList sharpReplayBound arguments = true)
     (ihBody : ∀ (t' : CrepSemHOLState 64 F) (context' : PanToCrepContextExact 64),
       SourceCrepRel context' (callEntryStateHOLFinite s callee) t' →
-      localisedProgHOL body = true →
+      localisedProgHOL body = true → VarsSmall context' → FuncsSmall context' →
       M.CrepWorkPaidM (fn := function) t' (compileProgExactHOLW context' body) bodyEvents
         (M.stopP bodyResult)) :
     M.CrepWorkPaidM (fn := fn) t (compileProgExactHOLW context (.call info function arguments))
@@ -157,6 +150,8 @@ theorem call_done_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
     pcCompileCorrectCallPrelude s t context function arguments values body callee returnShape
       args lookup rel.state rel.code rel.exceptions rel.locals (everyArgs_localised_sharp localised)
   obtain ⟨wb, workBody, boundBody⟩ := ihBody _ _ ⟨hst', hcode', hexcp', hloc'⟩ hprogLoc
+    (varsSmall_ctxtFc _ _ _ _ _ (fun sh h => by
+      obtain ⟨p, hp, rfl⟩ := List.mem_map.mp h; exact (fsmall _ _ _ hfuncs).1 p hp)) fsmall
   obtain ⟨r1, t1, hrun1, _, _, _, hrr⟩ :=
     compiled_source_run _ _ bodyRun.sound bodyOk hst' hcode' hexcp' hloc' hprogLoc
   have htclock : t.clock ≠ 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
@@ -167,10 +162,10 @@ theorem call_done_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
   have stop := M.stopP_done plan
   have slots := M.slotOk (sizeOfShapeHOL returnShape)
   have callFit := M.callOk fn function
-  have argFit : ∀ n, M.callP fn function n +
+  have argFit : ∀ n, n ≤ 21 → M.callP fn function n +
       M.S.argP ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length ≤
       callOverhead (values.flatMap flattenHOL).length + callSites fn function := by
-    intro n; rw [← argLen]; exact callFit n _
+    intro n hn; rw [← argLen]; exact callFit n _ hn
   unfold CrepWorkPaidM
   rw [call_events_score, rsize]
   generalize sharpScore ((expressionListEvents s arguments)) = A
@@ -182,7 +177,7 @@ theorem call_done_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
   · simp only [compileProgExactHOLW, compileCallNoReturnExactHOLW]
     refine ⟨_, CrepWorkF.callBody htargs htlookup (by simp [crepReturnInfoNodupError]) htclock
       workBody hrun1 (by intro code rts h _ heq; simp at heq), ?_⟩
-    have := argFit 0; simp only [crepRetCount]; omega
+    have := argFit 0 (by omega); simp only [crepRetCount]; omega
   · have noFire := done_plan_no_fire_sharp plan resultOk rel.exceptions
       (calleeContext := ctxtFcExactHOL context.funcs context.eids
         (vshapes.map Prod.fst) (vshapes.map Prod.snd)
@@ -194,8 +189,9 @@ theorem call_done_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
       intro rts code rts' h hr1 heq
       simp only [Option.some.injEq, Prod.mk.injEq] at heq
       exact noFire code h heq.2 hr1
-    rcases compileCallSomeShapeHdl context dest hdl function arguments vshapes returnShape
-        rel.locals.1 hfuncs with hc | ⟨hc, _⟩ | ⟨rts0, hnd0, hc⟩
+    have retSmall := (fsmall _ _ _ hfuncs).2
+    rcases compileCallSomeShapeHdl_small context dest hdl function arguments vshapes returnShape
+        rel.locals.1 small hfuncs with hc | ⟨hc, _⟩ | ⟨rts0, hnd0, hrs, hc⟩
     · rw [hc]
       have hnodup : ((List.range (sizeOfShapeHOL returnShape)).map
           (fun i => context.vmax + i + 1)).Nodup :=
@@ -213,18 +209,19 @@ theorem call_done_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
         compileCallHdlC context hdl)) zeroArgs htlookup
         (by simpa [crepReturnInfoNodupError] using hnodup) htclock workBody hrun1
         (by intro code rts h hr1; exact unhandled _ code rts h hr1)
-      refine ⟨_, M.work_zero_slots t _ _ _ hnodup inner, ?_⟩
-      have := argFit (sizeOfShapeHOL returnShape)
+      obtain ⟨wz, workZ, boundZ⟩ := M.work_zero_slots t _ _ _ hnodup inner
+      refine ⟨wz, workZ, Nat.le_trans boundZ ?_⟩
+      have := argFit (sizeOfShapeHOL returnShape) retSmall
       simp only [crepRetCount, List.length_map, List.length_range] at payload ⊢
       omega
     · rw [hc]
       refine ⟨_, CrepWorkF.callBody htargs htlookup (by simp [crepReturnInfoNodupError]) htclock
         workBody hrun1 (by intro code rts h _ heq; simp at heq), ?_⟩
-      have := argFit 0; simp only [crepRetCount]; omega
+      have := argFit 0 (by omega); simp only [crepRetCount]; omega
     · rw [hc]
       refine ⟨_, CrepWorkF.callBody htargs htlookup (by simpa [crepReturnInfoNodupError] using hnd0)
         htclock workBody hrun1 (by intro code rts h hr1; exact unhandled _ code rts h hr1), ?_⟩
-      have := argFit rts0.length; simp only [crepRetCount]; omega
+      have := argFit rts0.length hrs; simp only [crepRetCount]; omega
 
 /-- A call reaching a zero clock after argument evaluation and lookup times out
 before entering the callee; only the arguments and any return-slot setup ran. -/
@@ -239,7 +236,7 @@ theorem call_timeout_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock = 0)
-    (rel : SourceCrepRel context s t)
+    (rel : SourceCrepRel context s t) (small : VarsSmall context) (fsmall : FuncsSmall context)
     (localised : localisedProgHOL (.call info function arguments) = true)
     (checkedArgs : sharpSitesList sharpReplayBound arguments = true)
     :
@@ -258,10 +255,10 @@ theorem call_timeout_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
   have rsize := frame_size_eq_sharp rel returnShape
   have slots := M.slotOk (sizeOfShapeHOL returnShape)
   have callFit := M.callOk fn function
-  have argFit : ∀ n, M.callP fn function n +
+  have argFit : ∀ n, n ≤ 21 → M.callP fn function n +
       M.S.argP ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length ≤
       callOverhead (values.flatMap flattenHOL).length + callSites fn function := by
-    intro n; rw [← argLen]; exact callFit n _
+    intro n hn; rw [← argLen]; exact callFit n _ hn
   unfold CrepWorkPaidM
   simp only [stopP, sharpScore_statement, sharpScore_append, sharpScore_cost, sharpScore_nil, rsize]
   generalize sharpScore (expressionListEvents s arguments) = A at argsPaid ⊢
@@ -273,15 +270,16 @@ theorem call_timeout_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
       t''.clock = t.clock →
       CrepWorkM M fn t'' (.call ri function ((compileExpExactHOLWList context arguments).flatMap
         Prod.fst)) (M.callP fn function (crepRetCount ri) + M.shortP +
-          nodePriceListK M.K ((compileExpExactHOLWList context arguments).flatMap Prod.fst) +
+          M.prs ((compileExpExactHOLWList context arguments).flatMap Prod.fst) +
           M.S.argP ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length) := by
     intro t'' ri hargs hcode hclk
     exact CrepWorkF.callShort (Or.inr ⟨_, hargs, Or.inr (Or.inr (by rw [hclk]; exact htclock))⟩)
   rcases info with _ | ⟨dest, hdl⟩
   · simp only [compileProgExactHOLW, compileCallNoReturnExactHOLW]
-    exact ⟨_, short t none htargs rfl rfl, by have := argFit 0; simp only [crepRetCount]; omega⟩
-  · rcases compileCallSomeShapeHdl context dest hdl function arguments vshapes returnShape
-        rel.locals.1 hfuncs with hc | ⟨hc, _⟩ | ⟨rts0, _, hc⟩
+    exact ⟨_, short t none htargs rfl rfl, by have := argFit 0 (by omega); simp only [crepRetCount]; omega⟩
+  · have retSmall := (fsmall _ _ _ hfuncs).2
+    rcases compileCallSomeShapeHdl_small context dest hdl function arguments vshapes returnShape
+        rel.locals.1 small hfuncs with hc | ⟨hc, _⟩ | ⟨rts0, _, hrs, hc⟩
     · rw [hc]
       have hnodup : ((List.range (sizeOfShapeHOL returnShape)).map
           (fun i => context.vmax + i + 1)).Nodup :=
@@ -295,14 +293,15 @@ theorem call_timeout_transfer {F : Type} {s : PanSemStateFiniteExact 64 F}
         (List.replicate ((List.range (sizeOfShapeHOL returnShape)).map
           (fun i => context.vmax + i + 1)).length (HolWordLab.word (0 : BitVec 64)))
         ⟨htargs, by simp, hdist⟩
-      refine ⟨_, M.work_zero_slots t _ _ _ hnodup
-        (short (zeroSlotState_sharp t _) _ zeroArgs rfl rfl), ?_⟩
-      have := argFit (sizeOfShapeHOL returnShape)
+      obtain ⟨wz, workZ, boundZ⟩ := M.work_zero_slots t _ _ _ hnodup
+        (short (zeroSlotState_sharp t _) _ zeroArgs rfl rfl)
+      refine ⟨wz, workZ, Nat.le_trans boundZ ?_⟩
+      have := argFit (sizeOfShapeHOL returnShape) retSmall
       simp only [crepRetCount, List.length_map, List.length_range]
       omega
-    · rw [hc]; exact ⟨_, short t _ htargs rfl rfl, by have := argFit 0; simp only [crepRetCount]; omega⟩
+    · rw [hc]; exact ⟨_, short t _ htargs rfl rfl, by have := argFit 0 (by omega); simp only [crepRetCount]; omega⟩
     · rw [hc]; exact ⟨_, short t _ htargs rfl rfl, by
-        have := argFit rts0.length; simp only [crepRetCount]; omega⟩
+        have := argFit rts0.length hrs; simp only [crepRetCount]; omega⟩
 
 end SharpModel
 

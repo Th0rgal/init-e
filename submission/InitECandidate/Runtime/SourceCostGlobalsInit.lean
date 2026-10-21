@@ -48,12 +48,12 @@ theorem globals_constStores : ∀ (decls : List (DeclHOL 64)) (context : PanGlob
     simp only [compileDecsExactHOL] at hi
     exact globals_constStores rest context ready i hi
 
-/-- One constant store costs 265: `TopAddr` address 176, constant 24, one
-stored word 65. -/
+/-- One constant store costs 272: `TopAddr` address 176, constant 24, one
+stored word 72. -/
 theorem globals_constStore_score (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {address word : BitVec 64} {r ev}
     (run : StatementRun fn s (.store (.op .sub [.topAddr, .const address]) (.const word)) r post ev)
-    (ok : r ≠ some .error) : sharpSourceScore B ev = 265 := by
+    (ok : r ≠ some .error) : sharpSourceScore B ev = 272 := by
   cases run
   case storeValue =>
     rename_i _ value _ aev vev _ dst src
@@ -70,12 +70,12 @@ theorem globals_constStore_score (B : Nat) {F : Type} {s post : PanSemStateFinit
     omega
   all_goals exact absurd rfl ok
 
-/-- The initialiser block of the generated entry costs `265` per store; the
+/-- The initialiser block of the generated entry costs `272` per store; the
 final `Skip` is free. -/
 theorem globals_inits_score (B : Nat) {F : Type} :
     ∀ (inits : List (ProgHOL 64)) {s post : PanSemStateFiniteExact 64 F} {r ev},
       ConstStores inits → StatementRun fn s (nestedSeqHOL inits) r post ev → r ≠ some .error →
-        sharpSourceScore B ev ≤ 265 * inits.length
+        sharpSourceScore B ev ≤ 272 * inits.length
   | [], _, _, _, _, _, run, _ => by
     cases run
     simp [srcScore_statement, sharpSourceScore_nil]
