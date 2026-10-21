@@ -142,3 +142,56 @@ pair counts at each merge (bounded by `70*n` per merge as above); return moves
 at a returning call = the moves in the allocated continuation between the
 returned-value store and the continuation's first read, which the call stage's
 continuation leg covers at the compiler's own reached popped state.
+
+## Quantitative simulation and the seq induction case (current state)
+
+`quantSsaSimulation prog source target ssa next tables extra` is the compiler's
+`ssaSimulation` (`SSASemanticControl.lean:12`) plus one conjunct: the executed cost of the
+ACTUAL compiled program `(ssaCcTrans prog ssa next tables).1` on the target state is at most
+the source program's cost on the source state plus `extra`. It keeps the source permutation
+witness, the actual runs, the outcome equality, `wordStateEqRel` and the `none`-branch
+`ssaLocalsRel` unchanged, and prices everything by `refinedWordLocalPrice` (the canonical
+target price: `12 * (parmove (physPairs pairs)).length` for a move, `23`/`2`/`41` for
+ite/loop/non-returning call, `0` for a seq).
+
+### What is proved
+
+- `ssaCcTrans_seq_transfer_compiled`: the compiled-syntax `seq` transfer, derived through
+  `ssaCcTrans_seq_shape` (threaded first/second outputs), the reached-pair split, and
+  `refinedWordLocalPrice_seq_zero`;
+- `seq_transfer_refined` / `seq_transfer_escape_refined`: the two outcomes at the canonical
+  price, the escape side charging no suffix;
+- `canonical_move_price_le_table`: `refinedWordLocalPrice (.move pri pairs) s <=
+  allocMovePrice pairs` whenever finite-auth's `goSeq` accepts the node, i.e. the coalescing
+  table bounds exactly the canonical price of the emitted move node;
+- `move_seq_no_differential`: a move node present on both runs contributes zero differential.
+
+### The obstruction in the seq induction case
+
+`quantSsaSimulation` binds the run with `let sourceRun := evaluate prog {source with permute
+:= permutation}`, so after `dsimp` the scrutinee inside its `match` is the fully expanded
+record literal, while the goal obtained by `if_neg` has the scrutinee in `evaluate ... {source
+with permute := ...}` form. The two are definitionally but not syntactically equal, so the
+`ssaLocalsRel` component cannot be transported with `exact` (the outcome equality and
+`wordStateEqRel` components do go through). `set`/`generalize` do not catch the occurrence
+because it is syntactically different.
+
+### The fix
+
+State the predicate with the two runs as explicit existential variables and the equations as
+conjuncts, e.g.
+
+    exists permutation, exists sourceRun targetRun,
+      evaluate prog {source with permute := permutation} = sourceRun
+      /\ evaluate (ssaCcTrans prog ssa next tables).1 target = targetRun
+      /\ (sourceRun.1 = some .error /\ True \/
+          sourceRun.1 = targetRun.1 /\ wordStateEqRel sourceRun.2 targetRun.2
+          /\ (match sourceRun.1 with | none => ... | _ => True)
+          /\ cost bound)
+
+Then the `match` scrutinees are variables on both sides and the transport is `rw`/`subst`.
+With that in place the seq case follows as: from the first body's quantitative IH, the
+outcome equality gives `targetRun = (none, midT)` whenever the source falls through (so `hT`
+and `midT` are obtained, not assumed); the second body's IH is instantiated at the threaded
+`secondOut` of `ssaCcTrans_seq_shape` and at the reached middles; `ssaCcTrans_seq_transfer_compiled`
+composes the cost; `seq_transfer_escape_refined` covers the escaping outcome.
