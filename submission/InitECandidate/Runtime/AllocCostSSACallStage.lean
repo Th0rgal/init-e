@@ -332,9 +332,49 @@ theorem ssaCall_returning_cost_stage_full {C F : Type}
   rw [hT, hS]
   omega
 
+/-- **Handler-side `setVar` continuation transport.**  The exception branch
+continues on `setVar reg value middle`, i.e. exactly a continuation state, so it
+inherits the checked stack-variant transport. -/
+theorem nativeWordPrice_setVarContinuation_transfer {C F : Type}
+    (reg : Nat) (value : WordLocW 64) (handlerCode : WordLangProgHOL (BitVec 64))
+    (middle : WordSemStateFiniteExact 64 C F) (ys : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq middle.stack ys)
+    (hne : (evaluate handlerCode
+      (WordSemStateFiniteExact.setVar reg value middle)).1 ≠
+        some WordSemResult.error) :
+    wordExecutionCost nativeWordPrice handlerCode
+        { WordSemStateFiniteExact.setVar reg value middle with stack := ys } =
+      wordExecutionCost nativeWordPrice handlerCode
+        (WordSemStateFiniteExact.setVar reg value middle) :=
+  nativeWordPrice_returnContinuation_transfer handlerCode
+    (WordSemStateFiniteExact.setVar reg value middle) ys hval hne
+
+/-- **Handler-side stage transport at the allocator relation.**  For
+`SsaAllocRel`-related middle (post-call) states, the allocated handler
+continuation costs the same when its stack is replaced by the source stack; the
+`sValEq` condition is derived from the relation, not assumed. -/
+theorem ssaCall_handler_stage {C F : Type}
+    (ssa : Spt Nat) (next : Nat)
+    (reg : Nat) (value : WordLocW 64) (handlerCode : WordLangProgHOL (BitVec 64))
+    (middleT middle : WordSemStateFiniteExact 64 C F)
+    (rel : SsaAllocRel ssa next middleT middle)
+    (hne : (evaluate handlerCode
+      (WordSemStateFiniteExact.setVar reg value middleT)).1 ≠
+        some WordSemResult.error) :
+    wordExecutionCost nativeWordPrice handlerCode
+        { WordSemStateFiniteExact.setVar reg value middleT with stack := middle.stack } =
+      wordExecutionCost nativeWordPrice handlerCode
+        (WordSemStateFiniteExact.setVar reg value middleT) := by
+  refine nativeWordPrice_setVarContinuation_transfer reg value handlerCode middleT
+    middle.stack ?_ hne
+  rw [← stage_stack rel]
+  exact sValEq_refl_stack middle.stack
+
 #print axioms wec_call_returning_exception_unfold
 #print axioms ssaCall_returning_cost_stage
 #print axioms ssaCall_exception_cost_stage
+#print axioms nativeWordPrice_setVarContinuation_transfer
+#print axioms ssaCall_handler_stage
 #print axioms ssaCall_returning_cost_stage_full
 #print axioms ssaCall_body_stage
 #print axioms ssaCall_continuation_stage
