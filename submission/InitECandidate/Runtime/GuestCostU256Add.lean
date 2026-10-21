@@ -2,7 +2,11 @@ import InitECandidate.Runtime.GuestCostChargeFamily
 import InitECandidate.Runtime.GuestCostAtomicExpressions
 import InitECandidate.Runtime.PanScalarCostModel
 import InitECandidate.Runtime.GuestCostComb4Load
+set_option maxRecDepth 10000
+set_option maxHeartbeats 4000000
 namespace InitECandidate.Runtime.FineCost
+
+variable {fn : MlS}
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
@@ -202,7 +206,7 @@ noncomputable def u256AddDecEvents (s : PanSemStateFiniteExact 64 F) (name : MlS
 noncomputable def u256AddReturnEvents (s : PanSemStateFiniteExact 64 F) (payload : ValueHOL 64) :
     List WorkEvent :=
   .statement :: (expressionEvents s u256AddReturnExpr ++
-    [.cost (returnOverhead (flattenHOL payload).length)])
+    [.cost (returnOverhead (flattenHOL payload).length + returnMoves fn)])
 
 /-- One `addCarry` primitive step: its three word arguments, the pair result, and
 the validity of writing it over the declared limb pair. -/
@@ -213,7 +217,7 @@ theorem u256Add_primitive_run (s : PanSemStateFiniteExact 64 F) (name : MlString
     (hRight : expressionValue s eRight = some (.val (.word right)))
     (hCarry : expressionValue s eCarry = some (.val (.word carry)))
     (hName : s.locals.lookup name = some (.rStruct [.val (.word old0), .val (.word old1)])) :
-    StatementRun s (.primitive name .addCarry [eLeft, eRight, eCarry]) none
+    StatementRun fn s (.primitive name .addCarry [eLeft, eRight, eCarry]) none
       (setVarHOLFinite name (u256AddCarryValue left right carry) s)
       (u256AddPrimEvents s left right carry [eLeft, eRight, eCarry]) := by
   classical
@@ -237,8 +241,8 @@ theorem u256Add_primitive_run (s : PanSemStateFiniteExact 64 F) (name : MlString
 theorem u256Add_dec_run (s : PanSemStateFiniteExact 64 F) (name : MlStringHOL)
     (body : ProgHOL 64) (r : Option (PanSemResultExact 64)) (post : PanSemStateFiniteExact 64 F)
     (bodyEvents : List WorkEvent)
-    (bodyRun : StatementRun (setVarHOLFinite name u256AddZeroValue s) body r post bodyEvents) :
-    StatementRun s (.dec name comb2Shape u256AddZeroPair body) r
+    (bodyRun : StatementRun fn (setVarHOLFinite name u256AddZeroValue s) body r post bodyEvents) :
+    StatementRun fn s (.dec name comb2Shape u256AddZeroPair body) r
       { post with locals := (HolFiniteMapExact.resVarEq post.locals
         (name, s.locals.lookup name)) }
       (u256AddDecEvents s name bodyEvents) := by
@@ -260,11 +264,11 @@ theorem u256Add_return_run (s : PanSemStateFiniteExact 64 F)
       some (.rStruct [.val (.word l2), .val (.word c2)]))
     (hR3 : s.locals.lookup (ofString "r3") =
       some (.rStruct [.val (.word l3), .val (.word c3)])) :
-    StatementRun s (.return u256AddReturnExpr)
+    StatementRun fn s (.return u256AddReturnExpr)
       (some (.returned (.rStruct [.val (.word l0), .val (.word l1),
         .val (.word l2), .val (.word l3)])))
       (emptyLocalsHOLFinite s)
-      (u256AddReturnEvents s (.rStruct [.val (.word l0), .val (.word l1),
+      (u256AddReturnEvents (fn := fn) s (.rStruct [.val (.word l0), .val (.word l1),
         .val (.word l2), .val (.word l3)])) := by
   classical
   have value : expressionValue s u256AddReturnExpr =
@@ -309,7 +313,7 @@ noncomputable def u256AddEvents (s : PanSemStateFiniteExact 64 F)
               (u256AddDecEvents s2b (ofString "r3")
                 (u256AddSeqEvents
                   (u256AddPrimEvents s3a a3 b3 c2 u256AddArgs3)
-                  (u256AddReturnEvents s3b payload))))))))
+                  (u256AddReturnEvents (fn := fn) s3b payload))))))))
 
 /-- The post state of one successful `u256_add`: the four declared limb pairs are
 dropped and their previous bindings restored. -/
@@ -345,7 +349,7 @@ theorem u256Add_run (s : PanSemStateFiniteExact 64 F)
       some (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)]))
     (hB : s.locals.lookup (ofString "b") =
       some (.rStruct [.val (.word b0), .val (.word b1), .val (.word b2), .val (.word b3)])) :
-    StatementRun s (sourceFunctionBody Guest.guestFn_u256_add)
+    StatementRun fn s (sourceFunctionBody Guest.guestFn_u256_add)
       (some (.returned (.rStruct [
         .val (.word (u256AddCarryResult a0 b0 (0 : BitVec 64))),
         .val (.word (u256AddCarryResult a1 b1 (u256AddCarryOverflow a0 b0 (0 : BitVec 64)))),
@@ -355,7 +359,7 @@ theorem u256Add_run (s : PanSemStateFiniteExact 64 F)
           (u256AddCarryOverflow a2 b2
             (u256AddCarryOverflow a1 b1 (u256AddCarryOverflow a0 b0 (0 : BitVec 64))))))])))
       (u256AddPost s a0 a1 a2 a3 b0 b1 b2 b3)
-      (u256AddEvents s a0 a1 a2 a3 b0 b1 b2 b3) := by
+      (u256AddEvents (fn := fn) s a0 a1 a2 a3 b0 b1 b2 b3) := by
   classical
   let c0 := u256AddCarryOverflow a0 b0 (0 : BitVec 64)
   let c1 := u256AddCarryOverflow a1 b1 c0
@@ -488,9 +492,9 @@ theorem u256Add_run (s : PanSemStateFiniteExact 64 F)
   have hR3s3b : s3b.locals.lookup (ofString "r3") =
       some (u256AddCarryValue a3 b3 c2) := by
     simp [s3b, setVarHOLFinite, FUPDATE]
-  have prim0 : StatementRun s0a (.primitive (ofString "r0") .addCarry u256AddArgs0) none s0b
+  have prim0 : StatementRun fn s0a (.primitive (ofString "r0") .addCarry u256AddArgs0) none s0b
       (u256AddPrimEvents s0a a0 b0 (0 : BitVec 64) u256AddArgs0) := by
-    have := u256Add_primitive_run s0a (ofString "r0") a0 b0 (0 : BitVec 64) 0 0
+    have := u256Add_primitive_run (fn := fn) s0a (ofString "r0") a0 b0 (0 : BitVec 64) 0 0
       (.rfield 0 (.var VarKind.local (ofString "a")))
       (.rfield 0 (.var VarKind.local (ofString "b"))) (.const (0 : BitVec 64))
       (eval_rfield_four_zero s0a (ofString "a") a0 a1 a2 a3 hAs0a)
@@ -498,9 +502,9 @@ theorem u256Add_run (s : PanSemStateFiniteExact 64 F)
       (by simp [expressionValue, evalHOLExact, toExact])
       hR0s0a
     simpa [u256AddArgs0, s0b, u256AddZeroValue] using this
-  have prim1 : StatementRun s1a (.primitive (ofString "r1") .addCarry u256AddArgs1) none s1b
+  have prim1 : StatementRun fn s1a (.primitive (ofString "r1") .addCarry u256AddArgs1) none s1b
       (u256AddPrimEvents s1a a1 b1 c0 u256AddArgs1) := by
-    have := u256Add_primitive_run s1a (ofString "r1") a1 b1 c0 0 0
+    have := u256Add_primitive_run (fn := fn) s1a (ofString "r1") a1 b1 c0 0 0
       (.rfield 1 (.var VarKind.local (ofString "a")))
       (.rfield 1 (.var VarKind.local (ofString "b")))
       (.rfield 1 (.var VarKind.local (ofString "r0")))
@@ -511,9 +515,9 @@ theorem u256Add_run (s : PanSemStateFiniteExact 64 F)
         (u256AddCarryOverflow a0 b0 (0 : BitVec 64)) hR0s1a)
       hR1s1a
     simpa [u256AddArgs1, s1b, u256AddZeroValue] using this
-  have prim2 : StatementRun s2a (.primitive (ofString "r2") .addCarry u256AddArgs2) none s2b
+  have prim2 : StatementRun fn s2a (.primitive (ofString "r2") .addCarry u256AddArgs2) none s2b
       (u256AddPrimEvents s2a a2 b2 c1 u256AddArgs2) := by
-    have := u256Add_primitive_run s2a (ofString "r2") a2 b2 c1 0 0
+    have := u256Add_primitive_run (fn := fn) s2a (ofString "r2") a2 b2 c1 0 0
       (.rfield 2 (.var VarKind.local (ofString "a")))
       (.rfield 2 (.var VarKind.local (ofString "b")))
       (.rfield 1 (.var VarKind.local (ofString "r1")))
@@ -523,9 +527,9 @@ theorem u256Add_run (s : PanSemStateFiniteExact 64 F)
         (u256AddCarryResult a1 b1 c0) (u256AddCarryOverflow a1 b1 c0) hR1s2a)
       hR2s2a
     simpa [u256AddArgs2, s2b, u256AddZeroValue] using this
-  have prim3 : StatementRun s3a (.primitive (ofString "r3") .addCarry u256AddArgs3) none s3b
+  have prim3 : StatementRun fn s3a (.primitive (ofString "r3") .addCarry u256AddArgs3) none s3b
       (u256AddPrimEvents s3a a3 b3 c2 u256AddArgs3) := by
-    have := u256Add_primitive_run s3a (ofString "r3") a3 b3 c2 0 0
+    have := u256Add_primitive_run (fn := fn) s3a (ofString "r3") a3 b3 c2 0 0
       (.rfield 3 (.var VarKind.local (ofString "a")))
       (.rfield 3 (.var VarKind.local (ofString "b")))
       (.rfield 1 (.var VarKind.local (ofString "r2")))
@@ -535,13 +539,13 @@ theorem u256Add_run (s : PanSemStateFiniteExact 64 F)
         (u256AddCarryResult a2 b2 c1) (u256AddCarryOverflow a2 b2 c1) hR2s3a)
       hR3s3a
     simpa [u256AddArgs3, s3b, u256AddZeroValue] using this
-  have retRun : StatementRun s3b (.return u256AddReturnExpr)
+  have retRun : StatementRun fn s3b (.return u256AddReturnExpr)
       (some (.returned (.rStruct [.val (.word l0), .val (.word l1),
         .val (.word l2), .val (.word l3)])))
       (emptyLocalsHOLFinite s3b)
-      (u256AddReturnEvents s3b (.rStruct [.val (.word l0), .val (.word l1),
+      (u256AddReturnEvents (fn := fn) s3b (.rStruct [.val (.word l0), .val (.word l1),
         .val (.word l2), .val (.word l3)])) := by
-    have := u256Add_return_run s3b l0 l1 l2 l3
+    have := u256Add_return_run (fn := fn) s3b l0 l1 l2 l3
       (u256AddCarryOverflow a0 b0 (0 : BitVec 64))
       (u256AddCarryOverflow a1 b1 c0)
       (u256AddCarryOverflow a2 b2 c1)
@@ -549,13 +553,13 @@ theorem u256Add_run (s : PanSemStateFiniteExact 64 F)
       hR0s3b hR1s3b hR2s3b hR3s3b
     simpa [u256AddCarryValue, l0, l1, l2, l3] using this
   have seq3 := StatementRun.seqNext prim3 retRun
-  have dec3 := u256Add_dec_run s2b (ofString "r3") u256AddRest3 _ _ _ seq3
+  have dec3 := u256Add_dec_run (fn := fn) s2b (ofString "r3") u256AddRest3 _ _ _ seq3
   have seq2 := StatementRun.seqNext prim2 dec3
-  have dec2 := u256Add_dec_run s1b (ofString "r2") u256AddRest2 _ _ _ seq2
+  have dec2 := u256Add_dec_run (fn := fn) s1b (ofString "r2") u256AddRest2 _ _ _ seq2
   have seq1 := StatementRun.seqNext prim1 dec2
-  have dec1 := u256Add_dec_run s0b (ofString "r1") u256AddRest1 _ _ _ seq1
+  have dec1 := u256Add_dec_run (fn := fn) s0b (ofString "r1") u256AddRest1 _ _ _ seq1
   have seq0 := StatementRun.seqNext prim0 dec1
-  have dec0 := u256Add_dec_run s (ofString "r0") u256AddRest0 _ _ _ seq0
+  have dec0 := u256Add_dec_run (fn := fn) s (ofString "r0") u256AddRest0 _ _ _ seq0
   rw [source_u256Add_body]
   simpa [u256AddBody, u256AddRest0, u256AddEvents, u256AddPost, u256AddDecEvents, u256AddSeqEvents,
     u256AddPrimEvents, u256AddReturnEvents, u256AddZeroValue, s0a, s0b, s1a, s1b, s2a, s2b,
@@ -588,10 +592,10 @@ theorem expressionCost_zeroPair (coeff : Work) (s : PanSemStateFiniteExact 64 F)
 #print axioms u256Add_run
 
 /-- Explicit coefficient price of the same successful `u256_add` trace. -/
-theorem u256AddEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
+theorem u256AddEvents_score (coeff : Work) {fn : MlS} (s : PanSemStateFiniteExact 64 F)
     (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64) :
-    coeff.score (executionWork (u256AddEvents s a0 a1 a2 a3 b0 b1 b2 b3)) =
-    coeff.score (executionWork (u256AddEvents s a0 a1 a2 a3 b0 b1 b2 b3)) := rfl
+    coeff.score (executionWork (u256AddEvents (fn := fn) s a0 a1 a2 a3 b0 b1 b2 b3)) =
+    coeff.score (executionWork (u256AddEvents (fn := fn) s a0 a1 a2 a3 b0 b1 b2 b3)) := rfl
 
 #print axioms u256AddEvents_score
 
