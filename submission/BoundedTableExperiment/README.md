@@ -935,3 +935,25 @@ outside `node`, `node+8`, and `node+16` preserves the node's left/right/route
 words. This lets a path-buffer push be framed against the live node links.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 42. Actual candidate `htab_set` top-level AST decomposition
+
+`CandidateSetShape.lean` proves the exact candidate AST reduces through the
+runtime codec:
+
+- `sourceFunctionBody_function` and `candidateHtabSet_body`: the body is a
+  `dec "cap"` scope;
+- `candidateHtabSet_body_seq`: its scope body is a two-arm `seq`;
+- `candidateHtabSet_miss_eq`: the first arm is the root-empty `ite`;
+- `candidateHtabSet_found_eq`: the second arm is the
+  `decCall "leaf" htab_find_leaf_path` call;
+- `candidateHtabSet_body_branches`: the combined top-level shape.
+
+`declareValue_score` and `ite_score` give the actual statement-run event
+scores for the declaration and branch constructs. Axioms are `propext`,
+`Classical.choice`, `Quot.sound`.
+
+This is actual AST structure, not an abstract model. The nested search loop,
+path push, binary search, and link write inside `htab_find_leaf_path` and
+`candidateHtabSetLeafBody` still need the same peeling and `StatementRun`
+composition.
