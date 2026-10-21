@@ -2033,4 +2033,37 @@ theorem wec_loop_cutState_none {C F : Type}
     cases hsome
 
 #print axioms wec_loop_cutState_none
+/-- The loop node's cost decomposition over its body run: node price plus the body's cost plus, when
+the body's result continues the loop, the next iteration's cost (at the decremented clock, and zero
+when the clock is exhausted).  Stated with the same `let` and `if`/`dite` binding structure as the
+counter's clause, so the proof is the clause's own case analysis. -/
+theorem wec_loop_split {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s cutSource : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cutSource)
+    (result : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (h : fixClock cutSource (WordSemStateFiniteExact.evaluate body cutSource) = (result, middle)) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s +
+        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body cutSource +
+        (if wordSemContLoop result then
+          (dite (middle.clock = 0) (fun _ => 0)
+            (fun _ => wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (wordSemSTOP (.loop names body liveOut))
+              (Flapjack.WordSemStateFiniteExact.decClock middle)))
+         else 0) := by
+  rw [wordExecutionCost]
+  split
+  · next hnone =>
+    rw [hs] at hnone
+    cases hnone
+  · next cs hsome =>
+    rw [hs] at hsome
+    cases hsome
+    cases hfix : fixClock cutSource (WordSemStateFiniteExact.evaluate body cutSource) with
+    | mk r m =>
+      rw [hfix] at h
+      cases h
+      rfl
+
+#print axioms wec_loop_split
 end InitECandidate.Runtime.FineCost
