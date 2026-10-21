@@ -834,3 +834,21 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`. Combined with the
 multi-slot store score, a path-push loop body can now be costed from executed
 statements; instantiating guard/body events for the concrete `htab_set` loop is
 the remaining step.
+
+## 35. N-iteration loop event trace score
+
+`PathStatementCoupling.lean` adds:
+
+- `whileIterationEvents` / `whileIterationEvents_score`: one loop iteration
+  trace (`statement`, overhead, guard events, body events) scores as the sum of
+  its parts;
+- `n_while_iterations_score`: `n` identical iterations score
+  `n * (statements + nativeCost*overhead + score(guard) + score(body))`;
+- `n_guard_slot_iterations_score`: a guard costing `nativeCost*guardPrice`
+  plus one one-word path-slot store per iteration scores
+  `n * (statements + nativeCost*overhead + nativeCost*guardPrice
+       + statements + memoryAccesses + nativeCost*storeOverhead 1)`.
+
+Axioms are `propext` and `Quot.sound`. This is the loop-level event-trace
+composition; binding the concrete `htab_set` guard prices and link write is
+the remaining instantiation.

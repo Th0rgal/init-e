@@ -123,6 +123,16 @@ theorem path_stores_score (coeff : Work) (runs : List (List WorkEvent)) :
 def oneWordSlotEvents : List WorkEvent :=
   [.statement, .memory 1, .cost (storeOverhead 1)]
 
+def oneWordSlotWork : Work :=
+  { statements := 1, memoryAccesses := 1, nativeCost := storeOverhead 1 }
+
+theorem executionWork_oneWordSlotEvents :
+    executionWork oneWordSlotEvents = oneWordSlotWork := rfl
+
+theorem executionWork_single_cost (coeff : Work) (price : Nat) :
+    coeff.score (executionWork [.cost price]) = coeff.nativeCost * price := by
+  simp [executionWork, WorkEvent.units, Work.plus, Work.score]
+
 /-- `n` one-word path slots charge `n` times the per-slot statement, memory,
 and native store-overhead work. -/
 theorem n_path_slots_score (coeff : Work) :
@@ -185,6 +195,54 @@ theorem whileNext_score {F : Type} (coeff : Work) {fn : Pancake.PanLang.MlS}
   simp [WorkEvent.units, Work.score]
   omega
 
+/-- Event trace of one while iteration, with the guard and body event lists
+abstracted. -/
+def whileIterationEvents (overhead : Nat) (guard body : List WorkEvent) : List WorkEvent :=
+  .statement :: .cost overhead :: (guard ++ body)
+
+/-- The score of one while-iteration trace. -/
+theorem whileIterationEvents_score (coeff : Work) (overhead : Nat)
+    (guard body : List WorkEvent) :
+    coeff.score (executionWork (whileIterationEvents overhead guard body)) =
+      coeff.statements + coeff.nativeCost * overhead +
+      coeff.score (executionWork guard) + coeff.score (executionWork body) := by
+  rw [whileIterationEvents, executionWork_score_cons,
+    executionWork_score_cons, executionWork_score_append]
+  simp [WorkEvent.units, Work.score]
+  omega
+
+/-- `n` identical while iterations charge `n` times the one-iteration score. -/
+theorem n_while_iterations_score (coeff : Work) (overhead : Nat)
+    (guard body : List WorkEvent) :
+    ∀ n, coeff.score (executionWork
+        (List.flatten (List.replicate n (whileIterationEvents overhead guard body)))) =
+      n * (coeff.statements + coeff.nativeCost * overhead +
+        coeff.score (executionWork guard) + coeff.score (executionWork body)) := by
+  intro n
+  induction n with
+  | zero => simp [executionWork, Work.score]
+  | succ n ih =>
+      rw [List.replicate_succ, List.flatten_cons, path_stores_score_append, ih,
+        whileIterationEvents_score]
+      rw [Nat.succ_mul]
+      omega
+
+/-- A loop body of one native-priced guard and one one-word path slot store,
+iterated `n` times. -/
+theorem n_guard_slot_iterations_score (coeff : Work) (overhead guardPrice : Nat) :
+    ∀ n, coeff.score (executionWork
+        (List.flatten (List.replicate n
+          (whileIterationEvents overhead [.cost guardPrice] oneWordSlotEvents)))) =
+      n * (coeff.statements + coeff.nativeCost * overhead +
+        coeff.nativeCost * guardPrice +
+        (coeff.statements + coeff.memoryAccesses +
+          coeff.nativeCost * storeOverhead 1)) := by
+  intro n
+  rw [n_while_iterations_score]
+  congr 1
+  rw [executionWork_single_cost, executionWork_oneWordSlotEvents]
+  simp [oneWordSlotWork, Work.score]
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.storeValue_events
@@ -193,3 +251,4 @@ end BoundedTableExperiment
 #print axioms BoundedTableExperiment.path_store_one_word_score
 #print axioms BoundedTableExperiment.n_path_slots_score
 #print axioms BoundedTableExperiment.whileNext_score
+#print axioms BoundedTableExperiment.n_guard_slot_iterations_score
