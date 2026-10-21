@@ -303,3 +303,75 @@ theorem candidate_header_four_stores_rest {F : Type} (fn : MlS)
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidate_header_four_stores_rest
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Four header stores followed by the actual keys allocation call, run into
+the keys continuation.  The keys tail is executed by the certified total source
+trace, so the composition does not assume any desired continuation shape. -/
+theorem candidate_header_four_stores_keys_run {F : Type} (fn : MlS)
+    (s : PanSemStateFiniteExact 64 F) (continuation : ProgHOL 64)
+    (tbase keyLen stride cap : BitVec 64)
+    (tLocal : s.locals.lookup (ofString "t") = some (.val (.word tbase)))
+    (keyLocal : s.locals.lookup (ofString "key_len") = some (.val (.word keyLen)))
+    (strideLocal : s.locals.lookup (ofString "stride") = some (.val (.word stride)))
+    (capLocal : s.locals.lookup (ofString "cap") = some (.val (.word cap)))
+    (d0 : s.memaddrs (tbase + BitVec.ofNat 64 0))
+    (d1 : s.memaddrs (tbase + BitVec.ofNat 64 8))
+    (d2 : s.memaddrs (tbase + BitVec.ofNat 64 16))
+    (d3 : s.memaddrs (tbase + BitVec.ofNat 64 24)) :
+    ∃ events, StatementRun fn s
+      (.seq (.store (.op .add [.var .local (ofString "t"), .const (BitVec.ofNat 64 0)])
+              (.var .local (ofString "key_len")))
+        (.seq (.store (.op .add [.var .local (ofString "t"), .const (BitVec.ofNat 64 8)])
+                (.var .local (ofString "stride")))
+          (.seq (.store (.op .add [.var .local (ofString "t"), .const (BitVec.ofNat 64 16)])
+                  (.var .local (ofString "cap")))
+            (.seq (.store (.op .add [.var .local (ofString "t"), .const (BitVec.ofNat 64 24)])
+                    (.const (BitVec.ofNat 64 0)))
+              (.decCall (ofString "keys") .one (ofString "scratch_alloc")
+                [.panop .mul [.var .local (ofString "cap"), .var .local (ofString "stride")]]
+                continuation)))))
+      (evaluateHOLFiniteState
+        (candidateHeaderFinalState s
+          (tbase + BitVec.ofNat 64 0) keyLen
+          (tbase + BitVec.ofNat 64 8) stride
+          (tbase + BitVec.ofNat 64 16) cap
+          (tbase + BitVec.ofNat 64 24) (BitVec.ofNat 64 0))
+        (.decCall (ofString "keys") .one (ofString "scratch_alloc")
+          [.panop .mul [.var .local (ofString "cap"), .var .local (ofString "stride")]]
+          continuation)).1
+      (evaluateHOLFiniteState
+        (candidateHeaderFinalState s
+          (tbase + BitVec.ofNat 64 0) keyLen
+          (tbase + BitVec.ofNat 64 8) stride
+          (tbase + BitVec.ofNat 64 16) cap
+          (tbase + BitVec.ofNat 64 24) (BitVec.ofNat 64 0))
+        (.decCall (ofString "keys") .one (ofString "scratch_alloc")
+          [.panop .mul [.var .local (ofString "cap"), .var .local (ofString "stride")]]
+          continuation)).2
+      events := by
+  let rest : ProgHOL 64 := .decCall (ofString "keys") .one (ofString "scratch_alloc")
+    [.panop .mul [.var .local (ofString "cap"), .var .local (ofString "stride")]]
+    continuation
+  let start := candidateHeaderFinalState s
+    (tbase + BitVec.ofNat 64 0) keyLen
+    (tbase + BitVec.ofNat 64 8) stride
+    (tbase + BitVec.ofNat 64 16) cap
+    (tbase + BitVec.ofNat 64 24) (BitVec.ofNat 64 0)
+  exact candidate_header_four_stores_rest fn s
+    (evaluateHOLFiniteState start rest).2 rest
+    (evaluateHOLFiniteState start rest).1
+    (sourceExecutionEvents fn start rest)
+    tbase keyLen stride cap tLocal keyLocal strideLocal capLocal d0 d1 d2 d3
+    (sourceExecutionEvents_run fn start rest)
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidate_header_four_stores_keys_run
