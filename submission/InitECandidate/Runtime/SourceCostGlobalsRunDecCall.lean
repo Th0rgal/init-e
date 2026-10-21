@@ -88,8 +88,7 @@ theorem globals_declareCallReturn (B : Nat) {F : Type} {s post : PanSemStateFini
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
-        [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents ++
-        [.copy (((s.locals.lookup name).map (fun old => (flattenHOL old).length)).getD 0)])) := by
+        [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match
     (StatementRun.declareCallReturn args lookup clock bodyRun shapeMatch continuationRun) ok rel target
@@ -119,7 +118,7 @@ theorem globals_declareCallReturn (B : Nat) {F : Type} {s post : PanSemStateFini
       (by simp only [setVarHOLFinite]; rw [bodyRun.code_eq]; exact code)
       (globals_noTemp_setVar ready.1.1 _ h)
       (fun n e f => bodyRun.covered cov n e f) _ _ _ contRun'
-    rw [← locals, globals_rel_structs rel]
+    rw [globals_rel_structs rel]
     gsimp
     omega
   case declareCallStopped =>

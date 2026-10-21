@@ -11,9 +11,7 @@ theorem globals_declareValue (B : Nat) {F : Type} {s post : PanSemStateFiniteExa
     (ih : GlobalsLe B (setVarHOLFinite name value s) body result post bodyEvents) :
     GlobalsLe B s (.dec name shape initializer body) result
       { post with locals := HolFiniteMapExact.resVarEq post.locals (name, s.locals.lookup name) }
-      (.statement :: (initEvents ++ [.copy (flattenHOL value).length, .frame 1] ++
-        bodyEvents ++ [.copy (((s.locals.lookup name).map
-          (fun previous => (flattenHOL previous).length)).getD 0)])) := by
+      (.statement :: (initEvents ++ [.frame 1] ++ bodyEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true, bne_iff_ne] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.declareValue init shapeMatch bodyRun) ok rel target
@@ -25,7 +23,6 @@ theorem globals_declareValue (B : Nat) {F : Type} {s post : PanSemStateFiniteExa
     have b := ih context _ (globalsRel_setVar rel name value) ok ready.2 code
       (globals_noTemp_setVar ready.1.1 _ h) cov _ _ _
       (by assumption : StatementRun _ (compileProgExactHOL context body) _ _ _)
-    rw [← globalsRel_locals rel]
     gsimp
     omega
   all_goals (cases hr; try exact absurd rfl ok)

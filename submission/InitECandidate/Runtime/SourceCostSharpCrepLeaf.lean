@@ -102,17 +102,29 @@ theorem sharp_bounded_assign_seq (names : List Nat) (values : List (CrepExpHOL 6
 
 theorem sharp_bounded_stores (address : CrepExpHOL 64) (names : List Nat) (offset : BitVec 64) :
     CrepBoundedS (crepNestedSeqHOL (storesHOL address (names.map CrepExpHOL.var) offset))
-      (names.length * (128 + loopNodePrice address)) := by
+      (names.length * (98 + loopNodePrice address)) := by
   induction names generalizing offset with
   | nil => simpa [storesHOL, crepNestedSeqHOL] using sharp_bounded_skip
   | cons name names ih =>
     simp only [List.map_cons, storesHOL, crepNestedSeqHOL]
     have destinationWork : loopNodePrice
         (if (offset == 0) = true then address else .op .add [address, .const offset]) ≤
-          77 + loopNodePrice address := by
+          47 + loopNodePrice address := by
       split <;> simp [loopNodePrice, loopPriceList] <;> omega
     refine (sharp_bounded_seq (sharp_bounded_store _ (.var name)) (ih _)).mono ?_
     simp only [List.length_cons, loopNodePrice, Nat.succ_mul]
+    omega
+
+/-- Stores from offset zero: the first word stores at the address itself. -/
+theorem sharp_bounded_stores_zero (address : CrepExpHOL 64) (names : List Nat) :
+    CrepBoundedS (crepNestedSeqHOL (storesHOL address (names.map CrepExpHOL.var) 0))
+      (names.length * (98 + loopNodePrice address) - 47 * (names.length - (names.length - 1))) := by
+  cases names with
+  | nil => simpa [storesHOL, crepNestedSeqHOL] using sharp_bounded_skip
+  | cons name names =>
+    simp only [List.map_cons, storesHOL, crepNestedSeqHOL]
+    refine (sharp_bounded_seq (sharp_bounded_store _ (.var name)) (sharp_bounded_stores address names _)).mono ?_
+    simp only [List.length_cons, loopNodePrice, Nat.succ_mul, beq_self_eq_true, if_true]
     omega
 
 theorem sharp_bounded_storeGlobals (address : BitVec 5) (names : List Nat) :
@@ -163,7 +175,7 @@ theorem sharp_bounded_local_assign (context : PanToCrepContextExact 64) (name : 
 
 theorem sharp_bounded_store_compiled (context : PanToCrepContextExact 64) (address value : ExpHOL 64) :
     CrepBoundedS (compileStoreExactHOLW context address value)
-      (142 * (compileExpExactHOLW context value).1.length +
+      (storeOverhead (compileExpExactHOLW context value).1.length +
         loopPriceList (compileExpExactHOLW context address).1 +
         loopPriceList (compileExpExactHOLW context value).1) := by
   unfold compileStoreExactHOLW
@@ -179,10 +191,10 @@ theorem sharp_bounded_store_compiled (context : PanToCrepContextExact 64) (addre
       let valueNames := (List.range (sizeOfShapeHOL valueShape)).map
         (fun index => context.vmax + 1 + index + 1)
       have decs := sharp_bounded_nestedDecs ((context.vmax + 1) :: valueNames)
-        (compiledAddress :: values) (sharp_bounded_stores (.var (context.vmax + 1)) valueNames 0)
+        (compiledAddress :: values) (sharp_bounded_stores_zero (.var (context.vmax + 1)) valueNames)
       refine decs.mono ?_
       simp only [valueNames, List.length_cons, List.length_map, List.length_range, loopPriceList_cons',
-        loopNodePrice]
+        loopNodePrice, storeOverhead]
       rw [lengths]
       omega
 

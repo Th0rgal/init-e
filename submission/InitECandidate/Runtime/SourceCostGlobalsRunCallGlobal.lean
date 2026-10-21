@@ -51,7 +51,8 @@ theorem globals_temp_store_events (B : Nat) {F : Type} {u : PanSemStateFiniteExa
     (dst : CostedExpressionRun u (.op .sub [.topAddr, .const address]) (some (.val (.word word))) aev)
     (src : CostedExpressionRun u (.var .local globalsTemp) (some value') vev)
     (bound : u.locals.lookup globalsTemp = some value) :
-    sharpSourceScore B (.statement :: (aev ++ vev ++ [.memory (flattenHOL value').length])) =
+    sharpSourceScore B (.statement :: (aev ++ vev ++ [.memory (flattenHOL value').length,
+      .cost (storeOverhead (flattenHOL value').length)])) ≤
       globalAddressPrice + 156 * (flattenHOL value).length := by
   have read : expressionValue u (.var .local globalsTemp) = some value := by
     simpa [expressionValue, evalHOLExact] using bound
@@ -70,7 +71,7 @@ theorem globals_temp_store_score (B : Nat) {F : Type} {u post : PanSemStateFinit
     {address : BitVec 64} {r ev} {value : ValueHOL 64}
     (run : StatementRun u (.store (.op .sub [.topAddr, .const address]) (.var .local globalsTemp)) r post ev)
     (ok : r ≠ some .error) (bound : u.locals.lookup globalsTemp = some value) :
-    sharpSourceScore B ev = globalAddressPrice + 156 * (flattenHOL value).length := by
+    sharpSourceScore B ev ≤ globalAddressPrice + 156 * (flattenHOL value).length := by
   cases run
   case storeValue => exact globals_temp_store_events B (by assumption) (by assumption) bound
   all_goals exact absurd rfl ok
@@ -161,7 +162,7 @@ theorem globals_callDone_global (B : Nat) {F : Type} {s post : PanSemStateFinite
       have cont := globals_temp_store_score B contRun' (by rw [hr]; exact ok)
         (value := v) (by simp [setVarHOLFinite, FUPDATE])
       have tempOld : t.locals.lookup globalsTemp = none := by rw [← globalsRel_locals rel]; exact h
-      rw [tempOld, ← hreturn, hshape, sizeT, sizeS, ← hsize]
+      rw [← hreturn, hshape, sizeT, sizeS, ← hsize]
       simp only [callExitOverhead, callPayloadWords, Option.map_none, Option.getD_none]
       gsimp
       simp only [globalAddressPrice] at cont

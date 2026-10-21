@@ -142,7 +142,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       ihTwo t1 context result ⟨state1, code1, exceptions1, locals1⟩ localised.2 checked.2
         control.2 (by rw [run_code_sharp one]; exact codeOk)
     refine ⟨w1 + w2, by simp only [compileProgExactHOLW]; exact CrepWorkS.seqNext work1 run1 work2, ?_⟩
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at bound1 bound2 ⊢
     omega
   | @seqStop s first second r post left terminal one ihOne =>
@@ -169,7 +169,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     rw [compile_ite_eq_sharp context compiled]
     refine ⟨37 + loopNodePrice ce + wb, CrepWorkS.iteBranch guardValue ?_, ?_⟩
     · rw [if_pos nonzero]; exact workBody
-    · simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    · simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
       try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody ⊢
       omega
   | @iteNo s condition yes no guardEvents r post bodyEvents guard body ihBody =>
@@ -184,7 +184,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     rw [compile_ite_eq_sharp context compiled]
     refine ⟨37 + loopNodePrice ce + wb, CrepWorkS.iteBranch guardValue ?_, ?_⟩
     · simpa using workBody
-    · simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    · simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
       try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody ⊢
       omega
   | @whileFalse s condition body guardEvents guard =>
@@ -200,7 +200,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       rw [guardValue] at hw
       simp only [Option.some.injEq, HolWordLab.word.injEq] at hw
       exact hw.symm
-    · simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    · simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
       try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound ⊢
       omega
   | @whileTimeout s condition body value guardEvents guard nonzero clock =>
@@ -213,7 +213,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     have targetClock : t.clock = 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
     rw [compile_while_eq_sharp context compiled]
     refine ⟨37 + 37 + 37 + loopNodePrice ce, CrepWorkS.whileTimeout guardValue nonzero targetClock, ?_⟩
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound ⊢
     omega
   | @whileNext s condition body value guardEvents middle r post bodyEvents restEvents
@@ -242,7 +242,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     rw [compile_while_eq_sharp context compiled] at workRest ⊢
     refine ⟨37 + 37 + 37 + loopNodePrice ce + wb + wr,
       CrepWorkS.whileLoop guardValue nonzero targetClock workBody run1 (Or.inl rfl) workRest, ?_⟩
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody boundRest ⊢
     omega
   | @whileContinue s condition body value guardEvents middle r post bodyEvents restEvents
@@ -271,7 +271,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     rw [compile_while_eq_sharp context compiled] at workRest ⊢
     refine ⟨37 + 37 + 37 + loopNodePrice ce + wb + wr,
       CrepWorkS.whileLoop guardValue nonzero targetClock workBody run1 (Or.inr rfl) workRest, ?_⟩
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody boundRest ⊢
     omega
   | @whileBreak s condition body value guardEvents post bodyEvents guard nonzero clock one
@@ -294,7 +294,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     rw [compile_while_eq_sharp context compiled]
     refine ⟨37 + 37 + 37 + loopNodePrice ce + wb,
       CrepWorkS.whileStop guardValue nonzero targetClock workBody run1 (by simp), ?_⟩
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody ⊢
     omega
   | @whilePropagate s condition body value guardEvents post bodyEvents bodyResult guard nonzero
@@ -317,7 +317,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     refine ⟨37 + 37 + 37 + loopNodePrice ce + wb,
       CrepWorkS.whileStop guardValue nonzero targetClock workBody run1
         ⟨resultRel_some_ne_none rel1, resultRel_not_continue notContinue rel1⟩, ?_⟩
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody ⊢
     omega
   | @assignValue s kind name expression value events expr valid =>
@@ -332,7 +332,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       refine sharp_bounded_paid_sharp (sharp_bounded_local_assign context name expression) ?_
       rw [length]
       simp only [globalEvents]
-      simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+      simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
       try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paid ⊢
       omega
   | @storeValue s destination source address value memory addressEvents valueEvents dst src
@@ -345,7 +345,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [compileProgExactHOLW]
     refine sharp_bounded_paid_sharp (sharp_bounded_store_compiled context destination source) ?_
     rw [length]
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paidAddress paidValue ⊢
     omega
   | @store32Value s destination source address value memory addressEvents valueEvents dst src
@@ -356,7 +356,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     have paidValue := expression_paid_sharp src rel localised.2
     simp only [compileProgExactHOLW]
     refine sharp_bounded_paid_sharp (sharp_bounded_store32_compiled context destination source) ?_
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paidAddress paidValue ⊢
     omega
   | @storeByteValue s destination source address value memory addressEvents valueEvents dst src
@@ -367,7 +367,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     have paidValue := expression_paid_sharp src rel localised.2
     simp only [compileProgExactHOLW]
     refine sharp_bounded_paid_sharp (sharp_bounded_storeByte_compiled context destination source) ?_
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paidAddress paidValue ⊢
     omega
   | @returnValue s expression value events expr size =>
@@ -378,7 +378,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [compileProgExactHOLW]
     refine sharp_bounded_paid_sharp (sharp_bounded_return_compiled context expression) ?_
     rw [length]
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paid ⊢
     omega
   | @raiseValue s exceptionId expression value events shape expr declared shapeMatches size =>
@@ -389,7 +389,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [compileProgExactHOLW]
     refine sharp_bounded_paid_sharp (sharp_bounded_raise_compiled context exceptionId expression) ?_
     rw [length]
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paid ⊢
     omega
   | @declareValue s name shape initializer body value initEvents bodyEvents result post init
@@ -404,8 +404,8 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       ihBody bodyState bodyContext resultOk bodyRel localised.2 checked.2 control codeOk
     refine ⟨_, lift wb workBody, ?_⟩
     simp only [List.append_assoc, List.cons_append, List.nil_append]
-    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead]
-    try simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead] at paid boundBody ⊢
+    simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
+    try simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead] at paid boundBody ⊢
     omega
   | @callDone s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents result post args lookup clock bodyRun plan ihBody =>

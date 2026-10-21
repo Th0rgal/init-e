@@ -3,11 +3,11 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 theorem decCall_events_score_sharp (arguments bodyEvents continuationEvents : List WorkEvent)
-    (a f c d : Nat) :
+    (a f c : Nat) :
     sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
-      bodyEvents ++ [.cost (returnCopy c)] ++ continuationEvents ++ [.copy d]))) =
+      bodyEvents ++ [.cost (returnCopy c)] ++ continuationEvents))) =
     sharpScore arguments + (196 + 40 * a + 19 * f) + sharpScore bodyEvents + 49 * c +
-      sharpScore continuationEvents + 14 * d := by
+      sharpScore continuationEvents := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
     sharpScore_statement, sharpScore_cost, sharpScore_copy, sharpScore_nil, callOverhead,
     slotOverhead, returnCopy]
@@ -113,8 +113,7 @@ theorem decCall_return_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
-        [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents ++
-        [.copy (((s.locals.lookup name).map (fun old => (flattenHOL old).length)).getD 0)])) := by
+        [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents)) := by
   classical
   have localisedAll : everyExpListHOL localisedExpHOL arguments = true ∧
       localisedProgHOL continuation = true := by

@@ -48,7 +48,7 @@ theorem globals_storeValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F
     (write : @panMemStoresHOL 64 _ address (flattenHOL value) s.memaddrs
       (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = some memory) :
     GlobalsLe B s (.store destination source) none { s with memory := memory }
-      (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length])) := by
+      (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length, .cost (storeOverhead (flattenHOL value).length)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.storeValue dst src write) ok rel target
@@ -71,7 +71,7 @@ theorem globals_store32Value (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
       (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
       (BitVec.ofNat 32 value.toNat) = some memory) :
     GlobalsLe B s (.store32 destination source) none { s with memory := memory }
-      (.statement :: (addressEvents ++ valueEvents ++ [.memory 1])) := by
+      (.statement :: (addressEvents ++ valueEvents ++ [.memory 1, .cost (storeOverhead 1)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.store32Value dst src write) ok rel target
@@ -93,7 +93,7 @@ theorem globals_storeByteValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 
       (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
       (BitVec.ofNat 8 value.toNat) = some memory) :
     GlobalsLe B s (.storeByte destination source) none { s with memory := memory }
-      (.statement :: (addressEvents ++ valueEvents ++ [.memory 1])) := by
+      (.statement :: (addressEvents ++ valueEvents ++ [.memory 1, .cost (storeOverhead 1)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.storeByteValue dst src write) ok rel target

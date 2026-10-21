@@ -7,9 +7,8 @@ open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 /-! Sharp Pan-to-Crep pricing: source events are scored at native Crep prices
 and pay Crep work at exact Loop prices (`CrepWorkS`). Expression events carry
 their exact native price (`sourcePrice`) and statements their native Crep
-overheads (`cost` events); a moved word costs 14, a stored word 142 (the store
-unit, its address and value variables, and the offset of every word after the
-first) and a shared-memory operation 37. `.statement` only counts. -/
+overheads (`cost` events); a moved word costs 14 and a shared-memory operation 37; stores carry their own
+`storeOverhead` payload. `.statement` only counts. -/
 
 /-! Price lists of compiled expression lists. -/
 
@@ -71,7 +70,7 @@ theorem compileList_length' (context : PanToCrepContextExact 64) (es : List (Exp
 
 /-- Sharp source weights. -/
 def sharpSourceWeights : Work :=
-  { movedWords := 14, memoryAccesses := 142, nativeEvents := 37, nativeCost := 1,
+  { movedWords := 14, nativeEvents := 37, nativeCost := 1,
     globalAccesses := 128, globalWords := 156 }
 
 /-- Sharp source score of an event list. The certificate argument is kept for
@@ -107,7 +106,7 @@ theorem sharpSourceScore_cons (B : Nat) (event : WorkEvent) (rest : List WorkEve
   simp [sharpSourceWeights, Work.score, WorkEvent.units]
 
 @[simp] theorem sharpSource_memory (n : Nat) :
-    sharpSourceWeights.score (WorkEvent.memory n).units = 142 * n := by
+    sharpSourceWeights.score (WorkEvent.memory n).units = 0 := by
   simp [sharpSourceWeights, Work.score, WorkEvent.units]
 
 @[simp] theorem sharpSource_native : sharpSourceWeights.score WorkEvent.nativeEvent.units = 37 := by
@@ -178,8 +177,8 @@ theorem sharpScore_scalar (n : Nat) (rest : List WorkEvent) :
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_scalar, Nat.zero_add]
 
 theorem sharpScore_memory (n : Nat) (rest : List WorkEvent) :
-    sharpScore (.memory n :: rest) = 142 * n + sharpScore rest := by
-  simp only [sharpScore, sharpSourceScore_cons, sharpSource_memory]
+    sharpScore (.memory n :: rest) = sharpScore rest := by
+  simp only [sharpScore, sharpSourceScore_cons, sharpSource_memory, Nat.zero_add]
 
 theorem sharpScore_cost (n : Nat) (rest : List WorkEvent) :
     sharpScore (.cost n :: rest) = n + sharpScore rest := by

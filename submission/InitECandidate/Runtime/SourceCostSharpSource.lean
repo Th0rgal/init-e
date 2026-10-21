@@ -7,8 +7,8 @@ open Flapjack Flapjack.Pancake.PanLang Flapjack.LoopSemStateFiniteExact Flapjack
 /-- Sharp end-to-end statement transfer: source -> pan_to_crep -> simp_prog
 -> crep_to_loop (installed optimiser discharged), with factor one at every
 stage. Loop work is at most the sharp score of the SAME canonical source
-events: their native-price payloads plus 14 per moved word, 142 per stored
-word and 37 per shared-memory operation. Preprocessing
+events: their native-price payloads plus 14 per moved word and 37 per
+shared-memory operation. Preprocessing
 (pan_simp/structs/globals) is separate. -/
 theorem source_loop_sharp_work {F : Type}
     {s post : PanSemStateFiniteExact 64 F}
@@ -57,7 +57,7 @@ theorem source_loop_sharp_work {F : Type}
 /-- The sharp score as an explicit dot product over the canonical event vector. -/
 theorem sharpScore_eq (ev : List WorkEvent) :
     sharpScore ev = (executionWork ev).nativeCost + 14 * (executionWork ev).movedWords +
-      142 * (executionWork ev).memoryAccesses + 37 * (executionWork ev).nativeEvents +
+      37 * (executionWork ev).nativeEvents +
       128 * (executionWork ev).globalAccesses + 156 * (executionWork ev).globalWords := by
   simp only [sharpScore, sharpSourceScore, sharpSourceWeights, Work.score]
   omega

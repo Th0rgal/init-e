@@ -91,8 +91,8 @@ theorem srcScore_scalar (B n : Nat) (rest : List WorkEvent) :
   simp only [sharpSourceScore_cons, sharpSource_scalar, Nat.zero_add]
 
 theorem srcScore_memory (B n : Nat) (rest : List WorkEvent) :
-    sharpSourceScore B (.memory n :: rest) = 142 * n + sharpSourceScore B rest := by
-  simp only [sharpSourceScore_cons, sharpSource_memory]
+    sharpSourceScore B (.memory n :: rest) = sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_memory, Nat.zero_add]
 
 theorem srcScore_cost (B n : Nat) (rest : List WorkEvent) :
     sharpSourceScore B (.cost n :: rest) = n + sharpSourceScore B rest := by
@@ -112,7 +112,7 @@ macro "gsimp" loc:(Lean.Parser.Tactic.location)? : tactic =>
     srcScore_scalar, srcScore_memory, srcScore_global, srcScore_expression, sharpSourceScore_append,
     sharpSourceScore_nil, List.cons_append, List.nil_append, List.append_assoc, statementUnit,
     whileOverhead, returnOverhead, raiseOverhead, callOverhead, slotOverhead, returnCopy,
-    primitiveOverhead] $[$loc]?)
+    primitiveOverhead, storeOverhead] $[$loc]?)
 
 /-- The `TopAddr`-relative global address costs its native price. -/
 theorem globals_address_score {F : Type} (B : Nat) (t : PanSemStateFiniteExact 64 F) (address : BitVec 64) :
