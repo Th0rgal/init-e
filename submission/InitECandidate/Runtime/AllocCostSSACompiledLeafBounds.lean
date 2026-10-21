@@ -1765,11 +1765,14 @@ therefore a tree of `seq` over move and skip leaves, and both properties the cos
 inductive AllocOnly : WordLangProgHOL (BitVec 64) → Prop
   | skip : AllocOnly .skip
   | move : ∀ (pri : Nat) (moves : List (Nat × Nat)), AllocOnly (.move pri moves)
+  | inst : ∀ (i : WordLangInst (BitVec 64)), AllocOnly (.inst i)
   | seq : ∀ (f g : WordLangProgHOL (BitVec 64)), AllocOnly f → AllocOnly g → AllocOnly (.seq f g)
 
 theorem allocOnly_fallthrough {C F : Type}
     (hwf : ∀ (pri : Nat) (moves : List (Nat × Nat)),
       (moves.map Prod.fst).Nodup ∧ ∀ (s : WordSemStateFiniteExact 64 C F), WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none)
+    (hinst : ∀ (i : WordLangInst (BitVec 64)) (s : WordSemStateFiniteExact 64 C F),
+      (fixClock s (WordSemStateFiniteExact.evaluate (.inst i) s)).1 = none)
     (p : WordLangProgHOL (BitVec 64)) (hp : AllocOnly p) :
     ∀ (s : WordSemStateFiniteExact 64 C F), (fixClock s (WordSemStateFiniteExact.evaluate p s)).1 = none := by
   induction hp with
@@ -1781,12 +1784,17 @@ theorem allocOnly_fallthrough {C F : Type}
     have hn : (moves.map Prod.fst).Nodup := (hwf pri moves).1
     have hg : WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none := (hwf pri moves).2 s
     exact move_fallthrough pri moves s hn hg
+  | inst i =>
+    intro s
+    exact hinst i s
   | seq f g _ _ ihf ihg =>
     exact seq_fallthrough f g ihf ihg
 
 theorem allocOnly_cost_independent {C F : Type}
     (hwf : ∀ (pri : Nat) (moves : List (Nat × Nat)),
       (moves.map Prod.fst).Nodup ∧ ∀ (s : WordSemStateFiniteExact 64 C F), WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none)
+    (hinst : ∀ (i : WordLangInst (BitVec 64)) (s : WordSemStateFiniteExact 64 C F),
+      (fixClock s (WordSemStateFiniteExact.evaluate (.inst i) s)).1 = none)
     (p : WordLangProgHOL (BitVec 64)) (hp : AllocOnly p) :
     ∀ (s t : WordSemStateFiniteExact 64 C F), wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice p s = wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice p t := by
   induction hp with
@@ -1796,10 +1804,13 @@ theorem allocOnly_cost_independent {C F : Type}
   | move pri moves =>
     intro s t
     exact wec_move_state_independent pri moves s t
+  | inst i =>
+    intro s t
+    rw [wec_inst, wec_inst, refinedWordLocalPrice_state_independent]
   | seq f g hf hg ihf ihg =>
     intro s t
     exact wec_seq_state_independent (C := C) (F := F) f g ihf ihg
-      (allocOnly_fallthrough hwf f hf) s t
+      (allocOnly_fallthrough hwf hinst f hf) s t
 
 #print axioms allocOnly_fallthrough
 #print axioms allocOnly_cost_independent
