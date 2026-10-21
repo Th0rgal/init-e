@@ -5009,4 +5009,88 @@ theorem mustTerminate_body_state_swap_stack {C F : Type}
       ({ ({ t with clock := wordSemMustTerminateLimit 64, termdep := t.termdep - 1 } :
           WordSemStateFiniteExact 64 C F) with stack := xs }) := rfl
 
+/-! ### Fine-model structural cases
+
+The `.seq`/`.ite`/stop-tail transports for the price-parametric model.  The
+local price only enters through one explicit equality per case. -/
+
+theorem wec_seq_sValEq_stack_variant {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (first second : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (res : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (st : List (WordSemStackFrame 64))
+    (hev : evaluate first s = (res, middle))
+    (hevT : evaluate first { s with stack := xs } = (res, { middle with stack := st }))
+    (hval : WordSemStackEq.sValEq middle.stack st)
+    (hpriceS : price (.seq first second) { s with stack := xs } = price (.seq first second) s)
+    (ihF : InitECandidate.Runtime.FineCost.wordExecutionCost price first { s with stack := xs } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost price first s)
+    (ihS : InitECandidate.Runtime.FineCost.wordExecutionCost price second
+        { middle with stack := st } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost price second middle)
+    (hne : (evaluate (.seq first second) s).1 ≠ some (WordSemResult.error)) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost price (.seq first second) { s with stack := xs } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost price (.seq first second) s := by
+  rw [wec_seq_unfold, wec_seq_unfold, ihF, hev, hevT, hpriceS]
+  cases res with
+  | none =>
+      exact congrArg
+        (fun z => price (.seq first second) s +
+          InitECandidate.Runtime.FineCost.wordExecutionCost price first s + z) ihS
+  | some r => rfl
+
+theorem wec_ite_sValEq_stack_variant {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (cmp : Cmp) (reg : Nat) (operand : WordRegImm (BitVec 64))
+    (first second : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hpriceS : price (.ite cmp reg operand first second) { s with stack := xs } =
+      price (.ite cmp reg operand first second) s)
+    (ih1 : InitECandidate.Runtime.FineCost.wordExecutionCost price first { s with stack := xs } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost price first s)
+    (ih2 : InitECandidate.Runtime.FineCost.wordExecutionCost price second { s with stack := xs } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost price second s) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost price (.ite cmp reg operand first second)
+        { s with stack := xs } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost price (.ite cmp reg operand first second) s := by
+  rw [wec_ite_unfold, wec_ite_unfold, getVar_stack, getVarImm_stack, hpriceS]
+  split <;> simp_all
+
+theorem wec_seq_sValEq_stack_variant_zero {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (first second : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (res : Option (WordSemResult 64)) (middle mT : WordSemStateFiniteExact 64 C F)
+    (hev : evaluate first s = (res, middle))
+    (hevT : evaluate first { s with stack := xs } = (res, mT))
+    (hpriceS : price (.seq first second) { s with stack := xs } = price (.seq first second) s)
+    (hne : res ≠ none)
+    (ihF : InitECandidate.Runtime.FineCost.wordExecutionCost price first { s with stack := xs } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost price first s) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost price (.seq first second) { s with stack := xs } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost price (.seq first second) s := by
+  rw [wec_seq_unfold, wec_seq_unfold, ihF, hev, hevT, hpriceS]
+  cases res with
+  | none => exact absurd rfl hne
+  | some r => rfl
+
+theorem wec_stop_tail {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (p : WordLangProgHOL (BitVec 64))
+    (m : WordSemStateFiniteExact 64 C F) (st : List (WordSemStackFrame 64))
+    (ihStop : InitECandidate.Runtime.FineCost.wordExecutionCost price (wordSemSTOP p)
+        { decClock m with stack := st } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost price (wordSemSTOP p) (decClock m)) :
+    (if _hc : m.clock = 0 then 0
+     else InitECandidate.Runtime.FineCost.wordExecutionCost price (wordSemSTOP p)
+       (decClock { m with stack := st })) =
+    (if _hc : m.clock = 0 then 0
+     else InitECandidate.Runtime.FineCost.wordExecutionCost price (wordSemSTOP p) (decClock m)) := by
+  by_cases hc : m.clock = 0
+  · rw [dif_pos hc, dif_pos hc]
+  · rw [dif_neg hc, dif_neg hc, decClock_swap_stack]
+    exact ihStop
+
 end InitECandidate.Runtime.WordToStack
