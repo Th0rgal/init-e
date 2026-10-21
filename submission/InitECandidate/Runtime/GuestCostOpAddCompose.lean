@@ -16,27 +16,28 @@ set_option maxHeartbeats 4000000
 evaluated arguments, argument words and frame slots, the declared-shape return
 slot, the traced callee body, the returned value, the traced continuation, and
 the restored previous binding. -/
-noncomputable def decCallEvents {F : Type} (s : PanSemStateFiniteExact 64 F)
-    (arguments : List (ExpHOL 64)) (values : List (ValueHOL 64)) (shape : ShapeHOL)
+noncomputable def decCallEvents {F : Type} {fn : MlS} (s : PanSemStateFiniteExact 64 F)
+    (function : MlStringHOL) (arguments : List (ExpHOL 64)) (values : List (ValueHOL 64)) (shape : ShapeHOL)
     (bodyEvents : List WorkEvent) (value : ValueHOL 64)
     (continuationEvents : List WorkEvent) (oldWords : Nat) : List WorkEvent :=
   .statement :: (expressionListEvents s arguments ++
     [.cost (callOverhead (values.flatMap flattenHOL).length +
-      slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
+      slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
+      callMoves fn function)] ++ bodyEvents ++
     [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents)
 
 /-- Scalar cost of the same `decCall` trace: every term is a coefficient times
 an actually recorded size. -/
-noncomputable def decCallLocalCost {F : Type} (coeff : Work)
-    (s : PanSemStateFiniteExact 64 F) (arguments : List (ExpHOL 64))
+noncomputable def decCallLocalCost {F : Type} {fn : MlS} (coeff : Work)
+    (s : PanSemStateFiniteExact 64 F) (function : MlStringHOL) (arguments : List (ExpHOL 64))
     (values : List (ValueHOL 64)) (shape : ShapeHOL) (bodyEvents : List WorkEvent)
     (value : ValueHOL 64) (continuationEvents : List WorkEvent) (oldWords : Nat) : Nat :=
   coeff.score (executionWork
-    (decCallEvents s arguments values shape bodyEvents value continuationEvents oldWords))
+    (decCallEvents (fn := fn) s function arguments values shape bodyEvents value continuationEvents oldWords))
 
 /-- A returning `decCall` executed by the actual declared call entry, with its
 explicit trace and local price. -/
-theorem decCall_statement_work {F : Type} (coeff : Work)
+theorem decCall_statement_work {F : Type} (coeff : Work) {fn : MlS}
     {s : PanSemStateFiniteExact 64 F} {name : MlStringHOL} {shape : ShapeHOL}
     {function : MlStringHOL} {arguments : List (ExpHOL 64)} {continuation : ProgHOL 64}
     {values : List (ValueHOL 64)} {body : ProgHOL 64} {callee : HolFiniteMapExact MlS (ValueHOL 64)}
@@ -48,24 +49,24 @@ theorem decCall_statement_work {F : Type} (coeff : Work)
       some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body
       (some (.returned value)) bodyPost bodyEvents)
     (shapeMatch : (shapeEqHOL (shapeOfHOLExact value) shape &&
       shapeEqHOL (shapeOfHOLExact value) returnShape) = true)
-    (continuationRun : StatementRun
+    (continuationRun : StatementRun fn
       (setVarHOLFinite name value { bodyPost with locals := s.locals })
       continuation result post continuationEvents)
     (oldWordsEq : oldWords = ((s.locals.lookup name).map
       (fun old => (flattenHOL old).length)).getD 0) :
-    StatementRun s (.decCall name shape function arguments continuation) result
+    StatementRun fn s (.decCall name shape function arguments continuation) result
       { post with locals := HolFiniteMapExact.resVarEq post.locals (name, s.locals.lookup name) }
-      (decCallEvents s arguments values shape bodyEvents value continuationEvents oldWords) ∧
+      (decCallEvents (fn := fn) s function arguments values shape bodyEvents value continuationEvents oldWords) ∧
     coeff.score (executionWork
-        (decCallEvents s arguments values shape bodyEvents value continuationEvents oldWords)) =
-      decCallLocalCost coeff s arguments values shape bodyEvents value continuationEvents oldWords := by
+        (decCallEvents (fn := fn) s function arguments values shape bodyEvents value continuationEvents oldWords)) =
+      decCallLocalCost (fn := fn) coeff s function arguments values shape bodyEvents value continuationEvents oldWords := by
   refine ⟨?_, ?_⟩
   · unfold decCallEvents
-    exact StatementRun.declareCallReturn (name := name) (shape := shape)
+    exact StatementRun.declareCallReturn (fn := fn) (name := name) (shape := shape)
       (function := function) (arguments := arguments) (continuation := continuation)
       (values := values) (body := body) (callee := callee) (returnShape := returnShape)
       (value := value) (bodyPost := bodyPost) (bodyEvents := bodyEvents)
