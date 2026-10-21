@@ -121,6 +121,27 @@ theorem candidateMemcpy_body_events {F : Type} {fn : MlS}
     restEvents, ?_, initRun, guard⟩
   rw [hbody, hsplit, halign]
 
+/-- Full actual `memcpy` body score. -/
+theorem candidateMemcpy_body_events_score {F : Type} {fn : MlS} (coeff : Work)
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s memcpyBody none post events) :
+    ∃ initEvents guardEvents branchEvents restEvents : List WorkEvent,
+      coeff.score (executionWork events) =
+        coeff.statements + coeff.score (executionWork initEvents) +
+        coeff.frameSlots +
+        (coeff.statements +
+          coeff.nativeCost * (statementUnit + branchMoves fn) +
+          coeff.score (executionWork guardEvents) +
+          coeff.score (executionWork branchEvents) +
+          coeff.score (executionWork restEvents)) := by
+  obtain ⟨_, _, initEvents, guardEvents, branchEvents, restEvents, h, _, _⟩ :=
+    candidateMemcpy_body_events run
+  refine ⟨initEvents, guardEvents, branchEvents, restEvents, ?_⟩
+  rw [h]
+  simp only [executionWork_score_cons, executionWork_score_append]
+  simp [executionWork, WorkEvent.units, Work.score]
+  omega
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateMemcpy_body_trace
@@ -128,3 +149,4 @@ end BoundedTableExperiment
 #print axioms BoundedTableExperiment.candidateMemcpy_afterInit_trace
 #print axioms BoundedTableExperiment.candidateMemcpy_rest_trace
 #print axioms BoundedTableExperiment.candidateMemcpy_body_events
+#print axioms BoundedTableExperiment.candidateMemcpy_body_events_score

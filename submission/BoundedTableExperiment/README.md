@@ -1251,3 +1251,13 @@ body:
 
 with the actual `i := 0` initializer and alignment guard runs. Axioms are
 `propext`, `Classical.choice`, `Quot.sound`.
+
+## 66. Full actual memcpy body score
+
+`candidateMemcpy_body_events_score` gives the actual score of the full
+`memcpy` body events:
+
+`statements + init + frameSlots + (statements + nativeCost*(statementUnit +
+branchMoves fn) + guard + branch + rest)`.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
