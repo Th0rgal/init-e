@@ -42,6 +42,12 @@ theorem score_nativeEvent (coeff : Work) :
     coeff.score (WorkEvent.nativeEvent).units = coeff.nativeEvents := by
   simp [Work.score, WorkEvent.units]
 
+/-- Global setup and transferred words are independent price components. -/
+theorem score_globalAccess (coeff : Work) (words : Nat) :
+    coeff.score (WorkEvent.globalAccess words).units =
+      coeff.globalAccesses + coeff.globalWords * words := by
+  simp [Work.score, WorkEvent.units]
+
 /-- Score of a single-event trace. -/
 theorem score_singleton (coeff : Work) (event : WorkEvent) :
     coeff.score (executionWork [event]) = coeff.score event.units := by
@@ -71,3 +77,5 @@ end InitECandidate.Runtime.FineCost
 #print axioms InitECandidate.Runtime.FineCost.score_pair
 #print axioms InitECandidate.Runtime.FineCost.score_singleton
 #print axioms InitECandidate.Runtime.FineCost.score_sized_le
+
+#print axioms InitECandidate.Runtime.FineCost.score_globalAccess

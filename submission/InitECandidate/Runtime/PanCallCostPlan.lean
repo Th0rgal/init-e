@@ -73,6 +73,17 @@ def callPayloadWords : Option (PanSemResultExact 64) → Nat
   | some (.returned value) | some (.exception _ value) => (flattenHOL value).length
   | _ => 0
 
+/-- A call into a global destination is a global access of the destination's
+size, charged whenever the call is entered: `pan_globals` declares a temporary of
+the global's shape around the call and stores it back on return. -/
+def callGlobalEvents {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (info : Option (Option (VarKind × MlStringHOL) ×
+      Option (MlStringHOL × MlStringHOL × ProgHOL 64))) : List WorkEvent :=
+  match info with
+  | some (some (kind, name), _) =>
+      globalEvents kind (((s.globals.lookup name).map (fun value => (flattenHOL value).length)).getD 0)
+  | _ => []
+
 def declareCallStopPlan {F : Type} (result : Option (PanSemResultExact 64))
     (post : PanSemStateFiniteExact 64 F) : Option (PanSemResultExact 64) × PanSemStateFiniteExact 64 F :=
   match result with

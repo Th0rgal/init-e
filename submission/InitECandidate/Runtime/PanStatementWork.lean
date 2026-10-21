@@ -75,7 +75,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       (expr : CostedExpressionRun s expression (some value) events)
       (valid : isValidValueHOLFinite s kind name value = true) :
       StatementRun s (.assign kind name expression) none (setKvarHOLFinite kind name value s)
-        (.statement :: (events ++ [.copy (flattenHOL value).length]))
+        (.statement :: (events ++ .copy (flattenHOL value).length ::
+          globalEvents kind (flattenHOL value).length))
   | assignInvalid {s kind name expression value events}
       (expr : CostedExpressionRun s expression (some value) events)
       (invalid : isValidValueHOLFinite s kind name value = false) :
@@ -197,7 +198,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         (.statement :: (expressionListEvents s arguments ++
           [.copy (values.flatMap flattenHOL).length, .frame values.length,
             .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-          [.copy (callPayloadWords bodyResult)]))
+          [.copy (callPayloadWords bodyResult)] ++ callGlobalEvents s info))
   | callHandler {s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -230,7 +231,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       (clock : s.clock = 0) :
       StatementRun s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
         (.statement :: (expressionListEvents s arguments ++
-          [.frame (sizeOfShapeWithContextHOL s.structs returnShape)]))
+          [.frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ callGlobalEvents s info))
 
   | declareCallReturn {s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents continuationEvents result post}
