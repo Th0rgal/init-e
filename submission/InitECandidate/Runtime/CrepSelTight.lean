@@ -620,9 +620,71 @@ noncomputable def tightPricing (c : Compiler.Encoders.Asm.AsmConfigExact 64) : L
   primOk := fun ds op as => leafPL_primitive c ds op as
 
 
+/-- The pattern-aware price never exceeds the structural selector price. -/
+theorem nodeT_le_sel (c : Compiler.Encoders.Asm.AsmConfigExact 64) (e : CrepExpHOL 64) : nodeT c e ≤ selNodePrice e := by
+  refine (measure (sizeOf : CrepExpHOL 64 → Nat)).wf.induction (C := fun e => nodeT c e ≤ selNodePrice e) e ?_
+  intro e ih
+  cases e with
+  | const w => rw [nodeT.eq_1]; simp [selNodePrice]
+  | var v => rw [nodeT.eq_2]; simp [selNodePrice]
+  | loadGlob a => rw [nodeT.eq_3]; simp [selNodePrice]
+  | baseAddr => rw [nodeT.eq_4]; simp [selNodePrice]
+  | topAddr => rw [nodeT.eq_5]; simp [selNodePrice]
+  | load x =>
+    have hx := ih x (by show sizeOf x < _; simp)
+    by_cases hs : ∃ a w, x = .op .sub [a, .const w]
+    · obtain ⟨a, w, rfl⟩ := hs
+      have ha := ih a (by show sizeOf a < _; simp; omega)
+      rw [nodeT.eq_6]; simp only [selNodePrice, selPriceList] at hx ⊢
+      split_ifs <;> simp at hx ⊢ <;> omega
+    · by_cases hd : ∃ a w, x = .op .add [a, .const w]
+      · obtain ⟨a, w, rfl⟩ := hd
+        have ha := ih a (by show sizeOf a < _; simp; omega)
+        rw [nodeT.eq_7]; simp only [selNodePrice, selPriceList] at hx ⊢
+        split_ifs <;> simp at hx ⊢ <;> omega
+      · rw [nodeT.eq_8 c x (fun a w h => hs ⟨a, w, h⟩) (fun a w h => hd ⟨a, w, h⟩)]
+        simp only [selNodePrice]; omega
+  | load32 x => have := ih x (by show sizeOf x < _; simp); rw [nodeT.eq_9]; simp only [selNodePrice]; omega
+  | loadByte x => have := ih x (by show sizeOf x < _; simp); rw [nodeT.eq_10]; simp only [selNodePrice]; omega
+  | shift s a b =>
+    have ha := ih a (by show sizeOf a < _; simp; omega)
+    by_cases hb : ∃ n, b = .const n
+    · obtain ⟨n, rfl⟩ := hb
+      rw [nodeT.eq_11]; simp only [selNodePrice]; omega
+    · have hb' := ih b (by show sizeOf b < _; simp)
+      rw [nodeT.eq_12 c s a b (fun n h => hb ⟨n, h⟩)]; simp only [selNodePrice]; omega
+  | op o ls =>
+    rcases ls with _ | ⟨a, _ | ⟨b, _ | ⟨d, rest⟩⟩⟩
+    · rw [nodeT.eq_17] <;> intros <;> simp_all
+    · rw [nodeT.eq_17] <;> intros <;> simp_all
+    · have ha := ih a (by show sizeOf a < _; simp; omega)
+      by_cases ho : o = .sub
+      · subst ho
+        by_cases hb : ∃ w, b = .const w
+        · obtain ⟨w, rfl⟩ := hb
+          have := immC_ge c .add (-w)
+          rw [nodeT.eq_13]; simp [selNodePrice, selPriceList]; omega
+        · have hbb := ih b (by show sizeOf b < _; simp; omega)
+          rw [nodeT.eq_14 c a b (fun w h => hb ⟨w, h⟩)]; simp [selNodePrice, selPriceList]; omega
+      · by_cases hb : ∃ w, b = .const w
+        · obtain ⟨w, rfl⟩ := hb
+          have := immC_ge c o w
+          rw [nodeT.eq_15 c o a w ho]; split_ifs
+          · simp [selNodePrice, selPriceList]; omega
+          · exact Nat.le_refl _
+        · have hbb := ih b (by show sizeOf b < _; simp; omega)
+          rw [nodeT.eq_16 c o a b (fun w _ h => hb ⟨w, h⟩) ho (fun w h => hb ⟨w, h⟩)]; split_ifs
+          · simp [selNodePrice, selPriceList]; omega
+          · exact Nat.le_refl _
+    · rw [nodeT.eq_17] <;> intros <;> simp_all
+  | crepOp o xs => rw [nodeT.eq_17] <;> intros <;> simp_all
+  | cmp o x y => rw [nodeT.eq_17] <;> intros <;> simp_all
+
+
 #print axioms tightCodeWork_bounded
 #print axioms fLT_le_fL
 #print axioms tightWorks_le
 #print axioms crep_to_loop_T_work
 #print axioms tightPricing
+#print axioms nodeT_le_sel
 end InitECandidate.Runtime.FineCost
