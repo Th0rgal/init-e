@@ -1,0 +1,363 @@
+import InitECandidate.Runtime.WordColourCostCall
+import InitECandidate.Runtime.WordIselLoop
+import Flapjack.Compiler.Backend.Semantics.WordSem.Props.EvaluateAddClock
+
+namespace InitECandidate.Runtime.FineCost
+open Flapjack Flapjack.Compiler.Backend Flapjack.WordSemStateFiniteExact
+set_option maxHeartbeats 6000000
+
+/-!
+# Executed work is unchanged by extra clock
+
+A run that does not time out takes the same path with any amount of extra
+clock (`evaluate_add_clock`); its executed work is therefore unchanged. This
+is the cost companion needed by `remove_must_terminate`, whose target runs
+with a larger clock.
+-/
+
+/-- Extra clock leaves executed work unchanged whenever the run does not time out. -/
+def ClockCostGoal {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+    (program : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F) : Prop :=
+  (evaluate program source).1 ≠ some .timeOut → ∀ extra,
+    wordExecutionCost (fun p _ => price p) program {source with clock := source.clock + extra} =
+      wordExecutionCost (fun p _ => price p) program source
+
+section Commute
+variable {C F : Type} (extra : Nat)
+
+theorem addClock_run {program : WordLangProgHOL (BitVec 64)} {source post : WordSemStateFiniteExact 64 C F}
+    {result : Option (WordSemResult 64)} (run : evaluate program source = (result, post))
+    (noTimeout : result ≠ some .timeOut) :
+    evaluate program {source with clock := source.clock + extra} =
+      (result, {post with clock := post.clock + extra}) :=
+  evaluate_add_clock extra program source result post ⟨run, noTimeout⟩
+
+theorem addClock_getVars (arguments : List Nat) (source : WordSemStateFiniteExact 64 C F) :
+    getVars arguments {source with clock := source.clock + extra} = getVars arguments source :=
+  getVars_congr source {source with clock := source.clock + extra} rfl arguments
+
+theorem addClock_cutState (names : WordLangCutsetsHOL) (source : WordSemStateFiniteExact 64 C F) :
+    cutState names {source with clock := source.clock + extra} =
+      (cutState names source).map (fun t => {t with clock := t.clock + extra}) := by
+  unfold cutState
+  cases wordSemCutEnv names source.locals <;> rfl
+
+theorem addClock_decClock (source : WordSemStateFiniteExact 64 C F) (nonzero : source.clock ≠ 0) :
+    decClock {source with clock := source.clock + extra} =
+      {decClock source with clock := (decClock source).clock + extra} := by
+  simp only [decClock]
+  congr 1
+  omega
+
+theorem addClock_pushEnv (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (source : WordSemStateFiniteExact 64 C F) :
+    pushEnv envs handler {source with clock := source.clock + extra} =
+      {pushEnv envs handler source with clock := (pushEnv envs handler source).clock + extra} := by
+  rcases handler with _ | ⟨_, _, _, _⟩ <;> rfl
+
+theorem addClock_callEnv (arguments : List (WordLocW 64)) (size : Option Nat)
+    (source : WordSemStateFiniteExact 64 C F) :
+    callEnv arguments size {source with clock := source.clock + extra} =
+      {callEnv arguments size source with clock := (callEnv arguments size source).clock + extra} := rfl
+
+theorem addClock_popEnv (source : WordSemStateFiniteExact 64 C F) :
+    popEnv {source with clock := source.clock + extra} =
+      (popEnv source).map (fun t => {t with clock := t.clock + extra}) := by
+  unfold popEnv
+  rcases source with ⟨_, _, _, _, stack, _⟩
+  rcases stack with _ | ⟨⟨_, _, _, _ | ⟨_, _, _⟩⟩, _⟩ <;> rfl
+
+end Commute
+
+theorem clock_cost_atomic {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+    (program : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F)
+    (atomic : wordCostAtomic program = true) : ClockCostGoal price program source := by
+  intro _ extra
+  rw [wordExecutionCost_atomic _ _ _ atomic, wordExecutionCost_atomic _ _ _ atomic]
+
+theorem clock_cost_seq {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+    (first second : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F)
+    (firstIH : ClockCostGoal price first source)
+    (secondIH : ∀ middle, evaluate first source = (none, middle) → ClockCostGoal price second middle) :
+    ClockCostGoal price (.seq first second) source := by
+  intro safe extra
+  rcases run : evaluate first source with ⟨result, middle⟩
+  have firstSafe : result ≠ some .timeOut := by
+    intro bad
+    subst bad
+    rw [evaluate, fix_clock_evaluate, run] at safe
+    exact safe rfl
+  have shifted := addClock_run extra run firstSafe
+  have firstCost := firstIH (by rw [run]; exact firstSafe) extra
+  cases result with
+  | none =>
+    have secondSafe : (evaluate second middle).1 ≠ some .timeOut := by
+      rw [evaluate, fix_clock_evaluate, run] at safe
+      exact safe
+    have secondCost := secondIH middle run secondSafe extra
+    rw [wordExecutionCost_seq, wordExecutionCost_seq, shifted, run]
+    simp only
+    rw [firstCost, secondCost]
+  | some outcome =>
+    rw [wordExecutionCost_seq, wordExecutionCost_seq, shifted, run]
+    simp only
+    rw [firstCost]
+
+theorem clock_cost_ite {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat) (cmp : Cmp)
+    (reg : Nat) (operand : WordRegImm (BitVec 64)) (first second : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 C F)
+    (left : ClockCostGoal price first source) (right : ClockCostGoal price second source) :
+    ClockCostGoal price (.ite cmp reg operand first second) source := by
+  intro safe extra
+  have register : getVar reg {source with clock := source.clock + extra} = getVar reg source := rfl
+  have immediate : getVarImm operand {source with clock := source.clock + extra} =
+      getVarImm operand source := by cases operand <;> rfl
+  rw [wordExecutionCost_ite, wordExecutionCost_ite, register, immediate]
+  rcases hx : getVar reg source with _ | x
+  · rfl
+  rcases hy : getVarImm operand source with _ | y
+  · rfl
+  rcases compared : wordSemWordCmp cmp x y with _ | selected
+  · simp only [compared]
+  rw [evaluate, hx, hy] at safe
+  cases selected with
+  | true =>
+    simp only [compared] at safe ⊢
+    rw [left safe extra]
+  | false =>
+    simp only [compared] at safe ⊢
+    rw [right safe extra]
+
+theorem clock_cost_mustTerminate {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+    (body : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F) :
+    ClockCostGoal price (.mustTerminate body) source := by
+  intro _ extra
+  rw [wordExecutionCost_mustTerminate, wordExecutionCost_mustTerminate]
+
+theorem clock_cost_loop {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+    (names exits : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 C F)
+    (bodyIH : ∀ cutSource, cutState (names, .ln) source = some cutSource →
+      ClockCostGoal price body cutSource)
+    (nextIH : ∀ cutSource result middle, cutState (names, .ln) source = some cutSource →
+      evaluate body cutSource = (result, middle) → wordSemContLoop result = true →
+      middle.clock ≠ 0 → ClockCostGoal price (.loop names body exits) (decClock middle)) :
+    ClockCostGoal price (.loop names body exits) source := by
+  intro safe extra
+  have ht := (evaluate_def_rebound (width := 64) (C := C) (F := F)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+  rcases cut : cutState (names, .ln) source with _ | cutSource
+  · have shiftedCut : cutState (names, .ln) {source with clock := source.clock + extra} = none := by
+      rw [addClock_cutState, cut]; rfl
+    rw [loop_cost_cut_none _ _ _ _ _ shiftedCut, loop_cost_cut_none _ _ _ _ _ cut]
+  have shiftedCut : cutState (names, .ln) {source with clock := source.clock + extra} =
+      some {cutSource with clock := cutSource.clock + extra} := by
+    rw [addClock_cutState, cut]; rfl
+  rcases run : evaluate body cutSource with ⟨result, middle⟩
+  rw [ht, cut] at safe
+  simp only [run] at safe
+  have bodySafe : result ≠ some .timeOut := by
+    intro bad
+    subst bad
+    simp [wordSemContLoop, wordSemExitLoop] at safe
+  have shiftedRun := addClock_run extra run bodySafe
+  have bodyCost := bodyIH cutSource cut (by rw [run]; exact bodySafe) extra
+  rw [loop_cost_clause _ _ _ _ _ _ shiftedCut result _ shiftedRun,
+    loop_cost_clause _ _ _ _ _ _ cut result middle run, bodyCost]
+  by_cases continuing : wordSemContLoop result = true
+  · have positive : middle.clock ≠ 0 := by
+      intro zero
+      simp [continuing, zero] at safe
+    have shiftedPositive : middle.clock + extra ≠ 0 := by omega
+    have nextSafe : (evaluate (.loop names body exits) (decClock middle)).1 ≠ some .timeOut := by
+      simpa [continuing, positive, wordSemSTOP] using safe
+    simp only [continuing, if_true, positive, shiftedPositive, if_false]
+    rw [addClock_decClock extra middle positive]
+    rw [nextIH cutSource result middle cut run continuing positive nextSafe extra]
+  · simp only [continuing, Bool.false_eq_true, if_false]
+
+theorem clock_cost_tail {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+    (destination : Option Nat) (arguments : List Nat) (source : WordSemStateFiniteExact 64 C F)
+    (calleeIH : ∀ xs actualArguments body size,
+      getVars arguments source = some xs →
+      wordSemFindCode destination xs source.code source.stackSize = some (actualArguments, body, size) →
+      source.clock ≠ 0 →
+      ClockCostGoal price body (callEnv actualArguments size (decClock source))) :
+    ClockCostGoal price (.call none destination arguments none) source := by
+  intro safe extra
+  have sourceEq := WordToWord.evaluate_call_eq source none none destination arguments
+  rcases get : getVars arguments source with _ | xs
+  · rw [wordExecutionCost, wordExecutionCost]
+    simp only [addClock_getVars, get]
+  by_cases bad : wordSemBadDestArgs destination arguments = true
+  · rw [wordExecutionCost, wordExecutionCost]
+    simp only [addClock_getVars, get, bad, if_true]
+  have good : wordSemBadDestArgs destination arguments = false := by simpa using bad
+  rcases found : wordSemFindCode destination xs source.code source.stackSize with
+    _ | ⟨actualArguments, body, size⟩
+  · rw [wordExecutionCost, wordExecutionCost]
+    simp only [addClock_getVars, get, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found]
+  have shiftedGet : getVars arguments {source with clock := source.clock + extra} = some xs :=
+    (addClock_getVars extra arguments source).trans get
+  have shiftedFound : wordSemFindCode destination xs
+      ({source with clock := source.clock + extra} : WordSemStateFiniteExact 64 C F).code
+      ({source with clock := source.clock + extra} : WordSemStateFiniteExact 64 C F).stackSize =
+      some (actualArguments, body, size) := found
+  simp only [get, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found] at sourceEq
+  by_cases zero : source.clock = 0
+  · rw [sourceEq] at safe
+    simp [zero] at safe
+  have shiftedPositive : source.clock + extra ≠ 0 := by omega
+  rw [tail_call_cost _ destination arguments _ xs shiftedGet good actualArguments body size
+      shiftedFound shiftedPositive,
+    tail_call_cost _ destination arguments source xs get good actualArguments body size found zero]
+  rcases run : evaluate body (callEnv actualArguments size (decClock source)) with ⟨result, post⟩
+  have calleeSafe : result ≠ some .timeOut := by
+    intro badResult
+    subst badResult
+    rw [sourceEq] at safe
+    simp [zero, run, wordSemBadFunReturn] at safe
+  rw [addClock_decClock extra source zero, addClock_callEnv]
+  rw [calleeIH xs actualArguments body size get found zero (by rw [run]; exact calleeSafe) extra]
+
+theorem clock_cost_returning {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+    (values : List Nat) (names : WordLangCutsetsHOL) (continuation : WordLangProgHOL (BitVec 64))
+    (l1 l2 : Nat) (destination : Option Nat) (arguments : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (source : WordSemStateFiniteExact 64 C F)
+    (calleeIH : ∀ xs actualArguments body size envs,
+      getVars arguments source = some xs →
+      wordSemFindCode destination (.loc l1 l2 :: xs) source.code source.stackSize =
+        some (actualArguments, body, size) →
+      wordSemCutEnvs names source.locals = some envs → source.clock ≠ 0 →
+      ClockCostGoal price body (callEnv actualArguments size (pushEnv envs handler (decClock source))))
+    (continuationIH : ∀ (state : WordSemStateFiniteExact 64 C F), state.clock < source.clock →
+      ClockCostGoal price continuation state)
+    (handlerIH : ∀ reg code h1 h2, handler = some (reg, code, h1, h2) →
+      ∀ (state : WordSemStateFiniteExact 64 C F), state.clock < source.clock →
+      ClockCostGoal price code state) :
+    ClockCostGoal price (.call (some (values, names, continuation, l1, l2)) destination arguments handler)
+      source := by
+  intro safe extra
+  rcases get : getVars arguments source with _ | xs
+  · rw [wordExecutionCost, wordExecutionCost]
+    simp only [addClock_getVars, get]
+  by_cases bad : wordSemBadDestArgs destination arguments = true
+  · rw [wordExecutionCost, wordExecutionCost]
+    simp only [addClock_getVars, get, bad, if_true]
+  have good : wordSemBadDestArgs destination arguments = false := by simpa using bad
+  rcases found : wordSemFindCode destination (.loc l1 l2 :: xs) source.code source.stackSize with
+    _ | ⟨actualArguments, body, size⟩
+  · rw [wordExecutionCost, wordExecutionCost]
+    simp only [addClock_getVars, get, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found]
+  by_cases invalid : sptDomainEmpty names.1 ∨ ¬ values.Nodup
+  · rw [wordExecutionCost, wordExecutionCost]
+    simp only [addClock_getVars, get, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found, invalid, if_true]
+  rcases cut : wordSemCutEnvs names source.locals with _ | envs
+  · rw [wordExecutionCost, wordExecutionCost]
+    simp only [addClock_getVars, get, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found, invalid, if_false, cut]
+  have sourceEq := WordToWord.evaluate_call_eq source
+    (some (values, names, continuation, l1, l2)) handler destination arguments
+  simp only [get, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found, invalid, cut] at sourceEq
+  by_cases zero : source.clock = 0
+  · rw [sourceEq] at safe
+    simp [zero] at safe
+  have shiftedPositive : source.clock + extra ≠ 0 := by omega
+  have shiftedGet : getVars arguments {source with clock := source.clock + extra} = some xs :=
+    (addClock_getVars extra arguments source).trans get
+  have shiftedFound : wordSemFindCode destination (.loc l1 l2 :: xs)
+      ({source with clock := source.clock + extra} : WordSemStateFiniteExact 64 C F).code
+      ({source with clock := source.clock + extra} : WordSemStateFiniteExact 64 C F).stackSize =
+      some (actualArguments, body, size) := found
+  have shiftedCut : wordSemCutEnvs names
+      ({source with clock := source.clock + extra} : WordSemStateFiniteExact 64 C F).locals =
+      some envs := cut
+  let entry := callEnv actualArguments size (pushEnv envs handler (decClock source))
+  have shiftedEntry : callEnv actualArguments size
+      (pushEnv envs handler (decClock {source with clock := source.clock + extra})) =
+      {entry with clock := entry.clock + extra} := by
+    rw [addClock_decClock extra source zero, addClock_pushEnv, addClock_callEnv]
+  rcases run : evaluate body entry with ⟨result, post⟩
+  have run' : evaluate body (callEnv actualArguments size (pushEnv envs handler (decClock source))) =
+      (result, post) := run
+  rw [sourceEq, run'] at safe
+  have calleeSafe : result ≠ some .timeOut := by
+    intro badResult
+    subst badResult
+    simp [zero] at safe
+  have shiftedRun : evaluate body (callEnv actualArguments size
+      (pushEnv envs handler (decClock {source with clock := source.clock + extra}))) =
+      (result, {post with clock := post.clock + extra}) := by
+    rw [shiftedEntry]
+    exact addClock_run extra run calleeSafe
+  have calleeCost := calleeIH xs actualArguments body size envs get found cut zero
+    (by rw [run]; exact calleeSafe) extra
+  have postClock : post.clock < source.clock := by
+    have clocks := evaluate_clock body entry result post run
+    have entryClock : entry.clock = source.clock - 1 := by
+      simp only [entry, WordSemStateFiniteExact.callEnv, pushEnv_clock, decClock]
+    omega
+  rw [ret_call_cost _ values names continuation l1 l2 destination arguments handler _ xs shiftedGet good
+      actualArguments body size shiftedFound invalid envs shiftedCut shiftedPositive result _ shiftedRun,
+    ret_call_cost _ values names continuation l1 l2 destination arguments handler source xs get good
+      actualArguments body size found invalid envs cut zero result post run']
+  rw [shiftedEntry, calleeCost]
+  congr 1
+  rcases result with _ | outcome
+  · rfl
+  cases outcome with
+  | result location returned =>
+    simp only [retCont]
+    by_cases mismatch : location ≠ .loc l1 l2 ∨ returned.length ≠ values.length
+    · simp only [mismatch, if_true]
+    simp only [mismatch, if_false]
+    rw [addClock_popEnv]
+    rcases popped : popEnv post with _ | restored
+    · rfl
+    simp only [Option.map]
+    have restoredLocals : ({restored with clock := restored.clock + extra} :
+        WordSemStateFiniteExact 64 C F).locals = restored.locals := rfl
+    rw [restoredLocals]
+    by_cases domain : sptDomainEqUnion restored.locals envs.1 envs.2
+    · simp only [domain, if_true]
+      have tailSafe : (evaluate continuation (setVars values returned restored)).1 ≠ some .timeOut := by
+        simpa [mismatch, popped, domain, zero] using safe
+      have restoredClock : restored.clock = post.clock := by
+        have := popEnv_clock _ _ popped
+        exact this
+      have continuationCost := continuationIH (setVars values returned restored)
+        (by simp only [setVars]; omega) tailSafe extra
+      have shape : setVars values returned {restored with clock := restored.clock + extra} =
+          {setVars values returned restored with clock := (setVars values returned restored).clock + extra} := rfl
+      rw [shape, continuationCost]
+    · simp only [domain, if_false]
+  | exception location value =>
+    simp only [retCont]
+    rcases handler with _ | ⟨reg, code, h1, h2⟩
+    · rfl
+    simp only
+    by_cases mismatch : location ≠ .loc h1 h2
+    · simp only [mismatch, if_true]
+    simp only [mismatch, if_false]
+    have postLocals : ({post with clock := post.clock + extra} : WordSemStateFiniteExact 64 C F).locals =
+        post.locals := rfl
+    rw [postLocals]
+    by_cases domain : sptDomainEqUnion post.locals envs.1 envs.2
+    · simp only [domain, if_true]
+      have tailSafe : (evaluate code (setVar reg value post)).1 ≠ some .timeOut := by
+        simpa [mismatch, domain, zero] using safe
+      have handlerCost := handlerIH reg code h1 h2 rfl (setVar reg value post)
+        (by simp only [setVar]; omega) tailSafe extra
+      have shape : setVar reg value {post with clock := post.clock + extra} =
+          {setVar reg value post with clock := (setVar reg value post).clock + extra} := rfl
+      rw [shape, handlerCost]
+    · simp only [domain, if_false]
+  | _ => rfl
+
+#print axioms clock_cost_seq
+#print axioms clock_cost_ite
+#print axioms clock_cost_mustTerminate
+#print axioms clock_cost_loop
+#print axioms clock_cost_tail
+#print axioms clock_cost_returning
+end InitECandidate.Runtime.FineCost
