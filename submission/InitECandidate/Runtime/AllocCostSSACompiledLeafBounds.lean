@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.AllocCostSSAStageCases
 import Flapjack.Compiler.Backend.WordAlloc.SSACcTrans
 import Flapjack.Compiler.Backend.WordUnreach.Proofs
+import InitECandidate.Runtime.AllocMoveTable
 
 /-!
 # Compile-output bounds for leaf constructors
@@ -408,6 +409,36 @@ theorem evaluate_move_none {C F : Type}
   | none => exact absurd hv hget
   | some v => rfl
 
+/-! ## Consuming the AllocMoveTable schedule certificate on actual move nodes -/
+
+/-- **The schedule certificate at an actual emitted move node.**  For any move node
+`(.move pri pairs)` that the allocator emits, finite-auth's `goSeq_move` yields the
+physical-pair schedule bound `12 * (parmove (physPairs pairs)).length ≤
+allocMovePrice pairs`.  Nothing about the target run is assumed: the node and its
+pair list are the ones in the allocated AST. -/
+theorem move_node_certificate {pri : Nat} {pairs : List (Nat × Nat)} {before : Nat}
+    (ok : (goSeq before (.move pri pairs)).1 = true) :
+    12 * (Flapjack.Compiler.Backend.Parmove.parmove (physPairs pairs)).length ≤
+      allocMovePrice pairs :=
+  goSeq_move ok
+
+/-- **Call-site argument moves, certified from the actual allocated node.**  The
+pairs are exactly the list the `.call` clause emits
+(`convArgs.zip names` with `convArgs := (List.range names.length).map (2*x)`), so the
+schedule bound applies to the real inserted argument moves. -/
+theorem call_arg_move_certificate (args : List Nat) (ssa : Spt Nat) {before : Nat}
+    (ok : (goSeq before (.move 1
+      (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa))))).1 = true) :
+    12 * (Flapjack.Compiler.Backend.Parmove.parmove (physPairs
+      (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa))))).length ≤
+      allocMovePrice (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa))) :=
+  goSeq_move ok
+
+#print axioms move_node_certificate
+#print axioms call_arg_move_certificate
 #print axioms evaluate_move_none
 #print axioms wec_move_seq_charge
 #print axioms parmove_charge_le
