@@ -798,4 +798,64 @@ theorem seq_transfer_refined {C F : Type}
   omega
 
 #print axioms seq_transfer_refined
+
+/-- Price-generic `ite` decomposition, taken branch true. -/
+theorem wec_ite_true_generic {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (x y : WordLocW 64)
+    (hx : getVar r1 s = some x) (hy : getVarImm ri s = some y)
+    (hc : wordSemWordCmp cmp x y = some true) :
+    wordExecutionCost price (.ite cmp r1 ri e2 e3) s =
+      price (.ite cmp r1 ri e2 e3) s + wordExecutionCost price e2 s := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+  simp only [hx, hy, hc]
+
+/-- Price-generic `ite` decomposition, taken branch false. -/
+theorem wec_ite_false_generic {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (x y : WordLocW 64)
+    (hx : getVar r1 s = some x) (hy : getVarImm ri s = some y)
+    (hc : wordSemWordCmp cmp x y = some false) :
+    wordExecutionCost price (.ite cmp r1 ri e2 e3) s =
+      price (.ite cmp r1 ri e2 e3) s + wordExecutionCost price e3 s := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+  simp only [hx, hy, hc]
+
+#print axioms wec_ite_true_generic
+#print axioms wec_ite_false_generic
+
+/-- **`ite` composition at the canonical target price**, taken branch true.  Only run
+facts about the two selections, the node-price overhead and the branch transfer; priced
+by `refinedWordLocalPrice`, so the ite node's own canonical price (23 in its fallback
+clause) carries the overhead and nothing is assumed about the target budget. -/
+theorem ite_transfer_refined {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (xS yS xT yT : WordLocW 64)
+    (hxS : getVar r1 source = some xS) (hyS : getVarImm ri source = some yS)
+    (hcS : wordSemWordCmp cmp xS yS = some true)
+    (hxT : getVar r1 target = some xT) (hyT : getVarImm ri target = some yT)
+    (hcT : wordSemWordCmp cmp xT yT = some true)
+    (extraNode extra1 : Nat)
+    (hnode : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp r1 ri e2 e3) target <=
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp r1 ri e2 e3) source + extraNode)
+    (hb : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice e2 target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice e2 source + extra1) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp r1 ri e2 e3) target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp r1 ri e2 e3) source
+        + extraNode + extra1 := by
+  rw [wec_ite_true_generic (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice)
+        cmp r1 ri e2 e3 source xS yS hxS hyS hcS,
+      wec_ite_true_generic (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice)
+        cmp r1 ri e2 e3 target xT yT hxT hyT hcT]
+  omega
+
+#print axioms ite_transfer_refined
 end InitECandidate.Runtime.FineCost
