@@ -6,13 +6,15 @@ open Flapjack.Compiler.Encoders.Asm Flapjack.Compiler.Encoders.RiscV.Target
 open Flapjack.Compiler.Backend.WordToStack.Native
 open InitECandidate.Runtime.StackToLab
 
+variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
+
 private theorem seqStackFree_cost_from_run {F : Type} (count : Nat) (body : HolProg 64)
     (source restored : StackSemStateFiniteExact 64 LabToTarget.Config F)
     (small : count ≤ 92)
     (run : StackSemEvaluate.evaluate (seqStackFreeNative count .skip, source) = (none, restored)) :
-    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    stackExecutionCost (fun p _ => price p)
       (seqStackFreeNative count body) source ≤ 7*count +
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) body restored := by
+      stackExecutionCost (fun p _ => price p) body restored := by
   by_cases zero : count = 0
   · simp only [seqStackFreeNative, zero, ↓reduceIte, StackSemEvaluate.evaluate_skip, Prod.mk.injEq, true_and] at run
     subst restored
@@ -26,8 +28,8 @@ private theorem seqStackFree_cost_from_run {F : Type} (count : Nat) (body : HolP
     | none =>
       simp only [StackSemEvaluate.evaluate_skip, Prod.mk.injEq, true_and] at run
       subst restored
-      have bound := stackCost_seq_run (.stackFree count) body source middle 7 headRun
-        (by simpa only [stackExecutionCost] using guest_frame_free_price count small)
+      have bound := stackCost_seq_run (price := price) (.stackFree count) body source middle 7 headRun
+        (by simpa only [stackExecutionCost] using ConservativeRemovalPrice.free count small)
       rw [seqStackFreeNative, if_neg zero]
       exact bound.trans (by omega)
 
@@ -39,10 +41,10 @@ theorem wordStack_copyRet_cost_run {F β γ : Type} (isHandle : Bool)
     (frameSmall : kf.2.1 ≤ 92)
     (returnsSmall : Flapjack.Compiler.Backend.WordToStack.numStackRet kf.1 values ≤ 92)
     (run : StackSemEvaluate.evaluate (copyRetNative false isHandle kf values .skip, source) = (none, restored)) :
-    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    stackExecutionCost (fun p _ => price p)
       (copyRetNative false isHandle kf values body) source ≤
       21 * Flapjack.Compiler.Backend.WordToStack.numStackRet kf.1 values +
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) body restored := by
+      stackExecutionCost (fun p _ => price p) body restored := by
   let n := Flapjack.Compiler.Backend.WordToStack.numStackRet kf.1 values
   let offset := if isHandle then kf.2.1 + Flapjack.Compiler.Backend.WordToStack.handlerSlots false else kf.2.1
   have fits : n+offset ≤ 256 := by
@@ -60,10 +62,11 @@ theorem wordStack_copyRet_cost_run {F β γ : Type} (isHandle : Bool)
     cases result with
     | some result => cases (Prod.mk.inj run).1
     | none =>
-      have copies := wordStack_copyRetAux_cost kf.1 offset n fits source
-      have prefixBound := stackCost_seq_run (copyRetAuxNative kf.1 offset n)
+      have copies := (ConservativeRemovalPrice.execution (price := price)
+        (copyRetAuxNative kf.1 offset n) source).trans (wordStack_copyRetAux_cost kf.1 offset n fits source)
+      have prefixBound := stackCost_seq_run (price := price) (copyRetAuxNative kf.1 offset n)
         (seqStackFreeNative n body) source middle (14*n) copiesRun copies
-      have suffixBound := seqStackFree_cost_from_run n body middle restored returnsSmall run
+      have suffixBound := seqStackFree_cost_from_run (price := price) n body middle restored returnsSmall run
       rw [if_neg zero]
       omega
 

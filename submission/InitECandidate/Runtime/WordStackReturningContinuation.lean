@@ -12,6 +12,8 @@ open Flapjack.Compiler.Backend.WordToStack.Native
 
 /-! The actual caller restoration and return-copy preserve the reached
 continuation's extra-clock ceiling and full original result/resource relation. -/
+variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
+
 theorem restoreCallerFromBodyReturn (calleeBudget returnBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (k callerSize frame calleeSize calleeFrame : Nat)
     (values : List Nat) (names : WordLangCutsetsHOL)
@@ -29,7 +31,7 @@ theorem restoreCallerFromBodyReturn (calleeBudget returnBudget : Nat) {F : Type}
       (.call (some (values, names, retCode, l1, l2)) dest args none) = true)
     (maximum : maxVarHOL
       (.call (some (values, names, retCode, l1, l2)) dest args none) < 2 * frame + 2 * k)
-    (ih : InductionHypotheses calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
+    (ih : InductionHypothesesFor price calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
     (nonzero : source.clock ≠ 0)
     (execution : WordSemStateFiniteExact.evaluate
       (.call (some (values, names, retCode, l1, l2)) dest args none) source =
@@ -47,7 +49,7 @@ theorem restoreCallerFromBodyReturn (calleeBudget returnBudget : Nat) {F : Type}
       WordSemStateFiniteExact.popEnv bodyPost = some popped ∧
       WordSemStateFiniteExact.evaluate retCode (WordSemStateFiniteExact.setVars values returned popped) =
         (result, sourcePost) ∧
-      ExecutedSimulation ac retCode (WordSemStateFiniteExact.setVars values returned popped) returnBudget ∧
+      ExecutedSimulationFor price ac retCode (WordSemStateFiniteExact.setVars values returned popped) returnBudget ∧
       StackSemEvaluate.evaluate
         (copyRetNative false false (k, callerSize, frame) values .skip, target) = (none, restored) ∧
       stateRel ac k callerSize frame
@@ -100,7 +102,7 @@ theorem executeReturningContinuation (calleeBudget returnBudget : Nat) {F : Type
     (result : Option (WordSemResult 64))
     (bs bsPost : AppList (BitVec 64)) (n nPost : Nat)
     (compiled : HolProg 64) (lens : List Nat)
-    (ih : ExecutedSimulation ac retCode source returnBudget)
+    (ih : ExecutedSimulationFor price ac retCode source returnBudget)
     (sourceRun : WordSemStateFiniteExact.evaluate retCode source = (result, sourcePost))
     (notError : result ≠ some .error)
     (related : stateRel ac k f frame source restored lens 0)
@@ -124,7 +126,7 @@ theorem executeReturningContinuation (calleeBudget returnBudget : Nat) {F : Type
         (copyRetNative false false (k, f, frame) values compiled,
           {target with clock := target.clock + extraClock}) = (targetResult, targetPost) ∧
       compCorrectResult ac k f frame source sourcePost targetPost result targetResult lens ∧
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
         (copyRetNative false false (k, f, frame) values compiled)
         {target with clock := target.clock + extraClock} ≤
         21 * Flapjack.Compiler.Backend.WordToStack.numStackRet k values + returnBudget := by
@@ -151,7 +153,7 @@ theorem executeReturningContinuation (calleeBudget returnBudget : Nat) {F : Type
       StackSemEvaluateClock.fixClockEvaluate, clockedCopy]
     simp only
     exact continuationRun
-  · have bound := wordStack_copyRet_cost_run false (k,f,frame) values compiled
+  · have bound := wordStack_copyRet_cost_run (price := price) false (k,f,frame) values compiled
       {target with clock := target.clock + extraClock}
       {restored with clock := restored.clock + extraClock} frameSmall returnsSmall clockedCopy
     exact bound.trans (Nat.add_le_add_left continuationCost _)
@@ -173,7 +175,7 @@ theorem simulateReturningContinuationFromHistory (calleeBudget returnBudget : Na
       (.call (some (values, names, retCode, l1, l2)) dest args none) = true)
     (maximum : maxVarHOL
       (.call (some (values, names, retCode, l1, l2)) dest args none) < 2 * frame + 2 * k)
-    (ih : InductionHypotheses calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
+    (ih : InductionHypothesesFor price calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
     (nonzero : source.clock ≠ 0)
     (execution : WordSemStateFiniteExact.evaluate
       (.call (some (values, names, retCode, l1, l2)) dest args none) source =
@@ -227,7 +229,7 @@ theorem simulateReturningContinuationFromHistory (calleeBudget returnBudget : Na
         (copyRetNative false false (k, callerSize, frame) values returnCode,
           {target with clock := target.clock + extraClock}) = (targetResult, targetPost) ∧
       compCorrectResult ac k callerSize frame source sourcePost targetPost result targetResult lens ∧
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
         (copyRetNative false false (k, callerSize, frame) values returnCode)
         {target with clock := target.clock + extraClock} ≤
         21 * Flapjack.Compiler.Backend.WordToStack.numStackRet k values + returnBudget := by
@@ -251,7 +253,7 @@ theorem simulateReturningContinuationFromHistory (calleeBudget returnBudget : Na
     intro loc member
     exact LocationLabels.locCheckSubset initial.code restored.code codeGrowth loc (retLabels loc member)
   obtain ⟨extraClock, targetPost, targetResult, targetContinuation, conclusion, continuationCost⟩ :=
-    executeReturningContinuation calleeBudget returnBudget ac k callerSize frame values retCode
+    executeReturningContinuation (price := price) calleeBudget returnBudget ac k callerSize frame values retCode
       (WordSemStateFiniteExact.setVars values returned popped) sourcePost target restored result
       savedBitmaps finalBitmaps savedIndex finalIndex returnCode lens continuationIH
       sourceContinuation notError restoredRelation retConventions retFlat returnCompile retLength

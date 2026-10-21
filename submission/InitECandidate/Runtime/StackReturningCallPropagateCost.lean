@@ -3,6 +3,8 @@ namespace InitECandidate.Runtime.StackToLab
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Encoders.Asm Flapjack.Compiler.Encoders.RiscV.Target
 
+variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
+
 /-- A non-return callee outcome propagates without executing a return
 continuation. In particular, exceptions without a handler pay no return copies. -/
 theorem stackCost_returning_call_propagate {F : Type}
@@ -15,10 +17,10 @@ theorem stackCost_returning_call_propagate {F : Type}
     (run : StackSemEvaluate.evaluate
       (callee, {StackSemStateOps.setVar link (.loc l1 l2) (StackSemStateOps.decClock source) with
         clock := (StackSemStateOps.decClock source).clock + bodyClock}) = (result, post))
-    (bodyCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    (bodyCost : stackExecutionCost (fun p _ => price p)
       callee {StackSemStateOps.setVar link (.loc l1 l2) (StackSemStateOps.decClock source) with
         clock := (StackSemStateOps.decClock source).clock + bodyClock} ≤ bodyBudget) :
-    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    stackExecutionCost (fun p _ => price p)
       (.call (some (continuation,link,l1,l2)) dest none)
       {source with clock := source.clock + bodyClock} ≤ bodyBudget + 12 := by
   let entry : StackSemStateFiniteExact 64 LabToTarget.Config F :=
@@ -35,12 +37,12 @@ theorem stackCost_returning_call_propagate {F : Type}
     cases result with
     | none => rfl
     | some outcome => cases outcome <;> simp_all [selectedContinuationBudget]
-  have bound := stackCost_returning_call_run continuation link l1 l2 dest none callee
+  have bound := stackCost_returning_call_run (price := price) continuation link l1 l2 dest none callee
     {source with clock := source.clock + bodyClock} post result
     (by simp only; omega) found (by rw [actualEntry]; exact run)
   rw [actualEntry] at bound
   simp only [selectedZero, Nat.add_zero] at bound
-  change stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) callee entry ≤ bodyBudget at bodyCost
+  change stackExecutionCost (fun p _ => price p) callee entry ≤ bodyBudget at bodyCost
   exact bound.trans (Nat.add_le_add_right bodyCost 12)
 
 #print axioms stackCost_returning_call_propagate

@@ -9,6 +9,8 @@ open Flapjack.Compiler.Encoders.Asm Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Backend.WordToStack.Native
 open InitECandidate.Runtime.StackToLab
 
+variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
+
 /-- All callee outcomes after successful frame allocation, using only guarded
 source induction hypotheses. Return work is absent for non-return outcomes. -/
 theorem simulateSuccessfulCall (calleeBudget returnBudget : Nat) {F : Type}
@@ -44,7 +46,7 @@ theorem simulateSuccessfulCall (calleeBudget returnBudget : Nat) {F : Type}
       (target.bitmaps.drop (n - (appListAppend bs).length)))
     (sourcePost bodyPost : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
     (result bodyResult : Option (WordSemResult 64))
-    (ih : InductionHypotheses calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
+    (ih : InductionHypothesesFor price calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
     (nonzero : source.clock ≠ 0)
     (execution : WordSemStateFiniteExact.evaluate
       (.call (some (values, names, retCode, l1, l2)) dest args none) source =
@@ -66,7 +68,7 @@ theorem simulateSuccessfulCall (calleeBudget returnBudget : Nat) {F : Type}
       StackSemEvaluate.evaluate (compiled, {target with clock := target.clock + extra}) =
         (targetResult, targetFinal) ∧
       compCorrectResult ac k f frame source sourcePost targetFinal result targetResult lens ∧
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) compiled
+      stackExecutionCost (fun p _ => price p) compiled
         {target with clock := target.clock+extra} ≤
       calleeBudget + 63 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k +
         (match (generalizing := false) bodyResult with
@@ -88,7 +90,7 @@ theorem simulateSuccessfulCall (calleeBudget returnBudget : Nat) {F : Type}
     savedRelation, pushedRelation, sourceCode, savedLookup, bodyCompile, bodyConventions,
     bodyFlat, calleeBitmapLength, calleeBitmapBound, calleeBitmapPrefix, calleeLocalsSize,
     calleeShape, calleeArgumentBound, bodyMaximum, calleeFrameEq, found, savedSpace, simulation⟩ :=
-    simulatePreparedCalleeBody calleeBudget returnBudget ac k f frame values names retCode l1 l2 dest args source target lens
+    simulatePreparedCalleeBody (price := price) calleeBudget returnBudget ac k f frame values names retCode l1 l2 dest args source target lens
       xs args1 prog ss envs bs savedBitmaps n savedIndex destinationCode savedCode destination
       guards related conventions maximum destinationCompile savedCompile bitmapLength bitmapBound
       savedPrefix sourcePost bodyPost result bodyResult ih nonzero execution notError bodyRun argumentsSpace covered actualRegisters
@@ -126,12 +128,12 @@ theorem simulateSuccessfulCall (calleeBudget returnBudget : Nat) {F : Type}
   let callee : HolProg 64 := .seq (.stackAlloc (calleeSize - (args1.length - k))) body
   let continuation : HolProg 64 := .seq .skip (copyRetNative false false (k, f, frame) values returnCode)
   have nonReturnCost (notReturn : ∀ value, targetResult ≠ some (.result value)) :
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) compiled
+      stackExecutionCost (fun p _ => price p) compiled
         {target with clock := target.clock+bodyExtra} ≤
         calleeBudget + 63 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k := by
-    have callCost := stackCost_returning_call_propagate callee continuation 0 l1 l2 destination moved calleeTarget
+    have callCost := stackCost_returning_call_propagate (price := price) callee continuation 0 l1 l2 destination moved calleeTarget
       targetResult bodyExtra (25+calleeBudget) movedNonzero found notReturn calleeRun calleeCost
-    have bound := compiledCall_cost_from_prelude ac k f frame values names retCode l1 l2 dest args
+    have bound := compiledCall_cost_from_prelude (price := price) ac k f frame values names retCode l1 l2 dest args
       bs savedBitmaps finalBitmaps n savedIndex finalIndex destinationCode savedCode returnCode compiled destination
       target moved bodyExtra ((25+calleeBudget)+12)
       destinationCompile savedCompile returnCompile compilation frameSmall argsSmall preludeRun callCost
@@ -143,7 +145,7 @@ theorem simulateSuccessfulCall (calleeBudget returnBudget : Nat) {F : Type}
         StackSemEvaluate.evaluate (compiled, {target with clock := target.clock + extra}) =
           (finalResult, targetFinal) ∧
         compCorrectResult ac k f frame source sourcePost targetFinal result finalResult lens ∧
-        stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) compiled
+        stackExecutionCost (fun p _ => price p) compiled
           {target with clock := target.clock+extra} ≤
         calleeBudget + 63 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k +
           (match (generalizing := false) bodyResult with
@@ -175,7 +177,7 @@ theorem simulateSuccessfulCall (calleeBudget returnBudget : Nat) {F : Type}
     · have targetEq : targetResult = some (.result returnLocation) := by
         simpa only [Option.map_some, compileResult] using matching.symm
       subst targetResult
-      obtain ⟨extra, final, output, run, conclusion, cost⟩ := normalCompiledCallFromHistory calleeBudget returnBudget ac k f frame calleeSize calleeFrame values names retCode
+      obtain ⟨extra, final, output, run, conclusion, cost⟩ := normalCompiledCallFromHistory (price := price) calleeBudget returnBudget ac k f frame calleeSize calleeFrame values names retCode
         l1 l2 dest args source sourcePost bodyPost result returnLocation returned saved calleeTarget lens
         xs args1 prog ss envs guards savedRelation conventions maximum ih nonzero execution notError
         bodyRun bodyConclusion target moved bs savedBitmaps finalBitmaps n savedIndex finalIndex

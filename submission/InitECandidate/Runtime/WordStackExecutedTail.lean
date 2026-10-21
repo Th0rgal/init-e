@@ -15,6 +15,8 @@ open Flapjack.Compiler.Backend.WordToStack.Native
 semantic/resource conclusions. The reached callee contributes its own budget;
 the fixed 41 covers destination loading, caller release, jump, and callee
 allocation. Clock exhaustion and allocation failure stop earlier. -/
+variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
+
 theorem executedSimulation_tailCall (budget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (dest : Option Nat) (args : List Nat)
     (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
@@ -27,10 +29,10 @@ theorem executedSimulation_tailCall (budget : Nat) {F : Type}
         wordSemFindCode dest (wordSemAddRetLoc (none : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat)) xs) source.code source.stackSize =
           some (args1, prog, ss) ∧
         handler = none ∧ source.clock ≠ 0 →
-      ExecutedSimulation ac prog
+      ExecutedSimulationFor price ac prog
         (WordSemStateFiniteExact.callEnv args1 ss (WordSemStateFiniteExact.decClock source)) budget)
-    : ExecutedSimulation ac (.call none dest args handler) source (budget + 41) := by
-  apply executedSimulation_of_registers
+    : ExecutedSimulationFor price ac (.call none dest args handler) source (budget + 41) := by
+  apply executedSimulationFor_of_registers price
   intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small actualRegisters
   obtain ⟨execution, notError, related, conventions, flat, compilation, hbsn, hbsl, hpre,
     labels, maxVar⟩ := premises
@@ -117,23 +119,24 @@ theorem executedSimulation_tailCall (budget : Nat) {F : Type}
     simp only [Compiler.Backend.WordToStack.stackFree]
     omega
   have prefixCost (extra : Nat) :
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
         (.seq q0 (seqStackFreeNative (Compiler.Backend.WordToStack.stackFree dest' args.length k f frame)
           (.call none dest' none))) {target with clock := target.clock + extra} ≤ 14 +
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
         (.call none dest' none)
         {t4 with stackSpace := t4.stackSpace + Compiler.Backend.WordToStack.stackFree dest' args.length k f frame, clock := t4.clock + extra} := by
     have qrun := Compiler.Backend.StackProps.evaluateAddClock extra q0 target none t4 ⟨hev4, by simp⟩
-    have qcost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    have qcost : stackExecutionCost (fun p _ => price p)
         q0 {target with clock := target.clock + extra} ≤ 7 := by
       have eq : (callDestNative dest args (k,f,frame)).1 = q0 := congrArg Prod.fst hcd
       rw [← eq]
-      exact wordStack_callDest_cost dest args (k,f,frame) small _
-    have first := stackCost_seq_run q0
+      exact (ConservativeRemovalPrice.execution (price := price) _ _).trans
+        (wordStack_callDest_cost dest args (k,f,frame) small _)
+    have first := stackCost_seq_run (price := price) q0
       (seqStackFreeNative (Compiler.Backend.WordToStack.stackFree dest' args.length k f frame)
         (.call none dest' none))
       {target with clock := target.clock + extra} {t4 with clock := t4.clock + extra} 7 qrun qcost
-    have second := stackCost_seqStackFree_run
+    have second := stackCost_seqStackFree_run (price := price)
       (Compiler.Backend.WordToStack.stackFree dest' args.length k f frame)
       (.call none dest' none) {t4 with clock := t4.clock + extra} freeSmall huse4 hfree
     change stackExecutionCost _ _ _ ≤ 14 + stackExecutionCost _ _ _
@@ -175,7 +178,7 @@ theorem executedSimulation_tailCall (budget : Nat) {F : Type}
       simp only [Option.map_some, compileResult, ne_eq, not_true_eq_false, if_false]
       exact ⟨r4.symm, hclk⟩
     · have bound := prefixCost 0
-      have stop := stackCost_tail_call_zero dest'
+      have stop := stackCost_tail_call_zero (price := price) dest'
         {t4 with stackSpace := t4.stackSpace + Compiler.Backend.WordToStack.stackFree dest' args.length k f frame, clock := t4.clock + 0} (by simp only; omega)
       omega
   · rw [dif_neg hclk] at execution
@@ -271,7 +274,7 @@ theorem executedSimulation_tailCall (budget : Nat) {F : Type}
             simp only [Option.getD_some]
             omega
       · have prefixBound := prefixCost 0
-        have callBound := stackCost_tail_call_found dest' ((Prog.stackAlloc m).seq body)
+        have callBound := stackCost_tail_call_found (price := price) dest' ((Prog.stackAlloc m).seq body)
           {t4 with stackSpace := t4.stackSpace + nfree, clock := t4.clock + 0}
           (by simp only; omega) hfind
         have allocRun : StackSemEvaluate.evaluate (.stackAlloc m,
@@ -280,13 +283,13 @@ theorem executedSimulation_tailCall (budget : Nat) {F : Type}
               StackSemStateOps.emptyEnv (StackSemStateOps.decClock {t4 with stackSpace := t4.stackSpace + nfree, clock := t4.clock + 0})) := by
           rw [StackSemEvaluate.evaluate_stackAlloc]
           simp only [StackSemStateOps.decClock, r5, Bool.not_true, Bool.false_eq_true, ↓reduceIte, hlim]
-        have allocCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+        have allocCost : stackExecutionCost (fun p _ => price p)
             ((Prog.stackAlloc m).seq body)
             (StackSemStateOps.decClock {t4 with stackSpace := t4.stackSpace + nfree, clock := t4.clock + 0}) ≤ 25 := by
           rw [stackExecutionCost_seq, allocRun]
-          simp only [show removalLocalPrice 6 riscvConfig.addrOffset ((Prog.stackAlloc m).seq body) = 0 from rfl,
+          simp only [show price ((Prog.stackAlloc m).seq body) = 0 from ConservativeRemovalPrice.freeSeq _ _,
             Nat.zero_add, Nat.add_zero, stackExecutionCost]
-          exact guest_frame_alloc_price m (by dsimp only [m]; omega)
+          exact ConservativeRemovalPrice.alloc m (by dsimp only [m]; omega)
         dsimp only [nfree, m] at callBound allocCost prefixBound ⊢
         omega
     · -- the callee's frame fits: the body runs under the induction hypothesis
@@ -419,10 +422,10 @@ theorem executedSimulation_tailCall (budget : Nat) {F : Type}
             | _ => exact hresb
 
       · have prefixBound := prefixCost ck
-        have callBound := stackCost_tail_call_found dest' ((Prog.stackAlloc m).seq body)
+        have callBound := stackCost_tail_call_found (price := price) dest' ((Prog.stackAlloc m).seq body)
           {t4 with stackSpace := t4.stackSpace + nfree, clock := t4.clock + ck}
           (by simp only; omega) hfind
-        have alloc := stackCost_alloc_run m body
+        have alloc := stackCost_alloc_run (price := price) m body
           (StackSemStateOps.decClock {t4 with stackSpace := t4.stackSpace + nfree, clock := t4.clock + ck})
           (by dsimp only [m]; omega) r5 (by simp only [StackSemStateOps.decClock]; omega)
         have entryEq :

@@ -11,6 +11,8 @@ open InitECandidate.Runtime.StackToLab
 open Flapjack.Compiler.Encoders.RiscV.Target
 open Flapjack.Compiler.Encoders.Asm Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Backend.WordToStack.Native
+variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
+
 theorem simulateCalleeBodyAt (calleeBudget returnBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (k callerSize callerFrame : Nat)
     (values : List Nat) (names : WordLangCutsetsHOL)
@@ -33,7 +35,7 @@ theorem simulateCalleeBodyAt (calleeBudget returnBudget : Nat) {F : Type}
       (.call (some (values, names, retCode, l1, l2)) dest args none) < 2 * callerFrame + 2 * k)
     (destinationCompile : callDestNative dest args (k, callerSize, callerFrame) =
       (destinationCode, destination))
-    (ih : InductionHypotheses calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
+    (ih : InductionHypothesesFor price calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
     (nonzero : source.clock ≠ 0)
     (execution : WordSemStateFiniteExact.evaluate
       (.call (some (values, names, retCode, l1, l2)) dest args none) source =
@@ -82,9 +84,9 @@ theorem simulateCalleeBodyAt (calleeBudget returnBudget : Nat) {F : Type}
               (WordSemStateFiniteExact.pushEnv envs none
                 (WordSemStateFiniteExact.decClock source)))
             bodyPost targetPost bodyResult targetResult (callerFrame :: lens) ∧
-          stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+          stackExecutionCost (fun p _ => price p)
             body {entry with clock := entry.clock + extraClock} ≤ calleeBudget ∧
-          stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+          stackExecutionCost (fun p _ => price p)
             (.seq (.stackAlloc (calleeSize - (args1.length - k))) body)
             {StackSemStateOps.setVar 0 (.loc l1 l2) (StackSemStateOps.decClock moved) with
               clock := (StackSemStateOps.decClock moved).clock + extraClock} ≤ 25 + calleeBudget := by
@@ -144,9 +146,9 @@ theorem simulateCalleeBodyAt (calleeBudget returnBudget : Nat) {F : Type}
     exact targetRun
   refine ⟨moved, entry, extraClock, targetPost, targetResult, moveRun, allocationRun,
     targetRun, calleeRun, conclusion, bodyCost, ?_⟩
-  have bound := stackCost_seq_run (.stackAlloc (calleeSize - (args1.length - k))) body
+  have bound := stackCost_seq_run (price := price) (.stackAlloc (calleeSize - (args1.length - k))) body
     _ _ 25 (allocationClock extraClock)
-    (by simpa only [stackExecutionCost] using guest_frame_alloc_price (calleeSize - (args1.length - k)) (by omega))
+    (by simpa only [stackExecutionCost] using ConservativeRemovalPrice.alloc (price := price) (calleeSize - (args1.length - k)) (by omega))
   exact bound.trans (Nat.add_le_add_left bodyCost 25)
 
 theorem simulatePreparedCalleeBody (calleeBudget returnBudget : Nat) {F : Type}
@@ -174,7 +176,7 @@ theorem simulatePreparedCalleeBody (calleeBudget returnBudget : Nat) {F : Type}
       (target.bitmaps.drop (n - (appListAppend bs).length)))
     (sourcePost bodyPost : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
     (result bodyResult : Option (WordSemResult 64))
-    (ih : InductionHypotheses calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
+    (ih : InductionHypothesesFor price calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
     (nonzero : source.clock ≠ 0)
     (execution : WordSemStateFiniteExact.evaluate
       (.call (some (values, names, retCode, l1, l2)) dest args none) source =
@@ -232,9 +234,9 @@ theorem simulatePreparedCalleeBody (calleeBudget returnBudget : Nat) {F : Type}
             (WordSemStateFiniteExact.callEnv args1 ss
               (WordSemStateFiniteExact.pushEnv envs none (WordSemStateFiniteExact.decClock source)))
             bodyPost targetPost bodyResult targetResult (frame :: lens) ∧
-          stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+          stackExecutionCost (fun p _ => price p)
             body {entry with clock := entry.clock + extraClock} ≤ calleeBudget ∧
-          stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+          stackExecutionCost (fun p _ => price p)
             (.seq (.stackAlloc (calleeSize - (args1.length-k))) body)
             {StackSemStateOps.setVar 0 (.loc l1 l2) (StackSemStateOps.decClock moved) with
               clock := (StackSemStateOps.decClock moved).clock + extraClock} ≤ 25+calleeBudget) := by

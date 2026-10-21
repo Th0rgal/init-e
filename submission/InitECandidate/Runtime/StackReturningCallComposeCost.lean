@@ -4,6 +4,8 @@ namespace InitECandidate.Runtime.StackToLab
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Encoders.Asm Flapjack.Compiler.Encoders.RiscV.Target
 
+variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
+
 /-- Extending a completed callee's clock for its continuation preserves the
 callee's actual cost. The two reached budgets add with one local call charge. -/
 theorem stackCost_returning_call_compose {F : Type}
@@ -16,12 +18,12 @@ theorem stackCost_returning_call_compose {F : Type}
       (callee, {StackSemStateOps.setVar link (.loc l1 l2) (StackSemStateOps.decClock source) with
         clock := (StackSemStateOps.decClock source).clock + bodyClock}) =
       (some (.result (.loc l1 l2)), post))
-    (bodyCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    (bodyCost : stackExecutionCost (fun p _ => price p)
       callee {StackSemStateOps.setVar link (.loc l1 l2) (StackSemStateOps.decClock source) with
         clock := (StackSemStateOps.decClock source).clock + bodyClock} ≤ bodyBudget)
-    (continuationCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    (continuationCost : stackExecutionCost (fun p _ => price p)
       continuation {post with clock := post.clock + continuationClock} ≤ continuationBudget) :
-    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    stackExecutionCost (fun p _ => price p)
       (.call (some (continuation,link,l1,l2)) dest none)
       {source with clock := source.clock + (bodyClock+continuationClock)} ≤
       bodyBudget + continuationBudget + 12 := by
@@ -36,21 +38,21 @@ theorem stackCost_returning_call_compose {F : Type}
     omega
   have liftedRun := Compiler.Backend.StackProps.evaluateAddClock continuationClock callee entry
     (some (.result (.loc l1 l2))) post ⟨run, by simp⟩
-  have stable := stackExecutionCost_addClock (removalLocalPrice 6 riscvConfig.addrOffset)
+  have stable := stackExecutionCost_addClock (price)
     callee entry post (some (.result (.loc l1 l2))) run (by simp) continuationClock
-  have bound := stackCost_returning_call_run continuation link l1 l2 dest none callee
+  have bound := stackCost_returning_call_run (price := price) continuation link l1 l2 dest none callee
     {source with clock := source.clock + (bodyClock+continuationClock)}
     {post with clock := post.clock + continuationClock} (some (.result (.loc l1 l2)))
     (by simp only; omega) found (by rw [actualEntry]; exact liftedRun)
   rw [actualEntry, stable] at bound
   simp only [selectedContinuationBudget, ↓reduceIte] at bound
-  change stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+  change stackExecutionCost (fun p _ => price p)
       (.call (some (continuation,link,l1,l2)) dest none)
       {source with clock := source.clock + (bodyClock+continuationClock)} ≤
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) callee entry +
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) continuation
+      stackExecutionCost (fun p _ => price p) callee entry +
+      stackExecutionCost (fun p _ => price p) continuation
         {post with clock := post.clock + continuationClock} + 12 at bound
-  change stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) callee entry ≤ bodyBudget at bodyCost
+  change stackExecutionCost (fun p _ => price p) callee entry ≤ bodyBudget at bodyCost
   omega
 
 #print axioms stackCost_returning_call_compose

@@ -8,6 +8,8 @@ open Flapjack.Compiler.Encoders.Asm Flapjack.Compiler.Encoders.RiscV.Target
 open Flapjack.Compiler.Backend.WordToStack.Native
 open InitECandidate.Runtime.StackToLab
 
+variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
+
 /-- Prelude overhead adds to the suffix cost at its actual reached state. -/
 theorem compiledCall_cost_from_prelude {F : Type} (ac : AsmConfigExact 64)
     (k f frame : Nat) (values : List Nat) (names : WordLangCutsetsHOL)
@@ -25,10 +27,10 @@ theorem compiledCall_cost_from_prelude {F : Type} (ac : AsmConfigExact 64)
     (argsSmall : Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k ≤ 92)
     (completePrelude : StackSemEvaluate.evaluate
       (.seq destinationCode (.seq savedCode (stackArgsNative destination (args.length+1) (k,f,frame))), source) = (none,moved))
-    (callCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    (callCost : stackExecutionCost (fun p _ => price p)
       (.call (some (.seq .skip (copyRetNative false false (k,f,frame) values returnCode),0,l1,l2)) destination none)
       {moved with clock := moved.clock + extra} ≤ budget) :
-    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) compiled
+    stackExecutionCost (fun p _ => price p) compiled
       {source with clock := source.clock + extra} ≤
       26 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k + budget := by
   let argsCode : HolProg 64 := stackArgsNative destination (args.length+1) (k,f,frame)
@@ -40,57 +42,63 @@ theorem compiledCall_cost_from_prelude {F : Type} (ac : AsmConfigExact 64)
     simp only [compNative, destinationCompile, savedCompile, returnCompile] at shape
     simpa only [Bool.false_eq_true, ↓reduceIte] using (Prod.mk.inj shape).1.symm
   have prefixBound : ∀ s : StackSemStateFiniteExact 64 LabToTarget.Config F,
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) prelude s ≤
+      stackExecutionCost (fun p _ => price p) prelude s ≤
         26 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k := by
     intro s
     have destinationBound : ∀ st : StackSemStateFiniteExact 64 LabToTarget.Config F,
-        stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) destinationCode st ≤ 7 := by
+        stackExecutionCost (fun p _ => price p) destinationCode st ≤ 7 := by
       intro st
       have eq : (callDestNative dest args (k,f,frame)).1 = destinationCode := congrArg Prod.fst destinationCompile
       rw [← eq]
-      exact wordStack_callDest_cost dest args _ frameSmall st
+      exact (ConservativeRemovalPrice.execution (price := price) _ st).trans
+        (wordStack_callDest_cost dest args _ frameSmall st)
     have saveBound : ∀ st : StackSemStateFiniteExact 64 LabToTarget.Config F,
-        stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) savedCode st ≤ 19 := by
+        stackExecutionCost (fun p _ => price p) savedCode st ≤ 19 := by
       intro st
       have eq : (wLiveNative names (bs,n) (k,f,frame)).1 = savedCode := congrArg Prod.fst savedCompile
       rw [← eq]
-      exact wordStack_live_cost names (bs,n) (k,f,frame) st
-    have argumentsBound := wordStack_stackArgs_cost (F := F) destination (args.length+1)
-      (k,f,frame) frameSmall argsSmall
+      exact (ConservativeRemovalPrice.execution (price := price) _ st).trans
+        (wordStack_live_cost names (bs,n) (k,f,frame) st)
+    have argumentsBound : ∀ st : StackSemStateFiniteExact 64 LabToTarget.Config F,
+        stackExecutionCost (fun p _ => price p) argsCode st ≤
+          39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k := by
+      intro st
+      exact (ConservativeRemovalPrice.execution (price := price) argsCode st).trans
+        (wordStack_stackArgs_cost destination (args.length+1) (k,f,frame) frameSmall argsSmall st)
     have savedArgs : ∀ st : StackSemStateFiniteExact 64 LabToTarget.Config F,
-        stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) (.seq savedCode argsCode) st ≤
+        stackExecutionCost (fun p _ => price p) (.seq savedCode argsCode) st ≤
         19 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k := by
       intro st
-      exact stackCost_seq_le (removalLocalPrice 6 riscvConfig.addrOffset) savedCode argsCode
-        19 _ rfl saveBound argumentsBound st
-    have bound := stackCost_seq_le (removalLocalPrice 6 riscvConfig.addrOffset) destinationCode
-      (.seq savedCode argsCode) 7 _ rfl destinationBound savedArgs s
+      exact stackCost_seq_le (price) savedCode argsCode
+        19 _ (ConservativeRemovalPrice.freeSeq _ _) saveBound argumentsBound st
+    have bound := stackCost_seq_le (price) destinationCode
+      (.seq savedCode argsCode) 7 _ (ConservativeRemovalPrice.freeSeq _ _) destinationBound savedArgs s
     change stackExecutionCost _ prelude s ≤ _ at bound
     omega
   have preludeShift := Compiler.Backend.StackProps.evaluateAddClock (extra)
     prelude source none moved ⟨completePrelude, by simp⟩
-  have reached := stackCost_seq_run prelude (.seq .skip callCode)
+  have reached := stackCost_seq_run (price := price) prelude (.seq .skip callCode)
     {source with clock := source.clock + (extra)}
     {moved with clock := moved.clock + (extra)}
     (26 + 39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k)
     preludeShift (prefixBound _)
-  have reassoc : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+  have reassoc : stackExecutionCost (fun p _ => price p)
       compiled {source with clock := source.clock + (extra)} =
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
         (.seq prelude (.seq .skip callCode)) {source with clock := source.clock + (extra)} := by
     rw [compiledEq]
     dsimp only [prelude]
     rw [stackCost_seq_assoc]
-    exact stackCost_seq_congr_right destinationCode _ _
+    exact stackCost_seq_congr_right (price := price) destinationCode _ _
       (fun st => (stackCost_seq_assoc savedCode argsCode (.seq .skip callCode) st).symm) _
   rw [reassoc]
-  have skipCall : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+  have skipCall : stackExecutionCost (fun p _ => price p)
       (.seq .skip callCode) {moved with clock := moved.clock + (extra)} =
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
       callCode {moved with clock := moved.clock + (extra)} := by
     rw [stackExecutionCost_seq]
-    simp only [show removalLocalPrice 6 riscvConfig.addrOffset (.seq .skip callCode) = 0 from rfl,
-      stackExecutionCost, show removalLocalPrice 6 riscvConfig.addrOffset .skip = 0 from rfl,
+    simp only [show price (.seq .skip callCode) = 0 from ConservativeRemovalPrice.freeSeq _ _,
+      stackExecutionCost, show price .skip = 0 from ConservativeRemovalPrice.skip,
       StackSemEvaluate.evaluate_skip, Nat.zero_add]
   rw [skipCall] at reached
   change stackExecutionCost _ (.seq prelude (.seq .skip callCode)) _ ≤ _

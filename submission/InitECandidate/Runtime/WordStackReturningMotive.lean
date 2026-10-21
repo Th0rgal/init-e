@@ -7,7 +7,7 @@ open Flapjack.WordToStackProofs.CompCorrect.CallReturning
 open Flapjack.Compiler.Backend
 open Flapjack.Compiler.Encoders.Asm Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Backend.WordToStack.Native
-def InductionHypotheses (calleeBudget returnBudget : Nat) {F : Type}
+def InductionHypothesesFor (price : Compiler.Backend.StackLang.HolProg 64 → Nat) (calleeBudget returnBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (values : List Nat) (names : WordLangCutsetsHOL)
     (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
     (dest : Option Nat) (args : List Nat)
@@ -26,26 +26,34 @@ def InductionHypotheses (calleeBudget returnBudget : Nat) {F : Type}
     ¬ (location ≠ .loc l1 l2 ∨ ys.length ≠ values.length) ∧
     WordSemStateFiniteExact.popEnv calleePost = some popped ∧
     sptDomainEqUnion popped.locals envs.1 envs.2 →
-    ExecutedSimulation ac retCode (WordSemStateFiniteExact.setVars values ys popped) returnBudget) ∧
+    ExecutedSimulationFor price ac retCode (WordSemStateFiniteExact.setVars values ys popped) returnBudget) ∧
   (∀ (xs args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64))
     (ss : Option Nat) (envs : Spt (WordLocW 64) × Spt (WordLocW 64)),
     SourceGuards values names retCode l1 l2 dest args source xs args1 prog ss envs ∧
     source.clock ≠ 0 →
-    ExecutedSimulation ac prog
+    ExecutedSimulationFor price ac prog
       (WordSemStateFiniteExact.callEnv args1 ss
         (WordSemStateFiniteExact.pushEnv envs none
           (WordSemStateFiniteExact.decClock source))) calleeBudget)
 
 
+abbrev InductionHypotheses (calleeBudget returnBudget : Nat) {F : Type}
+    (ac : AsmConfigExact 64) (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat) (dest : Option Nat) (args : List Nat)
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) : Prop :=
+  InductionHypothesesFor (InitECandidate.Runtime.StackToLab.removalLocalPrice 6
+    Compiler.Encoders.RiscV.Target.riscvConfig.addrOffset)
+    calleeBudget returnBudget ac values names retCode l1 l2 dest args source
+
 /-- Original semantic auxiliaries may use the already-proved complete
 compiler correctness theorem. This does not infer a runtime bound from an
 uncosted simulation; quantitative witnesses still come from the executed IHs. -/
-theorem InductionHypotheses.forget {F : Type}
+theorem InductionHypothesesFor.forget {price : Compiler.Backend.StackLang.HolProg 64 → Nat} {F : Type}
     {calleeBudget returnBudget : Nat} {ac : AsmConfigExact 64}
     {values : List Nat} {names : WordLangCutsetsHOL}
     {retCode : WordLangProgHOL (BitVec 64)} {l1 l2 : Nat} {dest : Option Nat} {args : List Nat}
     {source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F}
-    (ih : InductionHypotheses calleeBudget returnBudget ac values names retCode l1 l2 dest args source) :
+    (ih : InductionHypothesesFor price calleeBudget returnBudget ac values names retCode l1 l2 dest args source) :
     Flapjack.WordToStackProofs.CompCorrect.CallReturning.InductionHypotheses
       ac values names retCode l1 l2 dest args source := by
   constructor
@@ -54,5 +62,14 @@ theorem InductionHypotheses.forget {F : Type}
   · intro xs args1 prog ss envs facts
     exact Flapjack.WordToStackProofs.CompCorrect.compCorrect ac prog _
 
-#print axioms InductionHypotheses.forget
+theorem InductionHypotheses.forget {F : Type}
+    {calleeBudget returnBudget : Nat} {ac : AsmConfigExact 64}
+    {values : List Nat} {names : WordLangCutsetsHOL}
+    {retCode : WordLangProgHOL (BitVec 64)} {l1 l2 : Nat} {dest : Option Nat} {args : List Nat}
+    {source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F}
+    (ih : InductionHypotheses calleeBudget returnBudget ac values names retCode l1 l2 dest args source) :
+    Flapjack.WordToStackProofs.CompCorrect.CallReturning.InductionHypotheses
+      ac values names retCode l1 l2 dest args source := InductionHypothesesFor.forget ih
+
+#print axioms InductionHypothesesFor.forget
 end InitECandidate.Runtime.WordToStack.ExecutedReturning

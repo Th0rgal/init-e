@@ -18,6 +18,8 @@ open Flapjack.Compiler.Backend.WordToStack.Native
 Setup pays 63 plus 39 per spilled argument and 21 per spilled return word;
 callee and reached-continuation budgets add without a call-depth factor.
 The enclosing all-outcome theorem separately handles failure/terminal cases. -/
+variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
+
 theorem normalCompiledCallFromHistory (calleeBudget returnBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (k callerSize frame calleeSize calleeFrame : Nat)
     (values : List Nat) (names : WordLangCutsetsHOL)
@@ -35,7 +37,7 @@ theorem normalCompiledCallFromHistory (calleeBudget returnBudget : Nat) {F : Typ
       (.call (some (values, names, retCode, l1, l2)) dest args none) = true)
     (maximum : maxVarHOL
       (.call (some (values, names, retCode, l1, l2)) dest args none) < 2 * frame + 2 * k)
-    (ih : InductionHypotheses calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
+    (ih : InductionHypothesesFor price calleeBudget returnBudget ac values names retCode l1 l2 dest args source)
     (nonzero : source.clock ≠ 0)
     (execution : WordSemStateFiniteExact.evaluate
       (.call (some (values, names, retCode, l1, l2)) dest args none) source =
@@ -79,7 +81,7 @@ theorem normalCompiledCallFromHistory (calleeBudget returnBudget : Nat) {F : Typ
     (frameSmall : callerSize ≤ 92)
     (argsSmall : Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k ≤ 92)
     (returnsSmall : Flapjack.Compiler.Backend.WordToStack.numStackRet k values ≤ 92)
-    (calleeCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    (calleeCost : stackExecutionCost (fun p _ => price p)
       callee {StackSemStateOps.setVar 0 (.loc l1 l2) (StackSemStateOps.decClock moved) with
         clock := (StackSemStateOps.decClock moved).clock + bodyExtraClock} ≤ 25+calleeBudget)
     (actualRegisters : k = 22) :
@@ -88,7 +90,7 @@ theorem normalCompiledCallFromHistory (calleeBudget returnBudget : Nat) {F : Typ
       StackSemEvaluate.evaluate (compiled, {initial with clock := initial.clock + extraClock}) =
         (targetResult, targetPost) ∧
       compCorrectResult ac k callerSize frame source sourcePost targetPost result targetResult lens ∧
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) compiled
+      stackExecutionCost (fun p _ => price p) compiled
         {initial with clock := initial.clock + extraClock} ≤
       calleeBudget + returnBudget + 63 +
         39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k +
@@ -100,7 +102,7 @@ theorem normalCompiledCallFromHistory (calleeBudget returnBudget : Nat) {F : Typ
     by_contra different
     exact valid (Or.inl different)
   obtain ⟨popped, restored, continuationClock, finalTarget, finalResult, _, _, continuationRun,
-    conclusion, continuationCost⟩ := simulateReturningContinuationFromHistory calleeBudget returnBudget ac k callerSize frame calleeSize
+    conclusion, continuationCost⟩ := simulateReturningContinuationFromHistory (price := price) calleeBudget returnBudget ac k callerSize frame calleeSize
     calleeFrame values names retCode l1 l2 dest args source sourcePost bodyPost result location
     returned saved target lens xs args1 prog ss envs guards callerRelation conventions maximum
     ih nonzero execution notError bodyRun bodyConclusion initial moved bs savedBitmaps finalBitmaps
@@ -144,20 +146,20 @@ theorem normalCompiledCallFromHistory (calleeBudget returnBudget : Nat) {F : Typ
       destination initial moved finalTarget (bodyExtraClock + continuationClock) finalResult
       destinationCompile savedCompile returnCompile compilation completePrelude callRun
   · let returnSuffix : HolProg 64 := .seq .skip (copyRetNative false false (k,callerSize,frame) values returnCode)
-    have suffixCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    have suffixCost : stackExecutionCost (fun p _ => price p)
         returnSuffix {target with clock := target.clock + continuationClock} ≤
         21 * Flapjack.Compiler.Backend.WordToStack.numStackRet k values + returnBudget := by
       dsimp only [returnSuffix]
       rw [stackExecutionCost_seq]
-      simpa only [show removalLocalPrice 6 riscvConfig.addrOffset
-          (.seq .skip (copyRetNative false false (k,callerSize,frame) values returnCode)) = 0 from rfl,
-        stackExecutionCost, show removalLocalPrice 6 riscvConfig.addrOffset .skip = 0 from rfl,
+      simpa only [show price
+          (.seq .skip (copyRetNative false false (k,callerSize,frame) values returnCode)) = 0 from ConservativeRemovalPrice.freeSeq _ _,
+        stackExecutionCost, show price .skip = 0 from ConservativeRemovalPrice.skip,
         Nat.zero_add, StackSemEvaluate.evaluate_skip] using continuationCost
-    have callCost := stackCost_returning_call_compose callee returnSuffix 0 l1 l2 destination moved target
+    have callCost := stackCost_returning_call_compose (price := price) callee returnSuffix 0 l1 l2 destination moved target
       bodyExtraClock continuationClock (25+calleeBudget)
       (21 * Flapjack.Compiler.Backend.WordToStack.numStackRet k values + returnBudget)
       movedNonzero found calleeRun calleeCost suffixCost
-    have bound := compiledCall_cost_from_prelude ac k callerSize frame values names retCode l1 l2 dest args
+    have bound := compiledCall_cost_from_prelude (price := price) ac k callerSize frame values names retCode l1 l2 dest args
       bs savedBitmaps finalBitmaps n savedIndex finalIndex destinationCode savedCode returnCode compiled destination
       initial moved (bodyExtraClock+continuationClock)
       ((25+calleeBudget)+(21 * Flapjack.Compiler.Backend.WordToStack.numStackRet k values + returnBudget)+12)
