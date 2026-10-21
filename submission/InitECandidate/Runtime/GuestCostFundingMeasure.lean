@@ -109,9 +109,9 @@ theorem guest_loop_gas_budget (coeff : Work) (C B D : Nat) (frame : BitVec 64)
     {s : PanSemStateFiniteExact 64 Guest.HostMemory} {condition : ExpHOL 64} {body : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 Guest.HostMemory}
     {events : List WorkEvent}
-    (run : StatementRun s (.while condition body) r post events)
+    (run : StatementRun fn s (.while condition body) r post events)
     (initial : I s)
-    (amortized : @GasAmortizedBody Guest.HostMemory coeff condition body I
+    (amortized : @GasAmortizedBody Guest.HostMemory fn coeff condition body I
       (fun state => guestFrameUsed state frame) C B D) :
     coeff.score (executionWork events) ≤
       (C + B + D) * (guestFrameUsed post frame - guestFrameUsed s frame) + (B + D) ∧
