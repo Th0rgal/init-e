@@ -969,3 +969,184 @@ compositions reuse it.
    names (the evaluator reads `locals` by name at the cut).  Matching `.loop ssaNames bodyFinal
    ssaExit` therefore needs the source loop indexed by the renamed cutsets as well, which is the
    renaming step already flagged as remaining - not something this constructor can absorb.
+
+## The loop at the RENAMED cutsets: the renaming step, closed
+
+### First, a correction: the `LoopLocalsDomAgrees` endpoints were VACUOUS and are retired
+
+`LoopLocalsDomAgrees` (`for all related st ct, locals have the same domain`) is not merely unproved,
+it is **false**: `wordStateEqRel` lists 21 fields and deliberately omits `locals`, while
+`ssaLocalsRel` constrains only the entries the SOURCE side has, so a related pair can have locals
+with different domains (`loopLocalsDomAgrees_refuted`).  Every constructor whose only cut invariant
+was that hypothesis transferred nothing, so it was removed rather than presented:
+
+| removed endpoint | why |
+| --- | --- |
+| `loop_quantTransfer` | took `hloc : LoopLocalsDomAgrees` |
+| `ssaCcTrans_loop_quant` | took `hloc : LoopLocalsDomAgrees` |
+| `ssaCcTrans_loop_seq_quant` | took `hloc : LoopLocalsDomAgrees` |
+| `ssaCcTrans_loop_seq_quant_self` | took `hloc : LoopLocalsDomAgrees` |
+
+What stayed is everything that never took it: the cut/relational lemmas (`wordStateEqRel_cutState`,
+`cutState_exists_iff`, `cutState_exists_congr`, ...), the per-node cost and run shapes
+(`wec_loop_stop`/`wec_loop_cont`/`wec_loop_cutState_none`, `evaluate_loop_*`), the executed-iteration
+count (`loopIterCount`), the inserted-prefix composition (`seq_inserted_prefix_quantTransfer`), the
+literal output shape (`ssaCcTrans_loop_output_shape`), and the refutation itself.  The two lemmas
+that still take the refuted hypothesis (`loopCutAgrees_of_localsDom`, `evaluate_loop_outcome_agree`)
+are kept only as the record of the same-names route and are marked VACUOUS in their docstrings.
+
+### Which renaming is used, and why the source keeps its own cutsets
+
+The compiler's loop clause (`.lake/.../SSACcTrans.lean:187-202`, restated as
+`ssaCcTrans_loop_output_shape`) emits
+
+    let (setup, ssaRefreshed, nextRefreshed) := loopSetup names exitNames ssa next
+    let ssaNames := applyNummapKey (optionLookup ssaRefreshed) names
+    let ssaExit  := applyNummapKey (optionLookup ssaRefreshed) exitNames
+    let ssaBody  := sptInter ssaRefreshed names
+    let (body', ssa', na') := ssaCcTrans body ssaBody nextRefreshed ((ssaRefreshed, names, exitNames) :: lt)
+    let bodyFinal := if ssaReconcile ssa' ssaRefreshed names is skip then body' else body'.seq backMoves
+    (.seq setup (.loop ssaNames bodyFinal ssaExit), sptInter ssaRefreshed exitNames, na')
+
+so the transformation of the cutsets is exactly the **key-set map** `applyNummapKey (optionLookup
+ssaRefreshed)` (`Spt Unit -> Spt Unit`, HOL `apply_nummap_key` with `option_lookup`), applied to
+`names` and `exitNames`; the body is renamed by the recursive `ssaCcTrans` and then reconciled.
+
+The source program is NOT renamed - it is the original `.loop names body exitNames`.  What the
+compiled side runs is a DIFFERENT loop node, at the renamed sets `ssaNames`/`ssaExit`, starting from
+the post-setup state `post` (not from `source`).  So the honest pairing is
+
+    source  = .loop names    body      exitNames     on `source`
+    compiled= .loop ssaNames bodyFinal ssaExit       on `post`
+
+i.e. option (a) of the brief, with the rename living entirely on the compiled node: no renamed
+SOURCE body is needed (`bodyR` does not exist), because the source never runs at the renamed sets.
+The bridge between the two runs is the state relation `wordStateEqRel source post` plus the cut
+agreement ACROSS the rename, `LoopCutRenAgrees names ssaNames` (and `exitNames`/`ssaExit`).
+
+### The invariant: map-specific, on the renamed cutsets
+
+    def LoopCutRenAgrees (srcNames tgtNames : WordLangNumSetHOL) : Prop :=
+      forall st ct, wordStateEqRel st ct ->
+        (exists cutS, cutState (srcNames, .ln) st = some cutS) <->
+        (exists cutT, cutState (tgtNames, .ln) ct = some cutT)
+
+This is the renamed analogue of the old `LoopCutAgrees` (which paired the SAME names), never a
+domain-equality premise on raw names, and it is where the compiler's map appears in the accounting.
+Its two halves have different status, stated in the file rather than left implicit:
+
+* FORWARD (source cut succeeds => renamed target cut succeeds) is a **theorem**,
+  `cutState_ren_forward`, derived from `ssaLocalsRel` alone: each live name has a source entry, the
+  relation gives the target entry at `optionLookup ssa` of that name, and
+  `applyNummapKeyDomain` identifies the renamed set's domain with exactly that image.
+* BACKWARD is **not** derivable from `ssaLocalsRel` (the relation is one-directional on entries).
+  The witness: `st.locals = Spt.ln`, `ct.locals = sptInsert 0 (.word 0) Spt.ln`, `ssa = Spt.ln`,
+  `names = .ls ()` - `ssaLocalsRel` holds vacuously, the target cut at the renamed `{0}` succeeds
+  and the source cut fails.  Such a pair is not reached by the loop run (the setup's refresh writes
+  exactly the images of the source's live entries and the compiled body only creates names at or
+  above `nextRefreshed`, outside the cutset's image), but that reachability fact is exactly what the
+  induction consumes at every iteration, so it is carried as the hypothesis instead of being
+  asserted.  It is a hypothesis TRUE at the pairs the pinned loop proof relates, not a refuted one:
+  the refutation above uses a state pair the compiler never produces.
+
+The reason the transfer needs no locals premise at the BODY level: `wordStateEqRel` ignores
+`locals`, so the CUT states of two related states are related whatever cutsets produced them.
+That is `wordStateEqRel_cutState_any` (the old `wordStateEqRel_cutState` generalized from one cutset
+to two), and it is what lets `LoopBodyTransfer` - which quantifies over `wordStateEqRel` pairs -
+apply at the renamed cut pair.
+
+### The delivered statements
+
+    theorem wordStateEqRel_cutState_any (h : wordStateEqRel s t)
+        (hs : cutState src s = some cs) (ht : cutState tgt t = some ct) : wordStateEqRel cs ct
+
+    def LoopBodyStepRen (srcNames tgtNames) (body bodyC) (B)      -- two cutsets, one step
+    theorem loopBodyStep_ren_of_transfer (hbody : LoopBodyTransfer body bodyC B) :
+        LoopBodyStepRen srcNames tgtNames body bodyC B             -- DERIVED, not assumed
+
+    theorem wec_loop_stop_transfer_ren / wec_loop_cont_done_transfer_ren /
+            wec_loop_cont_live_transfer_ren                        -- the three one-step shapes
+
+    theorem wec_loop_transfer_iters_ren
+        (hbody : LoopBodyStepRen names renNames body bodyC B)
+        (hcut  : LoopCutRenAgrees names renNames) :
+        forall n s t, s.clock <= n -> wordStateEqRel s t ->
+          cost (.loop renNames bodyC renExit) t <= cost (.loop names body liveOut) s
+            + B * loopIterCountAux names body n s
+
+    theorem evaluate_loop_outcome_agree_ren
+        (hbody : LoopBodyTransfer body bodyC B)
+        (hcut : LoopCutRenAgrees names renNames) (hcutExit : LoopCutRenAgrees liveOut renExit) :
+        forall n s t, s.clock <= n -> wordStateEqRel s t ->
+          exists rS sS rT sT,
+            evaluate (.loop names body liveOut) s = (rS, sS) /\
+            evaluate (.loop renNames bodyC renExit) t = (rT, sT) /\ rS = rT
+
+    theorem loop_quantTransfer_ren
+        (hbody) (hcut) (hcutExit) (hrel : wordStateEqRel source target) :
+        quantTransfer (.loop names body liveOut) (.loop renNames bodyC renExit)
+          source target (B * loopIterCount names body source)
+
+    theorem ssaCcTrans_loop_seq_quant_fused
+        (bodyIH) (hinv)
+        (hshape : (ssaCcTrans (.loop names body exitNames) ssa next tables).1 =
+                    .seq setup (.loop ssaNames bodyC ssaExit))
+        (hsetup) (hsetupCost) (hrelPost)
+        (hbody : LoopBodyTransfer body bodyC B)
+        (hcut : LoopCutRenAgrees names ssaNames) (hcutExit : LoopCutRenAgrees exitNames ssaExit) :
+        quantSsaSimulation (.loop names body exitNames) source target ssa next tables
+          (extraSetup + B * loopIterCount names body source)
+
+    theorem ssaCcTrans_loop_seq_quant_literal              -- hshape DISCHARGED
+        (bodyIH) (hinv)
+        (setupEq : loopSetup names exits ssa next = (setup, ssaRefreshed, nextRefreshed))
+        (namesEq : ssaNames = applyNummapKey (optionLookup ssaRefreshed) names)
+        (exitsEq : ssaExit  = applyNummapKey (optionLookup ssaRefreshed) exits)
+        (bodyEq  : ssaCcTrans body (sptInter ssaRefreshed names) nextRefreshed
+                     ((ssaRefreshed, names, exits) :: tables) = (bodyOut, ssa', nextBody))
+        (bodyFinalEq : ... = bodyFinal)
+        (hsetup) (hsetupCost) (hrelPost)
+        (hbody : LoopBodyTransfer body bodyFinal B)
+        (hcut : LoopCutRenAgrees names (applyNummapKey (optionLookup ssaRefreshed) names))
+        (hcutExit : LoopCutRenAgrees exits (applyNummapKey (optionLookup ssaRefreshed) exits)) :
+        quantSsaSimulation (.loop names body exits) source target ssa next tables
+          (extraSetup + B * loopIterCount names body source)
+
+`ssaCcTrans_loop_seq_quant_literal` is the loop's `quantSsaSimulation` at the compiler's LITERAL
+output **with no shape hypothesis at all**: the `.seq setup (.loop ssaNames bodyFinal ssaExit)` is
+derived from the compiler's own clause equations through `ssaCcTrans_loop_output_shape`, and the
+budget is `extraSetup + B * loopIterCount names body source` - the setup's charge once, then `B` per
+EXECUTED source iteration.  No fuel bound, no clock multiplier, no factor 2, no new price.
+
+### Inputs and what is derived
+
+| input | role | status |
+| --- | --- | --- |
+| `bodyIH` + `hinv` | the semantic conjunct (`ssaCcTransCorrectLoop`) | the compiler's own bundle, mirrored verbatim |
+| setup equations | produce the literal shape | compiler clause, no extra assumption |
+| `hsetup`, `hsetupCost`, `hrelPost` | the inserted prefix's run, charge, and the loop's related pair | as in `ssaCcTrans_loop_seq_quant` |
+| `hbody : LoopBodyTransfer body bodyFinal B` | `B` per iteration | one-step lemma DERIVED (`loopBodyStep_ren_of_transfer`) |
+| `hcut`, `hcutExit` | cut agreement across the rename | forward half DERIVED; backward half carried (see above) |
+
+Axioms: `wordStateEqRel_cutState_any`, `loopBodyStep_ren_of_transfer`,
+`wec_loop_stop_transfer_ren`, `wec_loop_cont_done_transfer_ren`, `wec_loop_cont_live_transfer_ren`,
+`wec_loop_transfer_iters_ren`, `evaluate_loop_outcome_agree_ren`, `loop_quantTransfer_ren`,
+`ssaCcTrans_loop_seq_quant_fused`, `ssaCcTrans_loop_seq_quant_literal`, `cutState_ren_forward` all
+depend only on `propext`, `Classical.choice` and `Quot.sound`.
+
+### Proof notes for whoever continues
+
+- The renamed step could NOT be one lemma carrying the recursive hypothesis: at zero fuel the
+  recursion is not available, so the recursion-free shapes (`stop`, `cont_done`) must be separate
+  lemmas whose conclusion is `+ B`, exactly as the same-names route had it.  Passing a dummy `R = 0`
+  makes the obligation `cost (wordSemSTOP L) mid <= cost (wordSemSTOP L') mid' + 0`, which is NOT
+  provable - the two `STOP` costs are unrelated atoms.
+- `sptMem key tree` is definitionally `sptDomain tree key`, so `applyNummapKeyDomain` (stated for
+  `sptDomain`) rewrites a `sptMem` goal only after `change`/defeq: write
+  `have hk' : sptDomain (applyNummapKey f names) key := hk` and rewrite `hk'`.
+- `ssaLocalsRel`'s selector is `fun value => value.getD 0` while `optionLookup` matches on the
+  lookup, so transporting an entry needs `rw [hmv] at h` (with `hmv : sptLookup x ssa = some m`)
+  before `simp only [optionLookup, hmv, Option.getD_some]`, otherwise `(some m).getD 0` survives.
+- `evaluate_loop_break` returns a CONJUNCTION: its first component is the exit-cut-success shape
+  (`= (none, s2)`) and the second the failure shape (`= (some .error, middle)`); destructure both
+  (`obtain ⟨hSome, hNone⟩`) - using the first in the `none` branch is a type error.
