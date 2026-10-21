@@ -2680,7 +2680,296 @@ theorem evaluate_loop_cont {C F : Type}
     · rfl
 
 #print axioms evaluate_loop_cont
+/-! ### The loop's clock induction
 
+The loop's cost is a genuine fixpoint: `2 + body(cut s) + loop(decClock middle)` whenever the body's
+result continues the loop and the middle clock is still live.  The three `wec_loop_*_transfer` shapes are
+its one-step cases and `evaluate_loop_stop` / `evaluate_loop_cont` its run shapes.  The step lemma below
+composes a body's transfer at ONE iteration with the recursive transfer of the NEXT one; the induction
+over the loop's clock iterates the step, one budget `B` per executed iteration.
+
+Successive iteration states are related by the compiler's `wordStateEqRel`.  It is preserved by
+`cutState` (which only rewrites `locals`, a field the relation ignores) and by `decClock`; what it does
+NOT give is (i) cutability on both sides (`cutState` reads `locals`, the relation does not pin `locals`)
+and (ii) the body's own cost transfer at each iteration, which only the body's simulation can produce.
+Both are explicit hypotheses (`LoopCutAgrees`, `LoopBodyStep`) and are deliberately not derived: the
+compiler's `ssaCcTransCorrectLoop` discharges exactly `LoopBodyStep` from its universal body hypothesis
+whose premise is `wordStateEqRel` plus the SSA invariants. -/
+
+/-- The body's quantitative transfer at ONE iteration, at every pair of states the compiler's
+`wordStateEqRel` relates: the two body runs agree on the continuation test, their clock-fixed middles are
+again related (so the next iteration starts from a related pair), and the compiled body costs at most the
+source body plus `B`.  This is the only thing the induction asks of the body. -/
+def LoopBodyStep {C F : Type} (names : WordLangNumSetHOL)
+    (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat) : Prop :=
+  ∀ (st ct cutS cutT : WordSemStateFiniteExact 64 C F)
+    (resultS : Option (WordSemResult 64)) (midS : WordSemStateFiniteExact 64 C F)
+    (resultT : Option (WordSemResult 64)) (midT : WordSemStateFiniteExact 64 C F),
+    Flapjack.WordAlloc.wordStateEqRel st ct →
+    cutState (names, .ln) st = some cutS → cutState (names, .ln) ct = some cutT →
+    fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) = (resultS, midS) →
+    fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) = (resultT, midT) →
+    wordSemContLoop resultS = wordSemContLoop resultT ∧
+    Flapjack.WordAlloc.wordStateEqRel midS midT ∧
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice bodyC cutT ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body cutS + B
+
+/-- Cutability of the loop's live set is a property of `locals`, and `wordStateEqRel` deliberately does
+not constrain `locals`, so this agreement is a hypothesis of the induction, never a derived fact. -/
+def LoopCutAgrees {C F : Type} (names : WordLangNumSetHOL) : Prop :=
+  ∀ (st ct : WordSemStateFiniteExact 64 C F), Flapjack.WordAlloc.wordStateEqRel st ct →
+    ((∃ cutS, cutState (names, .ln) st = some cutS) ↔
+      (∃ cutT, cutState (names, .ln) ct = some cutT))
+
+/-- `wordStateEqRel` pins the clock: related states run the loop's recursion at the same depth. -/
+theorem wordStateEqRel_clock {C F : Type} {s t : WordSemStateFiniteExact 64 C F}
+    (h : Flapjack.WordAlloc.wordStateEqRel s t) : t.clock = s.clock := by
+  unfold Flapjack.WordAlloc.wordStateEqRel at h
+  exact h.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+/-- `cutState` only rewrites `locals`, so it preserves `wordStateEqRel` (which ignores that field). -/
+theorem wordStateEqRel_cutState {C F : Type} (names : WordLangCutsetsHOL)
+    {s t cs ct : WordSemStateFiniteExact 64 C F}
+    (h : Flapjack.WordAlloc.wordStateEqRel s t)
+    (hs : cutState names s = some cs) (ht : cutState names t = some ct) :
+    Flapjack.WordAlloc.wordStateEqRel cs ct := by
+  obtain ⟨ls, rfl⟩ := cutStateConst names s cs hs
+  obtain ⟨lt, rfl⟩ := cutStateConst names t ct ht
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20,
+    h21⟩ := h
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20,
+    h21⟩
+
+/-- `decClock` changes only the clock, by the same amount on both sides, so it preserves
+`wordStateEqRel`: the next iteration's states are related. -/
+theorem wordStateEqRel_decClock {C F : Type} {s t : WordSemStateFiniteExact 64 C F}
+    (h : Flapjack.WordAlloc.wordStateEqRel s t) :
+    Flapjack.WordAlloc.wordStateEqRel (Flapjack.WordSemStateFiniteExact.decClock s)
+      (Flapjack.WordSemStateFiniteExact.decClock t) := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20,
+    h21⟩ := h
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, ?_, h14, h15, h16, h17, h18, h19, h20,
+    h21⟩
+  show t.clock - 1 = s.clock - 1
+  rw [h13]
+
+/-- **The loop's one-step transfer.**  Given the two cut states, the two body runs, agreement of the
+continuation test and of the clock guard, the body's transfer at this iteration (budget `B`) and the
+recursive transfer of the next iteration (budget `R`), the loop node transfers within `B + R`.  The three
+`wec_loop_*_transfer` shapes are its branches; the recursive hypothesis is only consulted in the
+live-continuing branch, which is why the stopping shapes conclude with the spare `R` included. -/
+theorem wec_loop_step_transfer {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64))
+    (s t cutS cutT : WordSemStateFiniteExact 64 C F) (B R : Nat)
+    (hs : cutState (names, .ln) s = some cutS)
+    (ht : cutState (names, .ln) t = some cutT)
+    (resultS : Option (WordSemResult 64)) (midS : WordSemStateFiniteExact 64 C F)
+    (resultT : Option (WordSemResult 64)) (midT : WordSemStateFiniteExact 64 C F)
+    (hS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) = (resultS, midS))
+    (hT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) = (resultT, midT))
+    (hcont : wordSemContLoop resultS = wordSemContLoop resultT)
+    (hclk : midS.clock = 0 ↔ midT.clock = 0)
+    (hcost : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice bodyC cutT ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body cutS + B)
+    (hrec :
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (wordSemSTOP (.loop names bodyC liveOut)) (Flapjack.WordSemStateFiniteExact.decClock midT) ≤
+        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (wordSemSTOP (.loop names body liveOut)) (Flapjack.WordSemStateFiniteExact.decClock midS) + R) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names bodyC liveOut) t ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s +
+        (B + R) := by
+  cases hc : wordSemContLoop resultS with
+  | false =>
+      have hcT : wordSemContLoop resultT = false := by rw [← hcont]; exact hc
+      have hstop := wec_loop_stop_transfer names liveOut body bodyC s t cutS cutT B hs ht
+        resultS midS resultT midT hS hT hc hcT hcost
+      omega
+  | true =>
+      have hcT : wordSemContLoop resultT = true := by rw [← hcont]; exact hc
+      by_cases hzS : midS.clock = 0
+      · have hzT : midT.clock = 0 := hclk.mp hzS
+        have hdone := wec_loop_cont_done_transfer names liveOut body bodyC s t cutS cutT B hs ht
+          resultS midS resultT midT hS hT hc hcT hcost hzS hzT
+        omega
+      · have hzT : midT.clock = 0 → False := fun h => hzS (hclk.mpr h)
+        rw [wec_loop_cont names liveOut bodyC t cutT ht resultT midT hT hcT,
+          wec_loop_cont names liveOut body s cutS hs resultS midS hS hc]
+        rw [dif_neg hzT, dif_neg hzS]
+        simp only [refinedWordLocalPrice_loop]
+        omega
+
+#print axioms wordStateEqRel_clock
+#print axioms wordStateEqRel_cutState
+#print axioms wordStateEqRel_decClock
+#print axioms wec_loop_step_transfer
+/-- The loop's RUN step in the stopping shape: both sides exit the loop at the body's own reached state
+(`evaluate_loop_stop`), which is what `wec_loop_stop_transfer` charges.  The `break 0` result is excluded
+on both sides because the evaluator routes it through `cutState` at the exit names instead. -/
+theorem evaluate_loop_stop_pair {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64))
+    (s t cutS cutT : WordSemStateFiniteExact 64 C F)
+    (resultS : Option (WordSemResult 64)) (midS : WordSemStateFiniteExact 64 C F)
+    (resultT : Option (WordSemResult 64)) (midT : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cutS)
+    (ht : cutState (names, .ln) t = some cutT)
+    (hS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) = (resultS, midS))
+    (hT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) = (resultT, midT))
+    (hncS : wordSemContLoop resultS = false) (hncT : wordSemContLoop resultT = false)
+    (hbreakS : resultS = some (.break 0) → False) (hbreakT : resultT = some (.break 0) → False) :
+    WordSemStateFiniteExact.evaluate (.loop names body liveOut) s = (wordSemExitLoop resultS, midS) ∧
+      WordSemStateFiniteExact.evaluate (.loop names bodyC liveOut) t =
+        (wordSemExitLoop resultT, midT) :=
+  ⟨evaluate_loop_stop names liveOut body s cutS hs resultS midS hS hncS hbreakS,
+    evaluate_loop_stop names liveOut bodyC t cutT ht resultT midT hT hncT hbreakT⟩
+
+/-- The loop's RUN step in the live-continuing shape: both sides recurse at `wordSemSTOP` of their own
+loop and their own decremented clock (`evaluate_loop_cont`), exactly the point
+`wec_loop_cont_live_transfer` charges its next iteration at. -/
+theorem evaluate_loop_cont_pair {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64))
+    (s t cutS cutT : WordSemStateFiniteExact 64 C F)
+    (resultS : Option (WordSemResult 64)) (midS : WordSemStateFiniteExact 64 C F)
+    (resultT : Option (WordSemResult 64)) (midT : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cutS)
+    (ht : cutState (names, .ln) t = some cutT)
+    (hS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) = (resultS, midS))
+    (hT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) = (resultT, midT))
+    (hcS : wordSemContLoop resultS = true) (hcT : wordSemContLoop resultT = true)
+    (hclkS : midS.clock = 0 → False) (hclkT : midT.clock = 0 → False) :
+    WordSemStateFiniteExact.evaluate (.loop names body liveOut) s =
+        WordSemStateFiniteExact.evaluate (wordSemSTOP (.loop names body liveOut))
+          (Flapjack.WordSemStateFiniteExact.decClock midS) ∧
+      WordSemStateFiniteExact.evaluate (.loop names bodyC liveOut) t =
+        WordSemStateFiniteExact.evaluate (wordSemSTOP (.loop names bodyC liveOut))
+          (Flapjack.WordSemStateFiniteExact.decClock midT) :=
+  ⟨evaluate_loop_cont names liveOut body s cutS hs resultS midS hS hcS hclkS,
+    evaluate_loop_cont names liveOut bodyC t cutT ht resultT midT hT hcT hclkT⟩
+
+#print axioms evaluate_loop_stop_pair
+#print axioms evaluate_loop_cont_pair
+/-- **The loop's clock induction.**  Iterating the step lemma: each executed iteration costs at most the
+body's differential `B`, so a loop whose entry clock is `s.clock` transfers within `B * (s.clock + 1)` -
+the `+ 1` is the iteration that runs even at a zero clock (the cut and the body are charged before the
+clock is consulted).  The budget therefore GROWS with the iteration count; a single `B` independent of
+the clock is false, because the loop recharges the body at every level. -/
+theorem wec_loop_transfer_clock_aux {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat)
+    (hbody : LoopBodyStep (C := C) (F := F) names body bodyC B)
+    (hcut : LoopCutAgrees (C := C) (F := F) names) :
+    ∀ (n : Nat) (s t : WordSemStateFiniteExact 64 C F), s.clock ≤ n →
+      Flapjack.WordAlloc.wordStateEqRel s t →
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names bodyC liveOut) t ≤
+        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s +
+          B * (n + 1) := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | h n ih =>
+    intro s t hle hrel
+    have hBn : B ≤ B * (n + 1) := by
+      have h1 : B * 1 ≤ B * (n + 1) := Nat.mul_le_mul_left B (by omega)
+      simpa using h1
+    cases hs : cutState (names, .ln) s with
+    | none =>
+        have hnoneS : ¬ ∃ cs, cutState (names, .ln) s = some cs := by
+          rintro ⟨cs, hcs⟩
+          rw [hs] at hcs
+          cases hcs
+        have hnoneT : ¬ ∃ ct, cutState (names, .ln) t = some ct :=
+          fun h => hnoneS ((hcut s t hrel).mpr h)
+        have ht : cutState (names, .ln) t = none := by
+          cases htt : cutState (names, .ln) t with
+          | none => rfl
+          | some ct => exact absurd ⟨ct, htt⟩ hnoneT
+        rw [wec_loop_cutState_none names liveOut body s hs,
+          wec_loop_cutState_none names liveOut bodyC t ht]
+        omega
+    | some cutS =>
+        obtain ⟨cutT, ht⟩ := (hcut s t hrel).mp ⟨cutS, hs⟩
+        rcases hRunS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) with ⟨resultS, midS⟩
+        rcases hRunT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) with ⟨resultT, midT⟩
+        obtain ⟨hcont, hrelMid, hcost⟩ :=
+          hbody s t cutS cutT resultS midS resultT midT hrel hs ht hRunS hRunT
+        have hclk : midS.clock = 0 ↔ midT.clock = 0 := by
+          have hc := wordStateEqRel_clock hrelMid
+          omega
+        have hbound : midS.clock ≤ n := by
+          have h1 : midS.clock ≤ cutS.clock :=
+            (fixClock_IMP_LESS_EQ cutS resultS midS (WordSemStateFiniteExact.evaluate body cutS) hRunS).1
+          have h2 : cutS.clock = s.clock := (cutState_clock_termdep (names, .ln) s cutS hs).1
+          omega
+        cases hc : wordSemContLoop resultS with
+        | false =>
+            have hcT : wordSemContLoop resultT = false := by rw [← hcont]; exact hc
+            have hstop := wec_loop_stop_transfer names liveOut body bodyC s t cutS cutT B hs ht
+              resultS midS resultT midT hRunS hRunT hc hcT hcost
+            omega
+        | true =>
+            have hcT : wordSemContLoop resultT = true := by rw [← hcont]; exact hc
+            by_cases hzS : midS.clock = 0
+            · have hzT : midT.clock = 0 := hclk.mp hzS
+              have hdone := wec_loop_cont_done_transfer names liveOut body bodyC s t cutS cutT B hs ht
+                resultS midS resultT midT hRunS hRunT hc hcT hcost hzS hzT
+              omega
+            · have hzT : midT.clock = 0 → False := fun h => hzS (hclk.mpr h)
+              have hm : (Flapjack.WordSemStateFiniteExact.decClock midS).clock < n := by
+                show midS.clock - 1 < n
+                omega
+              have hrelDec : Flapjack.WordAlloc.wordStateEqRel
+                  (Flapjack.WordSemStateFiniteExact.decClock midS)
+                  (Flapjack.WordSemStateFiniteExact.decClock midT) :=
+                wordStateEqRel_decClock hrelMid
+              have hrec := ih (Flapjack.WordSemStateFiniteExact.decClock midS).clock hm
+                (Flapjack.WordSemStateFiniteExact.decClock midS)
+                (Flapjack.WordSemStateFiniteExact.decClock midT) (le_refl _) hrelDec
+              have hstep := wec_loop_step_transfer names liveOut body bodyC s t cutS cutT B
+                (B * ((Flapjack.WordSemStateFiniteExact.decClock midS).clock + 1)) hs ht
+                resultS midS resultT midT hRunS hRunT hcont hclk hcost hrec
+              have harith : B + B * ((Flapjack.WordSemStateFiniteExact.decClock midS).clock + 1) ≤
+                  B * (n + 1) := by
+                have hk : (Flapjack.WordSemStateFiniteExact.decClock midS).clock + 1 + 1 ≤ n + 1 := by
+                  show midS.clock - 1 + 1 + 1 ≤ n + 1
+                  omega
+                calc B + B * ((Flapjack.WordSemStateFiniteExact.decClock midS).clock + 1)
+                    = B * ((Flapjack.WordSemStateFiniteExact.decClock midS).clock + 1) + B := by omega
+                  _ = B * ((Flapjack.WordSemStateFiniteExact.decClock midS).clock + 1 + 1) :=
+                        (Nat.mul_succ B ((Flapjack.WordSemStateFiniteExact.decClock midS).clock + 1)).symm
+                  _ ≤ B * (n + 1) := Nat.mul_le_mul_left B hk
+              omega
+
+#print axioms wec_loop_transfer_clock_aux
+/-- **The loop's quantitative transfer at the loop's own clock.**  Same hypotheses as the auxiliary
+induction, stated at the entry state's clock: the budget is `B` per executed iteration, of which there
+are at most `s.clock + 1`. -/
+theorem wec_loop_transfer_clock {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat)
+    (hbody : LoopBodyStep (C := C) (F := F) names body bodyC B)
+    (hcut : LoopCutAgrees (C := C) (F := F) names)
+    (s t : WordSemStateFiniteExact 64 C F)
+    (hrel : Flapjack.WordAlloc.wordStateEqRel s t) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names bodyC liveOut) t ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s +
+        B * (s.clock + 1) :=
+  wec_loop_transfer_clock_aux names liveOut body bodyC B hbody hcut s.clock s t (le_refl _) hrel
+
+#print axioms wec_loop_transfer_clock
+/-- The loose form of the same bound, matching `wec_loop_cont_live_transfer`'s doubling: when the body's
+and the recursion's budgets are BOTH the per-iteration `B`, a continued iteration carries `2 * B`, so the
+loop transfers within `2 * B * (s.clock + 1)`.  (A budget independent of the iteration count is false;
+see `wec_loop_cont_live_transfer`.) -/
+theorem wec_loop_transfer_clock_double {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat)
+    (hbody : LoopBodyStep (C := C) (F := F) names body bodyC B)
+    (hcut : LoopCutAgrees (C := C) (F := F) names)
+    (s t : WordSemStateFiniteExact 64 C F)
+    (hrel : Flapjack.WordAlloc.wordStateEqRel s t) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names bodyC liveOut) t ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s +
+        2 * B * (s.clock + 1) := by
+  have h := wec_loop_transfer_clock names liveOut body bodyC B hbody hcut s t hrel
+  have h2 : B ≤ 2 * B := by omega
+  have h3 : B * (s.clock + 1) ≤ 2 * B * (s.clock + 1) := Nat.mul_le_mul_right _ h2
+  omega
+
+#print axioms wec_loop_transfer_clock_double
 /-- The frame a DIRECT call site resolves sits in the code table, and the arity check the call
 performed is the length equation: the destination and arity the callee bound needs, together with the
 evidence that the arity test passed. -/

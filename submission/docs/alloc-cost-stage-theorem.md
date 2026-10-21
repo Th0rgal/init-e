@@ -605,3 +605,76 @@ and nothing in the code relation relates them.
 Axioms: `wec_call_none_callee_transfer_of_code_some` and `wec_call_none_callee_transfer_of_code` depend only
 on `propext`, `Classical.choice` and `Quot.sound`; `getVars_length` and the four `findCode_*_frame` lemmas
 only on `propext`.
+
+## The loop's clock induction is done
+
+The loop node's transfer is now proved as a genuine induction over the loop's clock, with the iteration
+states related by the compiler's `wordStateEqRel`.  All green, axioms `propext` / `Classical.choice` /
+`Quot.sound` throughout:
+
+    def LoopBodyStep (names) (body bodyC) (B : Nat) : Prop :=
+      forall st ct cutS cutT resultS midS resultT midT,
+        wordStateEqRel st ct ->
+        cutState (names, .ln) st = some cutS -> cutState (names, .ln) ct = some cutT ->
+        fixClock cutS (evaluate body cutS) = (resultS, midS) ->
+        fixClock cutT (evaluate bodyC cutT) = (resultT, midT) ->
+        wordSemContLoop resultS = wordSemContLoop resultT
+        /\ wordStateEqRel midS midT
+        /\ cost bodyC cutT <= cost body cutS + B
+
+    def LoopCutAgrees (names) : Prop :=
+      forall st ct, wordStateEqRel st ct ->
+        (exists cutS, cutState (names,.ln) st = some cutS) <->
+        (exists cutT, cutState (names,.ln) ct = some cutT)
+
+    theorem wec_loop_step_transfer            -- (a) the one-step composition
+        (cutState s = some cutS) (cutState t = some cutT)
+        (fixClock cutS (evaluate body cutS) = (resultS, midS))
+        (fixClock cutT (evaluate bodyC cutT) = (resultT, midT))
+        (wordSemContLoop resultS = wordSemContLoop resultT)     -- same branch
+        (midS.clock = 0 <-> midT.clock = 0)                     -- same clock guard
+        (cost bodyC cutT <= cost body cutS + B)
+        (cost (loop bodyC) (decClock midT) <= cost (loop body) (decClock midS) + R) :
+        cost (loop bodyC) t <= cost (loop body) s + (B + R)
+
+    theorem wec_loop_transfer_clock_aux       -- (b) strong induction over the clock
+        (hbody : LoopBodyStep names body bodyC B) (hcut : LoopCutAgrees names) :
+        forall n s t, s.clock <= n -> wordStateEqRel s t ->
+          cost (.loop names bodyC liveOut) t <=
+            cost (.loop names body liveOut) s + B * (n + 1)
+
+    theorem wec_loop_transfer_clock           -- at the entry clock
+        (hbody : LoopBodyStep ...) (hcut : LoopCutAgrees ...) (hrel : wordStateEqRel s t) :
+        cost (.loop names bodyC liveOut) t <= cost (.loop names body liveOut) s + B * (s.clock + 1)
+
+    theorem wec_loop_transfer_clock_double    -- the loose, per-iteration-2B form
+        ... : ... <= ... + 2 * B * (s.clock + 1)
+
+Support: `wordStateEqRel_clock` (`t.clock = s.clock`), `wordStateEqRel_cutState` (`cutState` rewrites only
+`locals`, a field the relation ignores, so related states cut to related cut states) and
+`wordStateEqRel_decClock` (both sides decrement the same clock).  The run half of the same three shapes is
+`evaluate_loop_stop_pair` / `evaluate_loop_cont_pair`, i.e. `evaluate_loop_stop` / `evaluate_loop_cont`
+applied on both sides - exactly the cases the cost step splits on.
+
+Notes for whoever continues:
+
+- **the budget must scale with the iteration count, and one iteration costs B (not 2B)**.  `wec_loop_cont_live_transfer`
+  charges the SAME `extra` for the body and for the recursion, which is why its conclusion is `extra + extra`;
+  that doubling is a one-step artefact: at the next level the recursion's budget is the ACCUMULATED one, not `B`.
+  With the body's budget `B` and the recursion's budget `R` separated (`wec_loop_step_transfer`), one executed
+  iteration adds exactly `B`, and the tight bound is `B * (s.clock + 1)`.  A constant budget - `B` or `2*B` - is
+  false for the same reason: the loop recharges the body at every level.
+- **the `+ 1` is real**: the cut and the body are charged before the clock is consulted, so a loop entered at
+  clock 0 still executes its body once.  A bound `B * s.clock` without the `+ 1` is false.
+- **both extra hypotheses are genuine**, and neither follows from `wordStateEqRel`:
+  `LoopCutAgrees` because cutability reads `locals` (which the relation deliberately does not constrain), and
+  `LoopBodyStep` because the body's own cost transfer at each iteration is exactly what the body's simulation
+  provides.  `LoopBodyStep` is the quantitative analogue of the universal body hypothesis of
+  `ssaCcTransCorrectLoop` (whose premise is `wordStateEqRel` plus the SSA invariants), so the loop's
+  `quantSsaSimulation` case is: discharge `LoopBodyStep`/`LoopCutAgrees` from the compiler's body IH and
+  instantiate `wec_loop_transfer_clock`.
+- induction shape: `Nat.strong_induction_on` on the clock bound, with the statement at `s.clock <= n`.  In the
+  live case the recursive instance is at `(decClock midS).clock = midS.clock - 1 < n`, using
+  `fixClock_IMP_LESS_EQ` (`midS.clock <= cutS.clock = s.clock`) and the fact that a live middle has a positive
+  clock; the arithmetic `B + B * (k + 1) = B * (k + 2) <= B * (n + 1)` is `Nat.mul_succ` plus `omega` (plain
+  `omega` on the product alone fails, it needs the product as an atom plus an explicit `Nat.mul_le_mul_left`).
