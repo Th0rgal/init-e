@@ -76,8 +76,36 @@ theorem path_load_has_cost_event {F : Type}
     .cost (sourcePrice s e) ∈ (expressionEvents s e) := by
   simp [expressionEvents]
 
+/-- Full score of the actual one-word path-store event trace: one statement
+unit, both operand-expression runs, one memory access, and the one-word native
+store overhead. -/
+theorem path_store_one_word_score {F : Type} (coeff : Work)
+    {fn : Pancake.PanLang.MlS} {s : PanSemStateFiniteExact 64 F}
+    {destination source : Pancake.PanLang.ExpHOL 64} {address : BitVec 64}
+    {value : ValueHOL 64} {addressEvents valueEvents : List WorkEvent}
+    (dst : CostedExpressionRun s destination
+      (some (ValueHOL.val (HolWordLab.word address))) addressEvents)
+    (src : CostedExpressionRun s source (some value) valueEvents)
+    (write : @panMemStoresHOL 64 _ address (flattenHOL value) s.memaddrs
+      (Classical.decPred _) s.memory = some mem)
+    (hword : (flattenHOL value).length = 1) :
+    coeff.score (executionWork
+        (WorkEvent.statement :: (addressEvents ++ valueEvents ++
+          [WorkEvent.memory 1, WorkEvent.cost (storeOverhead 1)]))) =
+      coeff.statements + coeff.score (executionWork addressEvents) +
+      coeff.score (executionWork valueEvents) + coeff.memoryAccesses +
+      coeff.nativeCost * storeOverhead 1 := by
+  have _ := dst
+  have _ := src
+  have _ := write
+  rw [executionWork_score_cons, executionWork_score_append,
+    executionWork_score_append]
+  simp [executionWork, WorkEvent.units, Work.plus, Work.score]
+  omega
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.storeValue_events
 #print axioms BoundedTableExperiment.path_store_one_word_events
 #print axioms BoundedTableExperiment.path_load_expression_cost
+#print axioms BoundedTableExperiment.path_store_one_word_score

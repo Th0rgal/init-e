@@ -785,3 +785,19 @@ the full per-operation cost remains open.
 So the path buffer's load/guard executions are coupled to the candidate
 expression cost, not just counted by the model. Axioms are `propext` and
 `Quot.sound` for the cost lemmas.
+
+## 32. Full one-word path-store statement-run score
+
+`path_store_one_word_score` composes the actual store trace with the work
+coefficients:
+
+```
+score = statements
+      + score(addressEvents) + score(valueEvents)
+      + memoryAccesses + nativeCost * storeOverhead 1
+```
+
+The two expression runs are the actual `CostedExpressionRun`s from section 31.
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. This is the full
+statement-run cost of one path slot store; composing several slots and the
+binary-search load loop remains open.
