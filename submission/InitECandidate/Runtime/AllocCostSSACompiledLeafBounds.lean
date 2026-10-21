@@ -1267,4 +1267,30 @@ theorem quantSsaSimulation.targetRun {C F : Type}
 #print axioms quantSsaSimulation.toSsaSimulation
 #print axioms quantSsaSimulation.costBound
 #print axioms quantSsaSimulation.targetRun
+
+/-- `fixClock` rewrites only the state's clock and termdep; the RESULT component is untouched.
+This is what lets a stage turn a run equation into the `fixClock` form the counter uses. -/
+theorem fixClock_fst {C F : Type}
+    (s : WordSemStateFiniteExact 64 C F)
+    (p : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F) :
+    (fixClock s p).1 = p.1 := by
+  simp only [fixClock]
+
+/-- If a run's result is `none`, so is the `fixClock`ed run's result. -/
+theorem fixClock_fst_none {C F : Type}
+    (s : WordSemStateFiniteExact 64 C F)
+    (p : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F)
+    (h : p.1 = none) : (fixClock s p).1 = none := by
+  rw [fixClock_fst, h]
+
+/-- The reached state of a `fixClock`ed run, as the middle state a continuation is charged at. -/
+def fixClockMid {C F : Type}
+    (s : WordSemStateFiniteExact 64 C F)
+    (p : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F) :
+    WordSemStateFiniteExact 64 C F :=
+  (fixClock s p).2
+
+#print axioms fixClock_fst
+#print axioms fixClock_fst_none
+
 end InitECandidate.Runtime.FineCost

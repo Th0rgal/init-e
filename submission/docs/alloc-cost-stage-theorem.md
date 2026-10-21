@@ -256,3 +256,33 @@ Remaining for the seq case: from the first body's quantitative IH, `rS = none` t
 `targetRun`; feed that as `hT`/`midT` to `ssaCcTrans_seq_transfer_compiled` (fall-through) or use
 `seq_transfer_escape_refined` when the outcome is not `none`; the simulation half is
 `ssaCcTransCorrectSeq` applied to the two recursive IHs and the invariants.
+
+## Blocker 1 cleared: `fixClock` preserves the result
+
+`fixClock old step = (step.1, {step.2 with clock := ..., termdep := old.termdep})`, so
+
+- `fixClock_fst : (fixClock s p).1 = p.1`
+- `fixClock_fst_none : p.1 = none -> (fixClock s p).1 = none`
+
+both proved (axioms `propext` only).  Hence a run equation `evaluate f s = (r, s')` with `r = none`
+yields the `fixClock` premise the counter-based transfer needs, with middle state
+`fixClockMid s (evaluate f s) := (fixClock s (evaluate f s)).2`.
+
+## Remaining friction for the seq induction: the permutation state
+
+`ssaSimulation` (and therefore `quantSsaSimulation`) evaluates the SOURCE program at
+`{source with permute := permutation}` --- the estimator writes its register renaming into the
+`permute` field --- while the counter transfer `ssaCcTrans_seq_transfer_compiled` is stated at the
+plain `source`.  Instantiating the transfer at `{source with permute := permutation}` removes the
+mismatch for the RUNS (via `fixClock_fst` plus the IH's `rS = none` and `rS = rT`), but the two
+sides of the cost inequality then sit at different states:
+
+    wordExecutionCost refined compiled target <= wordExecutionCost refined first {source with permute := perm} + ...
+
+whereas the theorem wants `... <= wordExecutionCost refined (.seq first second) source + ...`.
+`refinedWordLocalPrice` is state-independent, but `wordExecutionCost` is not: its `.ite` clause reads
+`getVar`/`getVarImm` from the state, so a permutation that moves a compared register changes the
+charged cost.  The honest options are (a) a cost-invariance lemma for `wordExecutionCost` under
+`permute`-only state changes (true if `permute` is not consulted by `getVar`), or (b) charging the
+source side at the permuted state and carrying the permuted state through the statement.  Option (a)
+is the one to prove; it needs the fact that `getVar`/`getVarImm` ignore the `permute` field.
