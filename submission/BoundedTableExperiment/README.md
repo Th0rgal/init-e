@@ -700,3 +700,18 @@ pay about `row_bytes * 73` source units of amortized array copying.
 
 The 1,477-event canonical trace passes with zero failures. This is a behavioral
 trace-to-PNK relation, not a proof of the PNK heap semantics.
+
+## 27. Iterative binary-search refinement (checked)
+
+`BinarySearchRefinement.lean` models the PNK loop's `lo/hi/mid` state and
+proves:
+
+- `step_split`: if `lo <= S <= hi` and `S` is the unique split point
+  (`i < S ↔ routes i <= d`), one loop step keeps `lo <= S <= hi`;
+- `step_gap`: an entering step strictly decreases `hi - lo`;
+- `run_split`: with fuel at least `hi - lo`, the loop terminates with
+  `lo = S`.
+
+Axioms are only `propext` and `Quot.sound`. This refines the iterative loop to
+the split specification; tying the specification to the concrete `HT_PATH`
+list via `getD` membership is the remaining glue.
