@@ -467,6 +467,28 @@ theorem move_node_schedule_le {pri : Nat} {pairs : List (Nat × Nat)} {before : 
       28 * nonselfCount pairs :=
   le_trans (goSeq_move ok) (allocMovePrice_le pairs)
 
+/-- `allocMovePrice` in closed form over the physical nonself count. -/
+theorem allocMovePrice_eq (pairs : List (Nat × Nat)) :
+    allocMovePrice pairs =
+      (if nonselfCount pairs ≤ 1 then 12 * nonselfCount pairs
+        else 24 * nonselfCount pairs) := by
+  unfold allocMovePrice
+  dsimp only
+  rw [physPairs_filter_length]
+
+/-- **His price is dominated by my charge, sharply.**  12 or 24 per physical nonself
+pair never exceeds my 14/28 per emitted pair: in the small branch the list holds at
+most one nonself pair so the 14-per-pair charge covers 12, and otherwise 24 ≤ 28 on a
+list at least as long as its nonself count. -/
+theorem allocMovePrice_le_certifiedCharge (pairs : List (Nat × Nat)) :
+    allocMovePrice pairs ≤ certifiedMoveCharge pairs := by
+  rw [allocMovePrice_eq]
+  unfold certifiedMoveCharge
+  have h := nonselfCount_le pairs
+  split <;> split <;> omega
+
+#print axioms allocMovePrice_le_certifiedCharge
+#print axioms allocMovePrice_eq
 #print axioms move_node_schedule_le
 #print axioms allocMovePrice_le
 #print axioms physPairs_filter_length
