@@ -65,8 +65,9 @@ theorem RunFramesAddIterations.work_le_budget {frame : BitVec 64}
     {state post : PanSemStateFiniteExact 64 Guest.HostMemory}
     {funding final : GasFunding} {count : Nat}
     (trace : RunFramesAddIterations frame state funding count post final)
-    (budget : funding.potential ≤ 200000000) (witnessCost : Nat) :
-    3 * count + guestIndependentWork 0 witnessCost ≤ 200000000 + guestIndependentWork 0 witnessCost := by
+    (budget : funding.potential ≤ 200000000) (inputLimit witnessCost : Nat) :
+    3 * count + guestIndependentWork inputLimit witnessCost ≤
+      200000000 + guestIndependentWork inputLimit witnessCost := by
   obtain ⟨left, _, potential⟩ := trace.accounting
   have usedLe : 3 * count ≤ funding.left.toNat := by omega
   have leftLe : funding.left.toNat ≤ funding.potential := by
@@ -74,6 +75,19 @@ theorem RunFramesAddIterations.work_le_budget {frame : BitVec 64}
     omega
   have gasLe : 3 * count ≤ 200000000 := by omega
   omega
+
+/-- The concrete input cap used by the guest verifier: `maxInputBytes` is
+`134217728 - 16`, the same bound consumed by the database input budget. -/
+def maxGuestInputBytes : Nat := 134217712
+
+theorem RunFramesAddIterations.work_le_max_input_budget {frame : BitVec 64}
+    {state post : PanSemStateFiniteExact 64 Guest.HostMemory}
+    {funding final : GasFunding} {count : Nat}
+    (trace : RunFramesAddIterations frame state funding count post final)
+    (budget : funding.potential ≤ 200000000) (witnessCost : Nat) :
+    3 * count + guestIndependentWork maxGuestInputBytes witnessCost ≤
+      200000000 + guestIndependentWork maxGuestInputBytes witnessCost :=
+  trace.work_le_budget budget maxGuestInputBytes witnessCost
 
 /-- One actual ADD iteration lowers gas-left by three, raises used by three,
 and conserves the funded potential. This is the concrete step consumed by the
@@ -117,5 +131,6 @@ theorem runFrames_add_loop_gas_decrease (coeff : FineCost.Work)
 
 #print axioms RunFramesAddIterations.accounting
 #print axioms RunFramesAddIterations.work_le_budget
+#print axioms RunFramesAddIterations.work_le_max_input_budget
 #print axioms runFrames_add_loop_gas_decrease
 end InitECandidate.Runtime
