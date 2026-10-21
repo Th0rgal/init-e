@@ -1228,3 +1228,15 @@ the frame event, the local-environment post, and the remaining
 alignment/loop body run.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 64. Actual memcpy alignment and tail structure
+
+`CandidateMemcpyBodyTrace.lean` now also proves:
+- `candidateMemcpy_align_trace`: the alignment `ite` splits into its guard and
+  the `while32; while8` arm or the `skip` arm;
+- `candidateMemcpy_afterInit_trace`: the post-declaration body splits into the
+  alignment `ite` run and the tail run;
+- `candidateMemcpy_rest_trace`: the tail splits into the byte loop, byte loop,
+  and `return 0`.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
