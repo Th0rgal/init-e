@@ -238,3 +238,77 @@ theorem candidate_loop_body_bounded_cost {F : Type} {fn : MlS}
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidate_loop_body_bounded_cost
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- One-word local values give one-word source prices. -/
+theorem valueInfo_of_word {F : Type} {s : PanSemStateFiniteExact 64 F} {name : MlS}
+    {w : BitVec 64}
+    (h : s.locals.lookup name = some (.val (.word w))) :
+    valueInfo s.locals name = some (ShapeHOL.one, 1) := by
+  simp [valueInfo, h, shapeOfHOLExact, flattenHOL]
+
+/-- The concrete candidate loop `while i < cap { ... }` with one-word locals:
+at most 480 iterations and fully bounded work, with guard and body shape facts
+derived from actual word lookups. -/
+theorem candidate_loop_body_bounded_cost_of_words {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F}
+    {r : Option (PanSemResultExact 64)} {events : List WorkEvent} {n : Nat}
+    {rank : PanSemStateFiniteExact 64 F → Nat}
+    (count : WhileCount fn
+      (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+      (.seq (.store (.op .add [.var .local (ofString "vals"),
+          .panop .mul [.var .local (ofString "i"), .const (BitVec.ofNat 64 8)]])
+        (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 2)]))
+        (.assign .local (ofString "i")
+          (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 1)])))
+      s r post events n)
+    (start : rank s < 480)
+    (step : ∀ (t middle : PanSemStateFiniteExact 64 F)
+      (result : Option (PanSemResultExact 64)) (bodyEvents : List WorkEvent),
+      StatementRun fn (decClockHOLFinite t)
+        (.seq (.store (.op .add [.var .local (ofString "vals"),
+            .panop .mul [.var .local (ofString "i"), .const (BitVec.ofNat 64 8)]])
+          (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 2)]))
+          (.assign .local (ofString "i")
+            (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 1)])))
+        result middle bodyEvents →
+        rank t < rank middle ∧ rank middle < 480)
+    (coeff : Work)
+    (hguardWords : ∀ (t : PanSemStateFiniteExact 64 F)
+      (value : Option (ValueHOL 64)) (guardEvents : List WorkEvent),
+      CostedExpressionRun t
+        (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+        value guardEvents →
+      (∃ wi, t.locals.lookup (ofString "i") = some (.val (.word wi))) ∧
+        (∃ wc, t.locals.lookup (ofString "cap") = some (.val (.word wc))))
+    (hbodyWords : ∀ (v : PanSemStateFiniteExact 64 F),
+      (∃ wv, v.locals.lookup (ofString "vals") = some (.val (.word wv))) ∧
+        (∃ wi, v.locals.lookup (ofString "i") = some (.val (.word wi)))) :
+    n ≤ 480 ∧ coeff.score (executionWork events) ≤
+      480 * (((coeff.score WorkEvent.statement.units +
+        coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+        coeff.nativeCost * 98) + (bodyStoreBound coeff + bodyAssignBound coeff)) +
+        (coeff.score WorkEvent.statement.units +
+          ((coeff.score WorkEvent.statement.units +
+            coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+            coeff.nativeCost * 98)) := by
+  refine candidate_loop_body_bounded_cost count start step coeff ?_ ?_
+  · intro t value guardEvents run
+    obtain ⟨⟨wi, hiw⟩, ⟨wc, hcw⟩⟩ := hguardWords t value guardEvents run
+    exact ⟨valueInfo_of_word hiw, valueInfo_of_word hcw⟩
+  · intro v
+    obtain ⟨⟨wv, hvw⟩, ⟨wi, hiw⟩⟩ := hbodyWords v
+    exact ⟨valueInfo_of_word hvw, valueInfo_of_word hiw⟩
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.valueInfo_of_word
+#print axioms BoundedTableExperiment.candidate_loop_body_bounded_cost_of_words
