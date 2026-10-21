@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.WordPermuteReturnCost
+import InitECandidate.Runtime.WordFunctionPermuteReturnCost
 
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Compiler.Backend Flapjack.WordSemStateFiniteExact
@@ -6,7 +6,7 @@ set_option maxHeartbeats 5000000
 
 /-- Exception dispatch stitches the actual selected handler, or preserves
 an escaping exception without charging an unexecuted continuation. -/
-theorem permute_cost_exception_return {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+theorem function_permute_cost_exception_return {C F : Type} (price : Nat → WordLangProgHOL (BitVec 64) → Nat) (function : Nat)
     (values : List Nat) (names : WordLangCutsetsHOL)
     (continuation : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
     (destination : Option Nat) (arguments : List Nat)
@@ -24,10 +24,10 @@ theorem permute_cost_exception_return {C F : Type} (price : WordLangProgHOL (Bit
     (post : WordSemStateFiniteExact 64 C F)
     (actual : evaluate body (callEnv actualArguments size (pushEnv envs handler (decClock source))) =
       (some (.exception location payload), post))
-    (inner : PermuteCostGoal price body (callEnv actualArguments size (pushEnv envs handler (decClock source))))
+    (inner : FunctionPermuteCostGoal price ((wordCallLabel destination (.loc l1 l2 :: xs)).getD 0) body (callEnv actualArguments size (pushEnv envs handler (decClock source))))
     (next : ∀ reg handlerCode h1 h2, handler = some (reg, handlerCode, h1, h2) →
-      PermuteCostGoal price handlerCode (setVar reg payload post)) :
-    PermuteCostGoal price (.call (some (values, names, continuation, l1, l2)) destination arguments handler) source := by
+      FunctionPermuteCostGoal price function handlerCode (setVar reg payload post)) :
+    FunctionPermuteCostGoal price function (.call (some (values, names, continuation, l1, l2)) destination arguments handler) source := by
   intro finalPermutation safe
   have sourceEq := WordToWord.evaluate_call_eq source
     (some (values, names, continuation, l1, l2)) handler destination arguments
@@ -41,9 +41,9 @@ theorem permute_cost_exception_return {C F : Type} (price : WordLangProgHOL (Bit
          evaluate handlerCode {(setVar reg payload post) with permute := middlePermutation} =
            ((evaluate handlerCode (setVar reg payload post)).1,
              {(evaluate handlerCode (setVar reg payload post)).2 with permute := finalPermutation}) ∧
-         wordExecutionCost (fun p _ => price p) handlerCode
+         wordFunctionExecutionCost (fun fn p _ => price fn p) function handlerCode
              {(setVar reg payload post) with permute := middlePermutation} =
-           wordExecutionCost (fun p _ => price p) handlerCode (setVar reg payload post)) ∧
+           wordFunctionExecutionCost (fun fn p _ => price fn p) function handlerCode (setVar reg payload post)) ∧
       (handler = none → middlePermutation = finalPermutation) by
     obtain ⟨middlePermutation, selected, escape⟩ := chosen
     obtain ⟨bodyPermutation, bodyRun, bodyCost⟩ := inner middlePermutation (by rw [actual]; simp)
@@ -68,10 +68,10 @@ theorem permute_cost_exception_return {C F : Type} (price : WordLangProgHOL (Bit
       (some (values, names, continuation, l1, l2)) handler destination arguments
     simp only [targetGet, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, targetFound,
       validNames, targetCut, targetNonzero, targetRun] at targetEq
-    have costSource := ret_call_cost (fun p _ => price p) values names continuation l1 l2 destination arguments handler
+    have costSource := function_ret_call_cost (fun fn p _ => price fn p) function values names continuation l1 l2 destination arguments handler
       source xs get good actualArguments body size found validNames envs cut nonzero
       (some (.exception location payload)) post actual
-    have costTarget := ret_call_cost (fun p _ => price p) values names continuation l1 l2 destination arguments handler
+    have costTarget := function_ret_call_cost (fun fn p _ => price fn p) function values names continuation l1 l2 destination arguments handler
       target xs targetGet good actualArguments body size targetFound validNames envs targetCut targetNonzero
       (some (.exception location payload)) _ targetRun
     refine ⟨initialPermutation, ?_, ?_⟩
@@ -90,19 +90,19 @@ theorem permute_cost_exception_return {C F : Type} (price : WordLangProgHOL (Bit
           exact selected.1
         · simp only [domain, if_false] at safe
           exact (safe rfl).elim
-    · change wordExecutionCost (fun p _ => price p) _ target = _
+    · change wordFunctionExecutionCost (fun fn p _ => price fn p) function _ target = _
       rw [costTarget, costSource, targetEntry, bodyCost]
-      apply congrArg (fun n => price (.call (some (values, names, continuation, l1, l2)) destination arguments handler) +
-        wordExecutionCost (fun p _ => price p) body
+      apply congrArg (fun n => price function (.call (some (values, names, continuation, l1, l2)) destination arguments handler) +
+        wordFunctionExecutionCost (fun fn p _ => price fn p) ((wordCallLabel destination (.loc l1 l2 :: xs)).getD 0) body
           (callEnv actualArguments size (pushEnv envs handler (decClock source))) + n)
       rcases handlerEq : handler with _ | ⟨reg, handlerCode, h1, h2⟩
-      · simp only [retCont, handlerEq]
+      · simp only [wordFunctionRetCont, handlerEq]
       · simp only [handlerEq] at selected safe
         by_cases invalid : location ≠ .loc h1 h2
         · rw [if_pos invalid] at safe
           exact (safe rfl).elim
         by_cases domain : sptDomainEqUnion post.locals envs.1 envs.2
-        · simp only [retCont, handlerEq, invalid, if_false, domain, if_true]
+        · simp only [wordFunctionRetCont, handlerEq, invalid, if_false, domain, if_true]
           exact selected.2
         · simp only [invalid, if_false, domain] at safe
           exact (safe rfl).elim
@@ -122,5 +122,5 @@ theorem permute_cost_exception_return {C F : Type} (price : WordLangProgHOL (Bit
     · simp only [domain, if_false] at safe
       exact (safe rfl).elim
 
-#print axioms permute_cost_exception_return
+#print axioms function_permute_cost_exception_return
 end InitECandidate.Runtime.FineCost
