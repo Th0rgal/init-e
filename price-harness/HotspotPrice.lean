@@ -145,7 +145,7 @@ partial def loopBody : WordLangProgHOL (BitVec 64) → Option (WordLangProgHOL (
   | .mustTerminate b => loopBody b
   | _ => none
 
-def target := [(103,"find_leaf"),(104,"find_leaf_path"),(109,"set"),(108,"grow"),(117,"copy"),(111,"truncate")]
+def target := [(103,"find_leaf"),(104,"find_leaf_path"),(109,"set"),(108,"grow"),(117,"copy"),(111,"truncate"),(107,"relocate"),(110,"del")]
 
 unsafe def main : IO Unit := do
   for (lab,nm) in target do
@@ -160,4 +160,14 @@ unsafe def main : IO Unit := do
       | some body =>
           let wb := walkP preX ⟨0, ds, 0, false, .ln, []⟩ body
           IO.println s!"  body {probe}: preX {wb.cost} used {wb.used} stop {wb.stop}"
+          let p1 := WordSimp.compileExp p
+          let p2 := WordInst.instSelectExecutable riscvConfig (maxVarHOL p1 + 1) p1
+          let p3 := WordAlloc.fullSsaCcTrans argc p2
+          let p4 := WordAlloc.removeDeadProg p3
+          for (tag, q) in [("isel", p2), ("ssa", p3), ("dead", p4)] do
+            match loopBody (WordSimp.seqAssoc .skip q) with
+            | some b =>
+                let wq := walkP optP ⟨0, ds, 0, false, .ln, []⟩ b
+                IO.println s!"  body {probe} {tag}: optP {wq.cost} used {wq.used} stop {wq.stop}"
+            | none => pure ()
       | none => pure ()

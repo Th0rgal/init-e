@@ -548,3 +548,47 @@ This is the concrete trace model requested for source-price calibration. It is
 a behavior/count trace, not a source-event trace; an exact preIsel/source price
 per event still needs to be supplied. The optimized candidate remains frozen at
 `fe3f284d2` / source hash `a97b7463...`.
+
+## 20. Frontend-only source prices and duplicate/fresh composition
+
+`price-harness/` compiles the frozen candidate AST through the frontend to
+Loop→Word with plain `lean --run` and the fleet shared oleans. It prices one
+executed loop body at `preX` and at the optimized stages. Per-body diagnostic
+prices (`preX` / after `removeDead`):
+
+| function | label | per internal visit/step |
+|---|---:|---:|
+| `htab_find_leaf` | 103 | 816 / 723 |
+| `htab_find_leaf_path` | 104 | 1080 / 1107 |
+| `htab_set` binary search | 109 | 590 / 592 |
+| `htab_grow` | 108 | 1464 / 1611 |
+| `htab_truncate` | 111 | 874 / 1307 |
+| `htab_relocate` | 107 | 1152 / 1203 |
+| `htab_del` descent | 110 | 891 / 1614 |
+
+`budget_model.py` separates duplicate updates from fresh inserts:
+
+- duplicate update: one path-descent, no binary search and no allocation;
+- fresh insert: path-descent + binary search + one new leaf/internal pair +
+  amortized relocation of at most two internal nodes per leaf + one growth
+  loop body.
+
+At 33,550,000 entries, using the optimized prices and average depth 8:
+
+| duplicate fraction | total source units | per entry |
+|---:|---:|---:|
+| 0% | 5.11e11 | 15,241 |
+| 90% | 3.19e11 | 9,494 |
+| 99% | 2.99e11 | 8,920 |
+| 99.9% | 2.97e11 | 8,862 |
+
+The duplicate term dominates. At depth 8 even 99.9% duplicates consume about
+2.97e11 source units, above the ~2e11 remaining budget. At depth 4 and 90%
+duplicates the total is 1.68e11, which fits. Therefore a finite composition
+requires a proved bound on average live path depth or on total table
+operations, not just a bound on distinct keys; fresh-insert count still uses
+`min(entries, input_bytes / min_key_len)`.
+
+These are diagnostics from `preX`/`optP`, not the score theorem. Truncation
+adds one delete descent (110) plus one truncate body (111) per removed entry;
+the model includes those prices but not a specific truncation count.
