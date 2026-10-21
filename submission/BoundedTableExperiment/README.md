@@ -336,7 +336,7 @@ by the guest. No resize/copy/truncate path is bypassed in these runs.
 - semantic model: `submission/BoundedTableExperiment/prototype.py`
   sha256 `ad8b1bdea4186f3da088bea6a6c421e9745cca1fb74c49a1affc5ef83edce64d`
 - order/ownership proof: `ReachableOrderInvariant.lean`
-  sha256 `9692b073524d5b3abe3e9d30f3dbaa4ede999ac5f0351379aa0658bb6bbe7342`
+  sha256 `9b8dba5090f7c5fffe16dc0f6875d7087e5652408e7f30ca5ff38025f683160b`
 - preprocess: `cpp -P -w -nostdinc -I guest/src -x c`
 - compiler: `lake exe flapjack-compile --assembly`, Flapjack revision
   `034bb5a1ed0b757082768d5406206bd2f8e31b7c` from `lakefile.toml`
@@ -477,3 +477,28 @@ projection, not a proof: it assumes at most one insert plus one read of table
 work per input entry, and it does not include the source-tick/native-step ratio
 or the real full-input operation mix. The adversarial depth-256 shape, exact
 model visit totals, and deepest-leaf-only measurement are now recorded.
+
+
+## 17. Pointer/slab refinement for the final representation
+
+`ReachableOrderInvariant.lean` now also checks the arithmetic core of the
+final direct-pointer representation:
+
+- `slab base cap = [base + 24*i | i < cap/2]` is duplicate-free; every member
+  has the form `base + 24*i` with `i < cap/2`.
+- `PtrOwned base cap live free` is the slab instantiation of the pool
+  partition. It preserves `live.length + free.length = cap/2` and
+  `Owned.alloc`/`Owned.free`.
+- If `cap < base`, every live or free internal pointer is `> cap`, so the
+  `node <= cap` leaf test remains unambiguous.
+- Relocation maps `x` in `slab base cap` to `x + delta` in
+  `slab (base+delta) cap`; if the slab end plus delta is below `2^64`, the
+  relocated pointer does not exceed the address space.
+- `regions_disjoint`: two half-open address regions with non-overlapping
+  bounds share no address. This is the heap/scratch separation obligation.
+
+Scope: this is a checked arithmetic/ownership refinement of the pointer
+representation, not yet a full heap-memory refinement of the PNK code. The
+16.14-step/visit figure is a native Spike diagnostic; the source-event price of
+the hotspot loop has not been extracted, so the ~3x budget margin is deliberate
+and the projected score remains unproved.

@@ -157,6 +157,101 @@ theorem Ordered.delete {α : Type} [BEq α] [LawfulBEq α]
     Ordered (swapRemove order i) (live.erase x) :=
   ⟨(swapRemove_perm_erase order i x hi hx hn).trans (h.perm.erase x)⟩
 
+
+/-! ## Internal pointer slab -/
+
+def slab (base cap : Nat) : List Nat :=
+  (List.range (cap / 2)).map (fun i => base + 24 * i)
+
+theorem slab_nodup (base cap : Nat) : (slab base cap).Nodup := by
+  unfold slab
+  apply List.Pairwise.map (R := fun a b : Nat => a ≠ b)
+  · intro a b h hEq
+    apply h
+    omega
+  · exact (show List.Pairwise (fun a b : Nat => a ≠ b) (List.range (cap / 2))
+      from List.nodup_range)
+
+theorem slab_length (base cap : Nat) : (slab base cap).length = cap / 2 := by
+  simp [slab]
+
+theorem slab_mem {base cap x : Nat} :
+    x ∈ slab base cap ↔ ∃ i, i < (cap / 2) ∧ x = base + 24 * i := by
+  simp only [slab, List.mem_map, List.mem_range]
+  constructor
+  · rintro ⟨a, ha, hx⟩
+    exact ⟨a, ha, hx.symm⟩
+  · rintro ⟨i, hi, rfl⟩
+    exact ⟨i, hi, rfl⟩
+
+abbrev PtrOwned (base cap : Nat) (live free : List Nat) : Prop :=
+  Owned (slab base cap) live free
+
+theorem PtrOwned.length {base cap : Nat} {live free : List Nat}
+    (h : PtrOwned base cap live free) : live.length + free.length = cap / 2 := by
+  calc
+    live.length + free.length = (live ++ free).length := by simp
+    _ = (slab base cap).length := h.partition.length_eq
+    _ = cap / 2 := slab_length base cap
+
+theorem PtrOwned.in_slab_left {base cap : Nat} {live free : List Nat}
+    (h : PtrOwned base cap live free) {x : Nat} (hx : x ∈ live) :
+    ∃ i, i < (cap / 2) ∧ x = base + 24 * i :=
+  (slab_mem (base := base) (cap := cap) (x := x)).mp
+    (h.partition.mem_iff.mp (List.mem_append.mpr (Or.inl hx)))
+
+theorem PtrOwned.in_slab_right {base cap : Nat} {live free : List Nat}
+    (h : PtrOwned base cap live free) {x : Nat} (hx : x ∈ free) :
+    ∃ i, i < (cap / 2) ∧ x = base + 24 * i :=
+  (slab_mem (base := base) (cap := cap) (x := x)).mp
+    (h.partition.mem_iff.mp (List.mem_append.mpr (Or.inr hx)))
+
+theorem PtrOwned.gt_cap_left {base cap : Nat} {live free : List Nat}
+    (h : PtrOwned base cap live free) (hbase : cap < base)
+    {x : Nat} (hx : x ∈ live) : cap < x := by
+  rcases PtrOwned.in_slab_left h hx with ⟨i, hi, rfl⟩
+  omega
+
+theorem PtrOwned.gt_cap_right {base cap : Nat} {live free : List Nat}
+    (h : PtrOwned base cap live free) (hbase : cap < base)
+    {x : Nat} (hx : x ∈ free) : cap < x := by
+  rcases PtrOwned.in_slab_right h hx with ⟨i, hi, rfl⟩
+  omega
+
+theorem PtrOwned.alloc {base cap : Nat} {live free : List Nat}
+    (h : PtrOwned base cap live free) {x : Nat} (hx : x ∈ free) :
+    PtrOwned base cap (live ++ [x]) (free.erase x) :=
+  Owned.alloc h hx
+
+theorem PtrOwned.free {base cap : Nat} {live free : List Nat}
+    (h : PtrOwned base cap live free) {x : Nat} (hx : x ∈ live) :
+    PtrOwned base cap (live.erase x) (free ++ [x]) :=
+  Owned.free h hx
+
+theorem reloc_slab_mem {base cap delta x : Nat} (hx : x ∈ slab base cap) :
+    x + delta ∈ slab (base + delta) cap := by
+  rcases (slab_mem (base := base) (cap := cap) (x := x)).mp hx with ⟨i, hi, rfl⟩
+  apply (slab_mem (base := base + delta) (cap := cap) (x := base + 24 * i + delta)).mpr
+  exact ⟨i, hi, by omega⟩
+
+theorem reloc_slab_lt {base cap delta x : Nat} (hx : x ∈ slab base cap)
+    (hbound : base + 24 * (cap / 2) + delta ≤ (2 : Nat) ^ 64) :
+    x + delta < (2 : Nat) ^ 64 := by
+  rcases (slab_mem (base := base) (cap := cap) (x := x)).mp hx with ⟨i, hi, rfl⟩
+  omega
+
+theorem regions_disjoint {b1 n1 b2 n2 p : Nat}
+    (h : b1 + n1 ≤ b2 ∨ b2 + n2 ≤ b1) :
+    ¬(b1 ≤ p ∧ p < b1 + n1 ∧ b2 ≤ p ∧ p < b2 + n2) := by
+  intro hp
+  rcases h with h | h <;> omega
+
+#print axioms BoundedTableExperiment.PtrOwned.length
+#print axioms BoundedTableExperiment.PtrOwned.gt_cap_left
+#print axioms BoundedTableExperiment.PtrOwned.alloc
+#print axioms BoundedTableExperiment.reloc_slab_lt
+#print axioms BoundedTableExperiment.regions_disjoint
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.swapRemove_perm_erase
