@@ -2098,4 +2098,18 @@ theorem wec_loop_cont {C F : Type}
 
 #print axioms wec_loop_stop
 #print axioms wec_loop_cont
+/-- The call node's third flat-price path: the frame lookup fails.  Note the hypothesis is about the
+argument list itself: wordSemAddRetLoc none xs = xs by definition, so the counter's lookup is the lookup
+at xs, and no statement has to name wordSemAddRetLoc's implicit return-type parameters. -/
+theorem wec_call_none_findCode_none {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (hgv : WordSemStateFiniteExact.getVars args s = some xs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfc : wordSemFindCode dest xs s.code s.stackSize = none) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none dest args handler) s = 41 := by
+  simp [wordExecutionCost, hgv, hbad, wordSemAddRetLoc, hfc, refinedWordLocalPrice_call_none]
+
+#print axioms wec_call_none_findCode_none
 end InitECandidate.Runtime.FineCost
