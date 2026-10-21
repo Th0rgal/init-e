@@ -15,14 +15,28 @@ lexicographically below the body's starting termination depth and clock, so a
 global clock induction can discharge it. This module states the relation and
 proves the leaf case and the expression statements. -/
 
+/-- Programs without `install` (the only node that rewrites the code table). -/
+def installFree : WordLangProgHOL (BitVec 64) → Bool
+  | .install _ _ _ _ _ => false
+  | .seq a b => installFree a && installFree b
+  | .ite _ _ _ a b => installFree a && installFree b
+  | .loop _ b _ => installFree b
+  | .mustTerminate b => installFree b
+  | .call ret _ _ h =>
+    (match ret with | some (_, _, k, _, _) => installFree k | none => true) &&
+    (match h with | some (_, hp, _, _) => installFree hp | none => true)
+  | _ => true
+
 /-- The target code table is the source table with every function body
-instruction-selected at its own fresh temporary. -/
+instruction-selected at its own fresh temporary; every source body is
+install-free, so the code table never changes during a run. -/
 def IselCode (c : Compiler.Encoders.Asm.AsmConfigExact 64)
     (src tgt : Spt (Nat × WordLangProgHOL (BitVec 64))) : Prop :=
   ∀ dest, (sptLookup dest src = none ↔ sptLookup dest tgt = none) ∧
     ∀ arity body, sptLookup dest src = some (arity, body) →
       ∃ tempF, everyVarHOL (fun x => decide (x < tempF)) body = true ∧
-        sptLookup dest tgt = some (arity, WordInst.instSelectExecutable c tempF body)
+        sptLookup dest tgt = some (arity, WordInst.instSelectExecutable c tempF body) ∧
+        installFree body = true
 
 /-- Related states: locals agree below the temporary, code tables are related
 by `IselCode`, every other field is equal. -/

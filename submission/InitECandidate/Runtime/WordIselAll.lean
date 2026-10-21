@@ -27,18 +27,6 @@ theorem isel_call_none_handler {C F : Type} (c : Compiler.Encoders.Asm.AsmConfig
   · simp only [hf, Prod.mk.injEq] at run; exact ok run.1.symm
   · simp only [hf, Prod.mk.injEq] at run; exact ok run.1.symm
 
-/-- Programs without `install` (the only node that rewrites the code table). -/
-def installFree : WordLangProgHOL (BitVec 64) → Bool
-  | .install _ _ _ _ _ => false
-  | .seq a b => installFree a && installFree b
-  | .ite _ _ _ a b => installFree a && installFree b
-  | .loop _ b _ => installFree b
-  | .mustTerminate b => installFree b
-  | .call ret _ _ h =>
-    (match ret with | some (_, _, k, _, _) => installFree k | none => true) &&
-    (match h with | some (_, hp, _, _) => installFree hp | none => true)
-  | _ => true
-
 /-- The instruction-selection transfer for every install-free program, given
 the callee hypothesis at the guard. -/
 theorem isel_goal {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (td ck temp : Nat) :

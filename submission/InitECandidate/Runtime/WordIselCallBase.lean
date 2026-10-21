@@ -29,7 +29,7 @@ theorem findCode_rel {c : Compiler.Encoders.Asm.AsmConfigExact 64}
     · rename_i hlen
       simp only [Option.some.injEq, Prod.mk.injEq] at found
       obtain ⟨rfl, rfl, rfl⟩ := found
-      obtain ⟨tempF, vars, ht⟩ := (h p).2 arity body hl
+      obtain ⟨tempF, vars, ht, -⟩ := (h p).2 arity body hl
       exact ⟨p, arity, tempF, hl, vars, ht, by rw [ht]; simp [hlen]⟩
     · cases found
   | none =>
@@ -48,7 +48,7 @@ theorem findCode_rel {c : Compiler.Encoders.Asm.AsmConfigExact 64}
         · rename_i hlen
           simp only [Option.some.injEq, Prod.mk.injEq] at found
           obtain ⟨rfl, rfl, rfl⟩ := found
-          obtain ⟨tempF, vars, ht⟩ := (h loc).2 arity body hl
+          obtain ⟨tempF, vars, ht, -⟩ := (h loc).2 arity body hl
           exact ⟨loc, arity, tempF, hl, vars, ht, by rw [ht]; simp [hlen]⟩
         · cases found
       · cases found
