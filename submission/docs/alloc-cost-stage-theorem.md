@@ -30,20 +30,28 @@ against the real compiler API, with every target-side fact obtained from
   use, and the code/stackSize agreement that made the callee the same syntax
   tree is part of `wordStateEqRel` itself.
 
-## The theorem
+## The theorem (width 64, native price)
+
+Everything below is stated at the counter's own width, 64, and with the checked
+`nativeWordPrice` instance (call `189 + 39*(args.length+1-22)` plus the
+conditional `21*rets`, tail 41, moves `14/28 * length`).  There is no generic
+`width` parameter: the price, the state type and the compile output all live at
+`BitVec 64`.
 
 ```lean
 /-- Executed-cost transfer for the actual SSA compile output. -/
-theorem ssaCcTrans_executionCost_le {width : Nat} [NeZero width] {C F : Type}
+theorem ssaCcTrans_executionCost_le {C F : Type}
     (price : WordLangProgHOL (BitVec width) → WordSemStateFiniteExact width C F → Nat)
     (p : WordLangProgHOL (BitVec width))
-    (source target : WordSemStateFiniteExact width C F)
+    (source target : WordSemStateFiniteExact 64 C F)
     (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (hpre : wordStateEqRel source target ∧ ssaLocalsRel next ssa source.locals target.locals ∧
+      isAllocVar next ∧ everyVarHOL (everyVarProgHOL p) = true ∧ ssaMapOK next ssa ∧ ltOK tables)
     (hsim : ssaSimulation p source target ssa next tables)
     (hne : (evaluate p source).1 ≠ some WordSemResult.error) :
-    wordExecutionCost price (ssaCcTrans p ssa next tables).1 target ≤
-      wordExecutionCost price p source +
-        ssaTransExtra price p source target ssa next tables
+    wordExecutionCost nativeWordPrice (ssaCcTrans p ssa next tables).1 target ≤
+      wordExecutionCost nativeWordPrice p source +
+        ssaTransExtra p source target ssa next tables
 ```
 
 `ssaTransExtra` is defined by the **same structural recursion as `ssaCcTrans`
@@ -66,18 +74,26 @@ a budget parameter:
 - `.loop`: the node difference plus the recursive extra per executed iteration
   at the source clock — this is exactly `wecLoopExtra`, already checked;
 - `.call`: the compiled call's node price difference plus the extra of the
-  **compiled callee** at the reached entry state, where the compiled callee is
-  the one the code-table component of `tables` maps the source callee to, and
-  the reached entry/popped states are the compiler's own `ssaSimulation`
-  witnesses.  `stage_findCode` shows that for the pair produced by
-  `ssaCcTrans` the lookup agrees on `code`/`stackSize`, so this is a real
-  descent (source clock strictly drops at the call), not an assumption.
+  **compiled callee**, i.e. `(ssaCcTrans callee ssa' next' tables').1` for the
+  source callee `callee`, at the reached entry/popped states that
+  `ssaSimulation` itself produces.  Two corrections to my earlier wording:
+  `tables : List (Spt Nat × Spt Unit × Spt Unit)` is **not** a code map - it is
+  the list of per-constructor SSA maps with cut-set bookkeeping, threaded by the
+  compiler; the callee itself is a strict subterm of `p`, so the compiled
+  callee is a strict subterm of the compiled program and the call case is a
+  genuine descent of the source measure (call pushes an environment and does not
+  decrease the source clock, so the descent is the `termdep`/`sizeOf` component
+  of `lex3_induction`, not the clock).  The `wordStateEqRel` projections on
+  `code`/`stackSize` are what let the *lookup* of that callee agree on both
+  sides (`stage_findCode`); they do not supply the callee's cost.
 
 ## Why this is the right shape
 
 The conclusion mentions only `ssaCcTrans p … .1`, the source execution and
 `ssaTransExtra`; no target-run cost, no target budget, no `hcall`, no `hkey`,
-no whole-program maximum appear.  The only premise about the target is
-`ssaSimulation`, which the compiler proof already establishes constructor by
+no whole-program maximum appear.  `hpre` is the compiler's *actual input prerequisite* (the hypothesis bundle the
+`ssaCcTransCorrect*` lemmas take), not just `ssaSimulation`: the relation, the
+SSA map well-formedness, the freshness bound and the table invariant. The only
+premise about the target's *run* is `ssaSimulation`, which the compiler proof already establishes constructor by
 constructor, and the induction is the source-measure one
 (`lex3_induction`, quantified over all target programs/states/relations).
