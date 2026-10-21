@@ -60,4 +60,5 @@ def nativeLoopPrice : LoopPrice where
   ret := 49
   cont := 7
 
+#print axioms nativeLoopPrice
 end InitECandidate.Runtime.FineCost
