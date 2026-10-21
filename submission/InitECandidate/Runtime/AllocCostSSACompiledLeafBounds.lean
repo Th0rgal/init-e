@@ -2,6 +2,7 @@ import InitECandidate.Runtime.AllocCostSSAStageCases
 import Flapjack.Compiler.Backend.WordAlloc.SSACcTrans
 import Flapjack.Compiler.Backend.WordUnreach.Proofs
 import InitECandidate.Runtime.AllocMoveTable
+import InitECandidate.Runtime.WordRefinedLocalPrice
 
 /-!
 # Compile-output bounds for leaf constructors
@@ -768,4 +769,33 @@ theorem wec_seq_none_split_generic {C F : Type}
 
 #print axioms wec_move_generic
 #print axioms wec_seq_none_split_generic
+
+/-- **`seq` composition at the canonical target price.**  Same shape as
+`seq_transfer_fallthrough`, priced by the checked canonical `refinedWordLocalPrice`
+instead of `nativeWordPrice`, via the price-generic splits.  Obligations: the node-price
+overhead `extraNode` and the two halves' transfers at the reached middle states.  The
+move term stays the price of the move node, to be filled by the checked scheduler-exact
+leaf budget rather than by any 14/28 overestimate. -/
+theorem seq_transfer_refined {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64))
+    (source target midS midT : WordSemStateFiniteExact 64 C F)
+    (hS : fixClock source (evaluate f source) = (none, midS))
+    (hT : fixClock target (evaluate f target) = (none, midT))
+    (extraNode extra1 extra2 : Nat)
+    (hnode : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq f g) target <=
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq f g) source + extraNode)
+    (h1 : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice f target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice f source + extra1)
+    (h2 : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice g midT <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice g midS + extra2) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq f g) target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq f g) source
+        + extraNode + extra1 + extra2 := by
+  rw [wec_seq_none_split_generic
+        (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice) f g target midT hT,
+      wec_seq_none_split_generic
+        (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice) f g source midS hS]
+  omega
+
+#print axioms seq_transfer_refined
 end InitECandidate.Runtime.FineCost
