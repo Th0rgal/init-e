@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.WordPathWork
 import InitECandidate.Runtime.WordExecutionCost
+import InitECandidate.Runtime.LoopWordPrice
 import Flapjack.Compiler.Backend.Semantics.WordSem.Props.EvaluateStackSwap
 import Flapjack.Compiler.Backend.Semantics.WordSem.Props.EvaluateStackMax
 
@@ -5090,6 +5091,182 @@ theorem wec_stop_tail {C F : Type}
   · rw [dif_neg hc, dif_neg hc, decClock_swap_stack]
     exact ihStop
 
+
+/-- `sFrameValEq` is symmetric. -/
+theorem sFrameValEq_symm (x y : WordSemStackFrame 64)
+    (h : WordSemStackEq.sFrameValEq x y) : WordSemStackEq.sFrameValEq y x := by
+  obtain ⟨n, ls0, ls, y0⟩ := x
+  obtain ⟨n', ls0', ls', y0'⟩ := y
+  rw [WordSemStackEq.sFrameValEqDef2] at h ⊢
+  exact ⟨h.1.symm, h.2.1.symm, h.2.2.symm⟩
+
+/-- `sValEq` is symmetric. -/
+theorem sValEq_symm : ∀ (a b : List (WordSemStackFrame 64)),
+    WordSemStackEq.sValEq a b → WordSemStackEq.sValEq b a
+  | [], [], _ => trivial
+  | [], _ :: _, h => h
+  | _ :: _, [], h => h
+  | _ :: _, _ :: _, h => by
+      simp only [WordSemStackEq.sValEq] at h ⊢
+      exact ⟨sValEq_symm _ _ h.1, sFrameValEq_symm _ _ h.2⟩
+
+#print axioms sValEq_symm
+
+/-- The callee entry state of a call is stack-related across a value-equal stack
+swap of the caller state. -/
+theorem callEnv_entry_swap {C F : Type} (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (ys : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack ys) :
+    ∃ ys2,
+      WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (decClock { s with stack := ys })) =
+        { WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))
+            with stack := ys2 } ∧
+      WordSemStackEq.sValEq
+        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).stack ys2 := by
+  obtain ⟨ys1, hpe, hpush⟩ := pushEnv_stack_swap envs handler (decClock s) ys hval
+  obtain ⟨ys2, hce, hcall⟩ :=
+    callEnv_stack_swap args1 ss (pushEnv envs handler (decClock s)) ys1 hpush
+  refine ⟨ys2, ?_, hcall⟩
+  rw [decClock_swap_stack, hpe, hce]
+
+#print axioms callEnv_entry_swap
+
+/-- A `.result` evaluation exists at one state iff it exists at a value-equal
+stack swap (the location and the values are preserved). -/
+theorem evaluate_result_exists_stack {C F : Type} (c : WordLangProgHOL (BitVec 64))
+    (t : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq t.stack xs)
+    (loc : WordLocW 64) (vals : List (WordLocW 64)) :
+    (∃ m, evaluate c t = (some (.result loc vals), m)) ↔
+      (∃ m, evaluate c { t with stack := xs } = (some (.result loc vals), m)) := by
+  constructor
+  · rintro ⟨m, hev⟩
+    obtain ⟨st, hevT, -⟩ := evaluate_stack_swap_result_value c t xs loc vals m hval hev
+    exact ⟨_, hevT⟩
+  · rintro ⟨m, hev⟩
+    obtain ⟨st, hevT, -⟩ :=
+      evaluate_stack_swap_result_value c { t with stack := xs } t.stack loc vals m
+        (sValEq_symm _ _ hval) hev
+    exact ⟨_, by simpa using hevT⟩
+
+#print axioms evaluate_result_exists_stack
+
+/-- `wordCallReturned` is invariant under a value-equal stack swap. -/
+theorem wordCallReturned_stack {C F : Type} (p : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (ys : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack ys) :
+    InitECandidate.Runtime.FineCost.wordCallReturned p { s with stack := ys } =
+      InitECandidate.Runtime.FineCost.wordCallReturned p s := by
+  cases p with
+  | call ret dest args handler =>
+      cases ret with
+      | none => rfl
+      | some triple =>
+          obtain ⟨rets, cutset, retCode, l1, l2⟩ := triple
+          simp only [InitECandidate.Runtime.FineCost.wordCallReturned]
+          refine propext ⟨?_, ?_⟩
+          · rintro ⟨hc, xa, a1, pr, ssN, en, loc, vals, m, hget, hfind, hcut, hev, hlen⟩
+            rw [getVars_stack args s ys] at hget
+            obtain ⟨ys2, hentry, hentryVal⟩ := callEnv_entry_swap a1 ssN en handler s ys hval
+            have hevB : evaluate pr
+                { WordSemStateFiniteExact.callEnv a1 ssN (pushEnv en handler (decClock s))
+                  with stack := ys2 } = (some (.result loc vals), m) := by
+              rw [← hentry]; exact hev
+            obtain ⟨m', hev'⟩ :=
+              (evaluate_result_exists_stack pr
+                (WordSemStateFiniteExact.callEnv a1 ssN (pushEnv en handler (decClock s)))
+                ys2 hentryVal loc vals).mpr ⟨m, hevB⟩
+            exact ⟨hc, xa, a1, pr, ssN, en, loc, vals, m', hget, hfind, hcut, hev', hlen⟩
+          · rintro ⟨hc, xa, a1, pr, ssN, en, loc, vals, m, hget, hfind, hcut, hev, hlen⟩
+            obtain ⟨ys2, hentry, hentryVal⟩ := callEnv_entry_swap a1 ssN en handler s ys hval
+            obtain ⟨m', hev'⟩ :=
+              (evaluate_result_exists_stack pr
+                (WordSemStateFiniteExact.callEnv a1 ssN (pushEnv en handler (decClock s)))
+                ys2 hentryVal loc vals).mp ⟨m, hev⟩
+            have hgetT : WordSemStateFiniteExact.getVars args { s with stack := ys } = some xa := by
+              rw [getVars_stack args s ys]; exact hget
+            have hevT : evaluate pr
+                (WordSemStateFiniteExact.callEnv a1 ssN
+                  (pushEnv en handler (decClock { s with stack := ys }))) =
+                (some (.result loc vals), m') := by
+              rw [hentry]; exact hev'
+            exact ⟨hc, xa, a1, pr, ssN, en, loc, vals, m', hgetT, hfind, hcut, hevT, hlen⟩
+  | skip => rfl
+  | tick => rfl
+  | move a b => rfl
+  | inst a => rfl
+  | assign a b => rfl
+  | get a b => rfl
+  | set a b => rfl
+  | store a b => rfl
+  | storeConsts a b c d e => rfl
+  | «return» a b => rfl
+  | raise a => rfl
+  | «break» a => rfl
+  | «continue» a => rfl
+  | opCurrHeap a b c => rfl
+  | locValue a b => rfl
+  | install a b c d e => rfl
+  | codeBufferWrite a b => rfl
+  | dataBufferWrite a b => rfl
+  | seq a b => rfl
+  | ite a b c d e => rfl
+  | loop a b c => rfl
+  | mustTerminate a => rfl
+  | ffi a b c d e f => rfl
+  | shareInst a b c => rfl
+  | alloc a b => rfl
+
+#print axioms wordCallReturned_stack
+
+/-- The actual Loop-to-Word Word price ignores a value-equal stack swap: the only
+state-dependent clause is the returning call, whose `wordCallReturned` witness is
+stack invariant. -/
+theorem loopWordPrice_stack {C F : Type} (q : WordLangProgHOL (BitVec 64))
+    (t : WordSemStateFiniteExact 64 C F) (ys : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq t.stack ys) :
+    InitECandidate.Runtime.FineCost.loopWordPrice q { t with stack := ys } =
+      InitECandidate.Runtime.FineCost.loopWordPrice q t := by
+  cases q with
+  | call ret dest args handler =>
+      cases ret with
+      | none => rfl
+      | some triple =>
+          obtain ⟨rets, cutset, retCode, l1, l2⟩ := triple
+          simp only [InitECandidate.Runtime.FineCost.loopWordPrice]
+          rw [wordCallReturned_stack
+            (.call (some (rets, cutset, retCode, l1, l2)) dest args handler) t ys hval]
+  | skip => rfl
+  | tick => rfl
+  | move a b => rfl
+  | inst a => rfl
+  | assign a b => rfl
+  | get a b => rfl
+  | set a b => rfl
+  | store a b => rfl
+  | storeConsts a b c d e => rfl
+  | «return» a b => rfl
+  | raise a => rfl
+  | «break» a => rfl
+  | «continue» a => rfl
+  | opCurrHeap a b c => rfl
+  | locValue a b => rfl
+  | install a b c d e => rfl
+  | codeBufferWrite a b => rfl
+  | dataBufferWrite a b => rfl
+  | seq a b => rfl
+  | ite a b c d e => rfl
+  | loop a b c => rfl
+  | mustTerminate a => rfl
+  | ffi a b c d e f => rfl
+  | shareInst a b c => rfl
+  | alloc a b => rfl
+
+#print axioms loopWordPrice_stack
+
 theorem wec_stack_variant_dispatch {C F : Type}
     (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
     (hprice : ∀ (q : WordLangProgHOL (BitVec 64)) (t : WordSemStateFiniteExact 64 C F)
@@ -5927,5 +6104,22 @@ theorem wec_stack_variant_dispatch {C F : Type}
         Flapjack.WordSemStateFiniteExact.setVar, pushEnv_clock, pushEnv_termdep, true_and] at *
       omega
 #print axioms wec_stack_variant_dispatch
+
+/-- **Actual fine-model invariance**: the Loop-to-Word Word cost of any program,
+from a non-erroring state, is unchanged by a value-equal stack swap. -/
+theorem wordExecutionCost_loopWordPrice_stack_variant {C F : Type}
+    (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hne : (evaluate p s).1 ≠ some WordSemResult.error) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost
+        InitECandidate.Runtime.FineCost.loopWordPrice p { s with stack := xs } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost
+        InitECandidate.Runtime.FineCost.loopWordPrice p s :=
+  wec_stack_variant_dispatch InitECandidate.Runtime.FineCost.loopWordPrice
+    loopWordPrice_stack p s xs hval hne
+
+#print axioms wordExecutionCost_loopWordPrice_stack_variant
+
 
 end InitECandidate.Runtime.WordToStack
