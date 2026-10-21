@@ -13,6 +13,9 @@ set_option maxHeartbeats 1000000
 nodes are exactly those above the cap threshold (unsigned). -/
 def IsInternal (cap node : BitVec 64) : Prop := BitVec.ult cap node
 
+/-- Empty (`0`) or a nonempty leaf ID in `1..cap`. -/
+def IsLeafOrEmpty (cap node : BitVec 64) : Prop := node.toNat ≤ cap.toNat
+
 /-- Tagged reachability: an edge may only be taken from an internal parent. -/
 inductive ReachableInternal {F : Type} (s : PanSemStateFiniteExact 64 F)
     (cap root : BitVec 64) : BitVec 64 -> Prop
@@ -24,11 +27,12 @@ inductive ReachableInternal {F : Type} (s : PanSemStateFiniteExact 64 F)
       ReachableInternal s cap root p -> IsInternal cap p ->
       NodeLinkInv s p l r route -> ReachableInternal s cap root r
 
-/-- Corrected live-edge invariant: root may be empty/leaf; route obligations
-apply only to tagged internal nodes. -/
+/-- Corrected live-edge invariant: root may be empty, a valid nonempty leaf
+ID (`1..cap`), or an internal node; route obligations apply only to tagged
+internal nodes. -/
 structure TaggedTrieInv {F : Type} (s : PanSemStateFiniteExact 64 F)
     (root cap : BitVec 64) (keyLen : Nat) : Prop where
-  rootCase : root = 0 ∨ IsInternal cap root
+  rootCase : IsLeafOrEmpty cap root ∨ IsInternal cap root
   rootLink : IsInternal cap root → ∃ left right route, NodeLinkInv s root left right route
   routeBound : ∀ p l r route,
     ReachableInternal s cap root p -> IsInternal cap p -> NodeLinkInv s p l r route ->
