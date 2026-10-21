@@ -1160,4 +1160,49 @@ theorem ssaCcTrans_seq_transfer {C F : Type}
      extraNode extra1 extra2 hnode h1 h2⟩
 
 #print axioms ssaCcTrans_seq_transfer
+
+/-- Price-generic escaping split for `seq`: when the first half does not fall through,
+the second half is charged nothing. -/
+theorem wec_seq_some_split_generic {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (f g : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (h : (fixClock s (evaluate f s)).1 = none → False) :
+    wordExecutionCost price (.seq f g) s =
+      price (.seq f g) s + wordExecutionCost price f s := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+  generalize hfix : fixClock s (evaluate f s) = pair at h ⊢
+  obtain ⟨res, mid⟩ := pair
+  simp only [Prod.fst, Prod.snd] at h ⊢
+  cases res with
+  | none => exact absurd rfl h
+  | some r => simp only [Nat.add_zero]
+
+/-- **`seq` escape composition at the canonical target price.**  The dual of
+`seq_transfer_refined`: when the first half escapes, the second half is charged nothing
+on either side, so the transfer is the first half's transfer plus the node-price
+overhead, at `refinedWordLocalPrice`. -/
+theorem seq_transfer_escape_refined {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (hS : (fixClock source (evaluate f source)).1 = none → False)
+    (hT : (fixClock target (evaluate f target)).1 = none → False)
+    (extraNode extra1 : Nat)
+    (hnode : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq f g) target <=
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq f g) source + extraNode)
+    (h1 : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      f target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        f source + extra1) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq f g) target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq f g) source + extraNode + extra1 := by
+  rw [wec_seq_some_split_generic _ f g target hT,
+      wec_seq_some_split_generic _ f g source hS]
+  omega
+
+#print axioms wec_seq_some_split_generic
+#print axioms seq_transfer_escape_refined
 end InitECandidate.Runtime.FineCost
