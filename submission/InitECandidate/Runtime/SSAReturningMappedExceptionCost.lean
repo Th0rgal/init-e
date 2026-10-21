@@ -1,0 +1,53 @@
+import InitECandidate.Runtime.SSAReturningMappedContinuationCost
+namespace InitECandidate.Runtime.FineCost
+open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.WordAlloc
+open Flapjack.WordSemStateFiniteExact
+set_option maxHeartbeats 6000000
+
+/-- A selected exception handler restores the actual saved cut and binds its
+exception value from convention register 2. The emitted refresh/binder work
+and handler body use the same source scheduler witness. -/
+theorem ssa_returning_mapped_exception_continuation_entry {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat) (bodyEntry : Spt Nat → Nat → Nat)
+    (body : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat)
+    (seqZero : ∀ a b, TP (.seq a b) = 0)
+    (names : Spt Unit) (counter name : Nat) (value : WordLocW 64)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (retMove : WordLangProgHOL (BitVec 64)) (moveMap : Spt Nat) (moveNext bindNext : Nat)
+    (renamed : Nat) (retMap : Spt Nat) (retNext : Nat)
+    (compiled : WordLangProgHOL (BitVec 64)) (finalMap : Spt Nat) (finalNext : Nat)
+    (moveProduced : listNextVarRenameMove (width := 64) (sptInter ssa names) (counter+2)
+      ((sptToAList names).map Prod.fst) = (retMove,moveMap,moveNext))
+    (renameProduced : nextVarRename name moveMap bindNext = (renamed,retMap,retNext))
+    (bodyProduced : ssaCcTrans body retMap retNext tables = (compiled,finalMap,finalNext))
+    (bindingIncrease : moveNext ≤ bindNext) (bindingClass : isAllocVar bindNext)
+    (related : ssaLocalsRel counter (sptInter ssa names) source.locals target.locals)
+    (valid : ssaMapOK counter ssa) (stackClass : isStackVar counter)
+    (sourceDomain : sptDomain source.locals = sptDomain names)
+    (below : name < counter)
+    (bodyBounds : everyVarHOL (fun key => decide (key < counter)) body = true)
+    (frame : FullSSATableFrame source target) (tableValid : ltOK tables)
+    (codeFree : WordProps.noInstallCode source.code)
+    (bodyIH : SSAMappedBodyAllowance (C := C) (F := F) SP TP body retMap retNext tables (bodyEntry retMap retNext)) :
+    ∃ permutation : Nat → Nat → Nat,
+      let sourceState := {setVar name value source with permute := permutation}
+      let sourceRun := evaluate body sourceState
+      let targetRun := evaluate (.seq retMove (.seq (.move 1 [(renamed,2)]) compiled)) (setVar 2 value target)
+      sourceRun.1 = some .error ∨
+        sourceRun.1 = targetRun.1 ∧ FullSSATableFrame sourceRun.2 targetRun.2 ∧
+        SSAResultLocals finalNext finalMap tables sourceRun.2.locals targetRun.2.locals sourceRun.1 ∧
+        wordExecutionCost (fun p _ => TP p)
+          (.seq retMove (.seq (.move 1 [(renamed,2)]) compiled)) (setVar 2 value target) ≤
+          TP retMove + TP (.move 1 [(renamed,2)]) + bodyEntry retMap retNext +
+            wordExecutionCost (fun p _ => SP p) body sourceState := by
+  have listProduced : listNextVarRename [name] moveMap bindNext = ([renamed],retMap,retNext) := by
+    simp only [listNextVarRename,renameProduced]
+  have continuation := ssa_returning_mapped_continuation_entry SP TP bodyEntry body source target ssa seqZero
+    names counter [name] [value] tables retMove moveMap moveNext bindNext [renamed] retMap retNext
+    compiled finalMap finalNext moveProduced listProduced bodyProduced bindingIncrease bindingClass related valid stackClass
+    sourceDomain rfl (by simp) (by simpa using below) bodyBounds frame tableValid codeFree bodyIH
+  exact continuation
+
+#print axioms ssa_returning_mapped_exception_continuation_entry
+end InitECandidate.Runtime.FineCost
