@@ -1,0 +1,245 @@
+diff --git a/docs/ALLOC-AUDIT.md b/docs/ALLOC-AUDIT.md
+index 4d2519e4d..f8ccf0f7d 100644
+--- a/docs/ALLOC-AUDIT.md
++++ b/docs/ALLOC-AUDIT.md
+@@ -1,5 +1,12 @@
+ # Allocation audit: gas before memory
+ 
++This document's quantitative layout analysis records an earlier 240 MiB heap
++and 11.9 MiB scratch/frame arena. The current guest instead uses the 29 GiB RAM
++layout in [CHALLENGE.md](CHALLENGE.md#memory-layout), with persistent allocation
++from `0xa1c00000` to `0x7defffd18`. The old layout's OOM conclusion below does
++not apply to the current guest; a worst-case no-OOM proof for the current layout
++remains open. The historical cost models and stress-test ideas remain useful.
++
+ **Goal.** For every block whose declared gas limit is at most 200M, no OOM trap
+ may fire, even on a maliciously crafted block. The OOM traps are `trap_with` codes
+ 1, 6 and 7 (allocator exhaustion, `guest/src/lib/mem.pnk`) and codes 4 and 5
+@@ -17,12 +24,12 @@ allocate"). The footprint (2) is a RAM-sizing requirement: the guest's memory pr
+ per gas is listed below, and the RAM the challenge needs follows from the highest
+ price.
+ 
+-## Can OOM occur under 200M block gas?
++## Historical 240 MiB layout: can OOM occur under 200M block gas?
+ 
+-**Yes, with the current layout.** The heap is 240 MiB and the frame-memory plus
++**Yes, with the historical layout.** The heap is 240 MiB and the frame-memory plus
+ scratch arena is 11.9 MiB. Both are smaller than what 200M gas can fill:
+ 
+-| Region | Current size | Needed for 200M gas | Where the number comes from |
++| Region | Historical size | Needed for 200M gas | Where the number comes from |
+ |---|---|---|---|
+ | heap (`alloc`) | 251,658,240 B (240 MiB), of which the 16 MiB journal | about 1.5 GB from gas-priced use, plus about 1.0 GB that no gas pays for (withdrawals), plus the input and witness: **about 2.5 GB plus the input** | highest heap price, `set_retdata` at about 7.5 B/gas (item 5) over 200M gas is 1.5 GB; withdrawals are item 1, bounded only by the block and input size |
+ | frame memory plus scratch arena | 12,509,184 B (11.9 MiB) | **about 52 MB per user transaction, about 68 MB per system transaction** (the arena is released after each transaction) | a model of nested frames, see "Frame arena bound" |
+@@ -32,7 +39,7 @@ the end of each transaction, so its need is the worst single transaction. Gas
+ buys memory in different regions, so the heap and arena needs add up in RAM but
+ are not drawn from the same gas.
+ 
+-Cheapest routes to a trap today (price, then gas to exhaust the region):
++Cheapest routes to a trap in that layout (price, then gas to exhaust the region):
+ 
+ * recursion over a 64 KiB contract with stacks and memory grown (items 2 to 4):
+   fills the 11.9 MiB arena within about 0.8M gas (the model gives 11.8 MB at 0.7M
+@@ -93,7 +100,7 @@ An OOM trap hands the submission a free pass on that block, so it must be unreac
+ for blocks at or below 200M gas; and a change here must not turn a non-OOM trap into
+ an OOM one or the reverse.
+ 
+-## Memory map
++## Historical memory map
+ 
+ | Arena | Region | Size | Used for |
+ |---|---|---|---|
+diff --git a/docs/SUBMISSIONS.md b/docs/SUBMISSIONS.md
+index cb73197e4..aeefe1862 100644
+--- a/docs/SUBMISSIONS.md
++++ b/docs/SUBMISSIONS.md
+@@ -82,7 +82,7 @@ permitted axioms and log paths. It uses the sig.golf verifier pattern and the
+ it compares the certificate against an independently built trusted challenge,
+ checks the submission definition's type and safety, audits axiom dependencies,
+ and replays the exported solution in Lean's kernel.
+-The verifier uses up to 30 available processors and has no wall-clock deadline.
++The verifier uses up to 8 available processors and has no wall-clock deadline.
+ The comparator's nanoda pass is disabled.
+ A hash-pinned [transport patch](../verifier/patches/README.md) copies exporter
+ stdout into temporary files and parses those handles. It preserves declaration
+diff --git a/docs/TESTING.md b/docs/TESTING.md
+index c004f5eaf..a0a3b5b79 100644
+--- a/docs/TESTING.md
++++ b/docs/TESTING.md
+@@ -18,7 +18,8 @@ build, oracle, Docker, and EEST instructions. Commands run at the repository roo
+   `tools/make-sample-inputs.sh`) on every change instead of the full corpus;
+   it currently shows 0 failures. The benchmark release
+   `tests-zkevm-benchmark@v0.8.2` is on an older (v0.8.x) schema than v21.0.1
+-  and is not supported.
++  and is not supported. The newer v21.0.5 benchmark release uses the current
++  stateless format; see the [Spike memory probe](EEST-BENCHMARK-RAM.md).
+ * **A real chain block.** (Recorded against the `tests-zkevm@v0.6.2` input
+   schema; the block input has not been regenerated for v21.0.1.) The guest
+   reproduced a real `glamsterdam-devnet-7`
+diff --git a/tools/eest-run.py b/tools/eest-run.py
+index dc3d9afc2..95576cf31 100755
+--- a/tools/eest-run.py
++++ b/tools/eest-run.py
+@@ -4,7 +4,7 @@
+ Usage: eest-run.py GUEST.elf MANIFEST.tsv [--jobs N] [--limit N] [--filter S]
+                    [--out-dir DIR] [--quiet-passes]
+                    [--json FILE] [--from-json FILE --fail-code CLASS/CODE]
+-                   [--labels FILE]
++                   [--labels FILE] [--measure-rss] [--case-timeout SECONDS]
+ 
+ Classification mirrors evm-asm/scripts/eest-specref-check.sh:
+   root = bytes 0:32, succ = byte 32, tail = bytes 33:43 (chain_id, schema_id;
+@@ -29,7 +29,7 @@ def resolve_input_path(path, manifest_dir):
+         return path
+     return os.path.join(manifest_dir, os.path.basename(path))
+ 
+-def run_case(elf, row, out_dir):
++def run_case(elf, row, out_dir, measure_rss=False, timeout=None):
+     label, inp, expected_hex = row[0], row[1], row[2]
+     out = os.path.join(out_dir, label + ".output")
+     log = os.path.join(out_dir, label + ".log")
+@@ -37,9 +37,20 @@ def run_case(elf, row, out_dir):
+     env = dict(os.environ)
+     env.setdefault("SPIKE_OUTPUT_LEN", "256")
+     cmd = [SPIKE_RUN, elf, inp, out]
++    rss_file = os.path.join(out_dir, label + ".rss")
++    if timeout is not None:
++        cmd = ["timeout", "--kill-after=5s", str(timeout), *cmd]
++    if measure_rss:
++        cmd = ["/usr/bin/time", "-f", "%M", "-o", rss_file, *cmd]
+     with open(log, "w") as lf:
+         rc = subprocess.call(cmd, stdout=lf, stderr=subprocess.STDOUT, env=env)
+     dt = time.time() - t0
++    peak_rss_kib = None
++    if measure_rss and os.path.isfile(rss_file):
++        try:
++            peak_rss_kib = int(open(rss_file).read().splitlines()[-1])
++        except ValueError:
++            pass
+     steps = None
+     logtxt = open(log, errors="replace").read()
+     m = STEPS_RE.search(logtxt)
+@@ -59,8 +70,11 @@ def run_case(elf, row, out_dir):
+         if len(raw) > 70: dbg = f"{dbg}/{raw[70]}"
+         if len(raw) > 100:
+             stage_marker = raw[100]
+-    return dict(label=label, rc=rc, steps=steps, secs=dt, expected=expected_hex,
+-                actual=actual, dbg=dbg, trap=trap, stage_marker=stage_marker)
++    result = dict(label=label, rc=rc, steps=steps, secs=dt, expected=expected_hex,
++                  actual=actual, dbg=dbg, trap=trap, stage_marker=stage_marker)
++    if measure_rss:
++        result["peak_rss_kib"] = peak_rss_kib
++    return result
+ 
+ def classify(r):
+     e, a = r["expected"], r["actual"]
+@@ -154,6 +168,10 @@ def main():
+     ap.add_argument("--out-dir", default=os.path.join(ROOT, "work/run"))
+     ap.add_argument("--quiet-passes", action="store_true")
+     ap.add_argument("--json", default="")
++    ap.add_argument("--measure-rss", action="store_true",
++                    help="record per-case Spike peak resident memory using GNU time")
++    ap.add_argument("--case-timeout", type=int, default=None,
++                    help="optional per-case wall-clock limit in seconds")
+     selection = ap.add_mutually_exclusive_group()
+     selection.add_argument("--from-json", default="", metavar="FILE",
+                            help="select labels from a previous --json result file")
+@@ -165,6 +183,8 @@ def main():
+     a = ap.parse_args()
+     if a.fail_code is not None and not a.from_json:
+         ap.error("--fail-code requires --from-json")
++    if a.case_timeout is not None and a.case_timeout <= 0:
++        ap.error("--case-timeout must be positive")
+     if a.jobs is None:
+         a.jobs = default_jobs()
+     manifest_path = os.path.abspath(a.manifest)
+@@ -192,7 +212,8 @@ def main():
+         return 2
+     os.makedirs(a.out_dir, exist_ok=True)
+     with ThreadPoolExecutor(a.jobs) as ex:
+-        results = list(ex.map(lambda r: run_case(a.elf, r, a.out_dir), rows))
++        results = list(ex.map(lambda r: run_case(a.elf, r, a.out_dir, a.measure_rss,
++                                                 a.case_timeout), rows))
+     counts = {}
+     steps_pass = []
+     for r in results:
+@@ -203,7 +224,8 @@ def main():
+         if cls.startswith("PASS") and a.quiet_passes: continue
+         reason = (f"trap={r['trap']}" if r.get("trap") is not None
+                   else f"fail={r['dbg']}")
+-        line = f"  {cls:16s} {tag:16s} {reason:12s} steps={r['steps']} {r['secs']:.2f}s {r['label'][:80]}"
++        rss = f" rss={r['peak_rss_kib']}KiB" if a.measure_rss else ""
++        line = f"  {cls:16s} {tag:16s} {reason:12s} steps={r['steps']} {r['secs']:.2f}s{rss} {r['label'][:80]}"
+         print(line)
+         if cls.startswith("FAIL"):
+             print(f"    expected: {r['expected']}\n    actual:   {r['actual']}")
+diff --git a/tools/spike/spike_run.cc b/tools/spike/spike_run.cc
+index c93f41c4c..e744b6e0f 100644
+--- a/tools/spike/spike_run.cc
++++ b/tools/spike/spike_run.cc
+@@ -32,6 +32,7 @@
+ //                            tooling-only LE dword writes after ELF/input load
+ //   SPIKE_DUMP_RANGES=<addr:length,...> + SPIKE_DUMP_FILE=<file>
+ //                            final-memory ranges for tooling-only inspection
++//   SPIKE_STEP_CAP=<n>        maximum executed instructions (default 20 billion)
+ #include <sys/syscall.h>
+ #include "sim.h"
+ #include "cfg.h"
+@@ -560,6 +561,13 @@ int main(int argc, char** argv) {
+   }
+ 
+   uint64_t steps_left = STEP_CAP;
++  if (const char* raw = getenv("SPIKE_STEP_CAP")) {
++    steps_left = parse_u64(raw, "SPIKE_STEP_CAP");
++    if (steps_left == 0) {
++      fprintf(stderr, "spike_run: SPIKE_STEP_CAP must be positive\n");
++      return 2;
++    }
++  }
+ 
+   // Headless debug script (SPIKE_DEBUG_CMD) — runs before free-run.
+   if (const char* dcmd = getenv("SPIKE_DEBUG_CMD")) {
+diff --git a/verifier/tests/test_verifier.py b/verifier/tests/test_verifier.py
+index 1f848c4f2..9da16f77b 100644
+--- a/verifier/tests/test_verifier.py
++++ b/verifier/tests/test_verifier.py
+@@ -232,7 +232,7 @@ class ResourceLimitTests(unittest.TestCase):
+                 self.assertIn("MemorySwapMax=0", command)
+                 self.assertIn("TasksMax=16384", command)
+                 self.assertIn("LAKE_ARTIFACT_CACHE=false", command)
+-        self.assertEqual(MAX_CPUS, 30)
++        self.assertEqual(MAX_CPUS, 8)
+ 
+     def test_audit_and_comparator_use_project_local_limiter(self):
+         project = Path("/tmp/frozen-project")
+@@ -243,7 +243,7 @@ class ResourceLimitTests(unittest.TestCase):
+                 self.assertEqual(command, [
+                     sys.executable, str(project / "tools" / "limited-lake.py"),
+                     "--work-dir", str(project / ".lake" / "lean-limit"),
+-                    "--slots", "30", "--", *inner])
++                    "--slots", "8", "--", *inner])
+ 
+ 
+ class ComparatorSpoolTests(unittest.TestCase):
+diff --git a/verifier/verify.py b/verifier/verify.py
+index 06736edf4..2f61c87c9 100755
+--- a/verifier/verify.py
++++ b/verifier/verify.py
+@@ -31,7 +31,7 @@ from check_submission import check, score_literal, MAX_FILES, MAX_FILE_BYTES, MA
+ HERE = Path(__file__).resolve().parent
+ TRUSTED = HERE.parent
+ LOG_CAP = 4 * 1024 * 1024
+-MAX_CPUS = 30
++MAX_CPUS = 8
+ MEMORY_BYTES = 112 * 1024**3
+ 
+ 
+@@ -122,7 +122,7 @@ def linux_command(cmd: list[str], project: Path, env: dict[str, str], hidden: li
+                   wall_seconds: int | None = None, *,
+                   spool_dir: Path | None = None) -> tuple[list[str], dict[str, str]]:
+     unit = 'init-e-verify-' + uuid.uuid4().hex[:12]
+-    # Lake scales parallel builds to visible CPUs. Cap the verifier at 30
++    # Lake scales parallel builds to visible CPUs. Cap the verifier at 8
+     # logical CPUs (or fewer if the host affinity provides fewer).
+     cpus = sorted(os.sched_getaffinity(0))[:MAX_CPUS]
+     properties = [f'MemoryMax={MEMORY_BYTES}', 'MemorySwapMax=0',

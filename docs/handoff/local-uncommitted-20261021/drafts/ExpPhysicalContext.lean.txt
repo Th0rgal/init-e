@@ -1,0 +1,240 @@
+import InitECandidate.Runtime.ExpOpcodeSource
+import InitECandidate.Runtime.StackPushNoGrowthCallPhysicalContext
+import InitECandidate.Runtime.PcAddReturnPhysicalContext
+import InitECandidate.Runtime.ChargeGasPhysicalContext
+import InitECandidate.Runtime.InterpreterFundingOffsetFrame
+import InitECandidate.Runtime.EvmStackPopDeclarationPhysicalContext
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+set_option maxRecDepth 100000
+set_option maxHeartbeats 8000000
+
+/-- Real four-limb exponentation push and PC/return suffix. -/
+theorem exp_push_returned_physical_context {F : Type}
+ (s post : PanSemStateFiniteExact 64 F) (frame : BitVec 64)
+ (words : EvmMemoryOperandWords) (valid : EvmMemoryOperandAt s frame words)
+ (a b c d : BitVec 64) (value : ValueHOL 64)
+ (atValue : s.locals.lookup (ofString "r")=some (fundingU256 a b c d))
+ (inside : words.stackSize.toNat<words.stackCapacity.toNat)
+ (fullDomain : ∀address : BitVec 64,address.toNat<33806089496→s.memaddrs address)
+ (code : s.code=originalRuntimeCode)
+ (run : evaluateHOLFiniteState s (expOpcodeAt 5)=(some (.returned value),post)) :
+ value=.val (.word 0) ∧EvmMemoryOperandAt post frame {words with pc:=words.pc+1,stackSize:=words.stackSize+1} ∧
+ post.globals=s.globals ∧post.memaddrs=s.memaddrs ∧post.be=s.be ∧post.code=s.code ∧
+ (∀watched : BitVec 64,frame.toNat≤watched.toNat→watched≠frame+0→watched≠frame+16→post.memory watched=s.memory watched) := by
+ rw [source_exp_opcode_5] at run
+ obtain ⟨next,pushed,tail⟩:=seq_returned_of_nonreturning_first (fun v=>discard_call_not_returned s (ofString "stack_push") [.var .local (ofString "r")] v) run
+ obtain ⟨physical,globals,locals,domain,endian,installed,pushFrame⟩:=stack_push_no_growth_discard_physical_context s next frame words valid [.var .local (ofString "r")] a b c d (by simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,atValue]) inside fullDomain code pushed
+ rw [source_exp_opcode_6,source_exp_opcode_7] at tail
+ obtain ⟨zero,finalPhysical,finalGlobals,finalDomain,finalEndian,finalCode,pcFrame⟩:=pc_add_one_return_physical_context next post frame {words with stackSize:=words.stackSize+1} physical value (installed.trans code) tail
+ refine ⟨zero,finalPhysical,finalGlobals.trans globals,finalDomain.trans domain,finalEndian.trans endian,finalCode.trans installed,?_⟩
+ intro watched above notPc notCounter
+ rw [pcFrame watched notPc]
+ exact pushFrame watched above notCounter
+#print axioms exp_push_returned_physical_context
+
+/-- The actual `u256_exp` helper and the four-limb push/PC suffix. -/
+theorem exp_helper_returned_physical_context {F : Type}
+ (s post : PanSemStateFiniteExact 64 F)
+ (frame : BitVec 64) (words : EvmMemoryOperandWords)
+ (valid : EvmMemoryOperandAt s frame words)
+ (a b c d e f g h : BitVec 64) (value : ValueHOL 64)
+ (atBase : s.locals.lookup (ofString "base")=some (fundingU256 a b c d))
+ (atExponent : s.locals.lookup (ofString "exponent")=some (fundingU256 e f g h))
+ (inside : words.stackSize.toNat<words.stackCapacity.toNat)
+ (fullDomain : ∀address : BitVec 64,address.toNat<33806089496→s.memaddrs address)
+ (code : s.code=originalRuntimeCode)
+ (run : evaluateHOLFiniteState s (expOpcodeAt 4)=(some (.returned value),post)) :
+ value=.val (.word 0) ∧EvmMemoryOperandAt post frame {words with pc:=words.pc+1,stackSize:=words.stackSize+1} ∧
+ post.globals=s.globals ∧post.memaddrs=s.memaddrs ∧post.be=s.be ∧post.code=s.code ∧
+ (∀watched : BitVec 64,frame.toNat≤watched.toNat→watched≠frame+0→watched≠frame+16→post.memory watched=s.memory watched) := by
+ rw [source_exp_opcode_4] at run
+ obtain ⟨r0,r1,r2,r3,body,output,tail,scope,memory,globals,domain,endian,installed⟩:=exp_helper_declaration_returned_frame s post (ofString "r") [.var .local (ofString "base"),.var .local (ofString "exponent")] (expOpcodeAt 5) a b c d e f g h value (by simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,atBase,atExponent]) code run
+ let ready:=setVarHOLFinite (ofString "r") (fundingU256 r0 r1 r2 r3) {body with locals:=s.locals}
+ change evaluateHOLFiniteState ready (expOpcodeAt 5)=(some (.returned value),output) at tail
+ change ready.memory=s.memory at memory
+ change ready.globals=s.globals at globals
+ change ready.memaddrs=s.memaddrs at domain
+ change ready.be=s.be at endian
+ change ready.code=s.code at installed
+ have physical : EvmMemoryOperandAt ready frame words:=valid.after_context globals memory domain
+ obtain ⟨zero,finalPhysical,finalGlobals,finalDomain,finalEndian,finalCode,upperFrame⟩:=exp_push_returned_physical_context ready output frame words physical r0 r1 r2 r3 value (by simp [ready,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]) inside (by intro address below;rw [domain];exact fullDomain address below) (installed.trans code) tail
+ refine ⟨zero,finalPhysical.after_context (by rw [scope]) (by rw [scope]) (by rw [scope]),?_,?_,?_,?_,?_⟩
+ · rw [scope];exact finalGlobals.trans globals
+ · rw [scope];exact finalDomain.trans domain
+ · rw [scope];exact finalEndian.trans endian
+ · rw [scope];exact finalCode.trans installed
+ · intro watched above notPc notCounter
+   rw [scope,upperFrame watched above notPc notCounter,memory]
+#print axioms exp_helper_returned_physical_context
+
+/-- Actual exponentiation charge (the dynamic amount `10 + 50*nb` over the
+checked byte-length word) plus helper/push/PC suffix. The byte length is bounded
+by the real EVM word width, which is what makes the literal charge positive. -/
+theorem exp_charged_returned_physical_context
+ (s post : PanSemStateFiniteExact 64 Guest.HostMemory)
+ (upper : Nat) (current : InterpreterFundingFrame) (ancestors : List InterpreterFundingFrame)
+ (layout : InterpreterFundingLayout s current.address.toNat upper (current::ancestors))
+ (words : EvmMemoryOperandWords) (valid : EvmMemoryOperandAt s current.address words)
+ (a b c d e f g h : BitVec 64) (nb : BitVec 64) (value : ValueHOL 64)
+ (atBase : s.locals.lookup (ofString "base")=some (fundingU256 a b c d))
+ (atExponent : s.locals.lookup (ofString "exponent")=some (fundingU256 e f g h))
+ (atNb : s.locals.lookup (ofString "nb")=some (.val (.word nb)))
+ (nbBound : nb.toNat≤32)
+ (inside : words.stackSize.toNat<words.stackCapacity.toNat)
+ (fullDomain : ∀address : BitVec 64,address.toNat<33806089496→s.memaddrs address)
+ (code : s.code=originalRuntimeCode)
+ (run : evaluateHOLFiniteState s (expOpcodeAt 3)=(some (.returned value),post)) :
+ value=.val (.word 0) ∧(10+50*nb)≤current.gas.left ∧
+ InterpreterFundingLayout post current.address.toNat upper (current.charged (10+50*nb)::ancestors) ∧
+ interpreterFundingUsed (current::ancestors) < interpreterFundingUsed (current.charged (10+50*nb)::ancestors) ∧
+ EvmMemoryOperandAt post current.address {words with pc:=words.pc+1,stackSize:=words.stackSize+1} ∧
+ post.globals=s.globals ∧post.memaddrs=s.memaddrs ∧post.be=s.be ∧post.code=s.code ∧
+ (∀watched : BitVec 64,current.address.toNat≤watched.toNat→watched≠current.address+0→watched≠current.address+16→watched≠current.address+64→watched≠current.address+184→post.memory watched=s.memory watched) := by
+ have ten : BitVec.toNat (10 : BitVec 64)=10 := by decide
+ have fifty : BitVec.toNat (50 : BitVec 64)=50 := by decide
+ have mulBound : (50*nb).toNat≤1600 := by
+  rw [BitVec.toNat_mul,fifty]
+  have le : 50*nb.toNat≤50*32:=Nat.mul_le_mul_left 50 nbBound
+  have small : 50*nb.toNat<2^64:=by omega
+  rw [Nat.mod_eq_of_lt small]
+  omega
+ have positive : 0<(10+50*nb).toNat := by
+  rw [BitVec.toNat_add,ten]
+  have small : 10+(50*nb).toNat<2^64:=by omega
+  rw [Nat.mod_eq_of_lt small]
+  omega
+ rw [source_exp_opcode_3] at run
+ obtain ⟨next,charged,tail⟩:=seq_returned_of_nonreturning_first (fun v=>discard_call_not_returned s (ofString "charge_gas") [expChargeArg] v) run
+ obtain ⟨enough,physical,paid,progress,locals,globals,domain,endian,installed,chargeFrame⟩:=charge_gas_discard_normal_physical_context s next upper current ancestors layout words valid expChargeArg (10+50*nb) (exp_charge_args s nb atNb) positive code charged
+ obtain ⟨zero,finalPhysical,finalGlobals,finalDomain,finalEndian,finalCode,tailFrame⟩:=exp_helper_returned_physical_context next post current.address words physical a b c d e f g h value (by rw [locals];exact atBase) (by rw [locals];exact atExponent) inside (by intro address below;rw [domain];exact fullDomain address below) (installed.trans code) tail
+ have finalFunding:=InterpreterFundingLayout.after_header_frame (upper:=upper) (current:=current.charged (10+50*nb)) (ancestors:=ancestors) paid finalDomain (fun watched above notPc notCounter => tailFrame watched (by simpa [InterpreterFundingFrame.charged] using above) (by simpa [InterpreterFundingFrame.charged] using notPc) (by simpa [InterpreterFundingFrame.charged] using notCounter))
+ refine ⟨zero,enough,finalFunding,progress,finalPhysical,finalGlobals.trans globals,finalDomain.trans domain,finalEndian.trans endian,finalCode.trans installed,?_⟩
+ intro watched above notPc notCounter notLeft notUsed
+ rw [tailFrame watched above notPc notCounter]
+ exact chargeFrame watched notLeft notUsed
+#print axioms exp_charged_returned_physical_context
+
+/-- The actual `u256_byte_length` amount helper in front of the dynamic charge.
+The bound hypothesis states exactly the real EVM fact this opcode needs: the
+byte length of a 256-bit word never exceeds 32, which is what makes the literal
+charge `10 + 50*nb` positive. It is a genuine remaining obligation of the model
+(the existing coarse byte-length ceiling is 2^61 and does not suffice). -/
+theorem exp_amount_returned_physical_context
+ (s post : PanSemStateFiniteExact 64 Guest.HostMemory)
+ (upper : Nat) (current : InterpreterFundingFrame) (ancestors : List InterpreterFundingFrame)
+ (layout : InterpreterFundingLayout s current.address.toNat upper (current::ancestors))
+ (words : EvmMemoryOperandWords) (valid : EvmMemoryOperandAt s current.address words)
+ (a b c d e f g h : BitVec 64) (value : ValueHOL 64)
+ (byteLengthBound : ∀ (t : PanSemStateFiniteExact 64 Guest.HostMemory) (w : BitVec 64),
+  t.locals.lookup (ofString "nb")=some (.val (.word w))→w.toNat≤32)
+ (atBase : s.locals.lookup (ofString "base")=some (fundingU256 a b c d))
+ (atExponent : s.locals.lookup (ofString "exponent")=some (fundingU256 e f g h))
+ (inside : words.stackSize.toNat<words.stackCapacity.toNat)
+ (fullDomain : ∀address : BitVec 64,address.toNat<33806089496→s.memaddrs address)
+ (code : s.code=originalRuntimeCode)
+ (run : evaluateHOLFiniteState s (expOpcodeAt 2)=(some (.returned value),post)) :
+ value=.val (.word 0) ∧∃amount : BitVec 64,amount≤current.gas.left ∧
+ InterpreterFundingLayout post current.address.toNat upper (current.charged amount::ancestors) ∧
+ interpreterFundingUsed (current::ancestors) < interpreterFundingUsed (current.charged amount::ancestors) ∧
+ EvmMemoryOperandAt post current.address {words with pc:=words.pc+1,stackSize:=words.stackSize+1} ∧
+ post.globals=s.globals ∧post.memaddrs=s.memaddrs ∧post.be=s.be ∧post.code=s.code ∧
+ (∀watched : BitVec 64,current.address.toNat≤watched.toNat→watched≠current.address+0→watched≠current.address+16→watched≠current.address+64→watched≠current.address+184→post.memory watched=s.memory watched) := by
+ rw [source_exp_opcode_2] at run
+ obtain ⟨width,widthBody,widthOutput,widthTail,widthScope,widthMemory,widthGlobals,widthDomain,widthEndian,widthCode⟩:=byte_length_declaration_returned_word s post (ofString "nb") [.var .local (ofString "exponent")] (expOpcodeAt 3) e f g h value (by simp [evalListHOLFinite,evalListHOLExact,evalHOLExact,atExponent]) code run
+ let readyNb:=setVarHOLFinite (ofString "nb") (.val (.word width)) {widthBody with locals:=s.locals}
+ change readyNb.memory=s.memory at widthMemory
+ change readyNb.globals=s.globals at widthGlobals
+ change readyNb.memaddrs=s.memaddrs at widthDomain
+ change readyNb.be=s.be at widthEndian
+ change readyNb.code=s.code at widthCode
+ have physicalNb : EvmMemoryOperandAt readyNb current.address words:=valid.after_context widthGlobals widthMemory widthDomain
+ have atBaser : readyNb.locals.lookup (ofString "base")=some (fundingU256 a b c d) := by
+  simp (config:={decide:=true}) [readyNb,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,atBase]
+ have atExponentr : readyNb.locals.lookup (ofString "exponent")=some (fundingU256 e f g h) := by
+  simp (config:={decide:=true}) [readyNb,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE,atExponent]
+ have atNbr : readyNb.locals.lookup (ofString "nb")=some (.val (.word width)) := by simp [readyNb,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+ have widthBound : width.toNat≤32:=byteLengthBound readyNb width atNbr
+ obtain ⟨zero,enough,paid,progress,physical,globals,domain,endian,installed,upperFrame⟩:=exp_charged_returned_physical_context readyNb widthOutput upper current ancestors (layout.after_memory widthMemory widthDomain) words physicalNb a b c d e f g h width value atBaser atExponentr atNbr widthBound inside (by intro address below;rw [widthDomain];exact fullDomain address below) (widthCode.trans code) widthTail
+ have finalPhysical : EvmMemoryOperandAt post current.address {words with pc:=words.pc+1,stackSize:=words.stackSize+1} := by
+  apply EvmMemoryOperandAt.after_context (post:=post) physical
+  · rw [widthScope]
+  · rw [widthScope]
+  · rw [widthScope]
+ have finalFunding : InterpreterFundingLayout post current.address.toNat upper (current.charged (10+50*width)::ancestors):=
+  paid.after_memory (by rw [widthScope]) (by rw [widthScope])
+ refine ⟨zero,10+50*width,enough,finalFunding,progress,finalPhysical,?_,?_,?_,?_,?_⟩
+ · rw [widthScope];exact globals.trans widthGlobals
+ · rw [widthScope];exact domain.trans widthDomain
+ · rw [widthScope];exact endian.trans widthEndian
+ · rw [widthScope];exact installed.trans widthCode
+ · intro watched above notPc notCounter notLeft notUsed
+   rw [widthScope,upperFrame watched above notPc notCounter notLeft notUsed,widthMemory]
+#print axioms exp_amount_returned_physical_context
+
+/-- Actual complete original op_exp body: two real pops, the checked byte-length
+amount helper, the dynamic literal charge, the checked exponentiation helper,
+the four-limb push and the PC/return. -/
+theorem exp_opcode_body_returned_physical_context
+ (s post : PanSemStateFiniteExact 64 Guest.HostMemory)
+ (upper : Nat) (current : InterpreterFundingFrame) (ancestors : List InterpreterFundingFrame)
+ (layout : InterpreterFundingLayout s current.address.toNat upper (current::ancestors))
+ (words : EvmMemoryOperandWords) (valid : EvmMemoryOperandAt s current.address words)
+ (value : ValueHOL 64)
+ (byteLengthBound : ∀ (t : PanSemStateFiniteExact 64 Guest.HostMemory) (w : BitVec 64),
+  t.locals.lookup (ofString "nb")=some (.val (.word w))→w.toNat≤32)
+ (fullDomain : ∀address : BitVec 64,address.toNat<33806089496→s.memaddrs address)
+ (code : s.code=originalRuntimeCode)
+ (run : evaluateHOLFiniteState s expOpcodeBody=(some (.returned value),post)) :
+ value=.val (.word 0) ∧∃amount : BitVec 64,amount≤current.gas.left ∧
+ InterpreterFundingLayout post current.address.toNat upper (current.charged amount::ancestors) ∧
+ interpreterFundingUsed (current::ancestors) < interpreterFundingUsed (current.charged amount::ancestors) ∧
+ EvmMemoryOperandAt post current.address {words with pc:=words.pc+1,stackSize:=(words.stackSize-1)-1+1} ∧
+ post.globals=s.globals ∧post.memaddrs=s.memaddrs ∧post.be=s.be ∧post.code=s.code ∧
+ (∀watched : BitVec 64,current.address.toNat≤watched.toNat→watched≠current.address+0→watched≠current.address+16→watched≠current.address+64→watched≠current.address+184→post.memory watched=s.memory watched) := by
+ rw [source_exp_opcode_body,source_exp_opcode_0] at run
+ obtain ⟨a,b,c,d,firstBody,firstOutput,firstRun,firstScope,firstPositive,firstPhysical,firstFunding,firstGlobals,firstDomain,firstEndian,firstCode,firstUpper⟩:=stack_pop_declaration_returned_physical_context s post upper current ancestors layout words valid (ofString "base") (expOpcodeAt 1) value code run
+ let first:=setVarHOLFinite (ofString "base") (fundingU256 a b c d) {firstBody with locals:=s.locals}
+ let firstWords : EvmMemoryOperandWords:={words with stackSize:=words.stackSize-1}
+ change evaluateHOLFiniteState first (expOpcodeAt 1)=_ at firstRun
+ change EvmMemoryOperandAt first current.address firstWords at firstPhysical
+ change InterpreterFundingLayout first current.address.toNat upper (current::ancestors) at firstFunding
+ change first.code=s.code at firstCode
+ change first.memaddrs=s.memaddrs at firstDomain
+ rw [source_exp_opcode_1] at firstRun
+ obtain ⟨e,f,g,h,secondBody,secondOutput,secondRun,secondScope,secondPositive,secondPhysical,secondFunding,secondGlobals,secondDomain,secondEndian,secondCode,secondUpper⟩:=stack_pop_declaration_returned_physical_context first firstOutput upper current ancestors firstFunding firstWords firstPhysical (ofString "exponent") (expOpcodeAt 2) value (firstCode.trans code) firstRun
+ let second:=setVarHOLFinite (ofString "exponent") (fundingU256 e f g h) {secondBody with locals:=first.locals}
+ let secondWords : EvmMemoryOperandWords:={firstWords with stackSize:=firstWords.stackSize-1}
+ change evaluateHOLFiniteState second (expOpcodeAt 2)=_ at secondRun
+ change EvmMemoryOperandAt second current.address secondWords at secondPhysical
+ change InterpreterFundingLayout second current.address.toNat upper (current::ancestors) at secondFunding
+ change second.code=first.code at secondCode
+ change second.memaddrs=first.memaddrs at secondDomain
+ have atBase : second.locals.lookup (ofString "base")=some (fundingU256 a b c d) := by simp (config:={decide:=true}) [second,first,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+ have atExponent : second.locals.lookup (ofString "exponent")=some (fundingU256 e f g h) := by simp [second,setVarHOLFinite,HolFiniteMapExact.lookup_update,FUPDATE]
+ have decrement : (firstWords.stackSize-1#64).toNat=firstWords.stackSize.toNat-1 := BitVec.toNat_sub_of_le (BitVec.le_def.mpr (by change (1#64).toNat≤firstWords.stackSize.toNat;change 1≤firstWords.stackSize.toNat;omega))
+ have inside : secondWords.stackSize.toNat<secondWords.stackCapacity.toNat := by
+  change (firstWords.stackSize-1#64).toNat<firstWords.stackCapacity.toNat
+  rw [decrement]
+  have previous:=firstPhysical.stackSizeBound
+  omega
+ obtain ⟨zero,amount,enough,paid,progress,physical,globals,domain,endian,installed,upperFrame⟩:=exp_amount_returned_physical_context second secondOutput upper current ancestors secondFunding secondWords secondPhysical a b c d e f g h value byteLengthBound atBase atExponent inside (by intro address below;rw [secondDomain,firstDomain];exact fullDomain address below) (secondCode.trans (firstCode.trans code)) secondRun
+ have finalPhysical : EvmMemoryOperandAt post current.address {words with pc:=words.pc+1,stackSize:=(words.stackSize-1)-1+1} := by
+  apply EvmMemoryOperandAt.after_context (post:=post) physical
+  · rw [firstScope,secondScope]
+  · rw [firstScope,secondScope]
+  · rw [firstScope,secondScope]
+ have finalFunding : InterpreterFundingLayout post current.address.toNat upper (current.charged amount::ancestors):=
+  paid.after_memory (by rw [firstScope,secondScope]) (by rw [firstScope,secondScope])
+ refine ⟨zero,amount,enough,finalFunding,progress,finalPhysical,?_,?_,?_,?_,?_⟩
+ · rw [firstScope,secondScope];exact globals.trans (secondGlobals.trans firstGlobals)
+ · rw [firstScope,secondScope,domain,secondDomain,firstDomain]
+ · rw [firstScope,secondScope];exact endian.trans (secondEndian.trans firstEndian)
+ · rw [firstScope,secondScope];exact installed.trans (secondCode.trans firstCode)
+ · intro watched above notPc notCounter notLeft notUsed
+   rw [firstScope,secondScope,upperFrame watched above notPc notCounter notLeft notUsed,secondUpper watched notCounter,firstUpper watched notCounter]
+#print axioms exp_opcode_body_returned_physical_context
+end InitECandidate.Runtime
+
+

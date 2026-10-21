@@ -1,0 +1,48 @@
+import InitECandidate.Runtime.ExpHelperFrame
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+set_option maxRecDepth 100000
+/-- The direct finite exponentiation opcode: two real pops, the checked
+`u256_byte_length` amount helper, the dynamic literal charge `10 + 50*nb`, the
+checked `u256_exp` helper and then the struct push and PC/return. -/
+def expOpcodeName : MlS := ofString "op_exp"
+
+def expOpcodeBody : ProgHOL 64 := sourceFunctionBody Guest.guestFn_op_exp
+
+def expOpcodeAt (index : Nat) : ProgHOL 64 :=
+ (statelessNext^[index]) (structuralFunctionBody Guest.guestFn_op_exp)
+
+def expChargeArg : ExpHOL 64 :=
+ .op BinOp.add [.const 10,.panop PanOp.mul [.const 50,.var .local (ofString "nb")]]
+
+def expOpcodeSourceCost : Nat := 1+(1+(1+(1+(1+2))))
+
+theorem source_exp_opcode_body : expOpcodeBody=expOpcodeAt 0 := by
+ simp only [expOpcodeBody,expOpcodeAt,sourceFunctionBody_eq_structural];rfl
+
+theorem source_exp_opcode_0 : expOpcodeAt 0=.decCall (ofString "base") (.comb [.one,.one,.one,.one]) (ofString "stack_pop") [] (expOpcodeAt 1) := by rfl
+theorem source_exp_opcode_1 : expOpcodeAt 1=.decCall (ofString "exponent") (.comb [.one,.one,.one,.one]) (ofString "stack_pop") [] (expOpcodeAt 2) := by rfl
+theorem source_exp_opcode_2 : expOpcodeAt 2=.decCall (ofString "nb") .one (ofString "u256_byte_length") [.var .local (ofString "exponent")] (expOpcodeAt 3) := by rfl
+theorem source_exp_opcode_3 : expOpcodeAt 3=.seq (.call (some (none,none)) (ofString "charge_gas") [expChargeArg]) (expOpcodeAt 4) := by rfl
+theorem source_exp_opcode_4 : expOpcodeAt 4=.decCall (ofString "r") (.comb [.one,.one,.one,.one]) (ofString "u256_exp") [.var .local (ofString "base"),.var .local (ofString "exponent")] (expOpcodeAt 5) := by rfl
+theorem source_exp_opcode_5 : expOpcodeAt 5=.seq (.call (some (none,none)) (ofString "stack_push") [.var .local (ofString "r")]) (expOpcodeAt 6) := by rfl
+theorem source_exp_opcode_6 : expOpcodeAt 6=.seq (.call (some (none,none)) (ofString "pc_add") [.const 1]) (expOpcodeAt 7) := by rfl
+theorem source_exp_opcode_7 : expOpcodeAt 7=.return (.const 0) := by rfl
+#print axioms source_exp_opcode_body
+#print axioms source_exp_opcode_0
+#print axioms source_exp_opcode_1
+#print axioms source_exp_opcode_2
+#print axioms source_exp_opcode_3
+#print axioms source_exp_opcode_4
+#print axioms source_exp_opcode_5
+#print axioms source_exp_opcode_6
+#print axioms source_exp_opcode_7
+
+/-- The dynamic charge argument `10 + 50*nb` evaluates to its concrete word. -/
+theorem exp_charge_args {F : Type} (s : PanSemStateFiniteExact 64 F) (nb : BitVec 64)
+ (atNb : s.locals.lookup (ofString "nb")=some (.val (.word nb))) :
+ evalListHOLFinite s (h:=fun a=>Classical.propDecidable (s.memaddrs a)) [expChargeArg]=some [.val (.word (10+50*nb))] := by
+ simp [expChargeArg,evalListHOLFinite,evalListHOLExact,evalHOLExact,panOpHOL,wordOpHOL,wordOp,valueIsWord,valueWord,atNb]
+#print axioms exp_charge_args
+end InitECandidate.Runtime

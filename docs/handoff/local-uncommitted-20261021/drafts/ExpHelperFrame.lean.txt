@@ -1,0 +1,112 @@
+import InitECandidate.Runtime.SignextendOpcodeSource
+import InitECandidate.Runtime.VmFn_u256_byte_length
+import InitECandidate.Runtime.VmFn_u256_exp
+import InitECandidate.Runtime.PanDecCallCheckedReturnedExactScope
+import InitECandidate.Runtime.FourWordValueShape
+namespace InitECandidate.Runtime
+open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+set_option maxRecDepth 100000
+set_option maxHeartbeats 8000000
+
+/-- The real `u256_byte_length` body. -/
+def byteLengthHelperBody : ProgHOL 64 := sourceFunctionBody Guest.guestFn_u256_byte_length
+
+theorem byte_length_original_lookup :
+ originalRuntimeCode.lookup (ofString "u256_byte_length")=some ([(ofString "a",.comb [.one,.one,.one,.one])],byteLengthHelperBody,.one) := vmLookup_u256_byte_length
+
+/-- `u256_byte_length` is in the kernel-checked read-only set. -/
+theorem byte_length_memory_frame : MemoryFrame byteLengthHelperBody :=
+ memoryFrame_of_good vmLookup_u256_byte_length (by decide) (by decide)
+
+/-- The real `u256_exp` body. -/
+def expHelperBody : ProgHOL 64 := sourceFunctionBody Guest.guestFn_u256_exp
+
+theorem exp_helper_original_lookup :
+ originalRuntimeCode.lookup (ofString "u256_exp")=some ([(ofString "a",.comb [.one,.one,.one,.one]),(ofString "b",.comb [.one,.one,.one,.one])],expHelperBody,.comb [.one,.one,.one,.one]) := vmLookup_u256_exp
+
+/-- `u256_exp` is in the kernel-checked read-only set. -/
+theorem exp_helper_memory_frame : MemoryFrame expHelperBody :=
+ memoryFrame_of_good vmLookup_u256_exp (by decide) (by decide)
+
+private theorem byte_length_lookup {F : Type}
+ (s : PanSemStateFiniteExact 64 F) (a b c d : BitVec 64) (code : s.code=originalRuntimeCode) :
+ lookupCodeHOLFinite s.code.lookup (ofString "u256_byte_length") [fundingU256 a b c d]=
+ some (byteLengthHelperBody,(HolFiniteMapExact.empty.update (ofString "a",fundingU256 a b c d)),.one) := by
+ apply lookupCodeFinite_of_exact
+ rw [code]
+ simp (config:={decide:=true}) [lookupCodeHOLExact,byte_length_original_lookup,fundingU256,shapeOfHOLExact,shapeEqHOL,shapeEqHOL.shapeEqListHOL]
+ funext key
+ by_cases ka : key=ofString "a"
+ · subst key;simp (config:={decide:=true}) [HolFiniteMapExact.lookup_update,FUPDATE,HolFiniteMapExact.empty,fundingU256]
+ · simp [HolFiniteMapExact.lookup_update,FUPDATE,HolFiniteMapExact.empty,fundingU256,ka,Ne.symm ka]
+
+private theorem value_word_of_checked_one (value : ValueHOL 64)
+ (checked : shapeEqHOL (shapeOfHOLExact value) .one = true) :
+ ∃word : BitVec 64, value=.val (.word word) := by
+ have shape := (shapeEqHOL_eq_true _ _).mp checked
+ cases value with
+ | val atom => cases atom with | word word => exact ⟨word,rfl⟩
+ | rStruct fields => simp [shapeOfHOLExact] at shape
+ | nStruct name fields => simp [shapeOfHOLExact] at shape
+
+/-- The real `u256_byte_length` declaration returns a checked word and keeps all
+old memory/globals, from the checked four-limb argument. -/
+theorem byte_length_declaration_returned_word {F : Type}
+ (s post : PanSemStateFiniteExact 64 F)
+ (name : MlS) (arguments : List (ExpHOL 64)) (tail : ProgHOL 64)
+ (a b c d : BitVec 64) (value : ValueHOL 64)
+ (args : evalListHOLFinite s (h:=fun x=>Classical.propDecidable (s.memaddrs x)) arguments=some [fundingU256 a b c d])
+ (code : s.code=originalRuntimeCode)
+ (run : evaluateHOLFiniteState s (.decCall name .one (ofString "u256_byte_length") arguments tail)=(some (.returned value),post)) :
+ ∃word : BitVec 64,∃bodyPost output : PanSemStateFiniteExact 64 F,
+ evaluateHOLFiniteState (setVarHOLFinite name (.val (.word word)) {bodyPost with locals:=s.locals}) tail=(some (.returned value),output) ∧
+ post={output with locals:=HolFiniteMapExact.resVarEq output.locals (name,s.locals.lookup name)} ∧
+ bodyPost.memory=s.memory ∧bodyPost.globals=s.globals ∧bodyPost.memaddrs=s.memaddrs ∧bodyPost.be=s.be ∧bodyPost.code=s.code := by
+ let callee:=HolFiniteMapExact.empty.update (ofString "a",fundingU256 a b c d)
+ obtain ⟨returned,bodyPost,output,bodyRun,checked,tailRun,scope⟩:=evaluate_decCall_checked_returned_exact_scope s post name (ofString "u256_byte_length") .one .one arguments _ _ tail callee value args (byte_length_lookup s a b c d code) run
+ obtain ⟨word,equal⟩:=value_word_of_checked_one returned checked.1
+ have kept:=byte_length_memory_frame (callEntryStateHOLFinite s callee) code
+ have metadata:=evaluateHOLFiniteState_metadata (callEntryStateHOLFinite s callee) byteLengthHelperBody
+ rw [bodyRun] at kept metadata
+ rw [equal] at tailRun
+ exact ⟨word,bodyPost,output,tailRun,scope,kept.1,kept.2,metadata.2.1,metadata.2.2.1,metadata.1⟩
+#print axioms byte_length_declaration_returned_word
+
+private theorem exp_two_lookup {F : Type}
+ (s : PanSemStateFiniteExact 64 F) (a b c d e f g h : BitVec 64) (code : s.code=originalRuntimeCode) :
+ lookupCodeHOLFinite s.code.lookup (ofString "u256_exp") [fundingU256 a b c d,fundingU256 e f g h]=
+ some (expHelperBody,(HolFiniteMapExact.empty.update (ofString "a",fundingU256 a b c d)).update (ofString "b",fundingU256 e f g h),.comb [.one,.one,.one,.one]) := by
+ apply lookupCodeFinite_of_exact
+ rw [code]
+ simp (config:={decide:=true}) [lookupCodeHOLExact,exp_helper_original_lookup,fundingU256,shapeOfHOLExact,shapeEqHOL,shapeEqHOL.shapeEqListHOL]
+ funext key
+ by_cases kb : key=ofString "b"
+ · subst key;simp (config:={decide:=true}) [HolFiniteMapExact.lookup_update,FUPDATE,HolFiniteMapExact.empty,fundingU256]
+ · by_cases ka : key=ofString "a"
+   · subst key;simp (config:={decide:=true}) [HolFiniteMapExact.lookup_update,FUPDATE,HolFiniteMapExact.empty,fundingU256]
+   · simp [HolFiniteMapExact.lookup_update,FUPDATE,HolFiniteMapExact.empty,fundingU256,kb,ka,Ne.symm kb,Ne.symm ka]
+
+/-- The actual original `u256_exp` declaration returns four checked limbs and
+keeps all old memory/globals; both arguments are checked four-limb structs. -/
+theorem exp_helper_declaration_returned_frame {F : Type}
+ (s post : PanSemStateFiniteExact 64 F)
+ (name : MlS) (arguments : List (ExpHOL 64)) (tail : ProgHOL 64)
+ (a b c d e f g h : BitVec 64) (value : ValueHOL 64)
+ (args : evalListHOLFinite s (h:=fun x=>Classical.propDecidable (s.memaddrs x)) arguments=some [fundingU256 a b c d,fundingU256 e f g h])
+ (code : s.code=originalRuntimeCode)
+ (run : evaluateHOLFiniteState s (.decCall name (.comb [.one,.one,.one,.one]) (ofString "u256_exp") arguments tail)=(some (.returned value),post)) :
+ ∃first second third fourth : BitVec 64,∃bodyPost output : PanSemStateFiniteExact 64 F,
+ evaluateHOLFiniteState (setVarHOLFinite name (fundingU256 first second third fourth) {bodyPost with locals:=s.locals}) tail=(some (.returned value),output) ∧
+ post={output with locals:=HolFiniteMapExact.resVarEq output.locals (name,s.locals.lookup name)} ∧
+ bodyPost.memory=s.memory ∧bodyPost.globals=s.globals ∧bodyPost.memaddrs=s.memaddrs ∧bodyPost.be=s.be ∧bodyPost.code=s.code := by
+ let callee:=(HolFiniteMapExact.empty.update (ofString "a",fundingU256 a b c d)).update (ofString "b",fundingU256 e f g h)
+ obtain ⟨returned,bodyPost,output,bodyRun,checked,tailRun,scope⟩:=evaluate_decCall_checked_returned_exact_scope s post name (ofString "u256_exp") (.comb [.one,.one,.one,.one]) (.comb [.one,.one,.one,.one]) arguments _ _ tail callee value args (exp_two_lookup s a b c d e f g h code) run
+ obtain ⟨first,second,third,fourth,equal⟩:=value_four_words_of_checked_shape returned checked.1
+ have kept:=exp_helper_memory_frame (callEntryStateHOLFinite s callee) code
+ have metadata:=evaluateHOLFiniteState_metadata (callEntryStateHOLFinite s callee) expHelperBody
+ rw [bodyRun] at kept metadata
+ rw [equal] at tailRun
+ exact ⟨first,second,third,fourth,bodyPost,output,tailRun,scope,kept.1,kept.2,metadata.2.1,metadata.2.2.1,metadata.1⟩
+#print axioms exp_helper_declaration_returned_frame
+end InitECandidate.Runtime
