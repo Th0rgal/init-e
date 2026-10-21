@@ -113,9 +113,59 @@ theorem candidateHtabSetGrowth_trace {F : Type} {fn : MlS}
       cases body with
       | skip => exact ⟨_, _, _, rfl, guard, Or.inr ⟨rfl, rfl, rfl⟩⟩
 
+/-- Actual successful growth sequence: `htab_grow`, reload `cap`, then the
+re-search call. -/
+theorem candidateHtabSetGrowSeq_trace {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s candidateHtabSetGrowSeq none post events) :
+    ∃ (afterGrow afterAssign : PanSemStateFiniteExact 64 F)
+      (growEvents assignEvents searchEvents : List WorkEvent),
+      events = growEvents ++ (assignEvents ++ searchEvents) ∧
+      StatementRun fn s
+        (.call (some (none, none)) (ofString "htab_grow") [loc "t"])
+        none afterGrow growEvents ∧
+      StatementRun fn afterGrow
+        (.assign .local (ofString "cap") (lw (off "t" 16)))
+        none afterAssign assignEvents ∧
+      StatementRun fn afterAssign
+        (.call (some (some (.local, ofString "leaf"), none))
+          (ofString "htab_find_leaf_path") [loc "t",loc "key"])
+        none post searchEvents := by
+  change StatementRun fn s
+    (.seq (.call (some (none, none)) (ofString "htab_grow") [loc "t"])
+      (.seq (.assign .local (ofString "cap") (lw (off "t" 16)))
+        (.call (some (some (.local, ofString "leaf"), none))
+          (ofString "htab_find_leaf_path") [loc "t",loc "key"])))
+    none post events at run
+  cases run with
+  | seqNext growRun rest =>
+      cases rest with
+      | seqNext assignRun searchRun =>
+          exact ⟨_, _, _, _, _, rfl, growRun, assignRun, searchRun⟩
+      | seqStop terminal _ => exact absurd rfl terminal
+  | seqStop terminal _ => exact absurd rfl terminal
+
+/-- Actual score of the growth sequence is additive. -/
+theorem candidateHtabSetGrowSeq_score {F : Type} (coeff : Work)
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s candidateHtabSetGrowSeq none post events) :
+    ∃ (growEvents assignEvents searchEvents : List WorkEvent),
+      events = growEvents ++ (assignEvents ++ searchEvents) ∧
+      coeff.score (executionWork events) =
+        coeff.score (executionWork growEvents) +
+        coeff.score (executionWork assignEvents) +
+        coeff.score (executionWork searchEvents) := by
+  obtain ⟨_, _, growEvents, assignEvents, searchEvents, rfl, _, _, _⟩ :=
+    candidateHtabSetGrowSeq_trace run
+  refine ⟨growEvents, assignEvents, searchEvents, rfl, ?_⟩
+  rw [executionWork_score_append, executionWork_score_append]
+  omega
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateHtabSetSideStores_trace
 #print axioms BoundedTableExperiment.candidateHtabSetSideStorePair_trace
 #print axioms BoundedTableExperiment.candidateHtabSetLink_outer
 #print axioms BoundedTableExperiment.candidateHtabSetGrowth_trace
+#print axioms BoundedTableExperiment.candidateHtabSetGrowSeq_trace
+#print axioms BoundedTableExperiment.candidateHtabSetGrowSeq_score

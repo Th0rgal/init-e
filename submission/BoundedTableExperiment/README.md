@@ -1142,3 +1142,16 @@ with the actual `mid`/`mr` initializer runs and comparison guard.
 `candidateHtabSetBsearchStep_trace_score` gives its actual score as the two
 declaration scores plus the branch score. Axioms are `propext`,
 `Classical.choice`, `Quot.sound`.
+
+## 56. Actual growth sequence trace
+
+`candidateHtabSetLinkTrace.lean` proves:
+
+- `candidateHtabSetGrowSeq_trace`: an actual successful growth sequence splits
+  into the `htab_grow` call, the `cap` reload assignment, and the re-search
+  call, with events `grow ++ (assign ++ search)` and all actual subruns;
+- `candidateHtabSetGrowSeq_score`: the actual score is additive over those
+  three parts.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. The call bodies
+(`htab_grow`/copy) are still opaque at this level.
