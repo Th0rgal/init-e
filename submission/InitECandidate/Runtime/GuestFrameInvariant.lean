@@ -58,6 +58,16 @@ structure GuestFrameInvariant (s : PanSemStateFiniteExact 64 Guest.HostMemory)
 
 namespace GuestFrameInvariant
 
+/-- Entering a call preserves the whole frame invariant once the entry clock
+is large enough: only locals and the clock change. -/
+theorem callEntry_GuestFrameInvariant (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (callee : HolFiniteMapExact MlS (ValueHOL 64))
+    (inv : GuestFrameInvariant s frame sp cap base pc funding a0 a1 a2 a3 b0 b1 b2 b3)
+    (clock : 7 ≤ (callEntryStateHOLFinite s callee).clock) :
+    GuestFrameInvariant (callEntryStateHOLFinite s callee) frame sp cap base pc funding
+      a0 a1 a2 a3 b0 b1 b2 b3 := by
+  refine { inv with clock := clock }
+
 /-- A frame offset stays in the frame record. -/
 theorem frameOffset_toNat (inv : GuestFrameInvariant s frame sp cap base pc funding
     a0 a1 a2 a3 b0 b1 b2 b3) (offset : BitVec 64) (small : offset.toNat < 280) :

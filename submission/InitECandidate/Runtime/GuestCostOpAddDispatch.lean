@@ -62,7 +62,6 @@ theorem opAdd_dispatch_arm_run (coeff : Work) (d : PanSemStateFiniteExact 64 Gue
     (bodyRun : StatementRun (callEntryStateHOLFinite d HolFiniteMapExact.empty)
       (sourceFunctionBody Guest.guestFn_op_add) (some (.returned (.val (.word 0))))
       bodyPost bodyEvents)
-    (dFrame : d.globals.lookup (ofString "ev") = some (.val (.word 0)))
     (dClock : d.clock ≠ 0)
     (dInstalled : d.code.lookup = originalRuntimeCode.lookup) :
     StatementRun d (.seq (.call (some (none, none)) (ofString "op_add") [])

@@ -251,7 +251,6 @@ theorem opAddOuter_dispatch_body_run (coeff : Work)
     (armRun : StatementRun (callEntryStateHOLFinite d HolFiniteMapExact.empty)
       (sourceFunctionBody Guest.guestFn_op_add) (some (.returned (.val (.word 0))))
       bodyPost bodyEvents)
-    (dFrame : d.globals.lookup (ofString "ev") = some (.val (.word 0)))
     (dClock : d.clock ≠ 0)
     (dInstalled : d.code.lookup = originalRuntimeCode.lookup)
     (opValue : d.locals.lookup (ofString "op") = some (.val (.word (1 : BitVec 64))))
@@ -280,7 +279,7 @@ theorem opAddOuter_dispatch_body_run (coeff : Work)
     StatementRun d (sourceFunctionBody Guest.guestFn_op_dispatch)
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (opAddOuterThirtyTwoEvents d bodyPost bodyEvents) := by
-  have arm := opAdd_dispatch_arm_run coeff d bodyPost bodyEvents armRun dFrame dClock dInstalled
+  have arm := opAdd_dispatch_arm_run coeff d bodyPost bodyEvents armRun dClock dInstalled
   have run := opAddOuter_lt32_run coeff d bodyPost bodyEvents rest rest2 rest2b rest3 arm opValue
   rw [hbody]
   simpa [opAddOuterThirtyTwoEvents] using run
