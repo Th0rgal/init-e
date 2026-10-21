@@ -1,0 +1,83 @@
+import InitECandidate.Runtime.StackRemoveExecutedSimulation
+import Flapjack.Compiler.Backend.StackRemove.Proofs.CompCorrect.If
+namespace InitECandidate.Runtime.StackToLab
+open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
+open Flapjack.Compiler.Encoders.Asm
+
+theorem removalCostSimulation_iteWithPrice {F : Type} (sourcePrice targetPrice : HolProg 64 → Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (cmp : HolCmp) (reg : Nat) (operand : HolRegImm 64) (yes no : HolProg 64)
+    (branchBound : ∀ left right, targetPrice (.ite cmp reg operand left right) ≤ sourcePrice (.ite cmp reg operand yes no))
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (yesIH : RemovalCostSimulationFor sourcePrice targetPrice jump bounds yes source)
+    (noIH : RemovalCostSimulationFor sourcePrice targetPrice jump bounds no source) :
+    RemovalCostSimulationFor sourcePrice targetPrice jump bounds (.ite cmp reg operand yes no) source := by
+  intro post target result pointer premises
+  obtain ⟨run, nonerror, related, lower⟩ := premises
+  simp only [StackProps.regBound] at lower
+  have leftEq := StackRemove.RelationLaws.stateRelGetVar jump bounds pointer reg source target ⟨related, lower.1⟩
+  have rightEq := StackRemove.CompCorrect.If.operandLookup jump bounds pointer source target operand related lower.2.1
+  rw [StackSemEvaluate.evaluate_ite] at run
+  cases readLeft : StackSemStateOps.getVar reg source with
+  | none =>
+    rw [readLeft] at run
+    exact False.elim (nonerror (Prod.mk.inj run).1.symm)
+  | some left =>
+    rw [readLeft] at run
+    cases readRight : StackSemStateOps.getVarImm (HolRegImm.toWordRegImm operand) source with
+    | none =>
+      rw [readRight] at run
+      exact False.elim (nonerror (Prod.mk.inj run).1.symm)
+    | some right =>
+      rw [readRight] at run
+      dsimp only at run
+      cases chosen : wordSemWordCmp cmp left right with
+      | none =>
+        rw [chosen] at run
+        exact False.elim (nonerror (Prod.mk.inj run).1.symm)
+      | some choice =>
+        rw [chosen] at run
+        have branchRun : StackSemEvaluate.evaluate ((if choice then yes else no), source) = (result, post) := by
+          cases choice <;> exact run
+        have branchLower : StackProps.regBound (if choice then yes else no) pointer := by
+          cases choice
+          · exact lower.2.2.2
+          · exact lower.2.2.1
+        have branchIH : RemovalCostSimulationFor sourcePrice targetPrice jump bounds (if choice then yes else no) source := by
+          cases choice <;> assumption
+        obtain ⟨clock, postTarget, targetRun, postRelation, cost⟩ :=
+          branchIH post target result pointer ⟨branchRun, nonerror, related, branchLower⟩
+        have targetLeft : StackSemStateOps.getVar reg {target with clock := clock + target.clock} = some left :=
+          leftEq.symm.trans readLeft
+        have targetRight : StackSemStateOps.getVarImm (HolRegImm.toWordRegImm operand)
+            {target with clock := clock + target.clock} = some right := by
+          have same : StackSemStateOps.getVarImm (HolRegImm.toWordRegImm operand)
+              {target with clock := clock + target.clock} =
+              StackSemStateOps.getVarImm (HolRegImm.toWordRegImm operand) target := by
+            cases operand <;> rfl
+          exact same.trans (rightEq.symm.trans readRight)
+        refine ⟨clock, postTarget, ?_, postRelation, ?_⟩
+        · rw [StackRemove.comp, StackSemEvaluate.evaluate_ite, targetLeft, targetRight]
+          cases choice <;> simpa only [chosen, Bool.false_eq_true, ↓reduceIte] using targetRun
+        · rw [StackRemove.comp,
+            stackExecutionCost.eq_2 (fun p _ => targetPrice p)
+              {target with clock := clock + target.clock} cmp reg operand
+              (StackRemove.comp jump bounds pointer yes) (StackRemove.comp jump bounds pointer no),
+            stackExecutionCost.eq_2 (fun p _ => sourcePrice p) source cmp reg operand yes no]
+          simp only [selectedBranchBudget, targetLeft, targetRight, readLeft, readRight, chosen]
+          have targetLocal := branchBound (StackRemove.comp jump bounds pointer yes) (StackRemove.comp jump bounds pointer no)
+          cases choice <;> exact Nat.add_le_add targetLocal cost
+
+theorem removalCostSimulation_ite {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (cmp : HolCmp) (reg : Nat)
+    (operand : HolRegImm 64) (yes no : HolProg 64)
+    (localBound : 5+gap ≤ sourcePrice (.ite cmp reg operand yes no))
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (yesIH : RemovalCostSimulation sourcePrice gap jump bounds yes source)
+    (noIH : RemovalCostSimulation sourcePrice gap jump bounds no source) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.ite cmp reg operand yes no) source :=
+  removalCostSimulation_iteWithPrice sourcePrice (nativePriceWithGap gap) jump bounds cmp reg operand yes no
+    (fun _ _ => localBound) source yesIH noIH
+
+#print axioms removalCostSimulation_iteWithPrice
+#print axioms removalCostSimulation_ite
+end InitECandidate.Runtime.StackToLab
