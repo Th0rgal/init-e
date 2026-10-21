@@ -1,6 +1,10 @@
 import InitECandidate.Runtime.GuestCostWorkScore
 import InitECandidate.Runtime.PanStatementWork
 namespace InitECandidate.Runtime.FineCost
+
+theorem sequence_score_cost (coeff : Work) (n : Nat) :
+    coeff.score (WorkEvent.cost n).units = coeff.nativeCost * n := by
+  simp [Work.score, WorkEvent.units]
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 variable {F : Type}
@@ -28,11 +32,15 @@ theorem ite_statement_cost (coeff : Work) {s post : PanSemStateFiniteExact 64 F}
     (nonzero : value ≠ 0) (body : StatementRun s yes r post bodyEvents)
     (guardCost : coeff.score (executionWork (.statement :: guardEvents)) ≤ G)
     (bodyCost : coeff.score (executionWork bodyEvents) ≤ B) :
-    StatementRun s (.ite condition yes no) r post (.statement :: (guardEvents ++ bodyEvents)) ∧
-    coeff.score (executionWork (.statement :: (guardEvents ++ bodyEvents))) ≤ G + B := by
+    StatementRun s (.ite condition yes no) r post
+      (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents)) ∧
+    coeff.score (executionWork
+      (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents))) ≤
+      G + B + coeff.score (WorkEvent.cost statementUnit).units := by
   refine ⟨StatementRun.iteYes guard nonzero body, ?_⟩
-  rw [executionWork_score_cons, executionWork_score_append]
   have splitGuard := executionWork_score_cons coeff .statement guardEvents
+  rw [splitGuard] at guardCost
+  simp only [executionWork_score_cons, executionWork_score_append, sequence_score_cost]
   omega
 
 /-- Price additivity for a word store statement. -/
@@ -48,14 +56,18 @@ theorem store_statement_cost (coeff : Work) {s : PanSemStateFiniteExact 64 F}
     (dstCost : coeff.score (executionWork addressEvents) ≤ D)
     (srcCost : coeff.score (executionWork valueEvents) ≤ S) :
     StatementRun s (.store destination source) none { s with memory := memory }
-      (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL stored).length])) ∧
+      (.statement :: (addressEvents ++ valueEvents ++
+        [.memory (flattenHOL stored).length,
+          .cost (storeOverhead (flattenHOL stored).length)])) ∧
     coeff.score (executionWork
-        (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL stored).length]))) ≤
-      coeff.statements + D + S + coeff.memoryAccesses * (flattenHOL stored).length := by
+        (.statement :: (addressEvents ++ valueEvents ++
+          [.memory (flattenHOL stored).length,
+            .cost (storeOverhead (flattenHOL stored).length)]))) ≤
+      coeff.statements + D + S + coeff.memoryAccesses * (flattenHOL stored).length +
+        coeff.score (WorkEvent.cost (storeOverhead (flattenHOL stored).length)).units := by
   refine ⟨StatementRun.storeValue dst src write, ?_⟩
-  rw [executionWork_score_cons, score_statement]
-  rw [executionWork_score_append, executionWork_score_append]
-  rw [score_singleton, guest_score_memory]
+  simp only [executionWork_score_cons, executionWork_score_append, score_statement,
+    score_singleton, guest_score_memory, sequence_score_cost, executionWork_nil_score]
   omega
 
 /-- Price additivity for a declared local: the initialiser, the frame slot, the
