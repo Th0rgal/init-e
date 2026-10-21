@@ -1697,4 +1697,19 @@ theorem wec_call_none_badDest {C F : Type}
 
 #print axioms wec_call_none_getVars_none
 #print axioms wec_call_none_badDest
+/-! ## Fall-through of allocator code, from the two ingredients the invariants supply
+
+A move node escapes exactly when its move list is not Nodup (a PROGRAM property) or one of its
+source registers is missing (a STATE property, `getVars ... = none`).  Neither is a table
+property: the first is syntactic, the second is what `ssaLocalsRel`/`ssaMapOK`/`everyVarHOL`
+provide.  These lemmas turn those two into the fall-through hypothesis that
+`wec_seq_state_independent` needs. -/
+theorem move_fallthrough {C F : Type}
+    (pri : Nat) (moves : List (Nat × Nat)) (s : WordSemStateFiniteExact 64 C F)
+    (hnodup : (moves.map Prod.fst).Nodup)
+    (hget : WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none) :
+    (fixClock s (WordSemStateFiniteExact.evaluate (.move pri moves) s)).1 = none := by
+  rw [evaluate_move_none pri moves s hnodup hget]
+  simp only [fixClock]
+
 end InitECandidate.Runtime.FineCost
