@@ -3,7 +3,7 @@ import Flapjack.Pancake.Proofs.LoopCall.CompileCorrect
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-variable {L : LeafPrice}
+variable {L : LeafPrice} {f : Nat}
 
 /-- Repoint a call when its evaluated inputs select exactly the same callee
 and environment. Every callee, handler and continuation trace is retained;
@@ -12,12 +12,13 @@ theorem loop_call_retarget_workG {F : Type}
     {s : LoopSemStateFiniteExact 64 F} {returns : Option (List Nat × NumSet)}
     {target newTarget : Option Nat} {arguments newArguments : List Nat}
     {handler : Option (Nat × HolLoopProg 64 × HolLoopProg 64 × NumSet)}
-    {output} {w : Nat} (run : LoopWorkG L s (.call returns target arguments handler) output w)
+    {output} {w : Nat} (run : LoopWorkG L f s (.call returns target arguments handler) output w)
     (previousValues nextValues : List (WordLocW 64))
     (previous : LoopSemStateFiniteExact.getVars arguments s = some previousValues)
     (next : LoopSemStateFiniteExact.getVars newArguments s = some nextValues)
-    (same : findCode newTarget nextValues s.code = findCode target previousValues s.code) :
-    ∃ w', LoopWorkG L s (.call returns newTarget newArguments handler) output w' ∧
+    (same : findCode newTarget nextValues s.code = findCode target previousValues s.code)
+    (callee : loopCallee newTarget nextValues = loopCallee target previousValues) :
+    ∃ w', LoopWorkG L f s (.call returns newTarget newArguments handler) output w' ∧
       w' + 39 * arguments.length = w + 39 * newArguments.length := by
   have evaluated : evaluate (.call returns newTarget newArguments handler) s = output := by
     have original := run.sound
@@ -28,7 +29,7 @@ theorem loop_call_retarget_workG {F : Type}
     exact original
   cases run with
   | atom leaf run => have hd := L.dom _ _ leaf; simp [loopWorkLeafCost] at hd
-  | @callShort s returns target arguments handler output short run =>
+  | @callShort f s returns target arguments handler output short run =>
     have short' : loopCallShort s returns newTarget newArguments handler := by
       unfold loopCallShort at short ⊢
       rcases short with failure | ⟨values, valuesEq, rest⟩
@@ -37,30 +38,38 @@ theorem loop_call_retarget_workG {F : Type}
         subst matched
         exact Or.inr ⟨nextValues, next, by simpa only [same] using rest⟩
     exact ⟨_, LoopWorkG.callShort short' evaluated, by omega⟩
-  | @callTail s target arguments handler values env prog result post wb args find noHandler
+  | @callTail f s target arguments handler values env prog result post wb args find noHandler
       clock body =>
     have matched : values = previousValues := Option.some.inj (args.symm.trans previous)
     have newFind : findCode newTarget nextValues s.code = some (env, prog) := by
       rw [same]; simpa only [matched] using find
-    exact ⟨_, LoopWorkG.callTail next newFind noHandler clock body, by omega⟩
-  | @callRet s names live target arguments handler values env prog entry result post wb args find
+    have hc : loopCallee newTarget nextValues = loopCallee target values := by rw [matched]; exact callee
+    refine ⟨_, LoopWorkG.callTail next newFind noHandler clock (hc ▸ body), ?_⟩
+    rw [hc]; omega
+  | @callRet f s names live target arguments handler values env prog entry result post wb args find
       nodup cut body plain =>
     have matched : values = previousValues := Option.some.inj (args.symm.trans previous)
     have newFind : findCode newTarget nextValues s.code = some (env, prog) := by
       rw [same]; simpa only [matched] using find
-    exact ⟨_, LoopWorkG.callRet next newFind nodup cut body plain, by omega⟩
-  | @callRetCont s names live target arguments exceptionName handlerProgram continuation liveOut
+    have hc : loopCallee newTarget nextValues = loopCallee target values := by rw [matched]; exact callee
+    refine ⟨_, LoopWorkG.callRet next newFind nodup cut (hc ▸ body) plain, ?_⟩
+    rw [hc]; omega
+  | @callRetCont f s names live target arguments exceptionName handlerProgram continuation liveOut
       values env prog entry returned post wb output wc args find nodup cut body lengths cont =>
     have matched : values = previousValues := Option.some.inj (args.symm.trans previous)
     have newFind : findCode newTarget nextValues s.code = some (env, prog) := by
       rw [same]; simpa only [matched] using find
-    exact ⟨_, LoopWorkG.callRetCont next newFind nodup cut body lengths cont, by omega⟩
-  | @callHandle s names live target arguments exceptionName handlerProgram continuation liveOut
+    have hc : loopCallee newTarget nextValues = loopCallee target values := by rw [matched]; exact callee
+    refine ⟨_, LoopWorkG.callRetCont next newFind nodup cut (hc ▸ body) lengths cont, ?_⟩
+    rw [hc]; omega
+  | @callHandle f s names live target arguments exceptionName handlerProgram continuation liveOut
       values env prog entry exn post wb output wh args find nodup cut body handle =>
     have matched : values = previousValues := Option.some.inj (args.symm.trans previous)
     have newFind : findCode newTarget nextValues s.code = some (env, prog) := by
       rw [same]; simpa only [matched] using find
-    exact ⟨_, LoopWorkG.callHandle next newFind nodup cut body handle, by omega⟩
+    have hc : loopCallee newTarget nextValues = loopCallee target values := by rw [matched]; exact callee
+    refine ⟨_, LoopWorkG.callHandle next newFind nodup cut (hc ▸ body) handle, ?_⟩
+    rw [hc]; omega
 
 private theorem call_find_frontG (values : List (WordLocW 64)) (target : Nat)
     (code : Spt (List Nat × HolLoopProg 64))
@@ -89,15 +98,15 @@ theorem loop_call_compiled_workG {F : Type}
     {target : Option Nat} {arguments : List Nat}
     {handler : Option (Nat × HolLoopProg 64 × HolLoopProg 64 × NumSet)}
     {output : Option (LoopResultExact 64) × LoopSemStateFiniteExact 64 F} {w : Nat}
-    (run : LoopWorkG L s (.call returns target arguments handler) output w)
+    (run : LoopWorkG L f s (.call returns target arguments handler) output w)
     (nonerror : output.1 ≠ some .error) (labels : Spt Nat)
     (known : labelsInHOL labels s.locals) :
-    ∃ w', LoopWorkG L s (loopCallCompHOL labels (.call returns target arguments handler)).1
+    ∃ w', LoopWorkG L f s (loopCallCompHOL labels (.call returns target arguments handler)).1
       output w' ∧ w' ≤ w := by
   cases target with
   | some destination =>
     simpa only [loopCallCompHOL] using (show ∃ w',
-      LoopWorkG L s (.call returns (some destination) arguments handler) output w' ∧ w' ≤ w from
+      LoopWorkG L f s (.call returns (some destination) arguments handler) output w' ∧ w' ≤ w from
         ⟨w, run, Nat.le_refl _⟩)
   | none =>
   cases last : arguments.getLast? with
@@ -112,7 +121,7 @@ theorem loop_call_compiled_workG {F : Type}
   cases named : sptLookup name labels with
   | none =>
     simpa only [loopCallCompHOL, last, named] using
-      (show ∃ w', LoopWorkG L s (.call returns none arguments handler) output w' ∧ w' ≤ w from
+      (show ∃ w', LoopWorkG L f s (.call returns none arguments handler) output w' ∧ w' ≤ w from
         ⟨w, run, Nat.le_refl _⟩)
   | some destination =>
   have nonempty : arguments ≠ [] := by intro h; subst h; simp at last
@@ -135,6 +144,7 @@ theorem loop_call_compiled_workG {F : Type}
   obtain ⟨w', compiled, cost⟩ := loop_call_retarget_workG
     (newTarget := some destination) (newArguments := arguments.dropLast)
     run words words.dropLast values front (call_find_frontG words destination s.code wordLast')
+    (by simp only [loopCallee, wordLast'])
   refine ⟨w', ?_, ?_⟩
   · simpa only [loopCallCompHOL, last, named] using compiled
   · have shorter : arguments.dropLast.length ≤ arguments.length := by

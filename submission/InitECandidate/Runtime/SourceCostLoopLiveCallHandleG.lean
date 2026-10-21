@@ -2,7 +2,7 @@ import InitECandidate.Runtime.SourceCostLoopLiveCallContG
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-variable {L : LeafPrice}
+variable {L : LeafPrice} {f : Nat}
 
 /-- An exception call charges the unchanged callee once, extends the saved
 footprint by its exception binding, and charges only the actual handler. -/
@@ -14,13 +14,13 @@ theorem loop_live_paid_call_handleG {F : Type}
     (args : getVars arguments s = some values)
     (find : findCode target values s.code = some (env, prog))
     (nodup : names.Nodup) (cut : cutRes live (none, s) = (none, entry))
-    (body : LoopWorkG L { entry with locals := env } prog (some (.exception exn), post) wb)
-    (cont : LoopWorkG L (setVar exceptionName exn { post with locals := entry.locals }) handlerProgram output wh)
-    (paid : LoopLivePaidG L (setVar exceptionName exn { post with locals := entry.locals }) handlerProgram output wh)
+    (body : LoopWorkG L (loopCallee target values) { entry with locals := env } prog (some (.exception exn), post) wb)
+    (cont : LoopWorkG L f (setVar exceptionName exn { post with locals := entry.locals }) handlerProgram output wh)
+    (paid : LoopLivePaidG L f (setVar exceptionName exn { post with locals := entry.locals }) handlerProgram output wh)
     (nonerror : (cutRes liveOut output).1 ≠ some .error) :
-    LoopLivePaidG L s (.call (some (names, live)) target arguments
+    LoopLivePaidG L f s (.call (some (names, live)) target arguments
       (some (exceptionName, handlerProgram, continuation, liveOut)))
-      (cutRes liveOut output) (196 + 39 * arguments.length + wb + wh) := by
+      (cutRes liveOut output) (196 + 39 * arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb + wh) := by
   intro contexts locals wanted input
   rcases contCompiled : shrinkHOL contexts continuation wanted with ⟨contCode, contLive⟩
   rcases handlerCompiled : shrinkHOL contexts handlerProgram wanted with ⟨handlerCode, handlerLive⟩
@@ -53,19 +53,19 @@ theorem loop_live_paid_call_handleG {F : Type}
   obtain ⟨postLocals, wh', targetCont, bound, related⟩ :=
     paid contexts (sptInsert exceptionName exn entryLocals) wanted contInput
   rw [handlerCompiled] at targetCont
-  have targetCont' : LoopWorkG L
+  have targetCont' : LoopWorkG L f
       (setVar exceptionName exn { post with locals := entryLocals }) handlerCode
       (output.1, { output.2 with locals := postLocals }) wh' := by
     simpa only [setVar] using targetCont
-  have targetBody : LoopWorkG L { { entry with locals := entryLocals } with locals := env }
+  have targetBody : LoopWorkG L (loopCallee target values) { { entry with locals := entryLocals } with locals := env }
       prog (some (.exception exn), post) wb := body
-  have targetRun := LoopWorkG.callHandle (continuation := contCode)
+  have targetRun := LoopWorkG.callHandle (f := f) (continuation := contCode)
     (liveOut := sptInter wanted liveOut) targetArgs find nodup targetCut targetBody targetCont'
-  have target' : LoopWorkG L { s with locals := locals }
+  have target' : LoopWorkG L f { s with locals := locals }
       (shrinkHOL contexts (.call (some (names, live)) target arguments
         (some (exceptionName, handlerProgram, continuation, liveOut))) wanted).1
       (cutRes (sptInter wanted liveOut) (output.1, { output.2 with locals := postLocals }))
-      (196 + 39 * arguments.length + wb + wh') := by
+      (196 + 39 * arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb + wh') := by
     simpa only [compiled] using targetRun
   exact loop_live_finishG (LoopWorkG.callHandle (continuation := continuation)
     (liveOut := liveOut) args find nodup cut body cont) nonerror

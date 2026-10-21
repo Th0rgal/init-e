@@ -2,7 +2,7 @@ import InitECandidate.Runtime.SourceCostLoopLiveCallHandleG
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-variable {L : LeafPrice}
+variable {L : LeafPrice} {f : Nat}
 
 /-- A callee exit which reaches neither continuation nor handler keeps its
 exact callee work; unexecuted handler programs incur no charge. -/
@@ -14,12 +14,13 @@ theorem loop_live_paid_call_ret_handlerG {F : Type}
     (args : getVars arguments s = some values)
     (find : findCode target values s.code = some (env, prog))
     (nodup : names.Nodup) (cut : cutRes live (none, s) = (none, entry))
-    (body : LoopWorkG L { entry with locals := env } prog (result, post) wb)
+    (body : LoopWorkG L (loopCallee target values) { entry with locals := env } prog (result, post) wb)
     (plain : loopRetPlain result names (some (exceptionName, handlerProgram, continuation, liveOut)))
     (nonerror : (loopRetExit result post entry names).1 ≠ some .error) :
-    LoopLivePaidG L s (.call (some (names, live)) target arguments
+    LoopLivePaidG L f s (.call (some (names, live)) target arguments
       (some (exceptionName, handlerProgram, continuation, liveOut)))
-      (loopRetExit result post entry names) (189 + 39 * arguments.length + wb + 49 * loopRetWords result) := by
+      (loopRetExit result post entry names) (189 + 39 * arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
+        49 * loopRetWords result) := by
   intro contexts locals wanted input
   rcases contCompiled : shrinkHOL contexts continuation wanted with ⟨contCode, contLive⟩
   rcases handlerCompiled : shrinkHOL contexts handlerProgram wanted with ⟨handlerCode, handlerLive⟩
@@ -41,19 +42,20 @@ theorem loop_live_paid_call_ret_handlerG {F : Type}
     (fun key member inside => (live_mem_interG live needed key).mpr ⟨inside, member⟩)
     (by rw [cut]; simp)
   rw [cut] at targetCut footprint
-  have targetBody : LoopWorkG L { { entry with locals := entryLocals } with locals := env }
+  have targetBody : LoopWorkG L (loopCallee target values) { { entry with locals := entryLocals } with locals := env }
       prog (result, post) wb := body
   have targetPlain : loopRetPlain result names
       (some (exceptionName, handlerCode, contCode, sptInter wanted liveOut)) := by
     cases result with
     | none => exact plain
     | some r => cases r <;> exact plain
-  have targetRun := LoopWorkG.callRet targetArgs find nodup targetCut targetBody targetPlain
-  have target' : LoopWorkG L { s with locals := locals }
+  have targetRun := LoopWorkG.callRet (f := f) targetArgs find nodup targetCut targetBody targetPlain
+  have target' : LoopWorkG L f { s with locals := locals }
       (shrinkHOL contexts (.call (some (names, live)) target arguments
         (some (exceptionName, handlerProgram, continuation, liveOut))) wanted).1
       (loopRetExit result post { entry with locals := entryLocals } names)
-      (189 + 39 * arguments.length + wb + 49 * loopRetWords result) := by
+      (189 + 39 * arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
+        49 * loopRetWords result) := by
     simpa only [compiled] using targetRun
   exact loop_live_finishG (LoopWorkG.callRet args find nodup cut body plain) nonerror
     contexts locals wanted (by simpa only [compiled] using input) target' (by omega)

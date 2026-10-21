@@ -2,7 +2,7 @@ import InitECandidate.Runtime.SourceCostLoopLiveBaseG
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-variable {L : LeafPrice}
+variable {L : LeafPrice} {f : Nat}
 
 /-- Shared live-local intersection geometry, independent of concrete states. -/
 theorem live_mem_interG {α β : Type} (source : Spt α) (live : Spt β) (key : Nat) :

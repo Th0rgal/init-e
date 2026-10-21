@@ -2,7 +2,7 @@ import InitECandidate.Runtime.SourceCostLoopMarkG
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-variable {L : LeafPrice}
+variable {L : LeafPrice} {f : Nat}
 
 /-- Pruning an atomic statement keeps it or drops it to `skip`. -/
 theorem shrink_leaf_cases (p : HolLoopProg 64) (contexts : List (NumSet × NumSet)) (live : NumSet)
@@ -47,11 +47,11 @@ premise. Existing semantic correctness supplies the real successor and its
 locals relation; the work proof uses only the checked local cost decrease. -/
 theorem loop_live_leaf_workG {F : Type} {s post : LoopSemStateFiniteExact 64 F}
     {p : HolLoopProg 64} {result : Option (LoopResultExact 64)} {cost : Nat}
-    (run : LoopWorkG L s p (result, post) cost) (leaf : L.lf p = some cost)
+    (run : LoopWorkG L f s p (result, post) cost) (leaf : L.lf p = some cost)
     (nonerror : result ≠ some .error) (contexts : List (NumSet × NumSet))
     (locals : Spt (WordLocW 64)) (live : NumSet)
     (input : sptSubspt (sptInter s.locals (shrinkHOL contexts p live).2) locals) :
-    ∃ targetLocals cost', LoopWorkG L { s with locals := locals } (shrinkHOL contexts p live).1
+    ∃ targetLocals cost', LoopWorkG L f { s with locals := locals } (shrinkHOL contexts p live).1
         (result, { post with locals := targetLocals }) cost' ∧ cost' ≤ cost ∧
       liveLocalsAfterG contexts live result post.locals targetLocals := by
   obtain ⟨targetLocals, evaluated, related⟩ := loopLive_compile_correct p s result post contexts
