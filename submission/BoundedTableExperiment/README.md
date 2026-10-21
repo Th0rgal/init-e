@@ -815,3 +815,22 @@ binary-search load loop remains open.
 Axioms are `propext` and `Quot.sound` for the composition lemmas. This composes
 the path push across slots; composing with the binary-search load loop into the
 whole operation still needs the loop-level event trace.
+
+## 34. Actual while-iteration event composition
+
+`PathStatementCoupling.lean` adds the actual `StatementRun.whileNext` rule:
+
+- `whileNext_events`: one executed loop iteration emits `.statement`,
+  `.cost (whileOverhead + loopMoves fn)`, then the guard expression events,
+  body events, and the remaining loop events;
+- `whileNext_score`: its score is
+
+  ```
+  statements + nativeCost*(whileOverhead + loopMoves fn)
+    + score(guardEvents) + score(bodyEvents) + score(restEvents)
+  ```
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. Combined with the
+multi-slot store score, a path-push loop body can now be costed from executed
+statements; instantiating guard/body events for the concrete `htab_set` loop is
+the remaining step.

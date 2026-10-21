@@ -4,6 +4,7 @@ namespace BoundedTableExperiment
 
 open InitECandidate.Runtime.FineCost
 open Flapjack
+open Flapjack.PanSemStateFiniteExact
 
 /-- Event list emitted by the actual `StatementRun.storeValue` rule. -/
 theorem storeValue_events {F : Type} {fn : Pancake.PanLang.MlS}
@@ -137,6 +138,53 @@ theorem n_path_slots_score (coeff : Work) :
       rw [Nat.succ_mul]
       omega
 
+/-- One executed `while` iteration of the candidate loop: the actual
+`StatementRun.whileNext` rule with its statement, while overhead, guard
+expression events, body events, and remaining loop events. -/
+theorem whileNext_events {F : Type} {fn : Pancake.PanLang.MlS}
+    {s : PanSemStateFiniteExact 64 F}
+    {condition : Pancake.PanLang.ExpHOL 64} {body : Pancake.PanLang.ProgHOL 64} {value : Nat}
+    {guardEvents : List WorkEvent} {middle : PanSemStateFiniteExact 64 F}
+    {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F}
+    {bodyEvents restEvents : List WorkEvent}
+    (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
+    (nonzero : (value : BitVec 64) ≠ 0) (clock : s.clock ≠ 0)
+    (one : StatementRun fn (decClockHOLFinite s) body none middle bodyEvents)
+    (rest : StatementRun fn middle (.while condition body) r post restEvents) :
+    StatementRun fn s (.while condition body) r post
+      (.statement :: .cost (whileOverhead + loopMoves fn) ::
+        (guardEvents ++ bodyEvents ++ restEvents)) :=
+  StatementRun.whileNext guard nonzero clock one rest
+
+/-- Score of one actual `while` iteration decomposes into its statement unit,
+while overhead, guard run, body run, and remaining loop. -/
+theorem whileNext_score {F : Type} (coeff : Work) {fn : Pancake.PanLang.MlS}
+    {s : PanSemStateFiniteExact 64 F}
+    {condition : Pancake.PanLang.ExpHOL 64} {body : Pancake.PanLang.ProgHOL 64} {value : Nat}
+    {guardEvents : List WorkEvent} {middle : PanSemStateFiniteExact 64 F}
+    {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F}
+    {bodyEvents restEvents : List WorkEvent}
+    (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
+    (nonzero : (value : BitVec 64) ≠ 0) (clock : s.clock ≠ 0)
+    (one : StatementRun fn (decClockHOLFinite s) body none middle bodyEvents)
+    (rest : StatementRun fn middle (.while condition body) r post restEvents) :
+    coeff.score (executionWork
+        (.statement :: .cost (whileOverhead + loopMoves fn) ::
+          (guardEvents ++ bodyEvents ++ restEvents))) =
+      coeff.statements + coeff.nativeCost * (whileOverhead + loopMoves fn) +
+      coeff.score (executionWork guardEvents) +
+      coeff.score (executionWork bodyEvents) +
+      coeff.score (executionWork restEvents) := by
+  have _ := guard
+  have _ := nonzero
+  have _ := clock
+  have _ := one
+  have _ := rest
+  rw [executionWork_score_cons, executionWork_score_cons,
+    executionWork_score_append, executionWork_score_append]
+  simp [WorkEvent.units, Work.score]
+  omega
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.storeValue_events
@@ -144,3 +192,4 @@ end BoundedTableExperiment
 #print axioms BoundedTableExperiment.path_load_expression_cost
 #print axioms BoundedTableExperiment.path_store_one_word_score
 #print axioms BoundedTableExperiment.n_path_slots_score
+#print axioms BoundedTableExperiment.whileNext_score
