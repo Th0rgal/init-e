@@ -200,6 +200,30 @@ theorem ssaCcTrans_alloc_shape
             ((listNextVarRenameMove (sptInter ((listNextVarRenameMove ssa (na + 2) ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).2.1 (sptUnion numset.1 numset.2)) (((listNextVarRenameMove ssa (na + 2) ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).2.2 + 2) ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).1)) := by
   simp only [ssaCcTrans]
 
+/-- **Inserted argument-move count at a call.**  The `.call none` clause builds
+`names := args.map (optionLookup ssa)`, `convArgs := (List.range names.length).map
+(fun x => 2 * x)` and `moveArgs := .move 1 (convArgs.zip names)`, so a call site
+inserts exactly one pair per source argument. -/
+theorem ssaCcTrans_call_arg_move_length
+    (args : List Nat) (ssa : Spt Nat) :
+    (((List.range (args.map (optionLookup ssa)).length).map
+      fun x => 2 * x).zip (args.map (optionLookup ssa))).length = args.length := by
+  simp
+
+/-- **Inserted argument-move price at a call**, as a function of the source
+argument count: `(if args.length ≤ 1 then 14 else 28) * args.length`.  This is the
+allocator's argument-move charge and is distinct from the source-side
+`39*(args.length+1-22)` term and from the post-allocation spill. -/
+theorem ssaCcTrans_call_arg_move_price {C F : Type}
+    (args : List Nat) (ssa : Spt Nat) (s : WordSemStateFiniteExact 64 C F) :
+    nativeWordPrice (.move 1
+      (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) s =
+      (if args.length ≤ 1 then 14 else 28) * args.length := by
+  rw [nativeWordPrice_move, ssaCcTrans_call_arg_move_length]
+
+#print axioms ssaCcTrans_call_arg_move_length
+#print axioms ssaCcTrans_call_arg_move_price
 #print axioms ssaCcTrans_alloc_shape
 #print axioms ssaCcTrans_raise_shape
 #print axioms ssaCcTrans_return_shape
