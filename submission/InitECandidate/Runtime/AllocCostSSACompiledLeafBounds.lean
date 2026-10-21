@@ -1427,4 +1427,46 @@ theorem ssaCcTrans_seq_quant_escape {C F : Type}
     omega
 
 #print axioms ssaCcTrans_seq_quant_escape
+
+/-! ## The evaluator's `ite` clause
+
+`evaluate` (Evaluate.lean:184) selects a branch directly from the comparison - there is no
+`fixClock` step, matching the counter's `.ite` clause.  These expose which branch ran, which is
+what the ite induction case needs to DERIVE its run instead of assuming it. -/
+theorem evaluate_ite_true {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (c1 c2 : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (x y : WordLocW 64)
+    (hx : getVar r1 s = some x) (hy : getVarImm ri s = some y)
+    (hc : wordSemWordCmp cmp x y = some true) :
+    WordSemStateFiniteExact.evaluate (.ite cmp r1 ri c1 c2) s =
+      WordSemStateFiniteExact.evaluate c1 s := by
+  simp only [WordSemStateFiniteExact.evaluate, hx, hy, hc]
+
+theorem evaluate_ite_false {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (c1 c2 : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (x y : WordLocW 64)
+    (hx : getVar r1 s = some x) (hy : getVarImm ri s = some y)
+    (hc : wordSemWordCmp cmp x y = some false) :
+    WordSemStateFiniteExact.evaluate (.ite cmp r1 ri c1 c2) s =
+      WordSemStateFiniteExact.evaluate c2 s := by
+  simp only [WordSemStateFiniteExact.evaluate, hx, hy, hc]
+
+/-- The `ite` node's cost is its canonical price plus the selected branch's cost, on both sides. -/
+theorem wec_ite_true_canonical {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (c1 c2 : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (x y : WordLocW 64)
+    (hx : getVar r1 s = some x) (hy : getVarImm ri s = some y)
+    (hc : wordSemWordCmp cmp x y = some true) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.ite cmp r1 ri c1 c2) s =
+      23 + wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice c1 s := by
+  rw [wordExecutionCost]
+  simp only [hx, hy, hc, refinedWordLocalPrice_ite]
+
+#print axioms evaluate_ite_true
+#print axioms evaluate_ite_false
+#print axioms wec_ite_true_canonical
 end InitECandidate.Runtime.FineCost
