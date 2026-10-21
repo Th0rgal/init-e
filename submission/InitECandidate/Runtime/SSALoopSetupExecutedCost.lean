@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.SSALoopBodyEntry
+import InitECandidate.Runtime.AllocCostSSA
 import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSALoopSetup
 
 namespace InitECandidate.Runtime.FineCost

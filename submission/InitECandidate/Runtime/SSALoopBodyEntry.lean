@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SSAReconcileExecutedCost
+import InitECandidate.Runtime.SSALoopBackedgeExactCost
 import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSALoopIteration
 
 namespace InitECandidate.Runtime.FineCost
