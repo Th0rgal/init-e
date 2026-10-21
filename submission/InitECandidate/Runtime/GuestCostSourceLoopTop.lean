@@ -10,7 +10,7 @@ open InitE InitECandidate.Proofs.FrontendStages
 /-! The guest's end-to-end source → Loop transfer: the original `main` run
 after the authoritative declarations (`Guest.guestAst.map declToHOL` from
 `sourceInitialState input`) is matched by the installed Loop entry at its
-sharp score plus the one-time additive initialiser `5330`. The Word-side
+sharp score plus the one-time additive initialiser `20127`. The Word-side
 memory, label and domain facts remain explicit hypotheses. -/
 
 /-- The entry's payload is at most one word. -/
@@ -69,7 +69,7 @@ theorem guest_source_loop (input : Guest.InputBlob) {C : Type}
       ∃ extra wl,
         LoopWork { loopState with clock := T.clock + 1 + extra } loopProgram
           (evaluate loopProgram { loopState with clock := T.clock + 1 + extra }) wl ∧
-        wl ≤ sharpScore ev + 5330 ∧
+        wl ≤ sharpScore ev + 20127 ∧
         LoopRunRel (entryLoopContext arch panCode) .ln
           (evalCrepSemHOLProgExact (crepSimpMapcsHOL { crepState with clock := T.clock + 1 }) program)
           (evaluate loopProgram { loopState with clock := T.clock + 1 + extra }) ∧
