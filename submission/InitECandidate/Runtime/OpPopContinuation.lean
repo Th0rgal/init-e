@@ -99,5 +99,58 @@ theorem opPop_continuation_run
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   exact ⟨_, _, StatementRun.seqNext chargeCall (StatementRun.seqNext pcCall ret)⟩
 
+/-- `op_pop` body composition from the actual `stack_pop` body run and the checked
+`charge_gas 2 ; pc_add 1 ; return 0` continuation. -/
+theorem opPop_body_run_of_parts
+    (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (frame sp : BitVec 64) (a0 a1 a2 a3 : BitVec 64) (pc : BitVec 64)
+    (funding : GasFunding)
+    (installed : s.code.lookup = originalRuntimeCode.lookup)
+    (clock : s.clock ≠ 0)
+    (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (bodyEvents : List WorkEvent)
+    (bodyRun : StatementRun (callEntryStateHOLFinite s HolFiniteMapExact.empty)
+      (sourceFunctionBody Guest.guestFn_stack_pop)
+      (some (.returned (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)])))
+      bodyPost bodyEvents)
+    (hFramePost : bodyPost.globals.lookup (ofString "ev") = some (.val (.word frame)))
+    (bodyClock : bodyPost.clock ≠ 0) (bodyClockThree : 3 ≤ bodyPost.clock)
+    (bodyCode : bodyPost.code.lookup = s.code.lookup)
+    (pcDomain : (setVarHOLFinite (ofString "x")
+      (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)])
+      { bodyPost with locals := s.locals }).memaddrs (frame + 0))
+    (pcCell : (setVarHOLFinite (ofString "x")
+      (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)])
+      { bodyPost with locals := s.locals }).memory (frame + 0) = .word pc)
+    (fundingMemory : HasGasFunding (setVarHOLFinite (ofString "x")
+      (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)])
+      { bodyPost with locals := s.locals }) frame funding)
+    (leftDomain : (setVarHOLFinite (ofString "x")
+      (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)])
+      { bodyPost with locals := s.locals }).memaddrs (frame + 64))
+    (usedDomain : (setVarHOLFinite (ofString "x")
+      (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)])
+      { bodyPost with locals := s.locals }).memaddrs (frame + 184))
+    (enough : (2 : BitVec 64) ≤ funding.left) :
+    ∃ post events, StatementRun s (sourceFunctionBody Guest.guestFn_op_pop)
+      (some (.returned (.val (.word (0 : BitVec 64))))) post events := by
+  classical
+  let xv : ValueHOL 64 := .rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)]
+  let sC := setVarHOLFinite (ofString "x") xv { bodyPost with locals := s.locals }
+  obtain ⟨post, contEvents, contRun⟩ := opPop_continuation_run sC frame pc funding
+    (by simpa [sC, setVarHOLFinite] using bodyCode.trans installed)
+    (by simpa [sC, setVarHOLFinite] using bodyClock)
+    (by simpa [sC, setVarHOLFinite] using bodyClockThree)
+    (by simpa [sC, setVarHOLFinite] using hFramePost)
+    (by simpa [sC] using leftDomain) (by simpa [sC] using usedDomain)
+    (by simpa [sC] using fundingMemory) enough
+    (by simpa [sC] using pcDomain) (by simpa [sC] using pcCell)
+  rw [source_opPop_body]
+  refine ⟨_, _, StatementRun.declareCallReturn_cont
+    (evalListHOLFinite_nil s) (opAdd_stackPop_lookup s.code.lookup installed) clock bodyRun ?_ contRun⟩
+  simp [xv, shapeOfHOLExact, comb4Shape, shapeEqHOL, shapeEqHOL.shapeEqListHOL]
+
+#print axioms opPop_body_run_of_parts
+
 #print axioms opPop_continuation_run
 end InitECandidate.Runtime.FineCost
