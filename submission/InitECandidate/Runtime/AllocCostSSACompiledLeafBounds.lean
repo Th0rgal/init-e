@@ -1361,4 +1361,70 @@ theorem ssaCcTrans_seq_quant_none {C F : Type}
 
 #print axioms ssaCcTrans_seq_quant_none
 
+
+/-- **The `seq` constructor, escape outcome.**  When the first body does not fall through the
+second body never runs: the composite run is the first body's reached pair on both sides, and
+the cost is the first body's cost plus the (zero) `seq` node price.  The first body's run and
+cost come from its quantitative IH; the outcome is read off the evaluator. -/
+theorem ssaCcTrans_seq_quant_escape {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (extra1 extra2 : Nat)
+    (firstIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) first = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation first source target ssa next tables)
+    (secondIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) second = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation second source target ssa next tables)
+    (hinv : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) (.seq first second) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables)
+    (h1 : quantSsaSimulation (C := C) (F := F) first source target ssa next tables extra1)
+    (hS0 : (WordSemStateFiniteExact.evaluate first source).1 = none → False) :
+    quantSsaSimulation (C := C) (F := F) (.seq first second) source target ssa next tables
+      (extra1 + extra2) := by
+  obtain ⟨hsim1, ⟨rS1, sS1, rT1, sT1, hrunS1, hrunT1, hout1⟩, hcost1⟩ := h1
+  have hr1 : rS1 ≠ none := by
+    intro h
+    apply hS0
+    rw [hrunS1]
+    exact h
+  have hrT1 : rT1 ≠ none := by
+    intro h
+    exact hr1 (hout1 ▸ h)
+  set midS := (fixClock source (WordSemStateFiniteExact.evaluate first source)).2 with hmidS
+  set midT := (fixClock target (WordSemStateFiniteExact.evaluate (ssaCcTrans first ssa next tables).1 target)).2 with hmidT
+  have hS : fixClock source (WordSemStateFiniteExact.evaluate first source) = (rS1, midS) := by
+    simp only [hmidS, hrunS1, fixClock]
+  have hT : fixClock target (WordSemStateFiniteExact.evaluate (ssaCcTrans first ssa next tables).1 target) = (rT1, midT) := by
+    simp only [hmidT, hrunT1, fixClock]
+  have hsSome : (fixClock source (WordSemStateFiniteExact.evaluate first source)).1 = none → False := by
+    intro h
+    rw [hS] at h
+    exact hr1 h
+  have htSome : (fixClock target (WordSemStateFiniteExact.evaluate (ssaCcTrans first ssa next tables).1 target)).1 = none → False := by
+    intro h
+    rw [hT] at h
+    exact hrT1 h
+  refine ⟨ssaCcTransCorrectSeq first second source target ssa next tables firstIH secondIH hinv,
+    ⟨rS1, midS, rT1, midT, ?_, ?_, hout1⟩, ?_⟩
+  · rw [evaluate_seq_escape first second source midS rS1 hS hr1]
+  · rw [ssaCcTrans_seq_shape, evaluate_seq_escape (ssaCcTrans first ssa next tables).1 (ssaCcTrans second (ssaCcTrans first ssa next tables).2.1 (ssaCcTrans first ssa next tables).2.2 tables).1 target midT rT1 hT hrT1]
+  · rw [ssaCcTrans_seq_shape,
+      wec_seq_some_split_generic InitECandidate.Runtime.WordToStack.refinedWordLocalPrice _ _ target htSome,
+      wec_seq_some_split_generic InitECandidate.Runtime.WordToStack.refinedWordLocalPrice _ _ source hsSome]
+    have hp1 : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq (ssaCcTrans first ssa next tables).1 (ssaCcTrans second (ssaCcTrans first ssa next tables).2.1 (ssaCcTrans first ssa next tables).2.2 tables).1) target = 0 :=
+      refinedWordLocalPrice_seq_zero _ _ _
+    have hp2 : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq first second) source = 0 :=
+      refinedWordLocalPrice_seq_zero _ _ _
+    rw [hp1, hp2]
+    omega
+
+#print axioms ssaCcTrans_seq_quant_escape
 end InitECandidate.Runtime.FineCost
