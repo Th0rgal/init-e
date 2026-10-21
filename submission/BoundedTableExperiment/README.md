@@ -1219,3 +1219,12 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. These are the copy and
 zeroing iterations used by growth and truncate.
+
+## 63. Actual memcpy body declaration split
+
+`CandidateMemcpyBodyTrace.lean` / `candidateMemcpy_body_trace` splits an actual
+successful `memcpy` body at `i := 0`, carrying the actual initializer events,
+the frame event, the local-environment post, and the remaining
+alignment/loop body run.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
