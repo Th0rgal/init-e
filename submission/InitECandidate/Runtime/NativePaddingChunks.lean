@@ -5997,3 +5997,13 @@ theorem seg_padding_le_four (seg : PadSeg 64)
 #print axioms seg_padding_le_four
 
 end InitECandidate.Runtime.NativePadding
+
+namespace InitECandidate.Runtime.NativePadding
+
+theorem linesRel_forall₂ {α : Type} {rel : α → α → Prop} {xs ys : List α}
+    (h : Flapjack.Compiler.Backend.LabToTarget.LinesRel rel xs ys) : List.Forall₂ rel xs ys := by
+  induction h with
+  | nil => exact List.Forall₂.nil
+  | cons hr _ ih => exact List.Forall₂.cons hr ih
+
+end InitECandidate.Runtime.NativePadding
