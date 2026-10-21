@@ -182,29 +182,36 @@ theorem codeInsts_snd {width : Nat} [NeZero width] (code : List (NativeCode widt
     obtain ⟨sid, lines⟩ := sec
     simp only [codeInsts_cons, List.map_append, sectionInsts_snd, insts_cons, ih]
 
-/-- Equal-length instruction streams are scanned back exactly. -/
+/-- Equal-length instruction streams are scanned back exactly.
+
+This is proved without classical reasoning: the two impossible-length cases are
+discharged by `omega` on the *normalised* length equation rather than by full
+`simp at hlen`, which would close the goal through a `Decidable`-driven
+contradiction and drag `Classical.choice` into every downstream certificate. -/
 theorem scanInsts_maps {width : Nat} [NeZero width] (base : Nat)
     (source : List (Nat × NativeLine width)) (emits : List (NativeLine width))
     (hlen : source.length = emits.length) :
     (scanInsts base source emits).map PadSeg.source = source.map Prod.snd ∧
       (scanInsts base source emits).map PadSeg.emitted = emits := by
-  revert base emits hlen
-  induction source with
+  induction source generalizing base emits with
   | nil =>
-    intro base emits hlen
     cases emits with
     | nil => exact ⟨rfl, rfl⟩
-    | cons e es => simp at hlen
-  | cons pair source ih =>
-    intro base emits hlen
-    cases emits with
-    | nil => simp at hlen
     | cons e es =>
-      obtain ⟨sid, line⟩ := pair
-      simp only [List.length_cons] at hlen
-      obtain ⟨hsrc, hem⟩ := ih (base + (lineBytes e).length) es (by omega)
-      simp only [scanInsts, List.map_cons]
-      exact ⟨by simp [hsrc], by simp [hem]⟩
+      simp only [List.length_nil, List.length_cons] at hlen
+      exact absurd hlen (by omega)
+  | cons pair source ih =>
+    obtain ⟨sid, line⟩ := pair
+    cases emits with
+    | nil =>
+      simp only [List.length_cons, List.length_nil] at hlen
+      exact absurd hlen (by omega)
+    | cons e es =>
+      have hlen' : source.length = es.length := by
+        simp only [List.length_cons] at hlen; omega
+      obtain ⟨hsrc, hem⟩ := ih (base + (lineBytes e).length) es hlen'
+      exact ⟨by simp only [scanInsts, List.map_cons, hsrc],
+             by simp only [scanInsts, List.map_cons, hem]⟩
 
 /-- The padded section of a source section is line-for-line similar to it:
 `padCode` only appends nop bytes and resets label lengths. -/
@@ -641,6 +648,14 @@ set_option cbv.maxSteps 100000000
 /-- The nop chunk `padCode` repeats in the final assembly. -/
 def paddingNop : List (BitVec 8) := riscvConfig.encode (.inst .skip)
 
+/-- **The padding byte is a computed constant, not a chosen one.**  `padCode`
+pads with the emitter's own `.skip` image, and the RISC-V backend lowers
+`.skip` to `riscvEncodeFail` -- the architectural NOP `addi x0, x0, 0`, whose
+32-bit word `0x00000013` `riscvEncode` emits little-endian.  `decide_cbv` runs
+the emitter on the artifact's real configuration. -/
+theorem paddingNop_eq : paddingNop = [0x13, 0x00, 0x00, 0x00] := by
+  decide_cbv
+
 /-- **The certificate of the guest's actual final code.**  `Final.final0` is the
 pre-padding object and `Final.padded0` its `padCode` image, which
 `Final.padding0_eq` proves; everything else in the certificate is computed by
@@ -691,6 +706,7 @@ theorem section597_fetch_transfer (pc : Nat) (line : NativeLine 64)
 
 end Artifact
 
+#print axioms scanInsts_maps
 #print axioms asmFetchAux_eq_insts
 #print axioms scanInsts_padCode
 #print axioms padSection_keeps
@@ -703,6 +719,7 @@ end Artifact
 #print axioms padScan_fetch_transfer
 #print axioms padded0_fetch_transfer
 #print axioms padded0_codeSimilar
+#print axioms paddingNop_eq
 #print axioms section597_pad
 #print axioms section597_scan_segments
 #print axioms section597_fetch_transfer
