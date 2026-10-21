@@ -2497,4 +2497,37 @@ theorem wec_loop_stop_transfer {C F : Type}
   omega
 
 #print axioms wec_loop_stop_transfer
+/-! ### The loop's run, mirroring its cost decomposition
+
+The evaluator's loop clause (Evaluate.lean:192-207): cut the state, run the body, and then - if the body's
+result continues the loop - either time out at a zero clock or recurse at wordSemSTOP of the loop and the
+decremented clock; otherwise, for a `break 0`, consult the exit names, and for anything else return
+wordSemExitLoop of the result.  These are the run shapes the loop's induction steps on, matching
+wec_loop_stop and wec_loop_cont on the cost side. -/
+theorem evaluate_loop_stop {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s cutSource : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cutSource)
+    (result : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (h : fixClock cutSource (WordSemStateFiniteExact.evaluate body cutSource) = (result, middle))
+    (hnc : wordSemContLoop result = false)
+    (hbreak : result = some (.break 0) → False) :
+    WordSemStateFiniteExact.evaluate (.loop names body liveOut) s = (wordSemExitLoop result, middle) := by
+  rw [evaluate]
+  split
+  · next hnone =>
+    rw [hs] at hnone
+    cases hnone
+  · next cs hsome =>
+    rw [hs] at hsome
+    cases hsome
+    rw [h]
+    dsimp only
+    rw [if_neg (by rw [hnc]; decide : ¬ (wordSemContLoop result = true))]
+    split
+    · exact absurd rfl hbreak
+    · rfl
+
+
+#print axioms evaluate_loop_stop
 end InitECandidate.Runtime.FineCost
