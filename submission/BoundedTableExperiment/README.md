@@ -1268,3 +1268,14 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`.
 actual zeroing: literal scope shape, declaration split, alignment split,
 tail split, full body event list, and full body score. Axioms are `propext`,
 `Classical.choice`, `Quot.sound`.
+
+## 68. Actual htab_truncate AST
+
+`CandidateTruncateShape.lean` pins the actual `htab_truncate` body:
+- `candidateTruncate_body`: `seq truncateWhile truncateReturn`;
+- literal `truncateWhile`, `truncateStep` (`pos`, double-load `leaf`, `key`
+  `decCall` whose tail is the `htab_del` call), `truncateKeyCall`,
+  `truncateReturn`;
+- `:= rfl` loop/step/key-call/return equations.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
