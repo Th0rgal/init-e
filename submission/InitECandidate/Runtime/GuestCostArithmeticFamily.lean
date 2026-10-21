@@ -64,25 +64,21 @@ noncomputable def addSatCarryEvents (s : PanSemStateFiniteExact 64 F) (sum : Bit
   let entry := setVarHOLFinite (ofString "s") (.val (.word sum)) s
   let guardEvents := expressionEvents entry addSatCarryExpression
   let retEvents := .statement :: (expressionEvents entry (.const addSatMaximum) ++
-    [.copy (flattenHOL (.val (.word addSatMaximum))).length])
-  let tailEvents := .statement :: (guardEvents ++ retEvents)
+    [.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length)])
+  let tailEvents := .statement :: .cost statementUnit :: (guardEvents ++ retEvents)
   .statement :: (expressionEvents s addSatSumExpression ++
-    [.copy (flattenHOL (.val (.word sum))).length, .frame 1] ++ tailEvents ++
-    [.copy (((s.locals.lookup (ofString "s")).map
-      (fun previous => (flattenHOL previous).length)).getD 0)])
+    [.frame 1] ++ tailEvents)
 
 /-- Recorded work of the no-carry path of the helper. -/
 noncomputable def addSatNoCarryEvents (s : PanSemStateFiniteExact 64 F) (sum : BitVec 64) :
     List WorkEvent :=
   let entry := setVarHOLFinite (ofString "s") (.val (.word sum)) s
-  let guardEvents := .statement :: (expressionEvents entry addSatCarryExpression ++ [.statement])
+  let guardEvents := .statement :: .cost statementUnit :: (expressionEvents entry addSatCarryExpression ++ [.statement])
   let retEvents := .statement :: (expressionEvents entry (.var VarKind.local (ofString "s")) ++
-    [.copy (flattenHOL (.val (.word sum))).length])
+    [.cost (returnOverhead (flattenHOL (.val (.word sum))).length)])
   let tailEvents := guardEvents ++ retEvents
   .statement :: (expressionEvents s addSatSumExpression ++
-    [.copy (flattenHOL (.val (.word sum))).length, .frame 1] ++ tailEvents ++
-    [.copy (((s.locals.lookup (ofString "s")).map
-      (fun previous => (flattenHOL previous).length)).getD 0)])
+    [.frame 1] ++ tailEvents)
 
 /-- The carry path: the sum overflowed, so the helper returns the maximum word. -/
 theorem addSat_carry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 64)
@@ -118,14 +114,14 @@ theorem addSat_carry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 64)
   have bodyRun : StatementRun entry (.return (.const addSatMaximum))
       (some (.returned (.val (.word addSatMaximum)))) (emptyLocalsHOLFinite entry)
       (.statement :: (expressionEvents entry (.const addSatMaximum) ++
-        [.copy (flattenHOL (.val (.word addSatMaximum))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length)])) :=
     StatementRun.returnValue (expression := .const addSatMaximum) payload
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   have tailRun : StatementRun entry addSatTail
       (some (.returned (.val (.word addSatMaximum)))) (emptyLocalsHOLFinite entry)
-      (.statement :: (expressionEvents entry addSatCarryExpression ++
+      (.statement :: .cost statementUnit :: (expressionEvents entry addSatCarryExpression ++
         (.statement :: (expressionEvents entry (.const addSatMaximum) ++
-          [.copy (flattenHOL (.val (.word addSatMaximum))).length])))) := by
+          [.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length)])))) := by
     unfold addSatTail
     exact StatementRun.seqStop (by simp)
       (StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
@@ -174,15 +170,15 @@ theorem addSat_noCarry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 6
   have bodyRun : StatementRun entry (.return (.var VarKind.local (ofString "s")))
       (some (.returned (.val (.word sum)))) (emptyLocalsHOLFinite entry)
       (.statement :: (expressionEvents entry (.var VarKind.local (ofString "s")) ++
-        [.copy (flattenHOL (.val (.word sum))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word sum))).length)])) :=
     StatementRun.returnValue (expression := .var VarKind.local (ofString "s")) ret
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   have tailRun : StatementRun entry addSatTail
       (some (.returned (.val (.word sum)))) (emptyLocalsHOLFinite entry)
-      ((.statement :: (expressionEvents entry addSatCarryExpression ++
+      ((.statement :: .cost statementUnit :: (expressionEvents entry addSatCarryExpression ++
         [.statement])) ++
         (.statement :: (expressionEvents entry (.var VarKind.local (ofString "s")) ++
-          [.copy (flattenHOL (.val (.word sum))).length]))) := by
+          [.cost (returnOverhead (flattenHOL (.val (.word sum))).length)]))) := by
     unfold addSatTail
     exact StatementRun.seqNext
       (StatementRun.iteNo (condition := addSatCarryExpression)
@@ -207,7 +203,9 @@ theorem addSatCarryEvents_score (coeff : Work)
         expressionCost coeff entry (.const addSatMaximum) +
         coeff.movedWords * (flattenHOL (.val (.word addSatMaximum))).length +
         coeff.movedWords * (((s.locals.lookup (ofString "s")).map
-          (fun previous => (flattenHOL previous).length)).getD 0) := by
+          (fun previous => (flattenHOL previous).length)).getD 0) +
+        coeff.score (WorkEvent.cost statementUnit).units +
+        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length)).units := by
   unfold addSatCarryEvents expressionCost
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
     guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
@@ -226,7 +224,9 @@ theorem addSatNoCarryEvents_score (coeff : Work)
         expressionCost coeff entry (.var VarKind.local (ofString "s")) +
         coeff.movedWords * (flattenHOL (.val (.word sum))).length +
         coeff.movedWords * (((s.locals.lookup (ofString "s")).map
-          (fun previous => (flattenHOL previous).length)).getD 0) := by
+          (fun previous => (flattenHOL previous).length)).getD 0) +
+        coeff.score (WorkEvent.cost statementUnit).units +
+        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word sum))).length)).units := by
   unfold addSatNoCarryEvents expressionCost
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
     guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
