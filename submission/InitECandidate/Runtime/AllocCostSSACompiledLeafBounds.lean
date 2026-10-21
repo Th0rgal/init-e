@@ -1756,4 +1756,51 @@ theorem suffix_seq_cost_independent {C F : Type}
   exact move_fallthrough prio moves s hnodup (hget s)
 
 #print axioms suffix_seq_cost_independent
+/-! ## Allocator-only programs
+
+`fakeMoves` builds its output by nesting: the empty case is `.skip`, each variable prepends
+`.seq seqL (.move ...)` (SSAFixInconsistencies.lean:46-57).  Every inconsistency-fixing suffix is
+therefore a tree of `seq` over move and skip leaves, and both properties the cost transfer needs
+- fall-through and state-independent cost - are preserved by that tree. -/
+inductive AllocOnly : WordLangProgHOL (BitVec 64) → Prop
+  | skip : AllocOnly .skip
+  | move : ∀ (pri : Nat) (moves : List (Nat × Nat)), AllocOnly (.move pri moves)
+  | seq : ∀ (f g : WordLangProgHOL (BitVec 64)), AllocOnly f → AllocOnly g → AllocOnly (.seq f g)
+
+theorem allocOnly_fallthrough {C F : Type}
+    (hwf : ∀ (pri : Nat) (moves : List (Nat × Nat)),
+      (moves.map Prod.fst).Nodup ∧ ∀ (s : WordSemStateFiniteExact 64 C F), WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none)
+    (p : WordLangProgHOL (BitVec 64)) (hp : AllocOnly p) :
+    ∀ (s : WordSemStateFiniteExact 64 C F), (fixClock s (WordSemStateFiniteExact.evaluate p s)).1 = none := by
+  induction hp with
+  | skip =>
+    intro s
+    simp only [WordSemStateFiniteExact.evaluate, fixClock]
+  | move pri moves =>
+    intro s
+    have hn : (moves.map Prod.fst).Nodup := (hwf pri moves).1
+    have hg : WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none := (hwf pri moves).2 s
+    exact move_fallthrough pri moves s hn hg
+  | seq f g _ _ ihf ihg =>
+    exact seq_fallthrough f g ihf ihg
+
+theorem allocOnly_cost_independent {C F : Type}
+    (hwf : ∀ (pri : Nat) (moves : List (Nat × Nat)),
+      (moves.map Prod.fst).Nodup ∧ ∀ (s : WordSemStateFiniteExact 64 C F), WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none)
+    (p : WordLangProgHOL (BitVec 64)) (hp : AllocOnly p) :
+    ∀ (s t : WordSemStateFiniteExact 64 C F), wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice p s = wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice p t := by
+  induction hp with
+  | skip =>
+    intro s t
+    exact wec_skip_state_independent s t
+  | move pri moves =>
+    intro s t
+    exact wec_move_state_independent pri moves s t
+  | seq f g hf hg ihf ihg =>
+    intro s t
+    exact wec_seq_state_independent (C := C) (F := F) f g ihf ihg
+      (allocOnly_fallthrough hwf f hf) s t
+
+#print axioms allocOnly_fallthrough
+#print axioms allocOnly_cost_independent
 end InitECandidate.Runtime.FineCost
