@@ -84,6 +84,16 @@ theorem ssa_loop_entry_cut {α : Type} (ssa : Spt Nat) (names : Spt Unit)
     domain mapped present cutRelated bounded⟩
   simpa [Flapjack.WordAlloc.applyNummapsKey,Flapjack.WordAlloc.applyNummapKey,sptFromAList] using targetCut
 
+/-- The actual source read in `ssaLocalsRel` supplies the strong relation
+on any chosen domain. No equality of complete local domains is needed. -/
+theorem ssa_locals_strong {α : Type} (next : Nat) (map : Spt Nat)
+    (source target : Spt α) (domain : Nat → Prop)
+    (related : ssaLocalsRel next map source target) :
+    Flapjack.WordAlloc.strongLocalsRel (optionLookup map) domain source target := by
+  intro key value inside
+  cases found : sptLookup key map <;>
+    simpa [optionLookup, found] using (related.2 key value inside.2).2.1
+
 /-- Construct the actual target cut state and its SSA body-entry relation.
 The body uses the intersected refreshed map, precisely as `ssaCcTrans` does. -/
 theorem ssa_loop_body_entry {C F : Type} (refreshed : Spt Nat) (names : Spt Unit) (next : Nat)
@@ -111,6 +121,7 @@ theorem ssa_loop_body_entry {C F : Type} (refreshed : Spt Nat) (names : Spt Unit
     rw [targetCut]
   · simpa only [Flapjack.WordAlloc.wordStateEqRel] using frame
 
+#print axioms ssa_locals_strong
 #print axioms ssa_body_entry_locals
 #print axioms ssa_loop_entry_cut
 #print axioms ssa_loop_body_entry
