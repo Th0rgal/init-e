@@ -58,7 +58,7 @@ theorem loop_live_paid_call_tailG {F : Type}
     (body : LoopWorkG L (loopCallee target values) { decClock s with locals := env } prog (result, post) wb)
     (nonerror : (loopTailExit result post).1 ≠ some .error) :
     LoopLivePaidG L f s (.call none target arguments handler) (loopTailExit result post)
-      (189 + 39 * arguments.length + L.ts (loopCallee target values) + wb) := by
+      (L.call + L.argCost arguments.length + L.ts (loopCallee target values) + wb) := by
   cases handler with
   | some value => simp at noHandler
   | none =>
@@ -72,7 +72,7 @@ theorem loop_live_paid_call_tailG {F : Type}
     have targetRun := LoopWorkG.callTail (f := f) (handler := none) targetArgs find rfl clock targetBody
     have target' : LoopWorkG L f { s with locals := locals }
         (shrinkHOL contexts (.call none target arguments none) live).1
-        (loopTailExit result post) (189 + 39 * arguments.length + L.ts (loopCallee target values) + wb) := by
+        (loopTailExit result post) (L.call + L.argCost arguments.length + L.ts (loopCallee target values) + wb) := by
       simpa only [shrinkHOL] using targetRun
     exact loop_live_finishG (LoopWorkG.callTail args find rfl clock body) nonerror
       contexts locals live input target' (Nat.le_refl _)
@@ -101,8 +101,8 @@ theorem loop_live_paid_call_ret_plainG {F : Type}
     (body : LoopWorkG L (loopCallee target values) { entry with locals := env } prog (result, post) wb)
     (nonerror : (loopRetExit result post entry names).1 ≠ some .error) :
     LoopLivePaidG L f s (.call (some (names, live)) target arguments none)
-      (loopRetExit result post entry names) (189 + 39 * arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
-        49 * loopRetWords result) := by
+      (loopRetExit result post entry names) (L.call + L.argCost arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
+        L.ret * loopRetWords result) := by
   intro contexts locals wanted input
   let saved := sptListDelete names (sptInter wanted live)
   have input' : sptSubspt (sptInter s.locals
@@ -126,8 +126,8 @@ theorem loop_live_paid_call_ret_plainG {F : Type}
   have target' : LoopWorkG L f { s with locals := locals }
       (shrinkHOL contexts (.call (some (names, live)) target arguments none) wanted).1
       (loopRetExit result post { entry with locals := entryLocals } names)
-      (189 + 39 * arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
-        49 * loopRetWords result) := by
+      (L.call + L.argCost arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
+        L.ret * loopRetWords result) := by
     simpa only [shrinkHOL, saved] using targetRun
   exact loop_live_finishG (LoopWorkG.callRet args find nodup cut body plain) nonerror
     contexts locals wanted input target' (Nat.le_refl _)

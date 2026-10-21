@@ -8,6 +8,10 @@ noncomputable def sourceReadBytes {F : Type} (s : PanSemStateFiniteExact 64 F)
     (@panMemLoadByteWord8HOL 64 _ s.memory s.memaddrs
       (fun a => Classical.propDecidable (s.memaddrs a)) s.be)
 
+/-- The fixed charge of an external call: the compiled FFI sequence at the
+selector price (`ffiSel`). -/
+def externalOverhead : Nat := 121
+
 /-- Input read attempts conservatively charge the requested byte counts.
 The native event is charged only after both byte arrays have been read;
 returning calls additionally charge the actual returned byte count. -/
@@ -30,7 +34,7 @@ noncomputable def externalTransferEvents {F : Type} (s : PanSemStateFiniteExact 
 noncomputable def externalEvents {F : Type} (s : PanSemStateFiniteExact 64 F)
     (function : MlStringHOL) (configuration configurationLength array arrayLength : ExpHOL 64) :
     List WorkEvent :=
-  .statement :: .cost 37 :: (expressionEvents s configuration ++ expressionEvents s configurationLength ++
+  .statement :: .cost externalOverhead :: (expressionEvents s configuration ++ expressionEvents s configurationLength ++
     expressionEvents s array ++ expressionEvents s arrayLength ++
     externalTransferEvents s function configuration configurationLength array arrayLength)
 

@@ -7,7 +7,7 @@ theorem decCall_events_score_sharp (arguments bodyEvents continuationEvents : Li
     (a f c m : Nat) :
     sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f + m)] ++
       bodyEvents ++ [.cost (returnCopy c)] ++ continuationEvents))) =
-    sharpScore arguments + (196 + 40 * a + 19 * f + m) + sharpScore bodyEvents + 49 * c +
+    sharpScore arguments + (196 + 40 * a + 24 * f + m) + sharpScore bodyEvents + 49 * c +
       sharpScore continuationEvents := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
     sharpScore_statement, sharpScore_cost, sharpScore_copy, sharpScore_nil, callOverhead,

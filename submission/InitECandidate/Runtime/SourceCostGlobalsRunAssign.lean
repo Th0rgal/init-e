@@ -6,7 +6,7 @@ variable {fn : Flapjack.Pancake.PanLang.MlS}
 theorem globals_address_events (B : Nat) {F : Type} {t : PanSemStateFiniteExact 64 F} {address : BitVec 64}
     {value : Option (ValueHOL 64)} {ev : List WorkEvent}
     (run : CostedExpressionRun t (.op .sub [.topAddr, .const address]) value ev) :
-    sharpSourceScore B ev = globalAddressPrice := by
+    sharpSourceScore B ev = globalAddressPrice srcK := by
   rw [run.events_eq]; exact globals_address_score B t address
 
 theorem globals_valid_global {F : Type} {s : PanSemStateFiniteExact 64 F} {name} {value : ValueHOL 64}
@@ -43,7 +43,7 @@ theorem globals_assignGlobal (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
       (by assumption : CostedExpressionRun t (.op .sub [.topAddr, .const address]) _ _)
     simp only [globalEvents] at *
     gsimp
-    simp only [globalAddressPrice] at addr
+    simp only [globalAddressPrice, srcK_top, srcK_cst, srcK_op] at addr
     omega
   all_goals cases hr
 

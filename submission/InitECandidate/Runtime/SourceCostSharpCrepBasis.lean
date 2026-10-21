@@ -70,8 +70,8 @@ theorem compileList_length' (context : PanToCrepContextExact 64) (es : List (Exp
 
 /-- Sharp source weights. -/
 def sharpSourceWeights : Work :=
-  { movedWords := 14, nativeEvents := 37, nativeCost := 1,
-    globalAccesses := 128, globalWords := 156 }
+  { movedWords := 24, nativeEvents := 37, nativeCost := 1,
+    globalAccesses := 176, globalWords := 166 }
 
 /-- Sharp source score of an event list. The certificate argument is kept for
 the callers' interface; exact expression prices need no replay certificate. -/
@@ -96,7 +96,7 @@ theorem sharpSourceScore_cons (B : Nat) (event : WorkEvent) (rest : List WorkEve
 @[simp] theorem sharpSource_expression : sharpSourceWeights.score WorkEvent.expression.units = 0 := by
   simp [sharpSourceWeights, Work.score, WorkEvent.units]
 
-@[simp] theorem sharpSource_copy (n : Nat) : sharpSourceWeights.score (WorkEvent.copy n).units = 14 * n := by
+@[simp] theorem sharpSource_copy (n : Nat) : sharpSourceWeights.score (WorkEvent.copy n).units = 24 * n := by
   simp [sharpSourceWeights, Work.score, WorkEvent.units]
 
 @[simp] theorem sharpSource_frame (n : Nat) : sharpSourceWeights.score (WorkEvent.frame n).units = 0 := by
@@ -118,7 +118,7 @@ theorem sharpSourceScore_cons (B : Nat) (event : WorkEvent) (rest : List WorkEve
 /-- A global destination access pays its `pan_globals` expansion: the
 `TopAddr`-relative address and the stores of its words. -/
 @[simp] theorem sharpSource_global (n : Nat) :
-    sharpSourceWeights.score (WorkEvent.globalAccess n).units = 128 + 156 * n := by
+    sharpSourceWeights.score (WorkEvent.globalAccess n).units = 176 + 166 * n := by
   simp [sharpSourceWeights, Work.score, WorkEvent.units]
 
 /-- Static site condition on an expression. Exact expression prices need no
@@ -165,7 +165,7 @@ theorem sharpScore_expression (rest : List WorkEvent) :
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_expression, Nat.zero_add]
 
 theorem sharpScore_copy (n : Nat) (rest : List WorkEvent) :
-    sharpScore (.copy n :: rest) = 14 * n + sharpScore rest := by
+    sharpScore (.copy n :: rest) = 24 * n + sharpScore rest := by
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_copy]
 
 theorem sharpScore_frame (n : Nat) (rest : List WorkEvent) :
@@ -189,7 +189,7 @@ theorem sharpScore_native (rest : List WorkEvent) :
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_native]
 
 theorem sharpScore_global (n : Nat) (rest : List WorkEvent) :
-    sharpScore (.globalAccess n :: rest) = 128 + 156 * n + sharpScore rest := by
+    sharpScore (.globalAccess n :: rest) = 176 + 166 * n + sharpScore rest := by
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_global]
 
 /-- An expression's events score its native price. -/
@@ -197,8 +197,8 @@ theorem sharpScore_expressionEvents {F : Type} (s : PanSemStateFiniteExact 64 F)
     sharpScore (expressionEvents s e) = sourcePrice s e := by
   simp [expressionEvents, sharpScore_cost, sharpScore_nil]
 
-/-- Compiled expression work at exact Loop prices is paid by the source
-expression's own event: the price is exact. -/
+/-- Compiled expression work at default Loop prices is paid by the source
+expression's own event. -/
 theorem compiled_expression_sharp_score {F : Type} (s : PanSemStateFiniteExact 64 F)
     (context : PanToCrepContextExact 64)
     (targetLocals : HolFiniteMapExact Nat (HolWordLab 64))
@@ -206,7 +206,7 @@ theorem compiled_expression_sharp_score {F : Type} (s : PanSemStateFiniteExact 6
     (expression : ExpHOL 64) (value : ValueHOL 64)
     (evaluated : expressionValue s expression = some value)
     (localised : localisedExpHOL expression = true) :
-    loopPriceList (compileExpExactHOLW context expression).1 = sharpScore (expressionEvents s expression) := by
+    loopPriceList (compileExpExactHOLW context expression).1 ≤ sharpScore (expressionEvents s expression) := by
   rw [sharpScore_expressionEvents]
   exact sourcePrice_compile s context targetLocals related expression value evaluated localised
 

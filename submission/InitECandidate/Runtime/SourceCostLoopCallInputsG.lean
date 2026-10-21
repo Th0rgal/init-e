@@ -19,7 +19,7 @@ theorem loop_call_retarget_workG {F : Type}
     (same : findCode newTarget nextValues s.code = findCode target previousValues s.code)
     (callee : loopCallee newTarget nextValues = loopCallee target previousValues) :
     ∃ w', LoopWorkG L f s (.call returns newTarget newArguments handler) output w' ∧
-      w' + 39 * arguments.length = w + 39 * newArguments.length := by
+      w' + L.argCost arguments.length = w + L.argCost newArguments.length := by
   have evaluated : evaluate (.call returns newTarget newArguments handler) s = output := by
     have original := run.sound
     rw [evaluate, previous] at original
@@ -149,6 +149,7 @@ theorem loop_call_compiled_workG {F : Type}
   · simpa only [loopCallCompHOL, last, named] using compiled
   · have shorter : arguments.dropLast.length ≤ arguments.length := by
       simp only [List.length_dropLast]; omega
+    have := L.argMono _ _ shorter
     omega
 
 #print axioms loop_call_compiled_workG

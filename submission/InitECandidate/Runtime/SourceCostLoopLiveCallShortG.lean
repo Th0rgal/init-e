@@ -79,7 +79,7 @@ theorem loop_live_zero_call_workG {F : Type} (s : LoopSemStateFiniteExact 64 F)
     (zero : s.clock = 0)
     (evaluated : evaluate (shrinkHOL contexts (.call returns target arguments handler) live).1 s = output) :
     LoopWorkG L f s (shrinkHOL contexts (.call returns target arguments handler) live).1
-      output (189 + 39 * arguments.length + L.shortC + L.rnOpt returns) := by
+      output (L.call + L.argCost arguments.length + L.shortC + L.rnOpt returns) := by
   cases returns with
   | none =>
     simp only [shrinkHOL] at evaluated ⊢
@@ -104,7 +104,7 @@ theorem loop_live_paid_call_shortG {F : Type} {s post : LoopSemStateFiniteExact 
     (short : loopCallShort s returns target arguments handler)
     (run : evaluate (.call returns target arguments handler) s = (result, post))
     (nonerror : result ≠ some .error) :
-    LoopLivePaidG L f s (.call returns target arguments handler) (result, post) (189 + 39 * arguments.length + L.shortC + L.rnOpt returns) := by
+    LoopLivePaidG L f s (.call returns target arguments handler) (result, post) (L.call + L.argCost arguments.length + L.shortC + L.rnOpt returns) := by
   have zero := loop_call_short_nonerror_zeroG short run nonerror
   intro contexts locals live input
   obtain ⟨targetLocals, evaluated, related⟩ := loopLive_compile_correct
@@ -112,7 +112,7 @@ theorem loop_live_paid_call_shortG {F : Type} {s post : LoopSemStateFiniteExact 
     (shrinkHOL contexts (.call returns target arguments handler) live).1
     (shrinkHOL contexts (.call returns target arguments handler) live).2 live
     ⟨run, nonerror, rfl, input⟩
-  refine ⟨targetLocals, 189 + 39 * arguments.length + L.shortC + L.rnOpt returns,
+  refine ⟨targetLocals, L.call + L.argCost arguments.length + L.shortC + L.rnOpt returns,
     loop_live_zero_call_workG { s with locals := locals } returns target arguments handler
       contexts live _ zero evaluated, Nat.le_refl _, ?_⟩
   cases result with

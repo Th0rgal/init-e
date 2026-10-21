@@ -27,7 +27,7 @@ theorem loop_live_paid_loop_nextG {F : Type}
     (again : result = none ∨ result = some (.continue 0))
     (one : LoopLivePaidG L f entry body (result, middle) wb)
     (rest : LoopLivePaidG L f middle (.loop liveIn body liveOut) output wr) :
-    LoopLivePaidG L f s (.loop liveIn body liveOut) output (16 + wb + wr) := by
+    LoopLivePaidG L f s (.loop liveIn body liveOut) output (L.iter + wb + wr) := by
   intro contexts locals wanted input
   obtain ⟨plan⟩ := loop_live_planG contexts liveIn liveOut body wanted
   have headerInput : sptSubspt (sptInter s.locals plan.header) locals := by
@@ -52,7 +52,7 @@ theorem loop_live_paid_loop_nextG {F : Type}
   obtain ⟨postLocals, wr', restRun, restBound, postRelated⟩ := rest contexts middleLocals wanted restInput
   rw [plan.bodyCompiled] at bodyRun
   rw [plan.compiled] at restRun
-  refine ⟨postLocals, 16 + wb' + wr', ?_, by omega, postRelated⟩
+  refine ⟨postLocals, L.iter + wb' + wr', ?_, by omega, postRelated⟩
   simpa only [plan.compiled] using LoopWorkG.loopNext targetCut bodyRun again restRun
 
 /-- A Break-0 iteration does not execute another body. Semantic correctness
@@ -64,7 +64,7 @@ theorem loop_live_paid_loop_breakG {F : Type}
     (bodyRun : LoopWorkG L f entry body (some (.break 0), middle) wb)
     (bodyPaid : LoopLivePaidG L f entry body (some (.break 0), middle) wb)
     (nonerror : (cutRes liveOut (none, middle)).1 ≠ some .error) :
-    LoopLivePaidG L f s (.loop liveIn body liveOut) (cutRes liveOut (none, middle)) (16 + wb) := by
+    LoopLivePaidG L f s (.loop liveIn body liveOut) (cutRes liveOut (none, middle)) (L.iter + wb) := by
   intro contexts locals wanted input
   obtain ⟨plan⟩ := loop_live_planG contexts liveIn liveOut body wanted
   have headerInput : sptSubspt (sptInter s.locals plan.header) locals := by
@@ -81,10 +81,10 @@ theorem loop_live_paid_loop_breakG {F : Type}
   have target := LoopWorkG.loopBreak (f := f) (liveOut := sptInter liveOut wanted) targetCut targetBody
   have target' : LoopWorkG L f { s with locals := locals }
       (shrinkHOL contexts (.loop liveIn body liveOut) wanted).1
-      (cutRes (sptInter liveOut wanted) (none, { middle with locals := middleLocals })) (16 + wb') := by
+      (cutRes (sptInter liveOut wanted) (none, { middle with locals := middleLocals })) (L.iter + wb') := by
     simpa only [plan.compiled] using target
   have source : LoopWorkG L f s (.loop liveIn body liveOut)
-      ((cutRes liveOut (none, middle)).1, (cutRes liveOut (none, middle)).2) (16 + wb) :=
+      ((cutRes liveOut (none, middle)).1, (cutRes liveOut (none, middle)).2) (L.iter + wb) :=
     LoopWorkG.loopBreak cut bodyRun
   exact loop_live_finishG source nonerror contexts locals wanted input target' (by omega)
 
@@ -97,7 +97,7 @@ theorem loop_live_paid_loop_exitG {F : Type}
     (stop : result ≠ none ∧ result ≠ some (.continue 0) ∧ result ≠ some (.break 0))
     (bodyPaid : LoopLivePaidG L f entry body (result, middle) wb)
     (nonerror : exitLoop result ≠ some .error) :
-    LoopLivePaidG L f s (.loop liveIn body liveOut) (exitLoop result, middle) (16 + wb) := by
+    LoopLivePaidG L f s (.loop liveIn body liveOut) (exitLoop result, middle) (L.iter + wb) := by
   intro contexts locals wanted input
   obtain ⟨plan⟩ := loop_live_planG contexts liveIn liveOut body wanted
   have headerInput : sptSubspt (sptInter s.locals plan.header) locals := by
@@ -114,7 +114,7 @@ theorem loop_live_paid_loop_exitG {F : Type}
   have target := LoopWorkG.loopExit (f := f) (liveOut := sptInter liveOut wanted) targetCut targetBody stop
   have target' : LoopWorkG L f { s with locals := locals }
       (shrinkHOL contexts (.loop liveIn body liveOut) wanted).1
-      (exitLoop result, { middle with locals := middleLocals }) (16 + wb') := by
+      (exitLoop result, { middle with locals := middleLocals }) (L.iter + wb') := by
     simpa only [plan.compiled] using target
   exact loop_live_finishG (LoopWorkG.loopExit cut bodyRun stop) nonerror contexts locals wanted
     input target' (by omega)
@@ -124,7 +124,7 @@ theorem loop_live_paid_loop_cutG {F : Type}
     {s post : LoopSemStateFiniteExact 64 F} {liveIn liveOut : NumSet} {body : HolLoopProg 64}
     {result : LoopResultExact 64} (stopped : cutRes liveIn (none, s) = (some result, post))
     (nonerror : some result ≠ some .error) :
-    LoopLivePaidG L f s (.loop liveIn body liveOut) (some result, post) 16 := by
+    LoopLivePaidG L f s (.loop liveIn body liveOut) (some result, post) L.iter := by
   intro contexts locals wanted input
   obtain ⟨plan⟩ := loop_live_planG contexts liveIn liveOut body wanted
   have headerInput : sptSubspt (sptInter s.locals plan.header) locals := by
@@ -136,7 +136,7 @@ theorem loop_live_paid_loop_cutG {F : Type}
   have target := LoopWorkG.loopCut (f := f) (L := L) (body := plan.bodyCode) (liveOut := sptInter liveOut wanted) targetCut
   have target' : LoopWorkG L f { s with locals := locals }
       (shrinkHOL contexts (.loop liveIn body liveOut) wanted).1
-      (some result, { post with locals := targetLocals }) 16 := by
+      (some result, { post with locals := targetLocals }) L.iter := by
     simpa only [plan.compiled] using target
   exact loop_live_finishG (LoopWorkG.loopCut (L := L) (body := body) (liveOut := liveOut) stopped)
     nonerror contexts locals wanted input target' (Nat.le_refl _)

@@ -21,13 +21,13 @@ def whileOverhead : Nat := 3 * statementUnit
 def returnOverhead (n : Nat) : Nat := statementUnit + 40 * n
 
 /-- `raise` of `n` words: a global store per word and the raise itself. -/
-def raiseOverhead (n : Nat) : Nat := 51 * n + 86
+def raiseOverhead (n : Nat) : Nat := 51 * n + 87
 
 /-- A call with `n` argument words. -/
 def callOverhead (n : Nat) : Nat := 196 + 40 * n
 
 /-- Zero-initialised return slots of a declaring call. -/
-def slotOverhead (n : Nat) : Nat := 19 * n
+def slotOverhead (n : Nat) : Nat := 24 * n
 
 /-- Copying `n` returned words to the caller. -/
 def returnCopy (n : Nat) : Nat := 49 * n
@@ -40,7 +40,7 @@ def callExitOverhead : Option (PanSemResultExact 64) → Nat
 
 /-- Storing `n` words: per word the store unit, the address (the temporary
 for the first word, temporary plus offset after) and the value temporary. -/
-def storeOverhead (n : Nat) : Nat := 112 * n - 47 * (n - (n - 1))
+def storeOverhead (n : Nat) : Nat := 120 * n - 48 * (n - (n - 1))
 
 /-- A primitive over `n` argument words: the primitive and one slot per word. -/
 def primitiveOverhead (n : Nat) : Nat := 85 + n

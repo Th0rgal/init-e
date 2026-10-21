@@ -214,7 +214,7 @@ theorem done_plan_no_fire_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
 theorem call_events_score_sharp (arguments bodyEvents : List WorkEvent) (a f x m : Nat) :
     sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f + m)] ++
       bodyEvents ++ [.cost x]))) =
-    sharpScore arguments + (196 + 40 * a + 19 * f + m) + sharpScore bodyEvents + x := by
+    sharpScore arguments + (196 + 40 * a + 24 * f + m) + sharpScore bodyEvents + x := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
     sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead]
   omega

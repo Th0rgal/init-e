@@ -57,9 +57,9 @@ theorem source_loop_sharp_work {F : Type}
 
 /-- The sharp score as an explicit dot product over the canonical event vector. -/
 theorem sharpScore_eq (ev : List WorkEvent) :
-    sharpScore ev = (executionWork ev).nativeCost + 14 * (executionWork ev).movedWords +
+    sharpScore ev = (executionWork ev).nativeCost + 24 * (executionWork ev).movedWords +
       37 * (executionWork ev).nativeEvents +
-      128 * (executionWork ev).globalAccesses + 156 * (executionWork ev).globalWords := by
+      176 * (executionWork ev).globalAccesses + 166 * (executionWork ev).globalWords := by
   simp only [sharpScore, sharpSourceScore, sharpSourceWeights, Work.score]
   omega
 

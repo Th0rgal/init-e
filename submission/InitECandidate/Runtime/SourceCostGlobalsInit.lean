@@ -48,12 +48,12 @@ theorem globals_constStores : ∀ (decls : List (DeclHOL 64)) (context : PanGlob
     simp only [compileDecsExactHOL] at hi
     exact globals_constStores rest context ready i hi
 
-/-- One constant store costs 212: `TopAddr` address 128, constant 19, one
-stored word 65. -/
+/-- One constant store costs 272: `TopAddr` address 176, constant 24, one
+stored word 72. -/
 theorem globals_constStore_score (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {address word : BitVec 64} {r ev}
     (run : StatementRun fn s (.store (.op .sub [.topAddr, .const address]) (.const word)) r post ev)
-    (ok : r ≠ some .error) : sharpSourceScore B ev = 212 := by
+    (ok : r ≠ some .error) : sharpSourceScore B ev = 272 := by
   cases run
   case storeValue =>
     rename_i _ value _ aev vev _ dst src
@@ -61,21 +61,21 @@ theorem globals_constStore_score (B : Nat) {F : Type} {s post : PanSemStateFinit
     have hv : value = .val (.word word) := by
       have := src.sound; simp [expressionValue, evalHOLExact] at this; exact this.symm
     subst hv
-    have constPrice : sourcePrice s (.const word) = 19 := by
+    have constPrice : sourcePrice s (.const word) = 24 := by
       simp [sourcePrice, sourcePrices, exprPrices]
     rw [src.events_eq, srcScore_statement, sharpSourceScore_append, sharpSourceScore_append,
       srcScore_expressionEvents, constPrice]
     simp only [flattenHOL, List.length_singleton, srcScore_memory, srcScore_cost, sharpSourceScore_nil,
-      globalAddressPrice, storeOverhead] at addr ⊢
+      globalAddressPrice, srcK_top, srcK_cst, srcK_op, storeOverhead] at addr ⊢
     omega
   all_goals exact absurd rfl ok
 
-/-- The initialiser block of the generated entry costs `212` per store; the
+/-- The initialiser block of the generated entry costs `272` per store; the
 final `Skip` is free. -/
 theorem globals_inits_score (B : Nat) {F : Type} :
     ∀ (inits : List (ProgHOL 64)) {s post : PanSemStateFiniteExact 64 F} {r ev},
       ConstStores inits → StatementRun fn s (nestedSeqHOL inits) r post ev → r ≠ some .error →
-        sharpSourceScore B ev ≤ 212 * inits.length
+        sharpSourceScore B ev ≤ 272 * inits.length
   | [], _, _, _, _, _, run, _ => by
     cases run
     simp [srcScore_statement, sharpSourceScore_nil]

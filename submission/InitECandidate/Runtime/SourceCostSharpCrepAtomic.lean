@@ -81,7 +81,7 @@ theorem external_transfer_sharp {F : Type} {s post : PanSemStateFiniteExact 64 F
       (sharp_bounded_dec_sharp _ c4 (fun _ t => ⟨_, CrepWorkS.extCall t function _ _ _ _, Nat.le_refl 37⟩)))))
       F t
     refine ⟨w, work, ?_⟩
-    try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at p1 p2 p3 p4 ⊢
+    try simp only [externalOverhead, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at p1 p2 p3 p4 ⊢
     omega
   · exact absurd (Prod.mk.inj run).1.symm resultOk
 
