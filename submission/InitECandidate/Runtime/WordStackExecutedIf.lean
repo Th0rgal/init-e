@@ -12,7 +12,7 @@ open Flapjack.Compiler.Backend.WordToStackRegFormat
 
 /-! Executed-cost transfer for the selected branch, including operand spills
 and materialization of rejected immediates. -/
-def OriginalInductionHypotheses (budget : Nat) {F : Type}
+def OriginalInductionHypothesesFor (price : HolProg 64 → Nat) (budget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (comparison : Cmp) (register : Nat)
     (operand : WordRegImm (BitVec 64))
     (first second : WordLangProgHOL (BitVec 64))
@@ -21,23 +21,23 @@ def OriginalInductionHypotheses (budget : Nat) {F : Type}
     (WordSemStateFiniteExact.getVar register source,
       WordSemStateFiniteExact.getVarImm operand source) = (v3, v4) ∧
     v3 = some x ∧ v4 = some y ∧ wordSemWordCmp comparison x y = some value ∧
-    value = true → ExecutedSimulation ac first source budget) ∧
+    value = true → ExecutedSimulationFor price ac first source budget) ∧
   (∀ v3 v4 x y value,
     (WordSemStateFiniteExact.getVar register source,
       WordSemStateFiniteExact.getVarImm operand source) = (v3, v4) ∧
     v3 = some x ∧ v4 = some y ∧ wordSemWordCmp comparison x y = some value ∧
-    ¬ value = true → ExecutedSimulation ac second source budget)
+    ¬ value = true → ExecutedSimulationFor price ac second source budget)
 
 /-- Flapjack infrastructure deriving the selected recursive simulation from
 actual source execution and its original non-error premise. No branch success
 or operand value is assumed independently, and both literal IH guards remain. -/
-theorem selectedSourceBranch (budget : Nat) {F : Type}
+theorem selectedSourceBranchWithPrice (price : HolProg 64 → Nat) (budget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (comparison : Cmp) (register : Nat)
     (operand : WordRegImm (BitVec 64))
     (first second : WordLangProgHOL (BitVec 64))
     (source sourcePost : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
     (result : Option (WordSemResult 64))
-    (ih : OriginalInductionHypotheses budget ac comparison register operand first second source)
+    (ih : OriginalInductionHypothesesFor price budget ac comparison register operand first second source)
     (execution : WordSemStateFiniteExact.evaluate (.ite comparison register operand first second)
       source = (result, sourcePost))
     (nonerror : result ≠ some .error) :
@@ -47,7 +47,7 @@ theorem selectedSourceBranch (budget : Nat) {F : Type}
       wordSemWordCmp comparison x y = some value ∧
       WordSemStateFiniteExact.evaluate (if value then first else second) source =
         (result, sourcePost) ∧
-      ExecutedSimulation ac (if value then first else second) source budget := by
+      ExecutedSimulationFor price ac (if value then first else second) source budget := by
   cases left : WordSemStateFiniteExact.getVar register source with
   | none => simp [WordSemStateFiniteExact.evaluate, left] at execution; cases nonerror execution.1.symm
   | some x =>
@@ -71,19 +71,21 @@ private theorem physicalOperandEven
   | reg other => simpa [everyVarImmHOL,isPhyVar,OperandEven] using physical
   | imm word => trivial
 
-theorem compCorrectIf (budget : Nat) {F : Type}
+theorem compCorrectIfWithPrice (price : HolProg 64 → Nat)
+    (loadPrice constPrice branchPrice overhead : Nat)
+    (caps : ConditionPriceCaps price loadPrice constPrice branchPrice overhead) (budget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (comparison : Cmp) (register : Nat)
     (operand : WordRegImm (BitVec 64))
     (first second : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
-    (ih : OriginalInductionHypotheses budget ac comparison register operand first second source) :
-    ExecutedSimulation ac (.ite comparison register operand first second) source (budget + 30) := by
-  apply executedSimulation_of_registers
+    (ih : OriginalInductionHypothesesFor price budget ac comparison register operand first second source) :
+    ExecutedSimulationFor price ac (.ite comparison register operand first second) source (budget + overhead) := by
+  apply executedSimulationFor_of_registers price
   intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small actualRegisters
   rcases premises with ⟨execution, notError, related, conventions, flat,
     compilation, lengthBound, bitmapBound, bitmapPrefix, labels, maxBound⟩
   obtain ⟨x,y,value,left,right,compared,selectedRun,selectedIH⟩ :=
-    selectedSourceBranch budget ac comparison register operand first second source sourcePost result ih execution notError
+    selectedSourceBranchWithPrice price budget ac comparison register operand first second source sourcePost result ih execution notError
   have conventionParts := conventions
   simp only [postAllocConventionsHOL,everyVarHOL,everyStackVarHOL,
     callArgConventionHOL,Bool.and_eq_true] at conventionParts
@@ -92,7 +94,7 @@ theorem compCorrectIf (budget : Nat) {F : Type}
   have leftEven : register % 2 = 0 := by simpa [isPhyVar] using leftPhy
   have rightEven := physicalOperandEven operand rightPhy
   obtain ⟨loaded,loadedRel,sameClock,bitmapMono,codeMono,routing,costRouting⟩ :=
-    prepareCondition_cost ac comparison register operand k f frame source target lens x y value
+    prepareCondition_costWithPrice price loadPrice constPrice branchPrice overhead caps ac comparison register operand k f frame source target lens x y value
       related leftEven rightEven left right compared small
   rcases firstCompile : compNative ac false first (bs,n) (k,f,frame) with ⟨q1,middle⟩
   rcases secondCompile : compNative ac false second middle (k,f,frame) with ⟨q2,after⟩
@@ -163,8 +165,27 @@ theorem compCorrectIf (budget : Nat) {F : Type}
   · have bound := costRouting q1 q2 (target.clock+extraClock)
     rw [sameClock] at bound
     rw [sameClock]
-    exact bound.trans (by simpa only [Nat.add_comm] using Nat.add_le_add_left selectedCost 30)
+    exact bound.trans (by simpa only [Nat.add_comm] using Nat.add_le_add_left selectedCost overhead)
 
 
+abbrev OriginalInductionHypotheses (budget : Nat) {F : Type}
+    (ac : AsmConfigExact 64) (comparison : Cmp) (register : Nat)
+    (operand : WordRegImm (BitVec 64))
+    (first second : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) : Prop :=
+  OriginalInductionHypothesesFor (removalLocalPrice 6 riscvConfig.addrOffset)
+    budget ac comparison register operand first second source
+
+theorem compCorrectIf (budget : Nat) {F : Type}
+    (ac : AsmConfigExact 64) (comparison : Cmp) (register : Nat)
+    (operand : WordRegImm (BitVec 64))
+    (first second : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
+    (ih : OriginalInductionHypotheses budget ac comparison register operand first second source) :
+    ExecutedSimulation ac (.ite comparison register operand first second) source (budget + 30) :=
+  compCorrectIfWithPrice (removalLocalPrice 6 riscvConfig.addrOffset) 7 12 11 30
+    conservativeConditionPriceCaps budget ac comparison register operand first second source ih
+
+#print axioms compCorrectIfWithPrice
 #print axioms compCorrectIf
 end InitECandidate.Runtime.WordToStack.ExecutedIf

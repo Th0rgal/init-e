@@ -10,13 +10,14 @@ open Flapjack.Compiler.Backend.WordToStack.Native
 
 /-! Additive sequence composition, retaining the actual first-run guard on
 its second IH and all original early resource-limit result branches. -/
-theorem compCorrectSeqFirstNonNone (firstBudget : Nat) {F : Type}
+theorem compCorrectSeqFirstNonNoneWithPrice (price : HolProg 64 → Nat)
+    (freeSeq : ∀ a b, price (.seq a b) = 0) (firstBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (first second : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
-    (ih : ExecutedSimulation ac first source firstBudget)
+    (ih : ExecutedSimulationFor price ac first source firstBudget)
     (firstNonNone : (WordSemStateFiniteExact.evaluate first source).1 ≠ none) :
-    ExecutedSimulation ac (.seq first second) source firstBudget := by
-  apply executedSimulation_of_registers
+    ExecutedSimulationFor price ac (.seq first second) source firstBudget := by
+  apply executedSimulationFor_of_registers price
   intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small actualRegisters
   rcases premises with ⟨execution, notError, related, conventions, flat,
     compilation, lengthBound, bitmapBound, bitmapPrefix, labels, maxBound⟩
@@ -71,7 +72,7 @@ theorem compCorrectSeqFirstNonNone (firstBudget : Nat) {F : Type}
       | none => exact False.elim (targetNonNone rfl)
       | some output => rfl
     · rw [stackExecutionCost_seq]
-      simp only [show removalLocalPrice 6 riscvConfig.addrOffset (.seq firstCode secondCode) = 0 from rfl,
+      simp only [show price (.seq firstCode secondCode) = 0 from freeSeq _ _,
         Nat.zero_add, targetRun]
       cases targetResult with
       | none => exact False.elim (targetNonNone rfl)
@@ -79,16 +80,17 @@ theorem compCorrectSeqFirstNonNone (firstBudget : Nat) {F : Type}
 
 /-- A reached suffix adds its actual executed bound. The original early
 resource-limit branch remains valid and stops before evaluating the suffix. -/
-theorem compCorrectSeqFirstNone (firstBudget secondBudget : Nat) {F : Type}
+theorem compCorrectSeqFirstNoneWithPrice (price : HolProg 64 → Nat)
+    (freeSeq : ∀ a b, price (.seq a b) = 0) (firstBudget secondBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (first second : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
     (ih : (∀ result middle,
       (result, middle) = WordSemStateFiniteExact.evaluate first source ∧ result = none →
-        ExecutedSimulation ac second middle secondBudget) ∧ ExecutedSimulation ac first source firstBudget)
+        ExecutedSimulationFor price ac second middle secondBudget) ∧ ExecutedSimulationFor price ac first source firstBudget)
     (firstNone : (WordSemStateFiniteExact.evaluate first source).1 = none) :
-    ExecutedSimulation ac (.seq first second) source (firstBudget + secondBudget) := by
+    ExecutedSimulationFor price ac (.seq first second) source (firstBudget + secondBudget) := by
   classical
-  apply executedSimulation_of_registers
+  apply executedSimulationFor_of_registers price
   intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small actualRegisters
   rcases premises with ⟨execution, notError, related, conventions, flat,
     compilation, lengthBound, bitmapBound, bitmapPrefix, labels, maxBound⟩
@@ -170,7 +172,7 @@ theorem compCorrectSeqFirstNone (firstBudget secondBudget : Nat) {F : Type}
         · rename_i equal
           exact False.elim (mismatch (by simpa using equal))
       · rw [stackExecutionCost_seq]
-        simp only [show removalLocalPrice 6 riscvConfig.addrOffset (.seq firstCode secondCode) = 0 from rfl,
+        simp only [show price (.seq firstCode secondCode) = 0 from freeSeq _ _,
           Nat.zero_add, targetRun, Nat.add_zero]
         exact firstCost.trans (Nat.le_add_right firstBudget secondBudget)
     | none =>
@@ -226,32 +228,62 @@ theorem compCorrectSeqFirstNone (firstBudget secondBudget : Nat) {F : Type}
         rw [clockEq, extendedFirst]
         exact secondRun
       · have firstCostExtended := stackExecutionCost_addClock
-          (removalLocalPrice 6 riscvConfig.addrOffset) firstCode
+          (price) firstCode
           {target with clock := target.clock + clock} targetMiddle none targetRun (by simp) secondClock
         have clockEq : {target with clock := target.clock + (clock + secondClock)} =
             {{target with clock := target.clock + clock} with
               clock := (target.clock + clock) + secondClock} := by
           simp only [Nat.add_assoc]
         rw [clockEq, stackExecutionCost_seq]
-        simp only [show removalLocalPrice 6 riscvConfig.addrOffset (.seq firstCode secondCode) = 0 from rfl,
+        simp only [show price (.seq firstCode secondCode) = 0 from freeSeq _ _,
           Nat.zero_add, extendedFirst]
         rw [firstCostExtended]
         exact Nat.add_le_add firstCost secondCost
 
 /-- Quantitative Seq constructor assembled from the original first-run
 NONE/non-NONE split, with no extra branch or target-run hypothesis. -/
+theorem compCorrectSeqWithPrice (price : HolProg 64 → Nat)
+    (freeSeq : ∀ a b, price (.seq a b) = 0) (firstBudget secondBudget : Nat) {F : Type}
+    (ac : AsmConfigExact 64) (first second : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
+    (ih : (∀ result middle,
+      (result, middle) = WordSemStateFiniteExact.evaluate first source ∧ result = none →
+        ExecutedSimulationFor price ac second middle secondBudget) ∧ ExecutedSimulationFor price ac first source firstBudget) :
+    ExecutedSimulationFor price ac (.seq first second) source (firstBudget + secondBudget) := by
+  by_cases guard : (WordSemStateFiniteExact.evaluate first source).1 = none
+  · exact compCorrectSeqFirstNoneWithPrice price freeSeq firstBudget secondBudget ac first second source ih guard
+  · exact (compCorrectSeqFirstNonNoneWithPrice price freeSeq firstBudget ac first second source ih.2 guard).mono
+      (Nat.le_add_right firstBudget secondBudget)
+
+
+
+theorem compCorrectSeqFirstNonNone (firstBudget : Nat) {F : Type}
+    (ac : AsmConfigExact 64) (first second : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
+    (ih : ExecutedSimulation ac first source firstBudget)
+    (firstNonNone : (WordSemStateFiniteExact.evaluate first source).1 ≠ none) :
+    ExecutedSimulation ac (.seq first second) source firstBudget :=
+  compCorrectSeqFirstNonNoneWithPrice (removalLocalPrice 6 riscvConfig.addrOffset) (fun _ _ => rfl) firstBudget ac first second source ih firstNonNone
+
+theorem compCorrectSeqFirstNone (firstBudget secondBudget : Nat) {F : Type}
+    (ac : AsmConfigExact 64) (first second : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
+    (ih : (∀ result middle,
+      (result, middle) = WordSemStateFiniteExact.evaluate first source ∧ result = none →
+        ExecutedSimulation ac second middle secondBudget) ∧ ExecutedSimulation ac first source firstBudget)
+    (firstNone : (WordSemStateFiniteExact.evaluate first source).1 = none) :
+    ExecutedSimulation ac (.seq first second) source (firstBudget + secondBudget) :=
+  compCorrectSeqFirstNoneWithPrice (removalLocalPrice 6 riscvConfig.addrOffset) (fun _ _ => rfl) firstBudget secondBudget ac first second source ih firstNone
+
 theorem compCorrectSeq (firstBudget secondBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (first second : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
     (ih : (∀ result middle,
       (result, middle) = WordSemStateFiniteExact.evaluate first source ∧ result = none →
         ExecutedSimulation ac second middle secondBudget) ∧ ExecutedSimulation ac first source firstBudget) :
-    ExecutedSimulation ac (.seq first second) source (firstBudget + secondBudget) := by
-  by_cases guard : (WordSemStateFiniteExact.evaluate first source).1 = none
-  · exact compCorrectSeqFirstNone firstBudget secondBudget ac first second source ih guard
-  · exact (compCorrectSeqFirstNonNone firstBudget ac first second source ih.2 guard).mono
-      (Nat.le_add_right firstBudget secondBudget)
+    ExecutedSimulation ac (.seq first second) source (firstBudget + secondBudget) :=
+  compCorrectSeqWithPrice (removalLocalPrice 6 riscvConfig.addrOffset) (fun _ _ => rfl) firstBudget secondBudget ac first second source ih
 
-
+#print axioms compCorrectSeqWithPrice
 #print axioms compCorrectSeq
 end InitECandidate.Runtime.WordToStack.ExecutedSeq

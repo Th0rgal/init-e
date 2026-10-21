@@ -12,7 +12,7 @@ open Flapjack.Compiler.Backend.WordToStack.Native
 
 /-! Additive bounded Loop composition using only its actual cut/body run and
 continuing nonzero-clock reentry. All original resource-limit branches remain. -/
-def InductionHypotheses (bodyBudget recursiveBudget : Nat) {F : Type}
+def InductionHypothesesFor (price : HolProg 64 → Nat) (bodyBudget recursiveBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (names exitNames : Spt Unit)
     (body : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) : Prop :=
@@ -20,19 +20,19 @@ def InductionHypotheses (bodyBudget recursiveBudget : Nat) {F : Type}
     WordSemStateFiniteExact.cutState (names,.ln) source = some cutSource ∧
     (bodyResult,bodyPost) = WordSemStateFiniteExact.evaluate body cutSource ∧
     wordSemContLoop bodyResult = true ∧ bodyPost.clock ≠ 0 →
-    ExecutedSimulation ac (wordSemSTOP (.loop names body exitNames))
+    ExecutedSimulationFor price ac (wordSemSTOP (.loop names body exitNames))
       (WordSemStateFiniteExact.decClock bodyPost) recursiveBudget) ∧
   (∀ cutSource, WordSemStateFiniteExact.cutState (names,.ln) source = some cutSource →
-    ExecutedSimulation ac body cutSource bodyBudget)
+    ExecutedSimulationFor price ac body cutSource bodyBudget)
 
-theorem enterBody (bodyBudget recursiveBudget : Nat) {F : Type}
+theorem enterBodyWithPrice (price : HolProg 64 → Nat) (bodyBudget recursiveBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (names exitNames : Spt Unit)
     (body : WordLangProgHOL (BitVec 64))
     (source cutSource bodyPost : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
     (target : StackSemStateFiniteExact 64 LabToTarget.Config F) (k f frame : Nat) (lens : List Nat)
     (bs bsPost : AppList (BitVec 64)) (n nPost : Nat)
     (compiled : Compiler.Backend.StackLang.HolProg 64) (bodyResult : Option (WordSemResult 64))
-    (ih : InductionHypotheses bodyBudget recursiveBudget ac names exitNames body source)
+    (ih : InductionHypothesesFor price bodyBudget recursiveBudget ac names exitNames body source)
     (cut : WordSemStateFiniteExact.cutState (names,.ln) source = some cutSource)
     (execution : WordSemStateFiniteExact.evaluate body cutSource = (bodyResult,bodyPost))
     (notError : bodyResult ≠ some .error)
@@ -50,7 +50,7 @@ theorem enterBody (bodyBudget recursiveBudget : Nat) {F : Type}
       compiled = .loop compiledBody ∧
       StackSemEvaluate.evaluate (compiledBody,{target with clock := target.clock+ck}) = (targetResult,targetPost) ∧
       compCorrectResult ac k f frame cutSource bodyPost targetPost bodyResult targetResult lens ∧
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
         compiledBody {target with clock := target.clock+ck} ≤ bodyBudget := by
   rcases bodyComp : compNative ac false body (bs,n) (k,f,frame) with ⟨compiledBody,next⟩
   simp only [compNative,bodyComp,Prod.mk.injEq] at compilation
@@ -73,7 +73,7 @@ theorem enterBody (bodyBudget recursiveBudget : Nat) {F : Type}
       lengthBound,bitmapBound,bitmapPrefix,bodyLabels,bodyBound⟩ small
   exact ⟨compiledBody,ck,post,res,rfl,actual,resultRel,cost actualRegisters⟩
 
-theorem enterRecursive (bodyBudget recursiveBudget : Nat) {F : Type}
+theorem enterRecursiveWithPrice (price : HolProg 64 → Nat) (bodyBudget recursiveBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (names exitNames : Spt Unit)
     (body : WordLangProgHOL (BitVec 64))
     (source cutSource bodyPost finalSource : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
@@ -81,7 +81,7 @@ theorem enterRecursive (bodyBudget recursiveBudget : Nat) {F : Type}
     (bs bsPost : AppList (BitVec 64)) (n nPost bodyClock : Nat)
     (compiledBody : Compiler.Backend.StackLang.HolProg 64)
     (bodyResult finalResult : Option (WordSemResult 64))
-    (ih : InductionHypotheses bodyBudget recursiveBudget ac names exitNames body source)
+    (ih : InductionHypothesesFor price bodyBudget recursiveBudget ac names exitNames body source)
     (cut : WordSemStateFiniteExact.cutState (names,.ln) source = some cutSource)
     (sourceBody : WordSemStateFiniteExact.evaluate body cutSource = (bodyResult,bodyPost))
     (continues : wordSemContLoop bodyResult = true) (nonzero : bodyPost.clock ≠ 0)
@@ -108,7 +108,7 @@ theorem enterRecursive (bodyBudget recursiveBudget : Nat) {F : Type}
         (result,targetPost) ∧
       compCorrectResult ac k f frame (WordSemStateFiniteExact.decClock bodyPost)
         finalSource targetPost finalResult result lens ∧
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
         (.loop compiledBody) {StackSemStateOps.decClock targetBody with clock :=
           (StackSemStateOps.decClock targetBody).clock+clock} ≤ recursiveBudget := by
   have recursiveIH := ih.1 cutSource bodyResult bodyPost ⟨cut,sourceBody.symm,continues,nonzero⟩
@@ -132,14 +132,15 @@ theorem enterRecursive (bodyBudget recursiveBudget : Nat) {F : Type}
       ⟨sourceRecursive,notError,relation,conventions,flat,compilation,lengthBound,
         metadata.1,metadata.2.1,metadata.2.2,maxBound⟩)
 
-theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
+theorem compCorrectLoopWithPrice (price : HolProg 64 → Nat)
+    (loopNode : ∀ body, price (.loop body) = 2) (bodyBudget recursiveBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (names exitNames : Spt Unit)
     (body : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
-    (ih : InductionHypotheses bodyBudget recursiveBudget ac names exitNames body source) :
-    ExecutedSimulation ac (.loop names body exitNames) source (2 + bodyBudget + recursiveBudget) := by
+    (ih : InductionHypothesesFor price bodyBudget recursiveBudget ac names exitNames body source) :
+    ExecutedSimulationFor price ac (.loop names body exitNames) source (2 + bodyBudget + recursiveBudget) := by
   classical
-  apply executedSimulation_of_registers
+  apply executedSimulationFor_of_registers price
   intro k f frame finalSource target finalResult bs bsPost n nPost compiled lens premises small actualRegisters
   rcases premises with ⟨sourceLoop,notError,related,conventions,flat,compilation,
     lengthBound,bitmapBound,bitmapPrefix,labels,maxBound⟩
@@ -153,7 +154,7 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
     have bodyError := bodyNonError names exitNames body source cutSource bodyPost finalSource
       bodyResult finalResult cut sourceBody sourceLoop notError
     obtain ⟨compiledBody,bodyClock,targetBody,targetResult,compiledEq,targetRun,bodyConclusion,bodyCost⟩ :=
-      enterBody bodyBudget recursiveBudget ac names exitNames body source cutSource bodyPost target k f frame lens
+      enterBodyWithPrice price bodyBudget recursiveBudget ac names exitNames body source cutSource bodyPost target k f frame lens
         bs bsPost n nPost compiled bodyResult ih cut sourceBody bodyError related conventions
         flat compilation lengthBound bitmapBound bitmapPrefix labels maxBound small actualRegisters
     subst compiled
@@ -171,6 +172,7 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
           exact False.elim (mismatch (by simpa using equal))
       rw [stackExecutionCost_loop_run _ _ _ _ _ targetRun]
       simp only [resultHalt, StackSemControl.contLoop, Bool.false_and, Bool.false_eq_true, ↓reduceIte, Nat.add_zero]
+      simp only [loopNode]
       change 2 + _ ≤ 2 + bodyBudget + recursiveBudget
       omega
     · have resultEq : targetResult = bodyResult.map compileResult := (not_ne_iff.mp mismatch).symm
@@ -196,11 +198,12 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
             timeoutRelation ac k f frame source bodyPost targetBody lens bodyRel, ?_⟩
           rw [stackExecutionCost_loop_run _ _ _ _ _ targetRun]
           simp only [targetZero, bne_self_eq_false, Bool.and_false, Bool.false_eq_true, ↓reduceIte, Nat.add_zero]
+          simp only [loopNode]
           change 2 + _ ≤ 2 + bodyBudget + recursiveBudget
           omega
         · simp only [zero] at tailRun
           obtain ⟨recursiveClock,post,res,recursiveRun,recursiveConclusion,recursiveCost⟩ :=
-            enterRecursive bodyBudget recursiveBudget ac names exitNames body source cutSource bodyPost finalSource target targetBody
+            enterRecursiveWithPrice price bodyBudget recursiveBudget ac names exitNames body source cutSource bodyPost finalSource target targetBody
               k f frame lens bs bsPost n nPost bodyClock compiledBody bodyResult finalResult ih cut sourceBody
               continues zero (by simpa [wordSemSTOP] using tailRun) notError targetRun bodyConclusion
               conventions flat compilation lengthBound bitmapBound bitmapPrefix labels maxBound small actualRegisters
@@ -227,7 +230,7 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
                 {{target with clock := target.clock+bodyClock} with clock :=
                   (target.clock+bodyClock)+recursiveClock} := by simp only [Nat.add_assoc]
             have bodyStable := stackExecutionCost_addClock
-              (removalLocalPrice 6 riscvConfig.addrOffset) compiledBody
+              (price) compiledBody
               {target with clock := target.clock+bodyClock} targetBody
               (bodyResult.map compileResult) targetRun notTimeout recursiveClock
             rw [startEq, stackExecutionCost_loop_run _ _ _ _ _ boosted]
@@ -243,6 +246,7 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
               have arithmetic : targetBody.clock+recursiveClock-1 = (targetBody.clock-1)+recursiveClock := by omega
               rw [arithmetic]
             rw [decEq, bodyStable]
+            simp only [loopNode]
             change 2 + _ + _ ≤ 2 + bodyBudget + recursiveBudget
             exact Nat.add_le_add (Nat.add_le_add_left bodyCost 2) recursiveCost
       · simp only [continues] at tailRun
@@ -263,6 +267,7 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
             rw [stackExecutionCost_loop_run _ _ _ _ _ targetRun]
             simp only [compileResult, Option.map_some, StackSemControl.contLoop, Bool.false_and,
               Bool.false_eq_true, ↓reduceIte, Nat.add_zero]
+            simp only [loopNode]
             change 2 + _ ≤ 2 + bodyBudget + recursiveBudget
             omega
         · have sourceExit : (wordSemExitLoop bodyResult,bodyPost) = (finalResult,finalSource) := by
@@ -290,8 +295,26 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
               (cutHandler names source cutSource cut) bodyConclusion
           · rw [stackExecutionCost_loop_run _ _ _ _ _ targetRun]
             simp only [targetExits, Bool.false_and, Bool.false_eq_true, ↓reduceIte, Nat.add_zero]
+            simp only [loopNode]
             change 2 + _ ≤ 2 + bodyBudget + recursiveBudget
             omega
 
+abbrev InductionHypotheses (bodyBudget recursiveBudget : Nat) {F : Type}
+    (ac : AsmConfigExact 64) (names exitNames : Spt Unit)
+    (body : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) : Prop :=
+  InductionHypothesesFor (removalLocalPrice 6 riscvConfig.addrOffset)
+    bodyBudget recursiveBudget ac names exitNames body source
+
+theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
+    (ac : AsmConfigExact 64) (names exitNames : Spt Unit)
+    (body : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
+    (ih : InductionHypotheses bodyBudget recursiveBudget ac names exitNames body source) :
+    ExecutedSimulation ac (.loop names body exitNames) source (2 + bodyBudget + recursiveBudget) :=
+  compCorrectLoopWithPrice (removalLocalPrice 6 riscvConfig.addrOffset) (fun _ => rfl)
+    bodyBudget recursiveBudget ac names exitNames body source ih
+
+#print axioms compCorrectLoopWithPrice
 #print axioms compCorrectLoop
 end InitECandidate.Runtime.WordToStack.ExecutedLoop

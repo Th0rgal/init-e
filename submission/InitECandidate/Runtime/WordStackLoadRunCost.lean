@@ -6,16 +6,19 @@ open Flapjack.Compiler.Encoders.RiscV.Target
 /-- Spill-prefix composition at its actual post-state. Unlike a uniform
 suffix ceiling, this lemma preserves the specific state needed by a branch
 or a recursive compiler simulation. -/
-theorem wordStackLoad_cost_run {F : Type} (loads : List (Nat × Nat))
+theorem wordStackLoad_cost_runWithPrice (price : HolProg 64 → Nat) (loadPrice : Nat)
+    (freeSeq : ∀ a b, price (.seq a b) = 0)
+    (loadBound : ∀ register offset, offset ≤ 91 → price (.stackLoad register offset) ≤ loadPrice)
+    {F : Type} (loads : List (Nat × Nat))
     (body : HolProg 64)
     (source loaded : StackSemStateFiniteExact 64 LabToTarget.Config F)
     (small : ∀ entry ∈ loads, entry.2 ≤ 91)
     (run : StackSemEvaluate.evaluate
       (WordToStack.Native.wStackLoadNative loads .skip, source) = (none, loaded)) :
-    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    stackExecutionCost (fun p _ => price p)
       (WordToStack.Native.wStackLoadNative loads body) source ≤
-      7 * loads.length +
-        stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) body loaded := by
+      loadPrice * loads.length +
+        stackExecutionCost (fun p _ => price p) body loaded := by
   induction loads generalizing source with
   | nil =>
     simp only [WordToStack.Native.wStackLoadNative, StackSemEvaluate.evaluate_skip,
@@ -36,15 +39,30 @@ theorem wordStackLoad_cost_run {F : Type} (loads : List (Nat × Nat))
     | none =>
       have suffix := ih middle tailSmall run
       rw [WordToStack.Native.wStackLoadNative, stackExecutionCost_seq]
-      simp only [show removalLocalPrice 6 riscvConfig.addrOffset
-          (.seq (.stackLoad register offset) (WordToStack.Native.wStackLoadNative rest body)) = 0 from rfl,
+      simp only [show price
+          (.seq (.stackLoad register offset) (WordToStack.Native.wStackLoadNative rest body)) = 0 from freeSeq _ _,
         Nat.zero_add, headRun]
-      have localCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
-          (.stackLoad register offset) source = 7 := by
-        simp only [stackExecutionCost, guest_spill_load_price register offset headSmall]
-      rw [localCost]
+      have localCost : stackExecutionCost (fun p _ => price p)
+          (.stackLoad register offset) source ≤ loadPrice := by
+        simpa only [stackExecutionCost] using loadBound register offset headSmall
       simp only [List.length_cons, Nat.mul_add, Nat.mul_one]
       omega
 
+theorem wordStackLoad_cost_run {F : Type} (loads : List (Nat × Nat))
+    (body : HolProg 64)
+    (source loaded : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (small : ∀ entry ∈ loads, entry.2 ≤ 91)
+    (run : StackSemEvaluate.evaluate
+      (WordToStack.Native.wStackLoadNative loads .skip, source) = (none, loaded)) :
+    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      (WordToStack.Native.wStackLoadNative loads body) source ≤
+      7 * loads.length +
+        stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p) body loaded :=
+  wordStackLoad_cost_runWithPrice (removalLocalPrice 6 riscvConfig.addrOffset) 7
+    (fun _ _ => rfl) (fun register offset small => by
+      simp only [guest_spill_load_price register offset small]; exact Nat.le_refl _)
+    loads body source loaded small run
+
+#print axioms wordStackLoad_cost_runWithPrice
 #print axioms wordStackLoad_cost_run
 end InitECandidate.Runtime.StackToLab

@@ -9,7 +9,31 @@ open Flapjack.WordToStackProofs.CompCorrect.If
 open Flapjack.Compiler.Backend.WordToStack.Native
 open Flapjack.Compiler.Backend.WordToStackRegFormat
 
-private theorem loadConditionCost {F : Type} (loads : List (Nat × Nat))
+/-- Local charges needed for condition preparation; the selected branch
+keeps its own target price and is never bounded by a uniform suffix budget. -/
+structure ConditionPriceCaps (price : HolProg 64 → Nat) (loadPrice constPrice branchPrice overhead : Nat) : Prop where
+  freeSeq : ∀ a b, price (.seq a b) = 0
+  load : ∀ register offset, offset ≤ 91 → price (.stackLoad register offset) ≤ loadPrice
+  constant : ∀ register value, price (.inst (.const register value)) ≤ constPrice
+  branch : ∀ cmp reg operand first second, price (.ite cmp reg operand first second) = branchPrice
+  twoLoads : 2 * loadPrice + branchPrice ≤ overhead
+  loadConstant : loadPrice + constPrice + branchPrice ≤ overhead
+
+/-- The conservative instruction/spill table satisfies condition routing. -/
+def conservativeConditionPriceCaps :
+    ConditionPriceCaps (removalLocalPrice 6 riscvConfig.addrOffset) 7 12 11 30 where
+  freeSeq := fun _ _ => rfl
+  load := fun r o h => by simp only [guest_spill_load_price r o h]; exact Nat.le_refl _
+  constant := fun r v => by
+    have bound := const_native_length_le r v
+    simpa only [removalLocalPrice, nativePriceWithGap, instLocalCost] using Nat.add_le_add_right bound 6
+  branch := fun _ _ _ _ _ => rfl
+  twoLoads := by decide
+  loadConstant := by decide
+
+private theorem loadConditionCostWithPrice (price : HolProg 64 → Nat)
+    (loadPrice constPrice branchPrice overhead : Nat)
+    (caps : ConditionPriceCaps price loadPrice constPrice branchPrice overhead) {F : Type} (loads : List (Nat × Nat))
     (target post : StackSemStateFiniteExact 64 LabToTarget.Config F)
     (comparison : Cmp) (register : Nat) (operand : HolRegImm 64)
     (first second : HolProg 64) (x y : WordLocW 64) (value : Bool)
@@ -18,9 +42,9 @@ private theorem loadConditionCost {F : Type} (loads : List (Nat × Nat))
     (left : StackSemStateOps.getVar register post = some x)
     (right : StackSemStateOps.getVarImm (HolRegImm.toWordRegImm operand) post = some y)
     (compared : wordSemWordCmp comparison x y = some value) (clock : Nat) :
-    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+    stackExecutionCost (fun p _ => price p)
       (wStackLoadNative loads (.ite comparison register operand first second)) {target with clock := clock} ≤
-      7 * loads.length + 11 + stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      loadPrice * loads.length + branchPrice + stackExecutionCost (fun p _ => price p)
         (if value then first else second) {post with clock := clock} := by
   have runClock : StackSemEvaluate.evaluate (wStackLoadNative loads .skip, {target with clock := clock}) =
       (none, {post with clock := clock}) := by
@@ -30,13 +54,15 @@ private theorem loadConditionCost {F : Type} (loads : List (Nat × Nat))
   have rightClock : StackSemStateOps.getVarImm (HolRegImm.toWordRegImm operand)
       {post with clock := clock} = some y := by
     cases operand <;> simpa [HolRegImm.toWordRegImm, StackSemStateOps.getVarImm, StackSemStateOps.getVar] using right
-  exact wordStackLoad_condition_cost loads comparison register operand first second _ _ x y value
+  exact wordStackLoad_condition_costWithPrice price loadPrice branchPrice caps.freeSeq caps.load caps.branch loads comparison register operand first second _ _ x y value
     small runClock leftClock rightClock compared
 
 /-- Full original condition preparation, strengthened with an executed-cost
 routing bound. Spills, rejected immediates, and the exact loaded state are
 proved from the original relation and source operands. -/
-theorem prepareCondition_cost {F : Type}
+theorem prepareCondition_costWithPrice (price : HolProg 64 → Nat)
+    (loadPrice constPrice branchPrice overhead : Nat)
+    (caps : ConditionPriceCaps price loadPrice constPrice branchPrice overhead) {F : Type}
     (ac : AsmConfigExact 64) (comparison : Cmp) (register : Nat)
     (operand : WordRegImm (BitVec 64)) (k f frame : Nat)
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
@@ -58,10 +84,10 @@ theorem prepareCondition_cost {F : Type}
             {target with clock := clock}) =
         StackSemEvaluate.evaluate (if value then first else second, {post with clock := clock})) ∧
       ∀ (first second : HolProg 64) (clock : Nat),
-        stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+        stackExecutionCost (fun p _ => price p)
           (conditionProgram ac comparison register operand (k,f,frame) first second)
           {target with clock := clock} ≤
-          30 + stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+          overhead + stackExecutionCost (fun p _ => price p)
             (if value then first else second) {post with clock := clock} := by
   rcases regCompile : wReg1 register (k,f,frame) with ⟨loads, physical⟩
   have loadFacts := wordReg1_loads register (k,f,frame) small
@@ -98,10 +124,14 @@ theorem prepareCondition_cost {F : Type}
         rcases List.mem_append.mp member with member | member
         · exact loadFacts.2 entry member
         · exact otherFacts.2 entry member
-      have cost := loadConditionCost (loads ++ otherLoads) target post comparison physical
+      have cost := loadConditionCostWithPrice price loadPrice constPrice branchPrice overhead caps (loads ++ otherLoads) target post comparison physical
         (.reg otherPhysical) first second x y value bothSmall bothRun
         ((preserve physical physicalNe).trans firstRead) secondRead compared clock
       simp only [List.length_append] at cost
+      have loadsLe := Nat.mul_le_mul_left loadPrice loadFacts.1
+      have othersLe := Nat.mul_le_mul_left loadPrice otherFacts.1
+      have overheadLe := caps.twoLoads
+      simp only [Nat.mul_add, Nat.mul_one] at cost loadsLe othersLe
       omega
   | imm word =>
     simp only [WordSemStateFiniteExact.getVarImm, Option.some.injEq] at right
@@ -118,8 +148,11 @@ theorem prepareCondition_cost {F : Type}
         exact loadConditionRun loads target post comparison physical (.imm word) first second x (.word word) value loadRun firstRead rfl compared clock
       · intro first second clock
         simp only [conditionProgram, regCompile, immediate, if_true]
-        have cost := loadConditionCost loads target post comparison physical (.imm word)
+        have cost := loadConditionCostWithPrice price loadPrice constPrice branchPrice overhead caps loads target post comparison physical (.imm word)
           first second x (.word word) value loadFacts.2 loadRun firstRead rfl compared clock
+        have loadsLe := Nat.mul_le_mul_left loadPrice loadFacts.1
+        have overheadLe := caps.loadConstant
+        simp only [Nat.mul_one] at loadsLe
         omega
     · obtain ⟨constantPost, constantRun, constantClock, constantRel, _, _, constantRead⟩ :=
         ConstantInstruction.evaluateConstInst ac k f frame 0 source target lens word related
@@ -150,18 +183,52 @@ theorem prepareCondition_cost {F : Type}
           rw [ConstantInstruction.evaluateConstInstClock, constantRun]
           rfl
         rw [stackExecutionCost_seq]
-        simp only [show removalLocalPrice 6 riscvConfig.addrOffset
+        simp only [show price
             (.seq (.inst (.const (k+1) word))
-              (wStackLoadNative loads (.ite comparison physical (.reg (k+1)) first second))) = 0 from rfl,
+              (wStackLoadNative loads (.ite comparison physical (.reg (k+1)) first second))) = 0 from caps.freeSeq _ _,
           Nat.zero_add, constRunClock]
-        have cost := loadConditionCost loads constantPost post comparison physical (.reg (k+1))
+        have cost := loadConditionCostWithPrice price loadPrice constPrice branchPrice overhead caps loads constantPost post comparison physical (.reg (k+1))
           first second x (.word word) value loadFacts.2 loadRun firstRead secondRead compared clock
-        have constCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
-            (.inst (.const (k+1) word)) {target with clock := clock} ≤ 12 := by
-          have bound := const_native_length_le (k+1) word
-          simpa only [stackExecutionCost, removalLocalPrice, nativePriceWithGap, instLocalCost]
-            using Nat.add_le_add_right bound 6
+        have constCost : stackExecutionCost (fun p _ => price p)
+            (.inst (.const (k+1) word)) {target with clock := clock} ≤ constPrice := by
+          simpa only [stackExecutionCost] using caps.constant (k+1) word
+        have loadsLe := Nat.mul_le_mul_left loadPrice loadFacts.1
+        have overheadLe := caps.loadConstant
+        simp only [Nat.mul_one] at loadsLe
         omega
 
+theorem prepareCondition_cost {F : Type}
+    (ac : AsmConfigExact 64) (comparison : Cmp) (register : Nat)
+    (operand : WordRegImm (BitVec 64)) (k f frame : Nat)
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
+    (target : StackSemStateFiniteExact 64 LabToTarget.Config F) (lens : List Nat)
+    (x y : WordLocW 64) (value : Bool)
+    (related : stateRel ac k f frame source target lens 0)
+    (leftEven : register % 2 = 0)
+    (rightEven : OperandEven operand)
+    (left : WordSemStateFiniteExact.getVar register source = some x)
+    (right : WordSemStateFiniteExact.getVarImm operand source = some y)
+    (compared : wordSemWordCmp comparison x y = some value)
+    (small : f ≤ 92) :
+    ∃ post : StackSemStateFiniteExact 64 LabToTarget.Config F,
+      stateRel ac k f frame source post lens 0 ∧ target.clock = post.clock ∧
+      target.bitmaps.IsPrefix post.bitmaps ∧ sptSubspt target.code post.code ∧
+      (∀ (first second : HolProg 64) (clock : Nat),
+        StackSemEvaluate.evaluate
+          (conditionProgram ac comparison register operand (k,f,frame) first second,
+            {target with clock := clock}) =
+        StackSemEvaluate.evaluate (if value then first else second, {post with clock := clock})) ∧
+      ∀ (first second : HolProg 64) (clock : Nat),
+        stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+          (conditionProgram ac comparison register operand (k,f,frame) first second)
+          {target with clock := clock} ≤
+          30 + stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+            (if value then first else second) {post with clock := clock} :=
+  prepareCondition_costWithPrice (removalLocalPrice 6 riscvConfig.addrOffset) 7 12 11 30
+    conservativeConditionPriceCaps
+    ac comparison register operand k f frame source target lens x y value related leftEven rightEven left right compared small
+
+#print axioms conservativeConditionPriceCaps
+#print axioms prepareCondition_costWithPrice
 #print axioms prepareCondition_cost
 end InitECandidate.Runtime.StackToLab

@@ -14,7 +14,7 @@ compiler correctness premises and result/resource postconditions remain.
 The frame limit and quantitative register guard specialize the cost proof to
 the concrete guest (22 allocatable registers). Original semantic witnesses
 remain available for every register count. -/
-def ExecutedSimulation {F : Type} (ac : AsmConfigExact 64)
+def ExecutedSimulationFor (price : HolProg 64 → Nat) {F : Type} (ac : AsmConfigExact 64)
     (program : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
     (budget : Nat) : Prop :=
@@ -39,8 +39,38 @@ def ExecutedSimulation {F : Type} (ac : AsmConfigExact 64)
       StackSemEvaluate.evaluate (compiled, {target with clock := target.clock + extraClock}) =
         (targetResult, targetPost) ∧
       compCorrectResult ac k f frame source sourcePost targetPost result targetResult lens ∧
-      (k = 22 → stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      (k = 22 → stackExecutionCost (fun p _ => price p)
         compiled {target with clock := target.clock + extraClock} ≤ budget)
+
+/-- Conservative specialization retained for existing compiler lemmas. -/
+abbrev ExecutedSimulation {F : Type} (ac : AsmConfigExact 64)
+    (program : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) (budget : Nat) : Prop :=
+  ExecutedSimulationFor (removalLocalPrice 6 riscvConfig.addrOffset) ac program source budget
+
+theorem ExecutedSimulationFor.mono {F : Type} {price : HolProg 64 → Nat} {ac : AsmConfigExact 64}
+    {program : WordLangProgHOL (BitVec 64)}
+    {source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F} {a b : Nat}
+    (simulation : ExecutedSimulationFor price ac program source a) (bound : a ≤ b) :
+    ExecutedSimulationFor price ac program source b := by
+  intro k f frame post target result bs bsPost n nPost compiled lens premises small
+  obtain ⟨clock, final, output, run, related, cost⟩ :=
+    simulation k f frame post target result bs bsPost n nPost compiled lens premises small
+  exact ⟨clock, final, output, run, related, fun registers => (cost registers).trans bound⟩
+
+theorem ExecutedSimulationFor.reprice {F : Type} {sourcePrice targetPrice : HolProg 64 → Nat}
+    {ac : AsmConfigExact 64} {program : WordLangProgHOL (BitVec 64)}
+    {source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F} {budget : Nat}
+    (simulation : ExecutedSimulationFor sourcePrice ac program source budget)
+    (localBound : ∀ p, targetPrice p ≤ sourcePrice p) :
+    ExecutedSimulationFor targetPrice ac program source budget := by
+  intro k f frame post target result bs bsPost n nPost compiled lens premises small
+  obtain ⟨clock, final, output, run, related, cost⟩ :=
+    simulation k f frame post target result bs bsPost n nPost compiled lens premises small
+  refine ⟨clock, final, output, run, related, ?_⟩
+  intro registers
+  exact (stackExecutionCost_mono (fun p _ => targetPrice p) (fun p _ => sourcePrice p)
+    (fun p _ => localBound p) compiled _).trans (cost registers)
 
 theorem ExecutedSimulation.mono {F : Type} {ac : AsmConfigExact 64}
     {program : WordLangProgHOL (BitVec 64)}
@@ -69,6 +99,8 @@ theorem executedSimulation_inst {F : Type} (ac : AsmConfigExact 64)
   rw [← programEq]
   exact wordInst_cost (HolInst.ofWordLangInst instruction) (k, f, frame) small _
 
+#print axioms ExecutedSimulationFor.mono
+#print axioms ExecutedSimulationFor.reprice
 #print axioms ExecutedSimulation.mono
 #print axioms executedSimulation_inst
 end InitECandidate.Runtime.WordToStack

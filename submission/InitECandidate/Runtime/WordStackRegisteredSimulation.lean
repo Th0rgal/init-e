@@ -10,7 +10,7 @@ open InitECandidate.Runtime.StackToLab
 
 /-- The quantitative obligation for the actual guest register configuration.
 Semantic witnesses outside this configuration use original compiler correctness. -/
-def RegisterQualifiedSimulation {F : Type} (ac : AsmConfigExact 64)
+def RegisterQualifiedSimulationFor (price : HolProg 64 → Nat) {F : Type} (ac : AsmConfigExact 64)
     (program : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
     (budget : Nat) : Prop :=
@@ -35,14 +35,20 @@ def RegisterQualifiedSimulation {F : Type} (ac : AsmConfigExact 64)
       StackSemEvaluate.evaluate (compiled, {target with clock := target.clock + extraClock}) =
         (targetResult, targetPost) ∧
       compCorrectResult ac k f frame source sourcePost targetPost result targetResult lens ∧
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
         compiled {target with clock := target.clock + extraClock} ≤ budget
 
-theorem executedSimulation_of_registers {F : Type} {ac : AsmConfigExact 64}
+/-- Conservative-table instance of the register-qualified motive. -/
+abbrev RegisterQualifiedSimulation {F : Type} (ac : AsmConfigExact 64)
+    (program : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) (budget : Nat) : Prop :=
+  RegisterQualifiedSimulationFor (removalLocalPrice 6 riscvConfig.addrOffset) ac program source budget
+
+theorem executedSimulationFor_of_registers (price : HolProg 64 → Nat) {F : Type} {ac : AsmConfigExact 64}
     {program : WordLangProgHOL (BitVec 64)}
     {source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F} {budget : Nat}
-    (actual : RegisterQualifiedSimulation ac program source budget) :
-    ExecutedSimulation ac program source budget := by
+    (actual : RegisterQualifiedSimulationFor price ac program source budget) :
+    ExecutedSimulationFor price ac program source budget := by
   intro k f frame post target result bs bsPost n nPost compiled lens premises small
   by_cases registers : k = 22
   · obtain ⟨clock, final, output, run, related, cost⟩ :=
@@ -53,16 +59,31 @@ theorem executedSimulation_of_registers {F : Type} {ac : AsmConfigExact 64}
         k f frame post target result bs bsPost n nPost compiled lens premises
     exact ⟨clock, final, output, run, related, fun equality => False.elim (registers equality)⟩
 
-theorem ExecutedSimulation.registered {F : Type} {ac : AsmConfigExact 64}
+theorem ExecutedSimulationFor.registered {F : Type} {price : HolProg 64 → Nat} {ac : AsmConfigExact 64}
     {program : WordLangProgHOL (BitVec 64)}
     {source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F} {budget : Nat}
-    (simulation : ExecutedSimulation ac program source budget) :
-    RegisterQualifiedSimulation ac program source budget := by
+    (simulation : ExecutedSimulationFor price ac program source budget) :
+    RegisterQualifiedSimulationFor price ac program source budget := by
   intro k f frame post target result bs bsPost n nPost compiled lens premises small registers
   obtain ⟨clock, final, output, run, related, cost⟩ :=
     simulation k f frame post target result bs bsPost n nPost compiled lens premises small
   exact ⟨clock, final, output, run, related, cost registers⟩
 
+theorem executedSimulation_of_registers {F : Type} {ac : AsmConfigExact 64}
+    {program : WordLangProgHOL (BitVec 64)}
+    {source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F} {budget : Nat}
+    (actual : RegisterQualifiedSimulation ac program source budget) :
+    ExecutedSimulation ac program source budget :=
+  executedSimulationFor_of_registers (removalLocalPrice 6 riscvConfig.addrOffset) actual
+
+theorem ExecutedSimulation.registered {F : Type} {ac : AsmConfigExact 64}
+    {program : WordLangProgHOL (BitVec 64)}
+    {source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F} {budget : Nat}
+    (simulation : ExecutedSimulation ac program source budget) :
+    RegisterQualifiedSimulation ac program source budget := ExecutedSimulationFor.registered simulation
+
+#print axioms ExecutedSimulationFor.registered
+#print axioms executedSimulationFor_of_registers
 #print axioms ExecutedSimulation.registered
 
 #print axioms executedSimulation_of_registers

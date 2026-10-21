@@ -13,15 +13,15 @@ open InitECandidate.Runtime.StackToLab
 
 /-- Attach a proved uniform fragment cost to an original semantic witness.
 The concrete leaf theorems below discharge this local compiler-code obligation. -/
-theorem executedSimulation_of_fragment {F : Type} (ac : AsmConfigExact 64)
+theorem executedSimulationFor_of_fragment (price : HolProg 64 → Nat) {F : Type} (ac : AsmConfigExact 64)
     (program : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) (budget : Nat)
     (simulation : Flapjack.WordToStackProofs.CompCorrect.Seq.Simulation ac program source)
     (fragment : ∀ (k f frame : Nat) (bs : AppList (BitVec 64)) (n : Nat)
       (target : StackSemStateFiniteExact 64 LabToTarget.Config F), f ≤ 92 →
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      stackExecutionCost (fun p _ => price p)
         (compNative ac false program (bs,n) (k,f,frame)).1 target ≤ budget) :
-    ExecutedSimulation ac program source budget := by
+    ExecutedSimulationFor price ac program source budget := by
   intro k f frame post target result bs bsPost n nPost compiled lens premises small
   obtain ⟨clock, final, output, run, related⟩ :=
     simulation k f frame post target result bs bsPost n nPost compiled lens premises
@@ -31,6 +31,19 @@ theorem executedSimulation_of_fragment {F : Type} (ac : AsmConfigExact 64)
   dsimp only at programEq
   rw [← programEq]
   exact fragment k f frame bs n {target with clock := target.clock+clock} small
+
+/-- Attach a proved uniform fragment cost to an original semantic witness.
+The concrete leaf theorems below discharge this local compiler-code obligation. -/
+theorem executedSimulation_of_fragment {F : Type} (ac : AsmConfigExact 64)
+    (program : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) (budget : Nat)
+    (simulation : Flapjack.WordToStackProofs.CompCorrect.Seq.Simulation ac program source)
+    (fragment : ∀ (k f frame : Nat) (bs : AppList (BitVec 64)) (n : Nat)
+      (target : StackSemStateFiniteExact 64 LabToTarget.Config F), f ≤ 92 →
+      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+        (compNative ac false program (bs,n) (k,f,frame)).1 target ≤ budget) :
+    ExecutedSimulation ac program source budget :=
+  executedSimulationFor_of_fragment (removalLocalPrice 6 riscvConfig.addrOffset) ac program source budget simulation fragment
 
 theorem executedSimulation_skip {F : Type} (ac : AsmConfigExact 64)
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) :
@@ -111,6 +124,7 @@ theorem executedSimulation_mustTerminate {F : Type} (ac : AsmConfigExact 64)
   simp only [termDepth, ↓reduceDIte] at actual
   exact False.elim (premises.2.1 (Prod.mk.inj actual).1.symm)
 
+#print axioms executedSimulationFor_of_fragment
 #print axioms executedSimulation_skip
 #print axioms executedSimulation_tick
 #print axioms executedSimulation_break
