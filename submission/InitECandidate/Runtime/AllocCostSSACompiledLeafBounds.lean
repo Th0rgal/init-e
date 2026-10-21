@@ -246,6 +246,30 @@ theorem nativeWordPrice_move_single {C F : Type}
   rw [nativeWordPrice_move]
   simp
 
+/-- The charge for a certified non-self move list: the allocator emits one
+`.move` node per site whose pairs are exactly the certified list, so this is the
+only cost the table contributes there. -/
+def certifiedMoveCharge (moves : List (Nat × Nat)) : Nat :=
+  (if moves.length ≤ 1 then 14 else 28) * moves.length
+
+/-- **Consuming a certified list.**  For any site whose emitted move node carries
+the certified list, its price is exactly `certifiedMoveCharge` of that list - no
+target cost, no bound: the table's list determines the charge. -/
+theorem nativeWordPrice_move_eq_certified {C F : Type}
+    (pri : Nat) (moves : List (Nat × Nat)) (s : WordSemStateFiniteExact 64 C F) :
+    nativeWordPrice (.move pri moves) s = certifiedMoveCharge moves := by
+  rw [nativeWordPrice_move, certifiedMoveCharge]
+
+/-- A single certified pair charges 14. -/
+theorem certifiedMoveCharge_single (dst src : Nat) :
+    certifiedMoveCharge [(dst, src)] = 14 := by
+  simp [certifiedMoveCharge]
+
+/-- The empty certified list charges nothing (no self-moves, no insertions). -/
+theorem certifiedMoveCharge_nil : certifiedMoveCharge [] = 0 := rfl
+
+#print axioms nativeWordPrice_move_eq_certified
+#print axioms certifiedMoveCharge_single
 #print axioms ssaCcTrans_call_some_arg_move_length
 #print axioms ssaCcTrans_call_ret_move_length
 #print axioms nativeWordPrice_move_single
