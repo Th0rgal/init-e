@@ -1231,7 +1231,8 @@ noncomputable def quantSsaSimulation {C F : Type}
     ssaSimulation prog source target ssa next tables ∧
     rS = rT ∧
     wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (ssaCcTrans prog ssa next tables).1 target ≤
-      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog source + extra
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog
+        {source with permute := permutation} + extra
 
 /-- Compiler simulation from the quantitative one. -/
 theorem quantSsaSimulation.toSsaSimulation {C F : Type}
@@ -1242,31 +1243,6 @@ theorem quantSsaSimulation.toSsaSimulation {C F : Type}
   obtain ⟨_, _, _, _, _, _, _, hsim, _, _⟩ := h
   exact hsim
 
-/-- The cost half of a quantitative simulation, for composing stages. -/
-theorem quantSsaSimulation.costBound {C F : Type}
-    (prog : WordLangProgHOL (BitVec 64)) (source target : WordSemStateFiniteExact 64 C F)
-    (ssa : Spt Nat) (next : Nat)
-    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat)
-    (h : quantSsaSimulation (C := C) (F := F) prog source target ssa next tables extra) :
-    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (ssaCcTrans prog ssa next tables).1 target ≤
-      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog source + extra := by
-  obtain ⟨_, _, _, _, _, _, _, _, _, hcost⟩ := h
-  exact hcost
-
-/-- The target run, exposed as an equation: a stage can read off the reached state. -/
-theorem quantSsaSimulation.targetRun {C F : Type}
-    (prog : WordLangProgHOL (BitVec 64)) (source target : WordSemStateFiniteExact 64 C F)
-    (ssa : Spt Nat) (next : Nat)
-    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat)
-    (h : quantSsaSimulation (C := C) (F := F) prog source target ssa next tables extra) :
-    ∃ rT : Option (WordSemResult 64), ∃ sT : WordSemStateFiniteExact 64 C F,
-      WordSemStateFiniteExact.evaluate (ssaCcTrans prog ssa next tables).1 target = (rT, sT) := by
-  obtain ⟨_, _, _, rT, sT, _, hrunT, _, _, _⟩ := h
-  exact ⟨rT, sT, hrunT⟩
-
-#print axioms quantSsaSimulation.toSsaSimulation
-#print axioms quantSsaSimulation.costBound
-#print axioms quantSsaSimulation.targetRun
 
 /-- `fixClock` rewrites only the state's clock and termdep; the RESULT component is untouched.
 This is what lets a stage turn a run equation into the `fixClock` form the counter uses. -/
