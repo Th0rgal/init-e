@@ -1,0 +1,97 @@
+import InitECandidate.Runtime.PanStatementWork
+
+set_option maxHeartbeats 1000000
+set_option maxRecDepth 100000
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+
+/-- Actual finite `while` execution certificate: every step carries the actual
+guard/body runs; the result index is the actual while result. -/
+inductive WhileEvents {F : Type} (fn : MlS) (condition : ExpHOL 64)
+    (body : ProgHOL 64) :
+    PanSemStateFiniteExact 64 F → Option (PanSemResultExact 64) →
+    PanSemStateFiniteExact 64 F → List WorkEvent → Prop
+  | stop {s} {guardEvents : List WorkEvent}
+      (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents) :
+      WhileEvents fn condition body s none s
+        (.statement :: .cost (whileOverhead + loopMoves fn) :: guardEvents)
+  | next {s middle post} {value : BitVec 64}
+      {guardEvents bodyEvents restEvents : List WorkEvent}
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0)
+      (one : StatementRun fn (decClockHOLFinite s) body none middle bodyEvents)
+      (rest : WhileEvents fn condition body middle none post restEvents) :
+      WhileEvents fn condition body s none post
+        (.statement :: .cost (whileOverhead + loopMoves fn) ::
+          (guardEvents ++ bodyEvents ++ restEvents))
+  | break {s post} {value : BitVec 64}
+      {guardEvents bodyEvents : List WorkEvent}
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0)
+      (one : StatementRun fn (decClockHOLFinite s) body (some .break) post bodyEvents) :
+      WhileEvents fn condition body s (some .break) post
+        (.statement :: .cost (whileOverhead + loopMoves fn) ::
+          (guardEvents ++ bodyEvents))
+  | continue {s middle post} {value : BitVec 64}
+      {guardEvents bodyEvents restEvents : List WorkEvent}
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0)
+      (one : StatementRun fn (decClockHOLFinite s) body (some .continue) middle bodyEvents)
+      (rest : WhileEvents fn condition body middle none post restEvents) :
+      WhileEvents fn condition body s none post
+        (.statement :: .cost (whileOverhead + loopMoves fn) ::
+          (guardEvents ++ bodyEvents ++ restEvents))
+  | timeout {s} {value : BitVec 64} {guardEvents : List WorkEvent}
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0) :
+      WhileEvents fn condition body s (some .timeOut) (emptyLocalsHOLFinite s)
+        (.statement :: .cost (whileOverhead + loopMoves fn) :: guardEvents)
+  | missingGuard {s} {guardEvents : List WorkEvent}
+      (guard : CostedExpressionRun s condition none guardEvents) :
+      WhileEvents fn condition body s (some .error) s
+        (.statement :: guardEvents)
+  | propagate {s post} {value : BitVec 64}
+      {guardEvents bodyEvents : List WorkEvent} {result : PanSemResultExact 64}
+      (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
+      (nonzero : value ≠ 0)
+      (notBreak : result ≠ .break) (notContinue : result ≠ .continue)
+      (one : StatementRun fn (decClockHOLFinite s) body (some result) post bodyEvents) :
+      WhileEvents fn condition body s (some result) post
+        (.statement :: .cost (whileOverhead + loopMoves fn) ::
+          (guardEvents ++ bodyEvents))
+
+/-- Extract the actual finite step certificate from any actual `while` run.
+The clock strictly decreases at recursive iterations. -/
+def whileEventsOfRun {F : Type} {fn : MlS}
+    {condition : ExpHOL 64} {body : ProgHOL 64}
+    (s post : PanSemStateFiniteExact 64 F)
+    (result : Option (PanSemResultExact 64)) (events : List WorkEvent)
+    (run : StatementRun fn s (.while condition body) result post events) :
+    WhileEvents fn condition body s result post events :=
+  match h : run with
+  | .whileFalse guard => .stop guard
+  | .whileNext guard nonzero clock one rest =>
+      .next guard nonzero one
+        (whileEventsOfRun _ _ _ _ rest)
+  | .whileBreak guard nonzero clock one => .break guard nonzero one
+  | .whileContinue guard nonzero clock one rest =>
+      .continue guard nonzero one
+        (whileEventsOfRun _ _ _ _ rest)
+  | .whileTimeout guard nonzero clock => .timeout guard nonzero
+  | .whileMissingGuard guard => .missingGuard guard
+  | .whilePropagate guard nonzero clock notBreak notContinue one =>
+      .propagate guard nonzero notBreak notContinue one
+termination_by s.clock
+decreasing_by
+  simp [decClockHOLFinite]
+  omega
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.whileEventsOfRun

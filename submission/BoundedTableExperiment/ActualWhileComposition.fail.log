@@ -1,0 +1,30 @@
+submission/BoundedTableExperiment/ActualWhileComposition.lean:81:34: error: Application type mismatch: The argument
+  rest
+has type
+  StatementRun fn middle✝ (ProgHOL.while condition body) result post restEvents✝
+but is expected to have type
+  StatementRun fn middle✝ (ProgHOL.while condition body) none ?m.80 ?m.82
+in the application
+  whileEventsOfRun middle✝ ?m.80 none ?m.82 rest
+submission/BoundedTableExperiment/ActualWhileComposition.lean:82:43: error: Type mismatch
+  WhileEvents.break guard nonzero one
+has type
+  WhileEvents fn condition body s (some PanSemResultExact.break) post
+    (WorkEvent.statement :: WorkEvent.cost (whileOverhead + loopMoves fn) :: (guardEvents✝ ++ bodyEvents✝))
+but is expected to have type
+  WhileEvents fn condition body s none post
+    (WorkEvent.statement :: WorkEvent.cost (whileOverhead + loopMoves fn) :: (guardEvents✝ ++ bodyEvents✝))
+submission/BoundedTableExperiment/ActualWhileComposition.lean:85:34: error: Application type mismatch: The argument
+  rest
+has type
+  StatementRun fn middle✝ (ProgHOL.while condition body) result post restEvents✝
+but is expected to have type
+  StatementRun fn middle✝ (ProgHOL.while condition body) none ?m.155 ?m.157
+in the application
+  whileEventsOfRun middle✝ ?m.155 none ?m.157 rest
+submission/BoundedTableExperiment/ActualWhileComposition.lean:77:2: error: (deterministic) timeout at `whnf`, maximum number of heartbeats (1000000) has been reached
+
+Note: Use `set_option maxHeartbeats <num>` to set the limit.
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+submission/BoundedTableExperiment/ActualWhileComposition.lean:97:14: error(lean.unknownIdentifier): Unknown constant `BoundedTableExperiment.whileEventsOfRun`
