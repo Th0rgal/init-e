@@ -8,9 +8,9 @@ import InitECandidate.Runtime.AllocCostSSANativeCall
 callee-body run plus, when the callee returns the call's arity and the popped
 environment unions consistently, the return-handler continuation.  This module
 
-* proves that decomposition as an explicit equation, price-generic
-  (`wec_call_returning_result_unfold`), reading the literal call clause at the
-  actual reached states;
+* records that decomposition as the model clause at the actual reached branch
+  (`ssaCall_returning_cost_stage` takes the two call-cost equations, one per
+  branch);
 * states the corresponding allocator stage theorem
   (`ssaCall_returning_cost_stage`): for `SsaAllocRel`-related source and
   allocated states, the allocated returning call costs no more than the source
