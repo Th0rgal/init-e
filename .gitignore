@@ -9,3 +9,5 @@ cakeml/
 evm-asm/
 flapjack/
 work-*.log
+
+.build/
