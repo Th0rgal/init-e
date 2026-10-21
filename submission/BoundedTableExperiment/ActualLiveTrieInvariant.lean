@@ -115,3 +115,92 @@ end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.TrieInv.step
 #print axioms BoundedTableExperiment.TrieInv.stepBound
+
+namespace BoundedTableExperiment
+
+open Flapjack
+open Flapjack.PanSemStateFiniteExact
+
+/-- Reverse framing: a post-store node link away from the stored cell is a
+pre-store node link. -/
+theorem NodeLinkInv.of_store_other {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {node left right route watched : BitVec 64} (value : HolWordLab 64)
+    (leftSeparate : node ≠ watched) (rightSeparate : node + 8 ≠ watched)
+    (routeSeparate : node + 16 ≠ watched)
+    {postMem : BitVec 64 → HolWordLab 64}
+    (store : @panMemStoresHOL 64 _ watched [value]
+      s.memaddrs (Classical.decPred _) s.memory = some postMem)
+    (inv : NodeLinkInv { s with memory := postMem } node left right route) :
+    NodeLinkInv s node left right route := by
+  constructor
+  · letI : DecidablePred s.memaddrs := Classical.decPred _
+    have frame := actual_one_word_store_frame watched node s.memaddrs
+      s.memory value leftSeparate postMem store
+    rw [← frame]
+    exact inv.leftAt
+  · letI : DecidablePred s.memaddrs := Classical.decPred _
+    have frame := actual_one_word_store_frame watched (node + 8) s.memaddrs
+      s.memory value rightSeparate postMem store
+    rw [← frame]
+    exact inv.rightAt
+  · letI : DecidablePred s.memaddrs := Classical.decPred _
+    have frame := actual_one_word_store_frame watched (node + 16) s.memaddrs
+      s.memory value routeSeparate postMem store
+    rw [← frame]
+    exact inv.routeAt
+
+/-- Post-store reachability away from the stored cell is pre-store reachability. -/
+theorem Reachable.of_store_other {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {root : BitVec 64} {watched : BitVec 64} (value : HolWordLab 64)
+    {postMem : BitVec 64 → HolWordLab 64}
+    (store : @panMemStoresHOL 64 _ watched [value]
+      s.memaddrs (Classical.decPred _) s.memory = some postMem)
+    (separate : ∀ p, Reachable s root p →
+      p ≠ watched ∧ p + 8 ≠ watched ∧ p + 16 ≠ watched)
+    {p : BitVec 64} (reach : Reachable { s with memory := postMem } root p) :
+    Reachable s root p := by
+  induction reach with
+  | root => exact Reachable.root root
+  | left reach link ih =>
+      obtain ⟨sep0, sep8, sep16⟩ := separate _ ih
+      exact Reachable.left ih (link.of_store_other value sep0 sep8 sep16 store)
+  | right reach link ih =>
+      obtain ⟨sep0, sep8, sep16⟩ := separate _ ih
+      exact Reachable.right ih (link.of_store_other value sep0 sep8 sep16 store)
+
+/-- A store outside every reachable node cell preserves the live-edge trie. -/
+theorem TrieInv.store_other {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {root : BitVec 64} {keyLen : Nat} (trie : TrieInv s root keyLen)
+    {watched : BitVec 64} (value : HolWordLab 64)
+    {postMem : BitVec 64 → HolWordLab 64}
+    (store : @panMemStoresHOL 64 _ watched [value]
+      s.memaddrs (Classical.decPred _) s.memory = some postMem)
+    (separate : ∀ p, Reachable s root p →
+      p ≠ watched ∧ p + 8 ≠ watched ∧ p + 16 ≠ watched) :
+    TrieInv { s with memory := postMem } root keyLen := by
+  constructor
+  · obtain ⟨l, r, route, link⟩ := trie.rootLink
+    obtain ⟨sep0, sep8, sep16⟩ := separate root (Reachable.root root)
+    exact ⟨l, r, route, link.store_other value sep0 sep8 sep16 store⟩
+  · intro p l r route reach link
+    have reachOld := Reachable.of_store_other value store separate reach
+    obtain ⟨sep0, sep8, sep16⟩ := separate p reachOld
+    have linkOld := link.of_store_other value sep0 sep8 sep16 store
+    exact trie.routeBound p l r route reachOld linkOld
+  · intro p l r route c reach link hc lc rc rcRoute childLink
+    have reachOld := Reachable.of_store_other value store separate reach
+    obtain ⟨sep0, sep8, sep16⟩ := separate p reachOld
+    have linkOld := link.of_store_other value sep0 sep8 sep16 store
+    have hreachC : Reachable s root c := by
+      rcases hc with h | h
+      · rw [h]; exact Reachable.left reachOld linkOld
+      · rw [h]; exact Reachable.right reachOld linkOld
+    obtain ⟨csep0, csep8, csep16⟩ := separate c hreachC
+    have childOld := childLink.of_store_other value csep0 csep8 csep16 store
+    exact trie.childGreater p l r route c reachOld linkOld hc lc rc rcRoute childOld
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.Reachable.of_store_other
+#print axioms BoundedTableExperiment.NodeLinkInv.of_store_other
+#print axioms BoundedTableExperiment.TrieInv.store_other
