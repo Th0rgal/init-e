@@ -87,7 +87,7 @@ theorem isel_tailcall {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
     simp only [hbad, Bool.false_eq_true, if_false, wordSemAddRetLoc, ssEq, hfT, ckEq, hz, if_false, hrunT, good]
   · rw [tail_call_cost _ dest args s xs hg hbad' args1 prog ss hf hz,
       tail_call_cost _ dest args t xs (gv.trans hg) hbad' args1 _ ss (by rw [ssEq]; exact hfT) (by rw [ckEq]; exact hz)]
-    have pr : wordOptimizerLocalPrice (.call none dest args none) t ≤ preIselPrice (.call none dest args none) s := by
+    have pr : wordOptimizerLocalPrice (.call none dest args none) t ≤ preIselPrice c (.call none dest args none) s := by
       simp [wordOptimizerLocalPrice, preIselPrice, WordToStack.refinedWordLocalPrice,
         WordToStack.refinedWordStackLeafBudget]
     have decEq : decClock t = { decClock s with locals := t.locals, code := t.code } := by

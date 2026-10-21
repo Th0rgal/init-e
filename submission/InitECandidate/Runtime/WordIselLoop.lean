@@ -56,7 +56,7 @@ theorem isel_loop_aux {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
       ∃ rstT, evaluate (.loop names (WordInst.instSelectExecutable c temp body) exitNames) t = (res, rstT) ∧
         IselPost c temp res rst rstT ∧
         wordExecutionCost wordOptimizerLocalPrice (.loop names (WordInst.instSelectExecutable c temp body) exitNames) t ≤
-          wordExecutionCost preIselPrice (.loop names body exitNames) s := by
+          wordExecutionCost (preIselPrice c) (.loop names body exitNames) s := by
   intro n
   induction n using Nat.strongRecOn with
   | _ n IH =>
@@ -83,11 +83,11 @@ theorem isel_loop_aux {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
   simp only at tgtRun
   rw [ht1] at tgtRun
   simp only at tgtRun
-  have costS := loop_cost_clause preIselPrice names body exitNames s _ hcs r1 s1 hbr
+  have costS := loop_cost_clause (preIselPrice c) names body exitNames s _ hcs r1 s1 hbr
   have costT := loop_cost_clause wordOptimizerLocalPrice names (WordInst.instSelectExecutable c temp body)
     exitNames t _ hct r1 t1 ht1
   have prices : wordOptimizerLocalPrice (.loop names (WordInst.instSelectExecutable c temp body) exitNames) t ≤
-      preIselPrice (.loop names body exitNames) s := by
+      preIselPrice c (.loop names body exitNames) s := by
     simp [preIselPrice, wordOptimizerLocalPrice, WordToStack.refinedWordLocalPrice,
       WordToStack.refinedWordStackLeafBudget]
   by_cases hcont : wordSemContLoop r1 = true

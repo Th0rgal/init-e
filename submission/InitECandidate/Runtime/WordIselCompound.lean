@@ -22,7 +22,7 @@ def IselGoal {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (td ck t
     ∃ rstT, evaluate (WordInst.instSelectExecutable c temp p) t = (res, rstT) ∧
       IselPost c temp res rst rstT ∧
       wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp p) t ≤
-        wordExecutionCost preIselPrice p s
+        wordExecutionCost (preIselPrice c) p s
 
 theorem iselPost_rel {C F : Type} {c : Compiler.Encoders.Asm.AsmConfigExact 64} {temp : Nat}
     {s t : WordSemStateFiniteExact 64 C F} (h : IselPost c temp none s t) : IselRel c temp s t := h
