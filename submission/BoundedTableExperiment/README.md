@@ -980,3 +980,12 @@ against `sourceFunctionBody`; every other equation is `rfl`. Axioms are
 This exposes the actual path-push statement and its address. Event/cost
 composition with the `StatementRun.storeValue` rule and `PathMemoryInv.push`
 is the next step; the binary-search/link tail of `htab_set` remains open.
+
+## 44. Concrete path-push address
+
+`PathMemoryInv.push_at` is the path-push invariant phrased for the candidate's
+actual push address: an actual one-word store at an address equal to
+`pathAddr base depth` advances the invariant to `depth+1`. This matches
+`candidateFindLeafPush = store (path + depth*8) node` from section 43.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.

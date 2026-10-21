@@ -74,7 +74,25 @@ theorem PathMemoryInv.store_other {F : Type} {s : PanSemStateFiniteExact 64 F}
   dsimp only
   rw [frame, inv.routeAt i hi]
 
+/-- The actual path push at `path + depth*8` advances the path invariant by
+one slot. This is `PathMemoryInv.push` phrased for the candidate's concrete
+store address. -/
+theorem PathMemoryInv.push_at {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {base : BitVec 64} {depth : Nat} {routes : Nat → BitVec 64}
+    (inv : PathMemoryInv s base depth routes)
+    (bound : depth < 2 ^ 61)
+    (hdom : s.memaddrs (pathAddr base depth))
+    {address route : BitVec 64} (haddr : address = pathAddr base depth)
+    {postMem : BitVec 64 → HolWordLab 64}
+    (store : @panMemStoresHOL 64 _ address [.word route]
+      s.memaddrs (Classical.decPred _) s.memory = some postMem) :
+    PathMemoryInv { s with memory := postMem } base (depth + 1)
+      (fun i => if i = depth then route else routes i) := by
+  subst haddr
+  exact PathMemoryInv.push inv bound hdom route store
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.PathMemoryInv.push
 #print axioms BoundedTableExperiment.PathMemoryInv.store_other
+#print axioms BoundedTableExperiment.PathMemoryInv.push_at
