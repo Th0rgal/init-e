@@ -99,6 +99,48 @@ theorem Owned.free {α : Type} [BEq α] [LawfulBEq α] {pool live free : List α
       exact List.Perm.append_right free (List.perm_cons_erase hx).symm
     _ ~ pool := h.partition
 
+/-- The concrete leaf-id pool `1..cap`. -/
+def leafPool (cap : Nat) : List Nat := (List.range cap).map (fun i => i + 1)
+
+theorem leafPool_nodup (cap : Nat) : (leafPool cap).Nodup := by
+  unfold leafPool
+  apply List.Pairwise.map (R := fun a b : Nat => a ≠ b)
+  · intro a b h
+    omega
+  · exact (show List.Pairwise (fun a b : Nat => a ≠ b) (List.range cap) from List.nodup_range)
+
+theorem leafPool_length (cap : Nat) : (leafPool cap).length = cap := by
+  simp [leafPool]
+
+theorem leafPool_mem {cap x : Nat} : x ∈ leafPool cap ↔ 1 ≤ x ∧ x ≤ cap := by
+  simp only [leafPool, List.mem_map, List.mem_range]
+  constructor
+  · rintro ⟨a, ha, rfl⟩
+    omega
+  · intro ⟨h1, h2⟩
+    exact ⟨x - 1, by omega, by omega⟩
+
+/-- Ownership specialized to the concrete id range `1..cap`. -/
+abbrev CapOwned (cap : Nat) (live free : List Nat) : Prop :=
+  Owned (leafPool cap) live free
+
+theorem CapOwned.length {cap : Nat} {live free : List Nat}
+    (h : CapOwned cap live free) : live.length + free.length = cap := by
+  calc
+    live.length + free.length = (live ++ free).length := by simp
+    _ = (leafPool cap).length := h.partition.length_eq
+    _ = cap := leafPool_length cap
+
+theorem CapOwned.range_left {cap : Nat} {live free : List Nat}
+    (h : CapOwned cap live free) {x : Nat} (hx : x ∈ live) : 1 ≤ x ∧ x ≤ cap := by
+  apply leafPool_mem.mp
+  exact h.partition.mem_iff.mp (List.mem_append.mpr (Or.inl hx))
+
+theorem CapOwned.range_right {cap : Nat} {live free : List Nat}
+    (h : CapOwned cap live free) {x : Nat} (hx : x ∈ free) : 1 ≤ x ∧ x ≤ cap := by
+  apply leafPool_mem.mp
+  exact h.partition.mem_iff.mp (List.mem_append.mpr (Or.inr hx))
+
 /-- The order array is a permutation of the live leaves. -/
 structure Ordered {α : Type} (order live : List α) : Prop where
   perm : order ~ live
@@ -119,6 +161,8 @@ end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.swapRemove_perm_erase
 #print axioms BoundedTableExperiment.Ordered.insert
+#print axioms BoundedTableExperiment.CapOwned.length
+#print axioms BoundedTableExperiment.CapOwned.range_left
 #print axioms BoundedTableExperiment.Owned.alloc
 #print axioms BoundedTableExperiment.Owned.free
 #print axioms BoundedTableExperiment.Ordered.delete

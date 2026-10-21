@@ -307,6 +307,10 @@ concrete bookkeeping that the shape-only depth lemma did not cover:
   `(live ++ free) ~ pool` and `pool.Nodup`, moving one id from `free` to `live`
   and back preserves the partition. This is pool recycling, disjointness, and
   the `live.length + free.length = cap` accounting in permutation form.
+- `CapOwned` specializes the pool to the concrete id list `1..cap` and proves
+  the exact count `live.length + free.length = cap` plus the range facts
+  `1 <= x <= cap` for every live and free id. This is the concrete capacity
+  and no-out-of-range-id invariant, not just a generic permutation.
 
 Axioms printed for the file are only `propext`, `Classical.choice`, and
 `Quot.sound`.
