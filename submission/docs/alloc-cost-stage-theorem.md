@@ -570,3 +570,38 @@ facts. Supporting lemmas added: `findCode_some_frame`, `findCode_destNone_frame`
 
 Also recorded because it wasted a compile: `transformedCalleeRel.spec` returns `(exists ...) AND (cost <= ...)`, so
 `obtain <hspec, ->` takes the WRONG component; it must be `obtain <-, hspec>`.
+
+## The direct-call corollary: `harg` is an INDIRECT-call artefact only
+
+`harity` is a genuine interface requirement (see above), but `harg` is not: a call with a program-counter
+destination resolves its frame at `d` in BOTH tables, so the two sides agree on the destination by
+construction.  The delivered form is therefore available without any argument-list hypothesis:
+
+    theorem wec_call_none_callee_transfer_of_code_some {C F : Type}
+        (d : Nat) (args : List Nat)
+        (s s' : WordSemStateFiniteExact 64 C F) (xs xs' : List (WordLocW 64))
+        (origCode transCode : Spt (Nat × WordLangProgHOL (BitVec 64))) (budget : Nat)
+        (hgv  : getVars args s  = some xs)   (hgv' : getVars args s' = some xs')
+        (hbad : wordSemBadDestArgs (some d) args = false)
+        (hclk : s.clock = 0 -> False) (hclk' : s'.clock = 0 -> False)
+        (hcode : s.code = origCode) (hcode' : s'.code = transCode)
+        (harity : forall (d' arity : Nat) (bodyC),
+           sptLookup d' transCode = some (arity, bodyC) ->
+             exists body, sptLookup d' origCode = some (arity, body))
+        (hrel : transformedCalleeRel (C := C) (F := F) origCode transCode budget) :
+        wordExecutionCost refined (.call none (some d) args none) s'
+          <= wordExecutionCost refined (.call none (some d) args none) s + budget
+
+So the call case's interface is: the code relation, `harity`, the two `getVars` facts, the bad-destination
+fact and the two live clocks.  The two argument lists may differ (the relation's `.spec` already bounds the
+callee at its own `callEnv`); what the flat path needs is only that the arity test passes on both sides,
+which follows because `getVars` walks `args`, so both lists have `args.length` elements (new lemma
+`getVars_length`: `getVars args s = some xs -> xs.length = args.length`).
+
+`harg` remains necessary only for `dest = none`, where the destination is the block of the LAST ARGUMENT and
+is therefore read off the state-dependent argument list: there the two sides can charge different callees,
+and nothing in the code relation relates them.
+
+Axioms: `wec_call_none_callee_transfer_of_code_some` and `wec_call_none_callee_transfer_of_code` depend only
+on `propext`, `Classical.choice` and `Quot.sound`; `getVars_length` and the four `findCode_*_frame` lemmas
+only on `propext`.
