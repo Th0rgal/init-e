@@ -1269,14 +1269,25 @@ Axioms: `LoopBodyTransferSSA_of_inv`, `ssaLocalsRel_cutPair`, `cutState_locals_i
 ### Residual for the next stage
 
 The *run* conjunct (`evaluate_loop_outcome_agree_ren`, hence `loop_quantTransfer_ren` and the two fused
-endpoints) is not re-established yet.  The name-cuts are covered by the same derivation, but the
-target's renamed EXIT cut - consulted on the `break 0` route - needs the images of the loop's live-OUT
-entries in the target's locals, and the loop invariant is stated on the loop's live-IN names: an exit
-name carried by `liveOut` but not by `names` has no `ssaLocalsRel` data.  Under the loop-shape premise
-that the exit set is carried by the live-in set
-(`∀ key, sptDomain exitNames key → sptDomain names key` - what the compiler establishes for `while`
-loops, whose live-out is contained in their live-in) the derivation goes through; it is not needed for
-this stage's budget, which consumes the cost conjunct only.
+endpoints) is not re-established yet.  Two concrete obstructions remain, both of them outside the cost
+conjunct:
+
+1. **The exit cut.**  The target's renamed EXIT cut - consulted on the `break 0` route - needs the
+   images of the loop's live-OUT entries in the target's locals, while the loop invariant is stated on
+   the loop's live-IN names: an exit name carried by `liveOut` but not by `names` has no `ssaLocalsRel`
+   data, and the source's exit cut failing is excluded by `hsafe`, so the runs genuinely diverge there.
+   It goes through under the loop-shape premise that the exit set is carried by the live-in set
+   (`∀ key, sptDomain exitNames key → sptDomain names key` - what holds for a `while` loop, whose
+   live-out is contained in its live-in).  Compare the same-names route, which needed `LoopCutAgrees`
+   on the live set for exactly this reason.
+2. **The entry.**  At the RAW entry pair the invariant in the `sptInter ssa names` form is not
+   available: `ssaLocalsRel next ssa source.locals target.locals` constrains only entries the source
+   holds, and the source's locals need not be confined to the loop's names.  The invariant IS available
+   at the ENTRY CUT pair (`ssaLocalsRel_cutPair` with `m = ssa`, as in `loopBodyStep_ssa_entry`), so the
+   run conjunct has to be assembled as "unfold the loop once at the entry (`loopBodyStep_ssa_entry`),
+   then induct from the middles" rather than as a single induction from the entry pair.  The COST
+   conjunct needs none of this, because it charges the source's node through the cut branches it takes
+   (`wec_loop_cutState_none` covers the failed cut) instead of following the run.
 
 ### Proof notes
 
