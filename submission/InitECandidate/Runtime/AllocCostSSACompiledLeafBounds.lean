@@ -6,6 +6,7 @@ import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticIf
 import InitECandidate.Runtime.AllocMoveTable
 import InitECandidate.Runtime.WordRefinedLocalPrice
 import InitECandidate.Runtime.WordStackRefinedLeaf
+import InitECandidate.Runtime.WordOptimizerPrice
 
 /-!
 # Compile-output bounds for leaf constructors
@@ -2167,4 +2168,133 @@ theorem findCode_some_lookup {StackSize : Type}
     · cases h
 
 #print axioms findCode_some_lookup
+/-! ## The quantitative transfer at the optimizer price
+
+`WordOptimizerPrice.lean` prices a move node at 24 per pair and floors the instruction/get/loc/heap heads
+at 24; everything else is the refined price.  Downstream passes (CSE, copy propagation) are proved
+against THAT price, so the SSA/allocator transfer has to be available there too.
+
+The port rides a seam that costs nothing to exploit: the RUN half of a transfer never mentions a price.
+So `quantTransferAt` takes the price as a parameter, its run component is literally the one already
+proved at the refined price, and its cost component is re-derived with the counter splits, which are
+already price-polymorphic. -/
+
+/-- The run half of a transfer: the two programs have outcome-equal runs.  Price-free. -/
+noncomputable def quantRuns {C F : Type}
+    (prog compiledProg : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) : Prop :=
+  ∃ rS : Option (WordSemResult 64), ∃ sS : WordSemStateFiniteExact 64 C F,
+  ∃ rT : Option (WordSemResult 64), ∃ sT : WordSemStateFiniteExact 64 C F,
+    WordSemStateFiniteExact.evaluate prog source = (rS, sS) ∧
+    WordSemStateFiniteExact.evaluate compiledProg target = (rT, sT) ∧
+    rS = rT
+
+/-- The quantitative transfer at an arbitrary price: price-free runs plus a counter bound. -/
+noncomputable def quantTransferAt {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (prog compiledProg : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (extra : Nat) : Prop :=
+  quantRuns prog compiledProg source target ∧
+  wordExecutionCost price compiledProg target ≤ wordExecutionCost price prog source + extra
+
+theorem quantRuns.of_quantTransfer {C F : Type}
+    (prog compiledProg : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (extra : Nat)
+    (h : quantTransfer (C := C) (F := F) prog compiledProg source target extra) :
+    quantRuns prog compiledProg source target :=
+  h.1
+
+theorem quantTransferAt.summary {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (prog compiledProg : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (extra : Nat)
+    (h : quantTransferAt price prog compiledProg source target extra) :
+    quantRuns prog compiledProg source target ∧
+    wordExecutionCost price compiledProg target ≤
+      wordExecutionCost price prog source + extra :=
+  h
+
+/-! ### The optimizer price at each head -/
+
+theorem wordOptimizerLocalPrice_move {C F : Type} (pri : Nat) (pairs : List (Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) :
+    wordOptimizerLocalPrice (.move pri pairs) s = 24 * pairs.length := rfl
+
+theorem wordOptimizerLocalPrice_seq_zero {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
+    wordOptimizerLocalPrice (.seq f g) s = 0 := by
+  simp only [wordOptimizerLocalPrice, refinedWordLocalPrice_seq_zero]
+
+theorem wordOptimizerLocalPrice_ite {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
+    wordOptimizerLocalPrice (.ite cmp r1 ri e2 e3) s = 23 := by
+  simp only [wordOptimizerLocalPrice, refinedWordLocalPrice_ite]
+
+theorem wordOptimizerLocalPrice_loop {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) :
+    wordOptimizerLocalPrice (.loop names body liveOut) s = 2 := by
+  simp only [wordOptimizerLocalPrice, refinedWordLocalPrice_loop]
+
+theorem wordOptimizerLocalPrice_call_none {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) :
+    wordOptimizerLocalPrice (.call none dest args handler) s = 41 := by
+  simp only [wordOptimizerLocalPrice, refinedWordLocalPrice_call_none]
+
+/-! ### The counter at the optimizer price -/
+
+/-- A move node charges exactly its node price, at the optimizer price too. -/
+theorem wec_move_optimizer {C F : Type} (pri : Nat) (moves : List (Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost wordOptimizerLocalPrice (.move pri moves) s = 24 * moves.length := by
+  rw [wec_move_generic wordOptimizerLocalPrice, wordOptimizerLocalPrice_move]
+
+theorem wec_seq_none_split_optimizer {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64)) (s mid : WordSemStateFiniteExact 64 C F)
+    (h : fixClock s (WordSemStateFiniteExact.evaluate f s) = (none, mid)) :
+    wordExecutionCost wordOptimizerLocalPrice (.seq f g) s =
+      wordExecutionCost wordOptimizerLocalPrice f s + wordExecutionCost wordOptimizerLocalPrice g mid := by
+  rw [wec_seq_none_split_generic wordOptimizerLocalPrice f g s mid h, wordOptimizerLocalPrice_seq_zero]
+  omega
+
+theorem wec_seq_some_split_optimizer {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (h : (fixClock s (WordSemStateFiniteExact.evaluate f s)).1 = none → False) :
+    wordExecutionCost wordOptimizerLocalPrice (.seq f g) s =
+      wordExecutionCost wordOptimizerLocalPrice f s := by
+  rw [wec_seq_some_split_generic wordOptimizerLocalPrice f g s h, wordOptimizerLocalPrice_seq_zero]
+  omega
+
+/-! ### The transformed-callee relation at the optimizer price -/
+
+def transformedCalleeRelAt {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (origCode transCode : Spt (Nat × WordLangProgHOL (BitVec 64))) (budget : Nat) : Prop :=
+  ∀ (dest arity : Nat) (body bodyC : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F),
+    sptLookup dest origCode = some (arity, body) →
+    sptLookup dest transCode = some (arity, bodyC) →
+    quantTransferAt price body bodyC source target budget
+
+theorem transformedCalleeRelAt.spec {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (origCode transCode : Spt (Nat × WordLangProgHOL (BitVec 64))) (budget : Nat)
+    (hrel : transformedCalleeRelAt (C := C) (F := F) price origCode transCode budget)
+    (dest arity : Nat) (body bodyC : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (h1 : sptLookup dest origCode = some (arity, body))
+    (h2 : sptLookup dest transCode = some (arity, bodyC)) :
+    quantRuns body bodyC source target ∧
+    wordExecutionCost price bodyC target ≤
+      wordExecutionCost price body source + budget :=
+  quantTransferAt.summary price body bodyC source target budget
+    (hrel dest arity body bodyC source target h1 h2)
+
+#print axioms quantTransferAt.summary
+#print axioms wec_move_optimizer
+#print axioms wec_seq_none_split_optimizer
+#print axioms transformedCalleeRelAt.spec
 end InitECandidate.Runtime.FineCost
