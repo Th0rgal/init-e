@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.RawCallRefinedLocalPrice
+import InitECandidate.Runtime.StackEmptyInstallOracle
 
 namespace InitECandidate.Runtime.StackRawCall
 open Flapjack Flapjack.Compiler.Backend.StackLang
@@ -28,6 +29,31 @@ theorem rawCallFramesSupported_free (count : Nat)
     (eligible : rawCallFramesSupported (.stackFree count) = true) :
     0 < count ∧ count ≤ 255 := by simpa [rawCallFramesSupported] using eligible
 
+/-- Lookup form needed when entering an actually selected callee. -/
+def RawCallFramesSupportedCode (code : Spt (HolProg 64)) : Prop :=
+  ∀ key p, sptLookup key code = some p → rawCallFramesSupported p = true
+
+theorem RawCallFramesSupportedCode.of_list (code : List (Nat × HolProg 64))
+    (checked : rawCallCodeFramesSupported code = true) :
+    RawCallFramesSupportedCode (sptFromAList code) := by
+  intro key p found
+  rw [sptLookup_sptFromAList] at found
+  exact List.all_eq_true.mp checked (key, p) (sptAListLookup_mem _ _ _ found)
+
+/-- The finite certificate survives reached executions when installation is
+disabled by the actual oracle; no target cost premise is involved. -/
+theorem RawCallFramesSupportedCode.after_evaluate {C F : Type} (p : HolProg 64)
+    (source post : StackSemStateFiniteExact 64 C F) result
+    (oracle : StackToLab.EmptyInstallOracle source)
+    (eligible : RawCallFramesSupportedCode source.code)
+    (run : StackSemEvaluate.evaluate (p, source) = (result, post)) :
+    RawCallFramesSupportedCode post.code ∧ StackToLab.EmptyInstallOracle post := by
+  obtain ⟨code, postOracle⟩ := StackToLab.evaluate_emptyInstallOracle
+    p source post result oracle run
+  exact ⟨code ▸ eligible, postOracle⟩
+
 #print axioms rawCallCodeFramesSupported_append
 #print axioms rawCallFramesSupported_free
+#print axioms RawCallFramesSupportedCode.of_list
+#print axioms RawCallFramesSupportedCode.after_evaluate
 end InitECandidate.Runtime.StackRawCall
