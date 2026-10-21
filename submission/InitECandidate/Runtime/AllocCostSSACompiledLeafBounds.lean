@@ -358,6 +358,26 @@ theorem parmove_emitted_len_le (L E : List (Nat × Nat)) (auxLen : Nat)
     E.length ≤ 2 * nonselfCount L := by
   omega
 
+/-- **Charge of a list of bounded length.**  A move node over `L` costs at most
+`28` per pair, so any list of length at most `n` charges at most `28 * n`. -/
+theorem certifiedMoveCharge_le_of_len (L : List (Nat × Nat)) (n : Nat)
+    (h : L.length ≤ n) : certifiedMoveCharge L ≤ 28 * n := by
+  unfold certifiedMoveCharge
+  split <;> omega
+
+/-- **Coalesced parallel-move charge.**  With self moves filtered out and cycle
+breaking adding at most one auxiliary pair per nonself pair, the emitted list's
+charge is at most `56 * nonselfCount L` - i.e. `28` per emitted pair over the
+`2 * nonselfCount` emitted pairs, and nothing at all for self moves. -/
+theorem parmove_charge_le (L E : List (Nat × Nat)) (auxLen : Nat)
+    (hE : E.length ≤ nonselfCount L + auxLen) (haux : auxLen ≤ nonselfCount L) :
+    certifiedMoveCharge E ≤ 56 * nonselfCount L := by
+  have hlen := parmove_emitted_len_le L E auxLen hE haux
+  unfold certifiedMoveCharge
+  split <;> omega
+
+#print axioms parmove_charge_le
+#print axioms certifiedMoveCharge_le_of_len
 #print axioms parmove_emitted_len_le
 #print axioms nonselfCount_le
 #print axioms physNonself_no_self
