@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.WordStackExecutedStore
 import InitECandidate.Runtime.WordStackExecutedRaise
 import InitECandidate.Runtime.WordExecutionCostLowerBound
+import InitECandidate.Runtime.WordStackMoveCost
 namespace InitECandidate.Runtime.WordToStack
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Encoders.Asm
 open InitECandidate.Runtime.FineCost
@@ -12,6 +13,7 @@ def wordStackLeafBudget : WordLangProgHOL (BitVec 64) → Option Nat
   | .tick => some 7
   | .break _ => some 2
   | .inst _ => some 43
+  | .move _ moves => some (28 * moves.length)
   | .get _ _ | .set _ _ => some 14
   | .locValue _ _ | .return _ _ => some 15
   | .opCurrHeap _ _ _ => some 21
@@ -29,6 +31,7 @@ theorem executedSimulation_leaf {F : Type} (ac : AsmConfigExact 64)
   case skip => exact executedSimulation_skip ac source
   case tick => exact executedSimulation_tick ac source
   case inst instruction => exact executedSimulation_inst ac instruction source
+  case move priority moves => exact executedSimulation_move ac priority moves source
   case get register name => exact executedSimulation_get ac register name source
   case set name expression => exact executedSimulation_set ac name expression source
   case locValue register location => exact executedSimulation_locValue ac register location source
