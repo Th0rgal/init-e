@@ -25,7 +25,7 @@ theorem ret_price_zero_leL (D : WordDominatesL wp lp) (rets : List Nat) (cut : W
     (rc : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat) (d : Option Nat) (args : List Nat)
     (h : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat)) (s : WordSemStateFiniteExact 64 C F)
     (zero : s.clock = 0) :
-    wp (.call (some (rets, cut, rc, l1, l2)) d args h) s ≤ lp.base.call + lp.base.argCost args.length + lp.site (l1, l2) := by
+    wp (.call (some (rets, cut, rc, l1, l2)) d args h) s ≤ lp.base.call + lp.base.argCost args.length + lp.site (l1, l2) + lp.retNames rets.length := by
   have h1 := D.retCall rets cut rc l1 l2 d args h s
   rw [if_neg (fun hr => hr.1 zero)] at h1
   have h2 := D.tailOk
@@ -39,7 +39,7 @@ theorem wordCostLePL_callShort (D : WordDominatesL wp lp) {s : LoopSemStateFinit
     (run : LoopSemStateFiniteExact.evaluate (.call returns target arguments handler) s = output) :
     WordCostLePL C wp s (.call returns target arguments handler) l output
       (lp.base.call + lp.base.argCost arguments.length +
-        (match returns with | some _ => lp.site l | none => lp.tail target)) := by
+        (match returns with | some (names, _) => lp.site l + lp.retNames names.length | none => lp.tail target)) := by
   intro ok t ctxt retv rel locals ret dim notWord acc
   obtain ⟨l1, l2⟩ := l
   have zero : t.clock = 0 := by
@@ -52,12 +52,14 @@ theorem wordCostLePL_callShort (D : WordDominatesL wp lp) {s : LoopSemStateFinit
   · rcases handler with _ | ⟨n, p1, p2, liveOut⟩
     · simp only [LoopToWord.compHOL]
       rw [call_cost_zeroG _ _ _ _ _ t zero]
-      rw [← List.length_map (f := LoopToWord.findVarHOL ctxt) (as := arguments)]
+      rw [← List.length_map (f := LoopToWord.findVarHOL ctxt) (as := arguments),
+        ← List.length_map (f := LoopToWord.findVarHOL ctxt) (as := names), ← Nat.add_assoc]
       exact ret_price_zero_leL D _ _ _ _ _ _ _ _ t zero
     · simp only [LoopToWord.compHOL]
       rw [wordCost_seq_stop _ _ _ _ (call_eval_zero _ _ _ _ t zero), call_cost_zeroG _ _ _ _ _ t zero,
         D.seqZero, Nat.zero_add]
-      rw [← List.length_map (f := LoopToWord.findVarHOL ctxt) (as := arguments)]
+      rw [← List.length_map (f := LoopToWord.findVarHOL ctxt) (as := arguments),
+        ← List.length_map (f := LoopToWord.findVarHOL ctxt) (as := names), ← Nat.add_assoc]
       exact ret_price_zero_leL D _ _ _ _ _ _ _ _ t zero
 
 theorem wordCostLePL_callTail (D : WordDominatesL wp lp) {s post : LoopSemStateFiniteExact 64 F}
@@ -106,7 +108,7 @@ theorem wordCostLePL_callRet (D : WordDominatesL wp lp) {s entry post : LoopSemS
     (bodyW : LoopWorkPL lp (calleeName target values, 2) { entry with locals := env } prog (result, post) wb)
     (ih : WordCostLePL C wp { entry with locals := env } prog (calleeName target values, 2) (result, post) wb) :
     WordCostLePL C wp s (.call (some (names, live)) target arguments none) l (loopRetExit result post entry names)
-      (lp.base.call + lp.base.argCost arguments.length + lp.site l + wb + lp.base.ret * loopRetWords result) := by
+      (lp.base.call + lp.base.argCost arguments.length + lp.site l + lp.retNames names.length + wb + lp.base.ret * loopRetWords result) := by
   intro ok t ctxt retv rel locals ret dim notWord acc
   obtain ⟨l1, l2⟩ := l
   have okBody : result ≠ some .error := by

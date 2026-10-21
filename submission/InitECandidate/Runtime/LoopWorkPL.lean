@@ -13,6 +13,8 @@ structure LoopPriceL where
   base : LoopPrice
   site : Nat × Nat → Nat
   tail : Option Nat → Nat
+  /-- Charged at every returning call by its number of return names. -/
+  retNames : Nat → Nat
 
 inductive LoopWorkPL (lp : LoopPriceL) {F : Type} : Nat × Nat → LoopSemStateFiniteExact 64 F → HolLoopProg 64 →
     (Option (LoopResultExact 64) × LoopSemStateFiniteExact 64 F) → Nat → Prop where
@@ -60,7 +62,7 @@ inductive LoopWorkPL (lp : LoopPriceL) {F : Type} : Nat × Nat → LoopSemStateF
       (run : evaluate (.call returns target arguments handler) s = output) :
       LoopWorkPL lp l s (.call returns target arguments handler) output
         (lp.base.call + lp.base.argCost arguments.length +
-          (match returns with | some _ => lp.site l | none => lp.tail target))
+          (match returns with | some (names, _) => lp.site l + lp.retNames names.length | none => lp.tail target))
   | callTail {l s target arguments handler values env prog result post wb}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
       (find : LoopSemStateFiniteExact.findCode target values s.code = some (env, prog))
@@ -77,7 +79,7 @@ inductive LoopWorkPL (lp : LoopPriceL) {F : Type} : Nat × Nat → LoopSemStateF
       (plain : loopRetPlain result names handler) :
       LoopWorkPL lp l s (.call (some (names, live)) target arguments handler)
         (loopRetExit result post entry names)
-        (lp.base.call + lp.base.argCost arguments.length + lp.site l + wb + lp.base.ret * loopRetWords result)
+        (lp.base.call + lp.base.argCost arguments.length + lp.site l + lp.retNames names.length + wb + lp.base.ret * loopRetWords result)
   | callRetCont {l s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry returned post wb output wc}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
@@ -92,7 +94,7 @@ inductive LoopWorkPL (lp : LoopPriceL) {F : Type} : Nat × Nat → LoopSemStateF
       LoopWorkPL lp l s (.call (some (names, live)) target arguments
           (some (exceptionName, handlerProgram, continuation, liveOut)))
         (LoopSemStateFiniteExact.cutRes liveOut output)
-        (lp.base.call + lp.base.cont + lp.base.argCost arguments.length + lp.site l + wb +
+        (lp.base.call + lp.base.cont + lp.base.argCost arguments.length + lp.site l + lp.retNames names.length + wb +
           lp.base.ret * returned.length + wc)
   | callHandle {l s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry exn post wb output wh}
@@ -107,7 +109,7 @@ inductive LoopWorkPL (lp : LoopPriceL) {F : Type} : Nat × Nat → LoopSemStateF
       LoopWorkPL lp l s (.call (some (names, live)) target arguments
           (some (exceptionName, handlerProgram, continuation, liveOut)))
         (LoopSemStateFiniteExact.cutRes liveOut output)
-        (lp.base.call + lp.base.cont + lp.base.argCost arguments.length + lp.site l + wb + wh)
+        (lp.base.call + lp.base.cont + lp.base.argCost arguments.length + lp.site l + lp.retNames names.length + wb + wh)
 
 /-- Forgetting labels and surcharges gives a `LoopWorkP` run (so soundness and
 every unlabeled fact carry over). -/
