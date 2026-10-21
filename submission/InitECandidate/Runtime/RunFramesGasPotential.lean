@@ -139,7 +139,104 @@ theorem runFrames_add_loop_gas_decrease (coeff : FineCost.Work)
     omega
   exact ⟨post, body, funded, chargeLeft, by simpa using growth, chargePotential⟩
 
-#print axioms RunFramesAddIterations.accounting
+/-- A real ADD-loop trace that also records the canonical executed event list of
+each loop body. `stepWork` is exactly the coefficient score of those events, so
+the gas potential and the concrete source work are carried by the same run. -/
+inductive RunFramesAddCostIterations (fn : MlS) (frame : BitVec 64) (coeff : FineCost.Work)
+    (C : Nat) : PanSemStateFiniteExact 64 Guest.HostMemory → GasFunding → Nat → Nat →
+      PanSemStateFiniteExact 64 Guest.HostMemory → GasFunding → Prop where
+  | zero (state : PanSemStateFiniteExact 64 Guest.HostMemory) (funding : GasFunding) :
+      RunFramesAddCostIterations fn frame coeff C state funding 0 0 state funding
+  | step (state next post : PanSemStateFiniteExact 64 Guest.HostMemory)
+      (funding final : GasFunding) (count work : Nat) (events : List WorkEvent)
+      (body : evaluateHOLFiniteState state runFramesLoopBody = (none, next))
+      (run : StatementRun fn state runFramesLoopBody none next events)
+      (funded : HasGasFunding next frame (funding.charge 3))
+      (budget : funding.potential ≤ 200000000)
+      (enough : (3 : BitVec 64) ≤ funding.left)
+      (stepCost : coeff.score (FineCost.executionWork events) ≤ C)
+      (tail : RunFramesAddCostIterations fn frame coeff C next (funding.charge 3)
+        count work post final) :
+      RunFramesAddCostIterations fn frame coeff C state funding (count + 1)
+        (work + coeff.score (FineCost.executionWork events)) post final
+
+/-- The exact gas accounting of the cost-recorded loop trace. -/
+theorem RunFramesAddCostIterations.accounting {fn : MlS} {frame : BitVec 64}
+    {coeff : FineCost.Work} {C : Nat}
+    {state post : PanSemStateFiniteExact 64 Guest.HostMemory}
+    {funding final : GasFunding} {count work : Nat}
+    (trace : RunFramesAddCostIterations fn frame coeff C state funding count work post final) :
+    final.left.toNat + 3 * count = funding.left.toNat ∧
+    final.used.toNat = funding.used.toNat + 3 * count ∧
+    final.potential = funding.potential := by
+  induction trace with
+  | zero state funding => simp
+  | step state next post funding final count work events body run funded budget enough stepCost tail ih =>
+      obtain ⟨ihLeft, ihUsed, ihPotential⟩ := ih
+      have chargePotential := funding.charge_potential 3 budget enough
+      have chargeUsed := funding.charge_used_growth 3 budget enough
+      have hthree : (3 : BitVec 64).toNat = 3 := by decide
+      have chargeLeft : (funding.charge 3).left.toNat + 3 = funding.left.toNat := by
+        unfold GasFunding.potential at chargePotential
+        have spill : (funding.charge 3).spilled = funding.spilled := rfl
+        rw [chargeUsed, spill, hthree] at chargePotential
+        omega
+      refine ⟨?_, ?_, ?_⟩
+      · omega
+      · omega
+      · rw [ihPotential, chargePotential]
+
+/-- The recorded concrete work of the loop is at most `C` per gas decrease. -/
+theorem RunFramesAddCostIterations.work_le {fn : MlS} {frame : BitVec 64}
+    {coeff : FineCost.Work} {C : Nat}
+    {state post : PanSemStateFiniteExact 64 Guest.HostMemory}
+    {funding final : GasFunding} {count work : Nat}
+    (trace : RunFramesAddCostIterations fn frame coeff C state funding count work post final) :
+    work ≤ C * count := by
+  induction trace with
+  | zero state funding => simp
+  | step state next post funding final count work events body run funded budget enough stepCost tail ih =>
+      have : work + coeff.score (FineCost.executionWork events) ≤ C * count + C := by omega
+      simpa [Nat.mul_succ, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using this
+
+/-- Composed whole-loop work: the concrete per-iteration event work plus the
+gas-independent input/witness work, bounded by the loop count and the supplied
+per-iteration constant. -/
+theorem RunFramesAddCostIterations.total_work_le {fn : MlS} {frame : BitVec 64}
+    {coeff : FineCost.Work} {C : Nat}
+    {state post : PanSemStateFiniteExact 64 Guest.HostMemory}
+    {funding final : GasFunding} {count work : Nat}
+    (trace : RunFramesAddCostIterations fn frame coeff C state funding count work post final)
+    (budget : funding.potential ≤ 200000000) (inputLimit witnessCost : Nat) :
+    work + guestIndependentWork inputLimit witnessCost ≤
+      C * 66666666 + guestIndependentWork inputLimit witnessCost := by
+  obtain ⟨left, _, potential⟩ := trace.accounting
+  have leftLe : funding.left.toNat ≤ 200000000 := by
+    unfold GasFunding.potential at budget
+    omega
+  have usedLe : 3 * count ≤ funding.left.toNat := by omega
+  have countLe : count ≤ 66666666 := by omega
+  have workLe := trace.work_le
+  have mul := Nat.mul_le_mul_left C countLe
+  omega
+
+/-- If the per-iteration source constant times the maximum loop count plus the
+gas-independent input/witness work fits the challenge budget, then the whole
+executed loop work plus that independent work fits it too. -/
+theorem RunFramesAddCostIterations.total_work_le_target {fn : MlS} {frame : BitVec 64}
+    {coeff : FineCost.Work} {C : Nat}
+    {state post : PanSemStateFiniteExact 64 Guest.HostMemory}
+    {funding final : GasFunding} {count work : Nat}
+    (trace : RunFramesAddCostIterations fn frame coeff C state funding count work post final)
+    (budget : funding.potential ≤ 200000000) (inputLimit witnessCost : Nat)
+    (fits : C * 66666666 + guestIndependentWork inputLimit witnessCost ≤ 900000000000) :
+    work + guestIndependentWork inputLimit witnessCost ≤ 900000000000 :=
+  (trace.total_work_le budget inputLimit witnessCost).trans fits
+
+#print axioms RunFramesAddCostIterations.accounting
+#print axioms RunFramesAddCostIterations.work_le
+#print axioms RunFramesAddCostIterations.total_work_le
+#print axioms RunFramesAddCostIterations.total_work_le_target
 #print axioms RunFramesAddIterations.work_le_budget
 #print axioms RunFramesAddIterations.work_le_max_input_budget
 #print axioms runFrames_add_loop_gas_decrease
