@@ -53,6 +53,55 @@ theorem ssaCcTrans_inst_cost {C F : Type} (i i' : WordLangInst (BitVec 64))
   rw [wec_inst, wec_inst]
   exact le_of_eq hprice
 
+/-- `assign` is a leaf: it charges only its node price. -/
+theorem wec_assign {C F : Type}
+    (num : Nat) (exp : WordLangExpHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost nativeWordPrice (.assign num exp) s =
+      nativeWordPrice (.assign num exp) s := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction)
+
+/-- **Actual compiled fragment of `inst`.**  The `ssaCcTrans` clause delegates to
+`ssaCcTransInst`, so the emitted program is exactly that fragment's program
+(which may itself be a `seq` when the container expansion fires). -/
+theorem ssaCcTrans_inst_shape {width : Nat} [NeZero width]
+    (i : WordLangInst (BitVec width)) (ssa : Spt Nat) (na : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) :
+    (ssaCcTrans (.inst i) ssa na tables).1 = (ssaCcTransInst i ssa na).1 := by
+  simp only [ssaCcTrans]
+
+/-- **Actual compiled fragment of `assign`.**  The destination is renamed by
+`nextVarRename` and the expression by `ssaCcTransExp`; the emitted program is a
+single `assign`, so no instructions are inserted. -/
+theorem ssaCcTrans_assign_shape {width : Nat} [NeZero width]
+    (num : Nat) (exp : WordLangExpHOL (BitVec width)) (ssa : Spt Nat) (na : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) :
+    (ssaCcTrans (.assign num exp) ssa na tables).1 =
+      .assign (nextVarRename num ssa na).1 (ssaCcTransExp ssa exp) := by
+  simp only [ssaCcTrans]
+
+/-- **Compiled `assign` cost bound.**  Because the emitted fragment is a single
+`assign`, the executed cost is the two node prices - an equality whenever the
+emitted assign's price agrees with the source one.  No inserted instruction and
+no target budget. -/
+theorem ssaCcTrans_assign_cost {C F : Type}
+    (num : Nat) (exp : WordLangExpHOL (BitVec 64))
+    (ssa : Spt Nat) (na : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (num' : Nat) (exp' : WordLangExpHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (hcomp : (ssaCcTrans ((.assign num exp) : WordLangProgHOL (BitVec 64)) ssa na tables).1 =
+      .assign num' exp')
+    (hprice : nativeWordPrice (.assign num' exp') target =
+      nativeWordPrice (.assign num exp) source) :
+    wordExecutionCost nativeWordPrice (.assign num' exp') target ≤
+      wordExecutionCost nativeWordPrice (.assign num exp) source := by
+  rw [wec_assign, wec_assign]
+  exact le_of_eq hprice
+
+#print axioms ssaCcTrans_inst_shape
+#print axioms ssaCcTrans_assign_shape
+#print axioms ssaCcTrans_assign_cost
 #print axioms nativeWordPrice_move_length
 #print axioms ssaCcTrans_move_cost
 #print axioms ssaCcTrans_inst_cost
