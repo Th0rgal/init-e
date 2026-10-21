@@ -1,4 +1,5 @@
 import ActualPathMemoryInvariant
+import ActualLinkMemoryInvariant
 
 namespace BoundedTableExperiment
 
@@ -84,3 +85,42 @@ end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.routeDepth_le_480
 #print axioms BoundedTableExperiment.RouteOrderInv.push
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.PanSemStateFiniteExact
+
+/-- Path invariant tied to concrete 24-byte node links: each recorded path slot
+holds the route of a node whose `NodeLinkInv` (actual left/right/route memory
+words) is present. -/
+structure LinkedPathInv {F : Type} (s : PanSemStateFiniteExact 64 F)
+    (base : BitVec 64) (depth : Nat) (routes : Nat → BitVec 64)
+    (nodes left right : Nat → BitVec 64) : Prop where
+  memory : PathMemoryInv s base depth routes
+  links : ∀ i, i < depth → NodeLinkInv s (nodes i) (left i) (right i) (routes i)
+  bounded : ∀ i, i < depth → routeBit (routes i) < 480
+  monotone : ∀ i j, i < j → j < depth → routeBit (routes i) < routeBit (routes j)
+
+/-- Concrete node links give the route-order invariant used for the visit
+bound. -/
+theorem LinkedPathInv.toRouteOrder {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {base : BitVec 64} {depth : Nat} {routes : Nat → BitVec 64}
+    {nodes left right : Nat → BitVec 64}
+    (inv : LinkedPathInv s base depth routes nodes left right) :
+    RouteOrderInv s base depth routes :=
+  ⟨inv.memory, inv.bounded, inv.monotone⟩
+
+/-- Actual linked path depth is at most 480. -/
+theorem LinkedPathInv.depth_le_480 {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {base : BitVec 64} {depth : Nat} {routes : Nat → BitVec 64}
+    {nodes left right : Nat → BitVec 64}
+    (inv : LinkedPathInv s base depth routes nodes left right) : depth ≤ 480 :=
+  routeDepth_le_480 inv.toRouteOrder
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.LinkedPathInv.toRouteOrder
+#print axioms BoundedTableExperiment.LinkedPathInv.depth_le_480
