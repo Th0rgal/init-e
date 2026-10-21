@@ -38,7 +38,13 @@ structure SharpModel where
   /-- Storing `n` words through a variable address. -/
   storeOk : ∀ n, storeWordsCost K S K.var n ≤ storeOverhead n
   store32Ok : S.store32 ≤ storeOverhead 1
-  primOk : ∀ a b, S.prim a b ≤ primitiveOverhead (a + b)
+  /-- An external call pays within its fixed statement charge. -/
+  ffiOk : S.ffi ≤ 37
+  /-- A shared-memory access pays within its native event. -/
+  shMemOk : S.shMem ≤ 37
+  /-- The source primitive (three argument words, a two-word result): its
+  overhead and the copy of the result words. -/
+  primOk : S.prim 2 3 ≤ primitiveOverhead 3 + 14 * 2
   /-- A call's price and argument passing are within the call overhead and the
   certified call-site surcharge of its (caller, callee). -/
   callOk : ∀ fn g n a, callP fn g n + S.argP a ≤ callOverhead a + callSites fn g
