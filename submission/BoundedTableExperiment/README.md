@@ -539,7 +539,10 @@ alongside the existing visit/compare/order/copy counters. `trace_model.py`
 emits one JSON event per operation with the deltas of every counter plus
 `op`, key index, `cap`, and `count`. The canonical run has 1,477 events
 (1,000 inserts, 334 deletes, 143 gets) with totals
-`path_stores=12,277`, `bsearch_steps=6,537`.
+`path_stores=7,456`, `bsearch_steps=2,774`, `copy_moves=1,020`.  The model's
+growth is now structural (capacity doubles without re-inserting keys), matching
+the frozen candidate; this changes the trace counts but not the checksum
+semantics.
 
 This is the concrete trace model requested for source-price calibration. It is
 a behavior/count trace, not a source-event trace; an exact preIsel/source price

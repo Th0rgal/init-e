@@ -88,27 +88,14 @@ class Patricia:
         return default if lid is None else self.nodes[lid][2]
 
     def _grow(self) -> None:
-        old_items = self.items()
-        old = self
-        new = Patricia(self.key_len, self.cap * 2)
-        for k, v in old_items:
-            new.set(k, v)
-        # Count the rebuild work in the old table's totals.
-        for name in ('visits', 'bit_tests', 'key_compares', 'compare_bytes',
-                     'first_diff_bytes', 'order_moves', 'path_stores',
-                     'bsearch_steps', 'link_writes'):
-            setattr(old, name, getattr(old, name) + getattr(new, name))
-        old.max_visits = max(old.max_visits, new.max_visits)
-        old.grows += 1
-        old.copy_moves += len(old_items)
-        old.cap = new.cap
-        old.root = new.root
-        old.nodes = new.nodes
-        old.next_id = new.next_id
-        old.order = new.order
-        old.order_pos = new.order_pos
-        old.live_internal = new.live_internal
-        old.max_live_internal = max(old.max_live_internal, new.max_live_internal)
+        """Structural growth: ids are opaque, so only capacity doubles.
+
+        This mirrors the candidate's O(cap) relocation, not a key re-insertion
+        rebuild.  `copy_moves` counts live entries moved to the doubled arrays.
+        """
+        self.copy_moves += len(self.order)
+        self.cap *= 2
+        self.grows += 1
 
     def set(self, key: bytes, value) -> bool:
         assert len(key) == self.key_len
@@ -125,7 +112,7 @@ class Patricia:
             return False
         if (len(self.order) + 1) * 2 > self.cap:
             self._grow()
-            node, _ = self._walk(key)
+            node, path = self._walk(key)
             old = self.nodes[node][1]
             if old == key:
                 self.nodes[node] = ('leaf', key, value)
@@ -135,20 +122,24 @@ class Patricia:
         new_leaf = self._new(('leaf', key, value))
         new_int = self._new(('int', d, None, None))
         self.path_stores += len(path)
-        self.bsearch_steps += max(1, len(path).bit_length())
         self.link_writes += 1
         self.live_internal += 1
         self.max_live_internal = max(self.max_live_internal, self.live_internal)
-        parent = None
-        direction = None
-        cur = self.root
-        while self.nodes[cur][0] == 'int' and self.nodes[cur][1] < d:
-            self.visits += 1
-            self.bit_tests += 1
-            parent = cur
-            _, bit, left, right = self.nodes[cur]
-            direction = bit_at(key, bit)
-            cur = left if direction == 0 else right
+        # Single-descent split search: the recorded path has strictly
+        # increasing routes, so binary-search the first route > d.
+        routes = [self.nodes[n][1] for n, _ in path]
+        lo, hi, steps = 0, len(routes), 0
+        while lo < hi:
+            mid = (lo + hi) // 2
+            steps += 1
+            if routes[mid] > d:
+                hi = mid
+            else:
+                lo = mid + 1
+        self.bsearch_steps += steps
+        parent = path[lo - 1][0] if lo > 0 else None
+        direction = path[lo - 1][1] if lo > 0 else None
+        cur = path[lo][0] if lo < len(path) else node
         if bit_at(key, d) == 0:
             self.nodes[new_int] = ('int', d, new_leaf, cur)
         else:
