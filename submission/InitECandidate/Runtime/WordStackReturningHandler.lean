@@ -29,7 +29,7 @@ theorem executedSimulation_returningHandler (calleeBudget returnBudget handlerBu
     (covered : CodeFramesBounded source.code source.stackSize 92)
     (ih : InductionHypotheses price calleeBudget returnBudget handlerBudget ac values names retCode l1 l2 dest args handlerVar h1 h2 handlerCode source) :
     ExecutedSimulationFor price ac (.call (some (values,names,retCode,l1,l2)) dest args (some (handlerVar,handlerCode,h1,h2))) source
-      (calleeBudget + returnBudget + handlerBudget + 189 + 39*(args.length+1-22) + 21*(values.length+1-22)) := by
+      (calleeBudget + max returnBudget handlerBudget + 189 + 39*(args.length+1-22) + 21*(values.length+1-22)) := by
   apply executedSimulationFor_of_registers price
   intro k f frame sourcePost target result bs finalBitmaps n finalIndex compiled lens premises frameSmall actualRegisters
   obtain ⟨execution, notError, related, conventions, flat, compilation, bitmapLength,

@@ -71,7 +71,7 @@ theorem simulateHandlerCallWithGuards (calleeBudget returnBudget handlerBudget :
         (targetResult,targetFinal) ∧
       compCorrectResult ac k frame payload source sourcePost targetFinal result targetResult lens ∧
       stackExecutionCost (fun p _ => price p) compiled {target with clock := target.clock+extra} ≤
-        calleeBudget+returnBudget+handlerBudget+189+
+        calleeBudget+max returnBudget handlerBudget+189+
         39*Compiler.Backend.WordToStack.stackArgCount destination (args.length+1) k+
         21*Compiler.Backend.WordToStack.numStackRet k values := by
   by_cases room : 3 ≤ target.stackSpace
