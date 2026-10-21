@@ -641,3 +641,18 @@ The runtime image is built in `RiscV/SourceRuntimeBackendOutput.lean`, lines
 builds only `discoveryWords`, which are used for FFI-name discovery and are
 never lowered. The executed Word code is therefore exactly the
 `loop_to_word` output, and no DCE cost step is needed.
+
+### Pinned Word entry
+
+`GuestCostWordEntry.guest_word_entry` states the guest bound at the Word entry
+of the pinned `pan_to_word` `state_rel_imp_semantics`. Its target premises are
+those of the pinned theorem. The theorem shows that the entry call
+`Call NONE (SOME firstLoopName) [0] NONE`, run from that target at some clock,
+does Word work at most `sharpScore ev + 5330`. The proof has three steps:
+
+- `entry_loop_program`: the installed Loop entry is
+  `Seq (Call NONE (SOME firstLoopName) [] NONE) Skip`, and `compHOL` of it
+  begins with the pinned entry call.
+- `entry_loop_word_rel`: the pinned initial Loop–Word relation holds at any
+  common clock.
+- `guest_source_word` then gives the bound.
