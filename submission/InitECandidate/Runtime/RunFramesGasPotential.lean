@@ -89,6 +89,16 @@ theorem RunFramesAddIterations.work_le_max_input_budget {frame : BitVec 64}
       200000000 + guestIndependentWork maxGuestInputBytes witnessCost :=
   trace.work_le_budget budget maxGuestInputBytes witnessCost
 
+/-- The gas-independent input/witness component alone already exceeds the
+900,000,000,000 target at the full 128 MiB input cap under the checked
+database-builder bound. This isolates the input term from the loop potential. -/
+theorem full_input_independent_work_gt_budget :
+    900000000000 < guestIndependentWork maxGuestInputBytes 0 := by
+  simpa [guestIndependentWork, maxGuestInputBytes] using
+    nodedb_full_input_cost_gt_budget
+
+#print axioms full_input_independent_work_gt_budget
+
 /-- One actual ADD iteration lowers gas-left by three, raises used by three,
 and conserves the funded potential. This is the concrete step consumed by the
 iteration accounting above. -/
