@@ -315,6 +315,57 @@ axiom, `unsafe`, `native_decide` or `bv_decide`.
   `ssaCcTrans` (inserted-move runs, cut-env renaming, result/pop
   correspondence); the public `returning*` lemmas provide the ingredients, and
   the exception-handler branch is stated the same way.
+13. `AllocCostSSATransport` — **completed**
+   - `wordPathWork_permStack_variant`: the `PERM_STACK` executed-work transport
+     for **every** constructor, not only the step lemmas.  Leaves and
+     `mustTerminate` use the definition's catch-all arm; `.seq`, `.ite` and
+     `.loop` transport the actual `evaluate` run with `swap_aux` and consume the
+     checked step lemmas, with `fixClock_IMP_LESS_EQ` supplying the termination
+     bounds; `.loop` reaches its cut state through `cutState_swap`/`cutStateConst`
+     and recurses at `decClock s1`.  `.call` is covered in full: the
+     `getVars`/`badDest`/`findCode` terminal paths, the non-returning body
+     through `callEnv_swap` + `wordPathWork_call_none_body_eq`, and the
+     returning body through `pushEnv_swap`, `swap_aux`, `popEnv_swap` and the
+     result/exception/other variant lemmas (both `popEnv` outcomes), with the
+     concrete handler supplied per branch and termination from `termdep`
+     equality plus the strict clock drop.  `decClock_stack_permute` is added
+     because `pushEnv_swap`'s hypothesis is a structure literal, so a
+     `{ .. with .. }` expression cannot be rewritten by it directly.  The old
+     independent draft in `AllocCostSSAPermStack` is now a re-export.
+14. `AllocCostSSANativePrice` — native syntax-kind pricing
+   - `nativeInstPrice`: skip 7, const 19, binopImm 21, binopReg 28, shiftImm 25,
+     shiftReg 32, div 28, longMul 22, longDiv 29, other arithmetic 43, every
+     memory access 21; `nativeInstPrice_le`: every category is `≤ 43`.  Register
+     identifiers do not occur, so the price is renaming invariant.
+   - `nativeWordPrice`: structural nodes free; instructions at their category
+     cap; parallel moves at their actual size (`14` singleton, `28` per word
+     otherwise); a tail call `41`; a returning call
+     `189 + 39 * |args| + (if wordCallReturned then 21 * |returns| else 0)`.
+     The price is state dependent through the same `wordCallReturned` used by
+     `loopWordPrice`, never a static maximum.
+   - `nativeWordPrice_stack` and `wordExecutionCost_nativeWordPrice_stack_variant`:
+     the native instance of the stack-variant transport.
+15. `AllocCostSSAPriceLoop` — whole-loop transfer for **any** price
+   - `wecLoopExtra`: the recursive per-iteration extra, following the actual
+     source iterations and charging `bodyBudget + backBudget` on each executed
+     iteration that continues the loop.
+   - `WecLoopStep`: the relation-level one-step premise (same body result,
+     related successors also after `decClock`, clock agreement, one-execution
+     body transfer).
+   - `wecLoop_executed_transfer`, by strong induction on the actual source
+     clock: `wordExecutionCost price (.loop ..) t ≤ wordExecutionCost price
+     (.loop ..) s + wecLoopExtra ...`.  The only price premise is the *local*
+     `hLoop` (the loop node's own price), which
+     `wecLoopStep_native_hLoop` discharges exactly for `nativeWordPrice`
+     (`0 ≤ 0`), giving `wecLoop_executed_transfer_native`.
+16. `AllocCostSSANativeCall` — native call transfer and local call caps
+   - `nativeWordPrice_tailcall_le` (≤ 41) and `nativeWordPrice_call_le`
+     (`≤ 189 + 39|args| + 21|returns|`): per-call caps, no whole-call budget.
+   - `nativeWordPrice_callBody_transfer` and
+     `nativeWordPrice_returnContinuation_transfer`: the `calleeWork` and
+     return-handler obligations at the native price, from the actual
+     `callEnv`/`pushEnv`/`decClock` entries and `sValEq` stacks.
+
 - `AllocCostSSATransport` starts the `PERM_STACK` work transport needed because
   the SSA relation picks the source permutation existentially: the executed
   work must be invariant under replacing the oracle and stack roots by a
