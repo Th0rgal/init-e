@@ -6121,5 +6121,51 @@ theorem wordExecutionCost_loopWordPrice_stack_variant {C F : Type}
 
 #print axioms wordExecutionCost_loopWordPrice_stack_variant
 
+/-- **Callee-body transfer for the allocation call stage.**  The executed cost of
+a callee body at the *stack-swapped* caller entry equals its cost at the source
+entry.  This is the `calleeWork` obligation of the SSA returning-call alignment,
+discharged here from the actual `callEnv`/`pushEnv` entry construction rather
+than assumed. -/
+theorem wordExecutionCost_callBody_transfer {C F : Type}
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (ys : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq s.stack ys)
+    (hne : (evaluate prog
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)))).1 ≠
+        some WordSemResult.error) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost
+        InitECandidate.Runtime.FineCost.loopWordPrice prog
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (decClock { s with stack := ys }))) =
+      InitECandidate.Runtime.FineCost.wordExecutionCost
+        InitECandidate.Runtime.FineCost.loopWordPrice prog
+        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))) := by
+  obtain ⟨ys2, hentry, hentryVal⟩ := callEnv_entry_swap args1 ss envs handler s ys hval
+  rw [hentry]
+  exact wordExecutionCost_loopWordPrice_stack_variant prog
+    (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)))
+    ys2 hentryVal hne
+
+#print axioms wordExecutionCost_callBody_transfer
+
+/-- **Return-continuation transfer for the allocation call stage.**  The SSA call
+alignment yields a successfully popped target stack with `sValEq` values; the
+executed cost of the return-handler continuation is the same on that stack. -/
+theorem wordExecutionCost_returnContinuation_transfer {C F : Type}
+    (continuation : WordLangProgHOL (BitVec 64))
+    (returned : WordSemStateFiniteExact 64 C F) (targetStack : List (WordSemStackFrame 64))
+    (hval : WordSemStackEq.sValEq returned.stack targetStack)
+    (hne : (evaluate continuation returned).1 ≠ some WordSemResult.error) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost
+        InitECandidate.Runtime.FineCost.loopWordPrice continuation
+        { returned with stack := targetStack } =
+      InitECandidate.Runtime.FineCost.wordExecutionCost
+        InitECandidate.Runtime.FineCost.loopWordPrice continuation returned :=
+  wordExecutionCost_loopWordPrice_stack_variant continuation returned targetStack hval hne
+
+#print axioms wordExecutionCost_returnContinuation_transfer
+
 
 end InitECandidate.Runtime.WordToStack
