@@ -18,7 +18,7 @@ theorem isel_program_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact
     ∃ targetPost, evaluate (WordInst.instSelectExecutable c temp program) target = (result, targetPost) ∧
       IselPost c temp result post targetPost ∧
       wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp program) target ≤
-        wordExecutionCost preIselPrice program source := by
+        wordExecutionCost (preIselPrice c) program source := by
   apply isel_body_cost c temp program noInstall source target result post ?_ vars related run safe
   intro destination arity tempF body childSource childTarget childResult childPost
     found childVars foundTarget smaller childRelated childRun childSafe

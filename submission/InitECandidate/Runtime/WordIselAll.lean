@@ -156,7 +156,7 @@ theorem isel_body_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64
     ∃ rstT, evaluate (WordInst.instSelectExecutable c temp p) t = (res, rstT) ∧
       IselPost c temp res rst rstT ∧
       wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp p) t ≤
-        wordExecutionCost preIselPrice p s :=
+        wordExecutionCost (preIselPrice c) p s :=
   isel_goal c s.termdep s.clock temp p noInstall ih s t res rst (Or.inr ⟨rfl, Nat.le_refl _⟩) vars rel run ok
 
 #print axioms isel_call_none_handler

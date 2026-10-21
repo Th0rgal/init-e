@@ -51,14 +51,127 @@ def IselPost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : 
   WordSemStateFiniteExact.LrPost temp res s.locals t.locals ∧ IselCode c s.code t.code ∧
     t = { s with locals := t.locals, code := t.code }
 
-/-- Pre-selection price: expression statements pay their selected code. -/
-noncomputable def preIselPrice {C F : Type} (p : WordLangProgHOL (BitVec 64))
-    (s : WordSemStateFiniteExact 64 C F) : Nat :=
+theorem lineBound_seq_congr {leaf : WordLangProgHOL (BitVec 64) → Option Nat} {a b a' b' : WordLangProgHOL (BitVec 64)}
+    (ha : lineBound leaf a' = lineBound leaf a) (hb : lineBound leaf b' = lineBound leaf b) :
+    lineBound leaf (.seq a' b') = lineBound leaf (.seq a b) := by
+  simp only [lineBound, ha, hb]
+
+theorem leafX_inst (i j : WordLangInst (BitVec 64))
+    (h : WordToStack.refinedNativeInstructionPrice (Compiler.Encoders.Asm.HolInst.ofWordLangInst i) =
+      WordToStack.refinedNativeInstructionPrice (Compiler.Encoders.Asm.HolInst.ofWordLangInst j)) :
+    lineBound preAllocLeafBudget (.inst i) = lineBound preAllocLeafBudget (.inst j) := by
+  simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget, h]
+
+/-- The line bound of selected code does not depend on the register names
+`tar`/`temp`: every selection choice depends on the expression only. -/
+theorem iselExp_lineBound_regs (c : Compiler.Encoders.Asm.AsmConfigExact 64) (e : WordLangExpHOL (BitVec 64)) :
+    ∀ (tar temp X Y : Nat),
+      lineBound preAllocLeafBudget (WordInst.instSelectExp c X Y e) =
+        lineBound preAllocLeafBudget (WordInst.instSelectExp c tar temp e) := by
+  refine (measure (sizeOf : WordLangExpHOL (BitVec 64) → Nat)).wf.induction (C := fun e => ∀ (tar temp X Y : Nat),
+      lineBound preAllocLeafBudget (WordInst.instSelectExp c X Y e) =
+        lineBound preAllocLeafBudget (WordInst.instSelectExp c tar temp e)) e ?_
+  intro e ih tar temp X Y
+  have ih' : ∀ e', sizeOf e' < sizeOf e → ∀ tar temp X Y : Nat,
+      lineBound preAllocLeafBudget (WordInst.instSelectExp c X Y e') =
+        lineBound preAllocLeafBudget (WordInst.instSelectExp c tar temp e') := fun e' h => ih e' h
+  clear ih
+  cases e
+  case const w => rw [WordInst.instSelectExp, WordInst.instSelectExp]; exact leafX_inst _ _ rfl
+  case var v =>
+    rw [WordInst.instSelectExp, WordInst.instSelectExp]
+    simp [lineBound, isLeafProg, preAllocLeafBudget, rawMovePrice]
+  case lookup st =>
+    rw [WordInst.instSelectExp, WordInst.instSelectExp]
+    simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget]
+  case load exp =>
+    rw [WordInst.instSelectExp.eq_def, WordInst.instSelectExp.eq_def]
+    simp only
+    split
+    · rename_i exp' w
+      split_ifs
+      · exact lineBound_seq_congr (ih' exp' (by simp; omega) _ _ _ _) (leafX_inst _ _ rfl)
+      · exact lineBound_seq_congr (ih' _ (by simp) _ _ _ _) (leafX_inst _ _ rfl)
+    · exact lineBound_seq_congr (ih' exp (by simp) _ _ _ _) (leafX_inst _ _ rfl)
+  case op op args =>
+    rcases args with _ | ⟨e1, _ | ⟨e2, _ | ⟨e3, rest⟩⟩⟩
+    · rw [WordInst.instSelectExp, WordInst.instSelectExp] <;> (intros; simp_all)
+    · rw [WordInst.instSelectExp, WordInst.instSelectExp] <;> (intros; simp_all)
+    · rw [WordInst.instSelectExp.eq_def, WordInst.instSelectExp.eq_def]
+      simp only
+      split_ifs
+      · exact lineBound_seq_congr (ih' e1 (by simp; omega) _ _ _ _)
+          (by simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget])
+      · exact lineBound_seq_congr (ih' e2 (by simp; omega) _ _ _ _)
+          (by simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget])
+      · split
+        · split_ifs
+          · exact lineBound_seq_congr (ih' e1 (by simp; omega) _ _ _ _) (leafX_inst _ _ rfl)
+          · exact lineBound_seq_congr (ih' e1 (by simp; omega) _ _ _ _) (leafX_inst _ _ rfl)
+          · exact lineBound_seq_congr (ih' e1 (by simp; omega) _ _ _ _)
+              (lineBound_seq_congr (leafX_inst _ _ rfl) (leafX_inst _ _ rfl))
+        · exact lineBound_seq_congr (ih' e1 (by simp; omega) _ _ _ _)
+            (lineBound_seq_congr (ih' e2 (by simp; omega) _ _ _ _) (leafX_inst _ _ rfl))
+    · rw [WordInst.instSelectExp, WordInst.instSelectExp] <;> (intros; simp_all)
+  case shift sh exp e1 =>
+    rw [WordInst.instSelectExp.eq_def, WordInst.instSelectExp.eq_def]
+    simp only
+    split
+    · split_ifs
+      · exact lineBound_seq_congr (ih' exp (by simp; omega) _ _ _ _)
+          (by simp [lineBound, isLeafProg, preAllocLeafBudget, rawMovePrice])
+      · exact lineBound_seq_congr (ih' exp (by simp; omega) _ _ _ _) (leafX_inst _ _ rfl)
+      · exact leafX_inst _ _ rfl
+    · exact lineBound_seq_congr (ih' exp (by simp; omega) _ _ _ _)
+        (lineBound_seq_congr (ih' e1 (by simp) _ _ _ _) (leafX_inst _ _ rfl))
+/-- Statements selected through an expression: `assign`, `set`, `store`, `shareInst`. -/
+def isExprStmt : WordLangProgHOL (BitVec 64) → Bool
+  | .assign _ _ | .set _ _ | .store _ _ | .shareInst _ _ _ => true
+  | _ => false
+
+/-- Whole expression statements: the selected code's line bound does not
+depend on the temporary. -/
+theorem iselStmt_lineBound_temp (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
+    (p : WordLangProgHOL (BitVec 64)) (hp : isExprStmt p = true) :
+    lineBound preAllocLeafBudget (WordInst.instSelectExecutable c temp p) =
+      lineBound preAllocLeafBudget (WordInst.instSelectExecutable c 0 p) := by
+  cases p <;> simp only [isExprStmt, Bool.false_eq_true] at hp
+  case assign v e =>
+    simp only [WordInst.instSelectExecutable]
+    exact (iselExp_lineBound_regs c _ v 0 v temp).trans rfl
+  case set st e =>
+    simp only [WordInst.instSelectExecutable]
+    exact lineBound_seq_congr (iselExp_lineBound_regs c _ 0 0 temp temp)
+      (by simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget])
+  case store e v =>
+    simp only [WordInst.instSelectExecutable]
+    split
+    · split_ifs
+      · exact lineBound_seq_congr (iselExp_lineBound_regs c _ 0 0 temp temp) (leafX_inst _ _ rfl)
+      · exact lineBound_seq_congr (iselExp_lineBound_regs c _ 0 0 temp temp) (leafX_inst _ _ rfl)
+    · exact lineBound_seq_congr (iselExp_lineBound_regs c _ 0 0 temp temp) (leafX_inst _ _ rfl)
+  case shareInst op v e =>
+    simp only [WordInst.instSelectExecutable]
+    split
+    · split_ifs
+      · exact lineBound_seq_congr (iselExp_lineBound_regs c _ 0 0 temp temp)
+          (by simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget])
+      · exact lineBound_seq_congr (iselExp_lineBound_regs c _ 0 0 temp temp)
+          (by simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget])
+    · exact lineBound_seq_congr (iselExp_lineBound_regs c _ 0 0 temp temp)
+        (by simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget])
+
+/-- Exact selected-code cost of an expression statement (temporary-independent). -/
+def iselX (c : Compiler.Encoders.Asm.AsmConfigExact 64) (p : WordLangProgHOL (BitVec 64)) : Nat :=
+  (lineBound preAllocLeafBudget (WordInst.instSelectExecutable c 0 p)).getD 0
+
+/-- Pre-selection price: an expression statement pays exactly the static
+line bound of its own selected code; every other node pays
+`wordOptimizerLocalPrice`. -/
+noncomputable def preIselPrice {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
+    (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) : Nat :=
   match p with
-  | .assign _ e => selExpCost e
-  | .set _ e => selExpCost e + 12
-  | .store e _ => selExpCost e + 24
-  | .shareInst _ _ e => selExpCost e + 13
+  | .assign _ _ | .set _ _ | .store _ _ | .shareInst _ _ _ => iselX c p
   | p => wordOptimizerLocalPrice p s
 
 /-- Callee runs strictly below `(td, ck)` (lexicographic in termination depth
@@ -74,12 +187,66 @@ def IselCalleeIH {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (td 
     ∃ rstT, evaluate (WordInst.instSelectExecutable c tempF body) t = (res, rstT) ∧
       IselPost c tempF res rst rstT ∧
       wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c tempF body) t ≤
-        wordExecutionCost preIselPrice body s
+        wordExecutionCost (preIselPrice c) body s
+
+section
+attribute [local simp] lineBound isLeafProg preAllocLeafBudget rawMovePrice
+  WordToStack.refinedWordStackLeafBudget
+
+theorem isel_shareInst_lineBound (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
+    (op : WordMemOp) (v : Nat) (e : WordLangExpHOL (BitVec 64)) :
+    ∃ k, lineBound preAllocLeafBudget (WordInst.instSelectExecutable c temp (.shareInst op v e)) = some k ∧
+      k ≤ selExpCost e + 13 := by
+  simp only [WordInst.instSelectExecutable, selExpCost]
+  split
+  · rename_i exp' w heq
+    split
+    · obtain ⟨k, hk, hle⟩ := isel_lineBound c temp temp exp'
+      refine ⟨k + 13, by simp [hk], ?_⟩
+      rw [heq, iselCost_op2]; simp; omega
+    · obtain ⟨k, hk, hle⟩ := isel_lineBound c temp temp (.op .add [exp', .const w])
+      exact ⟨k + 13, by rw [heq]; simp [hk], by rw [heq]; omega⟩
+  · obtain ⟨k, hk, hle⟩ := isel_lineBound c temp temp
+      (WordInst.flattenExp (WordInst.ExecutablePullExp.pullExpExecutable e))
+    exact ⟨k + 13, by simp [hk], by omega⟩
+end
+
+/-- `iselX` is the line bound of the selected code at every temporary. -/
+theorem iselX_line (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat) (p : WordLangProgHOL (BitVec 64))
+    (hp : isExprStmt p = true) :
+    lineBound preAllocLeafBudget (WordInst.instSelectExecutable c temp p) = some (iselX c p) := by
+  rw [iselStmt_lineBound_temp c temp p hp, iselX]
+  have ex : ∃ k, lineBound preAllocLeafBudget (WordInst.instSelectExecutable c 0 p) = some k := by
+    cases p <;> simp only [isExprStmt, Bool.false_eq_true] at hp
+    case assign v e => obtain ⟨k, hk, -⟩ := isel_assign_lineBound c 0 v e; exact ⟨k, hk⟩
+    case set st e => obtain ⟨k, hk, -⟩ := isel_set_lineBound c 0 st e; exact ⟨k, hk⟩
+    case store e v => obtain ⟨k, hk, -⟩ := isel_store_lineBound c 0 v e; exact ⟨k, hk⟩
+    case shareInst op v e => obtain ⟨k, hk, -⟩ := isel_shareInst_lineBound c 0 op v e; exact ⟨k, hk⟩
+  obtain ⟨k, hk⟩ := ex
+  rw [hk]; rfl
 
 /-- The pre-selection price dominates the optimizer price on every node. -/
-theorem optimizer_le_preIsel {C F : Type} (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
-    wordOptimizerLocalPrice p s ≤ preIselPrice p s := by
+theorem optimizer_le_preIsel {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
+    (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
+    wordOptimizerLocalPrice p s ≤ preIselPrice c p s := by
   cases p <;> simp only [preIselPrice, Nat.le_refl]
+  case set st e =>
+    have h := iselX_line c 0 (.set st e) rfl
+    simp only [WordInst.instSelectExecutable] at h
+    obtain ⟨x, y, -, hy, hk⟩ := lineBound_seq h
+    simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget] at hy
+    rw [hk]
+    simp [wordOptimizerLocalPrice, WordToStack.refinedWordLocalPrice, WordToStack.refinedWordStackLeafBudget]
+    omega
+  case shareInst op v e =>
+    have h := iselX_line c 0 (.shareInst op v e) rfl
+    simp only [WordInst.instSelectExecutable] at h
+    split at h <;> (try split at h) <;>
+    · obtain ⟨x, y, -, hy, hk⟩ := lineBound_seq h
+      simp [lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget] at hy
+      rw [hk]
+      simp [wordOptimizerLocalPrice, WordToStack.refinedWordLocalPrice, WordToStack.refinedWordStackLeafBudget]
+      omega
   all_goals simp [wordOptimizerLocalPrice, WordToStack.refinedWordLocalPrice,
     WordToStack.refinedWordStackLeafBudget]
 
@@ -136,7 +303,7 @@ theorem isel_leaf_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExac
     (vars : everyVarHOL (fun x => decide (x < temp)) p = true) (rel : IselRel c temp s t)
     (run : evaluate p s = (res, rst)) (ok : res ≠ some .error) :
     ∃ rstT, evaluate p t = (res, rstT) ∧ IselPost c temp res rst rstT ∧
-      wordExecutionCost wordOptimizerLocalPrice p t ≤ wordExecutionCost preIselPrice p s := by
+      wordExecutionCost wordOptimizerLocalPrice p t ≤ wordExecutionCost (preIselPrice c) p s := by
   obtain ⟨hl, hcode, ht⟩ := rel
   obtain ⟨loc', h1, h2⟩ := WordSemStateFiniteExact.locals_rel_evaluate_thm p s res rst t.locals temp
     ⟨run, ok, vars, hl⟩
@@ -155,7 +322,7 @@ theorem isel_leaf_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExac
   · simp only [tgtState]; rw [← oEq, ← ccEq]
   · rw [wordCost_leaf _ (cscLeaf_isLeaf hp), wordCost_leaf _ (cscLeaf_isLeaf hp),
       optimizerPrice_state p t s]
-    exact optimizer_le_preIsel p s
+    exact optimizer_le_preIsel c p s
 
 #print axioms isel_leaf_transfer
 open Flapjack.Compiler.Backend.WordToWord in
@@ -166,13 +333,13 @@ theorem isel_stmt_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExac
     (p : WordLangProgHOL (BitVec 64)) (hp : cscLeaf p = true) (s t : WordSemStateFiniteExact 64 C F)
     (res : Option (WordSemResult 64)) (rst : WordSemStateFiniteExact 64 C F)
     (k : Nat) (line : lineBound preAllocLeafBudget (WordInst.instSelectExecutable c temp p) = some k)
-    (priced : k ≤ preIselPrice p s)
+    (priced : k ≤ preIselPrice c p s)
     (vars : everyVarHOL (fun x => decide (x < temp)) p = true) (rel : IselRel c temp s t)
     (run : evaluate p s = (res, rst)) (ok : res ≠ some .error) :
     ∃ rstT, evaluate (WordInst.instSelectExecutable c temp p) t = (res, rstT) ∧
       IselPost c temp res rst rstT ∧
       wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp p) t ≤
-        wordExecutionCost preIselPrice p s := by
+        wordExecutionCost (preIselPrice c) p s := by
   obtain ⟨hl, hcode, ht⟩ := rel
   -- the source run over the target code table
   have frame := evaluate_tgt_frame t.code s.compileOracle s.compile s (fun n => iselCode_mem hcode n) p hp
@@ -198,26 +365,6 @@ theorem isel_stmt_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExac
     rw [wordCost_leaf _ (cscLeaf_isLeaf hp)]
     omega
 
-attribute [local simp] lineBound isLeafProg preAllocLeafBudget rawMovePrice
-  WordToStack.refinedWordStackLeafBudget
-
-theorem isel_shareInst_lineBound (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
-    (op : WordMemOp) (v : Nat) (e : WordLangExpHOL (BitVec 64)) :
-    ∃ k, lineBound preAllocLeafBudget (WordInst.instSelectExecutable c temp (.shareInst op v e)) = some k ∧
-      k ≤ selExpCost e + 13 := by
-  simp only [WordInst.instSelectExecutable, selExpCost]
-  split
-  · rename_i exp' w heq
-    split
-    · obtain ⟨k, hk, hle⟩ := isel_lineBound c temp temp exp'
-      refine ⟨k + 13, by simp [hk], ?_⟩
-      rw [heq, iselCost_op2]; simp; omega
-    · obtain ⟨k, hk, hle⟩ := isel_lineBound c temp temp (.op .add [exp', .const w])
-      exact ⟨k + 13, by rw [heq]; simp [hk], by rw [heq]; omega⟩
-  · obtain ⟨k, hk, hle⟩ := isel_lineBound c temp temp
-      (WordInst.flattenExp (WordInst.ExecutablePullExp.pullExpExecutable e))
-    exact ⟨k + 13, by simp [hk], by omega⟩
-
 theorem isel_assign_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
     (s t : WordSemStateFiniteExact 64 C F) (res : Option (WordSemResult 64))
     (rst : WordSemStateFiniteExact 64 C F) (v : Nat) (e : WordLangExpHOL (BitVec 64))
@@ -226,9 +373,9 @@ theorem isel_assign_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigEx
     ∃ rstT, evaluate (WordInst.instSelectExecutable c temp (.assign v e)) t = (res, rstT) ∧
       IselPost c temp res rst rstT ∧
       wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp (.assign v e)) t ≤
-        wordExecutionCost preIselPrice (.assign v e) s := by
-  obtain ⟨k, hk, hle⟩ := isel_assign_lineBound c temp v e
-  exact isel_stmt_transfer c temp _ rfl s t res rst k hk (by simpa [preIselPrice] using hle) vars rel run ok
+        wordExecutionCost (preIselPrice c) (.assign v e) s := by
+  exact isel_stmt_transfer c temp _ rfl s t res rst _ (iselX_line c temp _ rfl) (by simp [preIselPrice]) vars rel
+    run ok
 
 theorem isel_set_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
     (s t : WordSemStateFiniteExact 64 C F) (res : Option (WordSemResult 64))
@@ -238,9 +385,9 @@ theorem isel_set_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact
     ∃ rstT, evaluate (WordInst.instSelectExecutable c temp (.set st e)) t = (res, rstT) ∧
       IselPost c temp res rst rstT ∧
       wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp (.set st e)) t ≤
-        wordExecutionCost preIselPrice (.set st e) s := by
-  obtain ⟨k, hk, hle⟩ := isel_set_lineBound c temp st e
-  exact isel_stmt_transfer c temp _ rfl s t res rst k hk (by simpa [preIselPrice] using hle) vars rel run ok
+        wordExecutionCost (preIselPrice c) (.set st e) s := by
+  exact isel_stmt_transfer c temp _ rfl s t res rst _ (iselX_line c temp _ rfl) (by simp [preIselPrice]) vars rel
+    run ok
 
 theorem isel_store_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
     (s t : WordSemStateFiniteExact 64 C F) (res : Option (WordSemResult 64))
@@ -250,9 +397,9 @@ theorem isel_store_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExa
     ∃ rstT, evaluate (WordInst.instSelectExecutable c temp (.store e v)) t = (res, rstT) ∧
       IselPost c temp res rst rstT ∧
       wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp (.store e v)) t ≤
-        wordExecutionCost preIselPrice (.store e v) s := by
-  obtain ⟨k, hk, hle⟩ := isel_store_lineBound c temp v e
-  exact isel_stmt_transfer c temp _ rfl s t res rst k hk (by simpa [preIselPrice] using hle) vars rel run ok
+        wordExecutionCost (preIselPrice c) (.store e v) s := by
+  exact isel_stmt_transfer c temp _ rfl s t res rst _ (iselX_line c temp _ rfl) (by simp [preIselPrice]) vars rel
+    run ok
 
 theorem isel_shareInst_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
     (s t : WordSemStateFiniteExact 64 C F) (res : Option (WordSemResult 64))
@@ -262,9 +409,9 @@ theorem isel_shareInst_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfi
     ∃ rstT, evaluate (WordInst.instSelectExecutable c temp (.shareInst op v e)) t = (res, rstT) ∧
       IselPost c temp res rst rstT ∧
       wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp (.shareInst op v e)) t ≤
-        wordExecutionCost preIselPrice (.shareInst op v e) s := by
-  obtain ⟨k, hk, hle⟩ := isel_shareInst_lineBound c temp op v e
-  exact isel_stmt_transfer c temp _ rfl s t res rst k hk (by simpa [preIselPrice] using hle) vars rel run ok
+        wordExecutionCost (preIselPrice c) (.shareInst op v e) s := by
+  exact isel_stmt_transfer c temp _ rfl s t res rst _ (iselX_line c temp _ rfl) (by simp [preIselPrice]) vars rel
+    run ok
 
 #print axioms isel_stmt_transfer
 #print axioms isel_assign_transfer

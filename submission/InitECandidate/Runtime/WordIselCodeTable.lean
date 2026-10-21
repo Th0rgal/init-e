@@ -46,7 +46,7 @@ theorem isel_code_table_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigEx
       wordExecutionCost wordOptimizerLocalPrice
         (WordInst.instSelectExecutable c (maxVarHOL program + 1) program)
         {source with code := iselCodeTable c source.code} ≤
-      wordExecutionCost preIselPrice program source := by
+      wordExecutionCost (preIselPrice c) program source := by
   apply isel_program_cost c (maxVarHOL program + 1) program free source _ result post
     (isel_fresh_variables program) ?_ run safe
   exact ⟨fun _ _ => rfl, iselCodeTable_related c source.code codeFree, rfl⟩

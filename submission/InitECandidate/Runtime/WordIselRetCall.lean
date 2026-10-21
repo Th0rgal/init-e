@@ -88,7 +88,7 @@ theorem isel_retcall {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) 
     have h := (upToLC_callEnv (upToLC_pushEnv up envs handler) args1 ss).1
     unfold UpToLC at h; rw [h]
   have prices : wordOptimizerLocalPrice (.call (some (n, names, WordInst.instSelectExecutable c temp retCode, l1, l2))
-      dest args (selHandler c temp handler)) t ≤ preIselPrice (.call (some (n, names, retCode, l1, l2)) dest args handler) s := by
+      dest args (selHandler c temp handler)) t ≤ preIselPrice c (.call (some (n, names, retCode, l1, l2)) dest args handler) s := by
     rcases handler with _ | ⟨a, b, c', d⟩ <;>
       simp [selHandler, wordOptimizerLocalPrice, preIselPrice, WordToStack.refinedWordLocalPrice,
         WordToStack.refinedWordStackLeafBudget]
@@ -131,7 +131,7 @@ theorem isel_retcall {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) 
     rc s2 (by rw [codeC]; exact hlab) hvars (by rw [codeCT]; exact hlabT) lex relC hcv rcErr
   simp only [hz, if_false] at tgtRun
   rw [hrunT] at tgtRun
-  have costS := ret_call_cost preIselPrice n names retCode l1 l2 dest args handler s xs hg hbad' args1 prog ss hf hdc
+  have costS := ret_call_cost (preIselPrice c) n names retCode l1 l2 dest args handler s xs hg hbad' args1 prog ss hf hdc
     envs hce hz rc s2 hcv
   have costT := ret_call_cost wordOptimizerLocalPrice n names (WordInst.instSelectExecutable c temp retCode) l1 l2 dest
     args (selHandler c temp handler) t xs (gv.trans hg) hbad' args1 (WordInst.instSelectExecutable c tempF prog) ss hfT'
