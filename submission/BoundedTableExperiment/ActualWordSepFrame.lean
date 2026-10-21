@@ -50,3 +50,35 @@ theorem tagged_store_frame {F : Type} {s : PanSemStateFiniteExact 64 F}
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.tagged_store_frame
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.PanSemStateFiniteExact
+open InitECandidate.Runtime.WordSep
+
+/-- If every tagged node cell lies below `path` and the slot range does not
+wrap, the path slots and tagged node cells are disjoint. -/
+theorem pathSlotCells_disjoint_of_below {F : Type}
+    {s : PanSemStateFiniteExact 64 F} {cap root : BitVec 64}
+    (path : Address) (slots : Nat)
+    (hbelow : ∀ b, b ∈ taggedNodeCells s cap root → b.toNat < path.toNat)
+    (hnowrap : path.toNat + 8 * slots < 2 ^ 64) :
+    Disjoint (pathSlotCells path slots) (taggedNodeCells s cap root) := by
+  rw [Set.disjoint_left]
+  intro a ha hb
+  obtain ⟨i, hi, rfl⟩ := ha
+  have hi8 : 8 * i ≤ 8 * slots := by omega
+  have hsum : path.toNat + 8 * i < 2 ^ 64 := by omega
+  have hiMod : (8 * i) % 2 ^ 64 = 8 * i := Nat.mod_eq_of_lt (by omega)
+  have haN : path.toNat ≤ (path + BitVec.ofNat 64 (8 * i)).toNat := by
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat, hiMod, Nat.mod_eq_of_lt hsum]
+    omega
+  have hbN := hbelow (path + BitVec.ofNat 64 (8 * i)) hb
+  omega
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.pathSlotCells_disjoint_of_below
