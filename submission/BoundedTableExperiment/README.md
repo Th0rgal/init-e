@@ -732,3 +732,22 @@ proves:
 Axioms are only `propext` and `Quot.sound`. These are concrete pointer/offset
 lemmas; allocator liveness and the actual PNK statement-run cost coupling are
 still open.
+
+## 29. Concrete path memory refinement (checked)
+
+`BinarySearchRefinement.lean` now also models word-addressed memory:
+
+- `pathAt m base i = m (base + i*8)` is the concrete load for abstract path
+  slot `i`; `pathList` maps a range of slots to those loads;
+- `pathList_getD` proves the abstract `getD` read is exactly `pathAt`;
+- `path_store_in` proves a path store lies in the path region;
+- `path_store_not_other` and `path_store_other_load` prove a store into the
+  path region does not change loads in any disjoint region;
+- `path_store_old_slot` / `path_store_new_slot` prove earlier slots are
+  preserved and the new slot reads back;
+- `run_split_path` instantiates the iterative binary-search refinement with
+  concrete path-memory loads.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. This ties the abstract
+`getD`/split spec to loads/stores and disjoint footprints; actual PNK
+statement-run cost coupling remains open.
