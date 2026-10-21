@@ -2362,6 +2362,125 @@ theorem wec_move_optimizer_state_independent {C F : Type}
 #print axioms wec_skip_optimizer_state_independent
 #print axioms wec_inst_optimizer_state_independent
 #print axioms wec_move_optimizer_state_independent
+/-! ### The optimizer-price allocator-only induction
+
+The three leaf facts above are exactly the per-constructor inputs of
+`allocOnly_cost_independent`, and the `seq` step is the same composition.  What changes is only
+the price: `wordOptimizerLocalPrice` is state independent
+(`wordOptimizerLocalPrice_state_independent`) and charges 0 for a `seq` node
+(`wordOptimizerLocalPrice_seq_zero`), which are the two price-level facts the port needs. -/
+
+/-- **Reading fall-through of a `seq` back into its halves.**  A sequence falls through exactly
+when its first half falls through to some middle state and the second half falls through from
+there.  The forward direction is what the `seq` step of the optimizer-price induction needs:
+given fall-through of `.seq f g` at a state, the generic seq lemma must know the state at which
+the second half runs (and that it does fall through there), because that is where `wec` charges
+it. -/
+theorem seq_fallthrough_decompose {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (h : (fixClock s (WordSemStateFiniteExact.evaluate (.seq f g) s)).1 = none) :
+    ∃ mid, fixClock s (WordSemStateFiniteExact.evaluate f s) = (none, mid) ∧
+      (fixClock mid (WordSemStateFiniteExact.evaluate g mid)).1 = none := by
+  cases hfix : fixClock s (WordSemStateFiniteExact.evaluate f s) with
+  | mk res mid =>
+    cases res with
+    | none =>
+      refine ⟨mid, rfl, ?_⟩
+      · rw [evaluate_seq_none f g s mid hfix, fixClock_fst] at h
+        rw [fixClock_fst]
+        exact h
+    | some r =>
+      exfalso
+      rw [evaluate_seq_escape f g s mid (some r) hfix (by intro hh; cases hh),
+        fixClock_fst] at h
+      simp only at h
+      cases h
+
+#print axioms seq_fallthrough_decompose
+/-- **Price-generic `seq` composition of state independence.**  The port of
+`wec_seq_state_independent` off the refined price: the node's own charge is `price (.seq f g)`
+(`hseqZero` makes it 0), and both halves are compared at the states each run actually reaches.
+`hprice` is what lets the node charges cancel across the two runs.
+
+The two per-half hypotheses are fall-through gated.  That is not pedantry: for a `seq` whose
+first half escapes on one run and falls through on the other, the second half is charged on one
+side only, so the composite cost genuinely depends on the state - even when each half's cost, as
+here, is state independent.  Fall-through of the composite is therefore the hypothesis that
+supplies both the middle states and the fall-through facts for the halves
+(`seq_fallthrough_decompose`), which is exactly the shape the induction below can discharge. -/
+theorem wec_seq_state_independent_generic {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (f g : WordLangProgHOL (BitVec 64))
+    (hprice : ∀ (p : WordLangProgHOL (BitVec 64)) (s t : WordSemStateFiniteExact 64 C F),
+      price p s = price p t)
+    (hseqZero : ∀ s : WordSemStateFiniteExact 64 C F, price (.seq f g) s = 0)
+    (hf : ∀ (s t : WordSemStateFiniteExact 64 C F),
+      (fixClock s (WordSemStateFiniteExact.evaluate f s)).1 = none →
+      (fixClock t (WordSemStateFiniteExact.evaluate f t)).1 = none →
+      wordExecutionCost price f s = wordExecutionCost price f t)
+    (hg : ∀ (s t : WordSemStateFiniteExact 64 C F),
+      (fixClock s (WordSemStateFiniteExact.evaluate g s)).1 = none →
+      (fixClock t (WordSemStateFiniteExact.evaluate g t)).1 = none →
+      wordExecutionCost price g s = wordExecutionCost price g t)
+    (s t : WordSemStateFiniteExact 64 C F)
+    (hs : (fixClock s (WordSemStateFiniteExact.evaluate (.seq f g) s)).1 = none)
+    (ht : (fixClock t (WordSemStateFiniteExact.evaluate (.seq f g) t)).1 = none) :
+    wordExecutionCost price (.seq f g) s = wordExecutionCost price (.seq f g) t := by
+  obtain ⟨m1, h1, hg1⟩ := seq_fallthrough_decompose f g s hs
+  obtain ⟨m2, h2, hg2⟩ := seq_fallthrough_decompose f g t ht
+  have hp1 : (fixClock s (WordSemStateFiniteExact.evaluate f s)).1 = none := by rw [h1]
+  have hp2 : (fixClock t (WordSemStateFiniteExact.evaluate f t)).1 = none := by rw [h2]
+  have hzt : price (.seq f g) t = 0 := by rw [hprice (.seq f g) t s]; exact hseqZero s
+  rw [wec_seq_none_split_generic price f g s m1 h1,
+    wec_seq_none_split_generic price f g t m2 h2,
+    hseqZero s, hzt, hf s t hp1 hp2, hg m1 m2 hg1 hg2]
+
+#print axioms wec_seq_state_independent_generic
+/-- **The allocator-only induction at the optimizer price, fall-through gated.**  The motive
+carries fall-through of the program on both runs because a `seq`'s cost depends on whether its
+first half escapes (`wec_seq_state_independent_generic`), and an allocator-only `seq` is not
+guaranteed to fall through on its own: a `move` with a missing source escapes.  The leaves are
+the three optimizer-price state-independence facts, and the `seq` case is the price-generic
+step with the two recursive hypotheses. -/
+theorem allocOnly_cost_independent_optimizer_aux {C F : Type}
+    (p : WordLangProgHOL (BitVec 64)) (hp : AllocOnly p) :
+    ∀ (s t : WordSemStateFiniteExact 64 C F),
+      (fixClock s (WordSemStateFiniteExact.evaluate p s)).1 = none →
+      (fixClock t (WordSemStateFiniteExact.evaluate p t)).1 = none →
+      wordExecutionCost wordOptimizerLocalPrice p s = wordExecutionCost wordOptimizerLocalPrice p t := by
+  induction hp with
+  | skip =>
+    intro s t _ _
+    exact wec_skip_optimizer_state_independent s t
+  | move pri moves =>
+    intro s t _ _
+    exact wec_move_optimizer_state_independent pri moves s t
+  | inst i =>
+    intro s t _ _
+    exact wec_inst_optimizer_state_independent i s t
+  | seq f g hf hg ihf ihg =>
+    intro s t hs ht
+    exact wec_seq_state_independent_generic wordOptimizerLocalPrice f g
+      wordOptimizerLocalPrice_state_independent (wordOptimizerLocalPrice_seq_zero f g)
+      ihf ihg s t hs ht
+
+#print axioms allocOnly_cost_independent_optimizer_aux
+/-- **Allocator-only code costs the same on any state, at the optimizer price.**  The
+optimizer-price counterpart of `allocOnly_cost_independent`: what the suffix certificate needs
+when the downstream transfer is stated against `wordOptimizerLocalPrice` (CSE, copy
+propagation) rather than the refined price.  The fall-through hypothesis is global for the whole
+program, which is what the invariants on the allocator's move tables supply in practice
+(`allocOnly_fallthrough` derives the same from the Nodup/present certificates). -/
+theorem allocOnly_cost_independent_optimizer {C F : Type}
+    (f : WordLangProgHOL (BitVec 64))
+    (h : AllocOnly f)
+    (hfall : ∀ s : WordSemStateFiniteExact 64 C F,
+      (fixClock s (WordSemStateFiniteExact.evaluate f s)).1 = none)
+    (s t : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost wordOptimizerLocalPrice f s = wordExecutionCost wordOptimizerLocalPrice f t :=
+  allocOnly_cost_independent_optimizer_aux f h s t (hfall s) (hfall t)
+
+#print axioms allocOnly_cost_independent_optimizer
 /-- The call node's successful path, in the form the callee's transfer consumes: with the frame looked
 up, a live clock and no handler, the call charges its node price plus the CALLEE's cost at the environment
 the call constructs (callEnv at the returned arguments, the looked-up stack size, and the decremented
