@@ -966,4 +966,27 @@ theorem refinedWordLocalPrice_move (pri : Nat) (pairs : List (Nat × Nat))
   simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
     InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget, physPairs]
 #print axioms refinedWordLocalPrice_move
+
+/-- **The canonical price ignores the state.**  Its state argument is unused, so a
+node's canonical price is the same on the source and the target run: every price
+differential in the transfer is zero rather than an assumed budget. -/
+theorem refinedWordLocalPrice_state_independent {C F : Type}
+    (program : WordLangProgHOL (BitVec 64))
+    (s t : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice program s =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice program t := by
+  unfold InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+  split <;> rfl
+
+/-- Hence the emitted move node's canonical price differential is zero: the `extra1`
+slot of the site composition is genuinely 0 for a move node. -/
+theorem move_price_differential_zero {C F : Type} (pri : Nat) (pairs : List (Nat × Nat))
+    (s t : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.move pri pairs) t <=
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.move pri pairs) s + 0 := by
+  simpa using le_of_eq (refinedWordLocalPrice_state_independent
+    (C := C) (F := F) (.move pri pairs) t s)
+
+#print axioms refinedWordLocalPrice_state_independent
+#print axioms move_price_differential_zero
 end InitECandidate.Runtime.FineCost
