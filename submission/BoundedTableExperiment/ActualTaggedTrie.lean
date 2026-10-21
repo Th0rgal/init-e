@@ -75,3 +75,69 @@ end BoundedTableExperiment
 #print axioms BoundedTableExperiment.TaggedTrieInv.rootBound
 #print axioms BoundedTableExperiment.TaggedTrieInv.childBound
 #print axioms BoundedTableExperiment.TaggedTrieInv.step
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.PanSemStateFiniteExact
+
+/-- Post-store internal reachability away from the stored cell is pre-store
+internal reachability. -/
+theorem ReachableInternal.of_store_other {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {cap root watched : BitVec 64} (value : HolWordLab 64)
+    {postMem : BitVec 64 → HolWordLab 64}
+    (store : @panMemStoresHOL 64 _ watched [value]
+      s.memaddrs (Classical.decPred _) s.memory = some postMem)
+    (separate : ∀ p, ReachableInternal s cap root p ->
+      p ≠ watched ∧ p + 8 ≠ watched ∧ p + 16 ≠ watched)
+    {p : BitVec 64}
+    (reach : ReachableInternal { s with memory := postMem } cap root p) :
+    ReachableInternal s cap root p := by
+  induction reach with
+  | root => exact ReachableInternal.root
+  | left reach hint link ih =>
+      obtain ⟨sep0, sep8, sep16⟩ := separate _ ih
+      exact ReachableInternal.left ih hint (link.of_store_other value sep0 sep8 sep16 store)
+  | right reach hint link ih =>
+      obtain ⟨sep0, sep8, sep16⟩ := separate _ ih
+      exact ReachableInternal.right ih hint (link.of_store_other value sep0 sep8 sep16 store)
+
+/-- A store outside all tagged node cells preserves the corrected invariant. -/
+theorem TaggedTrieInv.store_other {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {root cap : BitVec 64} {keyLen : Nat} (trie : TaggedTrieInv s root cap keyLen)
+    {watched : BitVec 64} (value : HolWordLab 64)
+    {postMem : BitVec 64 → HolWordLab 64}
+    (store : @panMemStoresHOL 64 _ watched [value]
+      s.memaddrs (Classical.decPred _) s.memory = some postMem)
+    (separate : ∀ p, ReachableInternal s cap root p ->
+      p ≠ watched ∧ p + 8 ≠ watched ∧ p + 16 ≠ watched) :
+    TaggedTrieInv { s with memory := postMem } root cap keyLen := by
+  constructor
+  · exact trie.rootCase
+  · intro hroot
+    obtain ⟨l, r, route, link⟩ := trie.rootLink hroot
+    obtain ⟨sep0, sep8, sep16⟩ := separate root (ReachableInternal.root)
+    exact ⟨l, r, route, link.store_other value sep0 sep8 sep16 store⟩
+  · intro p l r route reach hint link
+    have reachOld := ReachableInternal.of_store_other value store separate reach
+    obtain ⟨sep0, sep8, sep16⟩ := separate p reachOld
+    exact trie.routeBound p l r route reachOld hint
+      (link.of_store_other value sep0 sep8 sep16 store)
+  · intro p l r route c reach hint link hc hcint lc rc rcRoute childLink
+    have reachOld := ReachableInternal.of_store_other value store separate reach
+    obtain ⟨sep0, sep8, sep16⟩ := separate p reachOld
+    have linkOld := link.of_store_other value sep0 sep8 sep16 store
+    have hreachC : ReachableInternal s cap root c := by
+      rcases hc with h | h
+      · rw [h]; exact ReachableInternal.left reachOld hint linkOld
+      · rw [h]; exact ReachableInternal.right reachOld hint linkOld
+    obtain ⟨csep0, csep8, csep16⟩ := separate c hreachC
+    have childOld := childLink.of_store_other value csep0 csep8 csep16 store
+    exact trie.childGreater p l r route c reachOld hint linkOld hc hcint lc rc rcRoute childOld
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.ReachableInternal.of_store_other
+#print axioms BoundedTableExperiment.TaggedTrieInv.store_other
