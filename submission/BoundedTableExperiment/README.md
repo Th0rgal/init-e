@@ -870,3 +870,18 @@ cost-consistency results for the actual candidate AST. They do not yet give a
 closed per-operation cost formula or the Patricia heap/path invariants; the
 binary-search/path-push/link event decomposition still has to be proved by
 case analysis on the candidate AST and its actual semantics.
+
+## 37. Actual PNK one-word store frame
+
+`ActualPathStoreFrame.lean` uses the runtime's actual `panMemStoresHOL_frame`:
+
+- `actual_one_word_store_frame`: an actual one-word PNK store leaves every
+  different watched cell unchanged;
+- `actual_storeValue_frame`: the post-memory of an actual
+  `StatementRun.storeValue` with a one-word value is unchanged at every watched
+  cell other than the store address.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. This is the actual
+memory-semantics preservation half of the path-store invariant; it still needs
+to be instantiated at the candidate's concrete path addresses and combined with
+the search/push/link run decomposition.
