@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.WordFunctionPermuteGlobalCost
+import InitECandidate.Runtime.WordCallExecutionCost
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Compiler.Backend Flapjack.WordSemStateFiniteExact
 
