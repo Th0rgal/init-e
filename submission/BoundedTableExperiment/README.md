@@ -1261,3 +1261,10 @@ with the actual `i := 0` initializer and alignment guard runs. Axioms are
 branchMoves fn) + guard + branch + rest)`.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 67. Full actual memzero body
+
+`CandidateMemzeroBodyTrace.lean` mirrors the `memcpy` body composition for
+actual zeroing: literal scope shape, declaration split, alignment split,
+tail split, full body event list, and full body score. Axioms are `propext`,
+`Classical.choice`, `Quot.sound`.
