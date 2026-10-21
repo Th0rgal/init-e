@@ -624,7 +624,7 @@ theorem expressionEvents_rstruct_two_const (s : PanSemStateFiniteExact 64 F)
     expressionEvents s (.rstruct [.const w1, .const w2]) =
       .expression :: (expressionEvents s (.const w1) ++
         (expressionEvents s (.const w2) ++ [.copy 2])) := by
-  simp [expressionEvents, expressionListEvents, resultWords, flattenHOL,
+  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, flattenHOL,
     expressionValue, evalHOLExact, evalListHOLExact]
 
 /-- The zero-pair initialiser costs three expression entries and four copied words. -/
@@ -724,7 +724,7 @@ theorem expressionListCost_args0 (coeff : Work) (s : PanSemStateFiniteExact 64 F
     expressionListCost coeff s u256AddArgs0 =
       5 * coeff.expressions + 11 * coeff.movedWords := by
   unfold u256AddArgs0 expressionListCost
-  simp [expressionEvents, expressionListEvents, resultWords, expressionValue, evalHOLExact,
+  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
     hA, hB, flattenHOL, executionWork, Work.score, WorkEvent.units, Work.plus]
   omega
 
@@ -741,7 +741,7 @@ theorem expressionListCost_args1 (coeff : Work) (s : PanSemStateFiniteExact 64 F
     expressionListCost coeff s u256AddArgs1 =
       6 * coeff.expressions + 13 * coeff.movedWords := by
   unfold u256AddArgs1 expressionListCost
-  simp [expressionEvents, expressionListEvents, resultWords, expressionValue, evalHOLExact,
+  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
     hA, hB, hC, flattenHOL, executionWork, Work.score, WorkEvent.units, Work.plus]
   omega
 
@@ -758,7 +758,7 @@ theorem expressionListCost_args2 (coeff : Work) (s : PanSemStateFiniteExact 64 F
     expressionListCost coeff s u256AddArgs2 =
       6 * coeff.expressions + 13 * coeff.movedWords := by
   unfold u256AddArgs2 expressionListCost
-  simp [expressionEvents, expressionListEvents, resultWords, expressionValue, evalHOLExact,
+  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
     hA, hB, hC, flattenHOL, executionWork, Work.score, WorkEvent.units, Work.plus]
   omega
 
@@ -775,7 +775,7 @@ theorem expressionListCost_args3 (coeff : Work) (s : PanSemStateFiniteExact 64 F
     expressionListCost coeff s u256AddArgs3 =
       6 * coeff.expressions + 13 * coeff.movedWords := by
   unfold u256AddArgs3 expressionListCost
-  simp [expressionEvents, expressionListEvents, resultWords, expressionValue, evalHOLExact,
+  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
     hA, hB, hC, flattenHOL, executionWork, Work.score, WorkEvent.units, Work.plus]
   omega
 
@@ -794,7 +794,7 @@ theorem expressionCost_returnExpr (coeff : Work) (s : PanSemStateFiniteExact 64 
     expressionCost coeff s u256AddReturnExpr =
       9 * coeff.expressions + 16 * coeff.movedWords := by
   unfold u256AddReturnExpr expressionCost
-  simp [expressionEvents, expressionListEvents, resultWords, expressionValue, evalHOLExact,
+  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
     evalListHOLExact, hR0, hR1, hR2, hR3, flattenHOL, executionWork, Work.score,
     WorkEvent.units, Work.plus]
   omega
