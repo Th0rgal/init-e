@@ -565,4 +565,25 @@ theorem seq_transfer_fallthrough {C F : Type}
 #print axioms ssaCcTrans_move_cost
 #print axioms ssaCcTrans_inst_cost
 
+
+/-- The escaping outcome of `seq`: when the first half does not fall through, the
+second half is charged nothing on either side, so the transfer is the first half's
+transfer plus the node-price overhead. Inserted move suffixes are not charged here. -/
+theorem seq_transfer_escape {C F : Type}
+    (s1 s2 : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (hS : (fixClock source (evaluate s1 source)).1 = none -> False)
+    (hT : (fixClock target (evaluate s1 target)).1 = none -> False)
+    (extraNode extra1 : Nat)
+    (hnode : nativeWordPrice (.seq s1 s2) target <=
+      nativeWordPrice (.seq s1 s2) source + extraNode)
+    (h1 : wordExecutionCost nativeWordPrice s1 target <=
+      wordExecutionCost nativeWordPrice s1 source + extra1) :
+    wordExecutionCost nativeWordPrice (.seq s1 s2) target <=
+      wordExecutionCost nativeWordPrice (.seq s1 s2) source + extraNode + extra1 := by
+  rw [wec_seq_some_split s1 s2 target hT,
+    wec_seq_some_split s1 s2 source hS]
+  omega
+
+#print axioms seq_transfer_escape
 end InitECandidate.Runtime.FineCost
