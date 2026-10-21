@@ -944,7 +944,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
             intro e rts' hp' h
             exact (hx e h).elim)
           have payloadZero : crepCallPayloadWords (some r) = 0 := by
-            cases r <;> first | rfl | exact absurd rfl (hr _)
+            cases r <;> first | rfl | exact absurd rfl (hr _) | exact absurd rfl (hx _) | exact (hx _ rfl).elim | (exfalso; exact hx _ rfl)
           refine ⟨ck + ck', resultToLoop (some r), t1, hrunF, h2s, h2m, h2g, h2c, rfl, ?_,
             wl, wlWork, ?_⟩
           · cases r <;> first | exact True.intro | exact (hb _ rfl).elim | exact (hcn _ rfl).elim | exact (hre rfl).elim

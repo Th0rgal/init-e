@@ -168,13 +168,13 @@ theorem handler_entry_work_sharp {F : Type} {s bodyPost : PanSemStateFiniteExact
   omega
 
 theorem call_handler_events_score_sharp (arguments bodyEvents handlerEvents : List WorkEvent)
-    (a f c : Nat) :
+    (a f x : Nat) :
     sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
-      bodyEvents ++ [.cost (returnCopy c)] ++ handlerEvents))) =
-    sharpScore arguments + (300 + 40 * a + 19 * f) + sharpScore bodyEvents + 49 * c +
+      bodyEvents ++ [.cost x] ++ handlerEvents))) =
+    sharpScore arguments + (240 + 40 * a + 19 * f) + sharpScore bodyEvents + x +
       sharpScore handlerEvents := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
-    sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead, returnCopy]
+    sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead]
   omega
 
 /-- Caught exceptions: the callee body, payload copy into the handler variable
@@ -209,7 +209,7 @@ theorem call_handler_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
-        [.cost (returnCopy (callPayloadWords bodyResult))] ++ handlerEvents)) := by
+        [.cost (callExitOverhead bodyResult)] ++ handlerEvents)) := by
   classical
   obtain ⟨dest, handlerId, handlerVar, rfl⟩ := handler_plan_info_sharp plan
   obtain ⟨exn, shape, rfl, _, _, valid, rfl, -⟩ := handler_plan_inv_sharp plan
@@ -254,7 +254,7 @@ theorem call_handler_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
         39 * ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length := rfl
   unfold CrepWorkPaid_sharp
   rw [call_handler_events_score_sharp, rsize]
-  simp only [callPayloadWords]
+  try simp only [callExitOverhead, returnCopy, callPayloadWords]
   generalize sharpScore ((expressionListEvents s arguments)) = A
     at argsPaid ⊢
   generalize sharpScore bodyEvents = B at boundBody ⊢

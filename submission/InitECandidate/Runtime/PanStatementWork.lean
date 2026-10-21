@@ -4,7 +4,7 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 /-! Native overheads of executed statements beyond their expressions, at the
-native Crep prices (`CrepWorkS`): a statement unit is 37, a call 300 plus one
+native Crep prices (`CrepWorkS`): a statement unit is 37, a call 240 plus one
 argument move (39) and one argument slot (1) per word, a returned word 49.
 `Skip`, sequencing, declarations and assignments emit no unit: their Crep code
 is the expressions' own. -/
@@ -22,13 +22,19 @@ def returnOverhead (n : Nat) : Nat := statementUnit + 40 * n
 def raiseOverhead (n : Nat) : Nat := 51 * n + 86
 
 /-- A call with `n` argument words. -/
-def callOverhead (n : Nat) : Nat := 300 + 40 * n
+def callOverhead (n : Nat) : Nat := 240 + 40 * n
 
 /-- Zero-initialised return slots of a declaring call. -/
 def slotOverhead (n : Nat) : Nat := 19 * n
 
 /-- Copying `n` returned words to the caller. -/
 def returnCopy (n : Nat) : Nat := 49 * n
+
+/-- Leaving a call: copying the returned words, or for a propagated exception
+its payload and the compiled re-raise check. -/
+def callExitOverhead : Option (PanSemResultExact 64) â†’ Nat
+  | some (.exception _ value) => returnCopy (flattenHOL value).length + 98
+  | result => returnCopy (callPayloadWords result)
 
 /-- A primitive over `n` argument words: the primitive and one slot per word. -/
 def primitiveOverhead (n : Nat) : Nat := 85 + n
@@ -228,7 +234,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
-          [.cost (returnCopy (callPayloadWords bodyResult))] ++ callGlobalEvents s info))
+          [.cost (callExitOverhead bodyResult)] ++ callGlobalEvents s info))
   | callHandler {s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -242,7 +248,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
-          [.cost (returnCopy (callPayloadWords bodyResult))] ++ handlerEvents))
+          [.cost (callExitOverhead bodyResult)] ++ handlerEvents))
   | callArgumentsFailure {s info function arguments}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
         arguments = none) :
@@ -332,7 +338,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
-          [.cost (returnCopy (callPayloadWords bodyResult))]))
+          [.cost (callExitOverhead bodyResult)]))
 
   | tickStep {s} (clock : s.clock â‰  0) :
       StatementRun s .tick none (decClockHOLFinite s) [.statement, .cost statementUnit]

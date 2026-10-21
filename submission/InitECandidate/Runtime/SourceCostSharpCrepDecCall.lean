@@ -6,7 +6,7 @@ theorem decCall_events_score_sharp (arguments bodyEvents continuationEvents : Li
     (a f c d : Nat) :
     sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
       bodyEvents ++ [.cost (returnCopy c)] ++ continuationEvents ++ [.copy d]))) =
-    sharpScore arguments + (300 + 40 * a + 19 * f) + sharpScore bodyEvents + 49 * c +
+    sharpScore arguments + (240 + 40 * a + 19 * f) + sharpScore bodyEvents + 49 * c +
       sharpScore continuationEvents + 14 * d := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
     sharpScore_statement, sharpScore_cost, sharpScore_copy, sharpScore_nil, callOverhead,
@@ -307,7 +307,7 @@ theorem decCall_stopped_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
-        [.cost (returnCopy (callPayloadWords bodyResult))])) := by
+        [.cost (callExitOverhead bodyResult)])) := by
   classical
   have localisedAll : everyExpListHOL localisedExpHOL arguments = true ∧
       localisedProgHOL continuation = true := by

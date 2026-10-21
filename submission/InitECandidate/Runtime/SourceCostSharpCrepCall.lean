@@ -115,7 +115,7 @@ theorem crep_payload_le_sharp {F : Type} {context : PanToCrepContextExact 64}
     {post : PanSemStateFiniteExact 64 F} {t1 : CrepSemHOLState 64 F}
     {r : Option (PanSemResultExact 64)} {r1 : Option (CrepResultHOLExact 64)}
     (rel : pcCompileCorrectResultRel context post t1 r r1) :
-    crepCallPayloadWords r1 ≤ callPayloadWords r := by
+    49 * crepCallPayloadWords r1 ≤ callExitOverhead r := by
   rcases r with _ | r
   · obtain ⟨rfl, _⟩ := rel; simp [crepCallPayloadWords]
   · cases r with
@@ -125,14 +125,14 @@ theorem crep_payload_le_sharp {F : Type} {context : PanToCrepContextExact 64}
     | «continue» => obtain ⟨rfl, _⟩ := rel; simp [crepCallPayloadWords]
     | returned v =>
       simp only [pcCompileCorrectResultRel] at rel; subst rel
-      simp [crepCallPayloadWords, callPayloadWords]
+      simp [crepCallPayloadWords, callExitOverhead, callPayloadWords, returnCopy]
     | finalFfi f =>
       simp only [pcCompileCorrectResultRel] at rel; subst rel; simp [crepCallPayloadWords]
     | exception eid v =>
       simp only [pcCompileCorrectResultRel] at rel
       split at rel
       · exact rel.elim
-      · obtain ⟨rfl, _⟩ := rel; simp [crepCallPayloadWords]
+      · obtain ⟨rfl, _⟩ := rel; simp [crepCallPayloadWords, callExitOverhead, returnCopy]
 
 theorem call_body_ok_sharp {F : Type} {s : PanSemStateFiniteExact 64 F} {info returnShape}
     {bodyResult : Option (PanSemResultExact 64)} {bodyPost : PanSemStateFiniteExact 64 F}
@@ -210,12 +210,12 @@ theorem done_plan_no_fire_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
         · simp only [CallCostPlan.done.injEq] at plan; exact resultOk plan.1.symm
       · simp only [CallCostPlan.done.injEq] at plan; exact resultOk plan.1.symm
 
-theorem call_events_score_sharp (arguments bodyEvents : List WorkEvent) (a f c : Nat) :
+theorem call_events_score_sharp (arguments bodyEvents : List WorkEvent) (a f x : Nat) :
     sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
-      bodyEvents ++ [.cost (returnCopy c)]))) =
-    sharpScore arguments + (300 + 40 * a + 19 * f) + sharpScore bodyEvents + 49 * c := by
+      bodyEvents ++ [.cost x]))) =
+    sharpScore arguments + (240 + 40 * a + 19 * f) + sharpScore bodyEvents + x := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
-    sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead, returnCopy]
+    sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead]
   omega
 
 /-- Call exits that do not enter a handler: tail calls and return-info calls
@@ -249,7 +249,7 @@ theorem call_done_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
-        [.cost (returnCopy (callPayloadWords bodyResult))])) := by
+        [.cost (callExitOverhead bodyResult)])) := by
   classical
   have bodyOk := call_body_ok_sharp plan resultOk
   obtain ⟨vshapes, _hsrc, hprogLoc, hfuncs, _hlen, htargs, htlookup, hst', hcode', hexcp',
@@ -394,7 +394,7 @@ theorem call_timeout_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
         (evalCrepSemHOLExp t'') = some (values.flatMap flattenHOL) → t''.code = t.code →
       t''.clock = t.clock →
       CrepWorkS t'' (.call ri function ((compileExpExactHOLWList context arguments).flatMap
-        Prod.fst)) (300 + sharpCrepList ((compileExpExactHOLWList context arguments).flatMap
+        Prod.fst)) (240 + sharpCrepList ((compileExpExactHOLWList context arguments).flatMap
           Prod.fst)) := by
     intro t'' ri hargs hcode hclk
     exact CrepWorkP.callShort (Or.inr ⟨_, hargs, Or.inr (Or.inr (by rw [hclk]; exact htclock))⟩)

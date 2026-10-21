@@ -3,9 +3,11 @@ import Flapjack.Pancake.Semantics.CrepSem.EvaluateHOL
 namespace InitECandidate.Runtime.FineCost
 open Flapjack
 
-/-- Payload words returned through a Crep call boundary. -/
+/-- Payload words returned through a Crep call boundary. A propagated
+exception is charged as two words: its compiled re-raise check. -/
 def crepCallPayloadWords : Option (CrepResultHOLExact 64) → Nat
   | some (.return values) => values.length
+  | some (.exception _) => 2
   | _ => 0
 
 /-- Executed Crep work, parametrized by the price of each evaluated
