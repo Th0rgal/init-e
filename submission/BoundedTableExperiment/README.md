@@ -592,3 +592,30 @@ operations, not just a bound on distinct keys; fresh-insert count still uses
 These are diagnostics from `preX`/`optP`, not the score theorem. Truncation
 adds one delete descent (110) plus one truncate body (111) per removed entry;
 the model includes those prices but not a specific truncation count.
+
+## 21. Distinct-key coupling and the depth budget
+
+A Patricia tree with `K` live leaves has average depth at most
+`min(8*key_len, K-1)` (the comb is the worst shape). Table operations `M` all
+pay that average depth, so the descent term scales with `K`, not `M`.
+
+At `M = 33,550,000`, `key_len = 4`, optimized prices, worst-case comb depth:
+
+| distinct keys K | avg depth bound | total source units |
+|---:|---:|---:|
+| 2 | 1 | 3.71e10 |
+| 4 | 3 | 1.11e11 |
+| 6 | 5 | 1.86e11 |
+| 8 | 7 | 2.60e11 |
+| 16 | 15 | 5.57e11 |
+| 32 | 31 | 1.15e12 |
+
+Thus with the current per-visit prices, at most about six distinct live keys
+fit the ~2e11 remainder; eight already exceed it. The byte/unique coupling
+`K <= input_bytes / min_key_len` does not rescue this: 134MB of 4-byte keys
+still permits 33M distinct keys.
+
+This is the key open budget obstruction. A finite composition needs either a
+proved much smaller average live path depth for the reachable nodedb keys, a
+proved operation-count bound, or a cheaper per-visit source path. No finite
+claim is made from these diagnostics.
