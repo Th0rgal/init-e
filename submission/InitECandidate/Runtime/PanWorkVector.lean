@@ -17,6 +17,8 @@ structure Work where
   nativeEvents : Nat := 0
   globalAccesses : Nat := 0
   globalWords : Nat := 0
+  /-- Native price of executed source work, recorded by `cost` events. -/
+  nativeCost : Nat := 0
   deriving DecidableEq, Repr
 
 def Work.plus (a b : Work) : Work :=
@@ -25,7 +27,7 @@ def Work.plus (a b : Work) : Work :=
    a.movedWords+b.movedWords, a.frameSlots+b.frameSlots,
    a.transferBytes+b.transferBytes, a.primitiveBlocks+b.primitiveBlocks,
    a.nativeEvents+b.nativeEvents, a.globalAccesses+b.globalAccesses,
-   a.globalWords+b.globalWords⟩
+   a.globalWords+b.globalWords, a.nativeCost+b.nativeCost⟩
 
 /-- A separate coefficient for each implementation cost avoids multiplying
 unrelated worst-case bounds across the compiler pipeline. -/
@@ -35,7 +37,8 @@ def Work.score (coeff work : Work) : Nat :=
   coeff.movedWords*work.movedWords + coeff.frameSlots*work.frameSlots +
   coeff.transferBytes*work.transferBytes + coeff.primitiveBlocks*work.primitiveBlocks +
   coeff.nativeEvents*work.nativeEvents +
-  coeff.globalAccesses*work.globalAccesses + coeff.globalWords*work.globalWords
+  coeff.globalAccesses*work.globalAccesses + coeff.globalWords*work.globalWords +
+  coeff.nativeCost*work.nativeCost
 
 inductive WorkEvent where
   | statement
@@ -51,6 +54,9 @@ inductive WorkEvent where
   access is also charged as the ordinary variable copy; this event only
   records that `pan_globals` turns it into a memory access off `TopAddr`. -/
   | globalAccess (words : Nat)
+  /-- Native price of executed work: the native Loop price of the code
+  `pan_to_crep` emits for an executed expression or statement. -/
+  | cost (price : Nat)
   deriving DecidableEq, Repr
 
 def WorkEvent.units : WorkEvent → Work
@@ -64,6 +70,7 @@ def WorkEvent.units : WorkEvent → Work
   | .primitive n => { primitiveBlocks := n }
   | .nativeEvent => { nativeEvents := 1 }
   | .globalAccess n => { globalAccesses := 1, globalWords := n }
+  | .cost n => { nativeCost := n }
 
 /-- The extra event of a global variable access of the given size; local
 variables live in the frame and emit none. -/
