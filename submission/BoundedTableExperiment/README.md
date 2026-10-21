@@ -218,9 +218,10 @@ logic before writing the PNK candidate.
   reference ordered map, including exact insertion-order and swap-remove
   equality. It also checks `live_internal <= cap/2` after every operation and
   passed the 5,000-key adversarial family for 20/32/60-byte keys.
-- The PNK candidate still needs a full linked differential harness (run the
-  compiled guest and compare keys/order/values against the model); the model is
-  the behavioral oracle for that step.
+- `differential_spike.sh` is the linked differential harness: it compiles the
+  candidate PNK to RISC-V ELF, runs it on Spike, and compares the guest-written
+  checksum with `prototype.py`. It passes at N=200 and N=5000, including
+  growth, 1,000 explicit deletions, and a truncate to N/4.
 
 ## 7. Measured operation counts; what is still unproved
 
@@ -259,3 +260,34 @@ insert/delete/truncate are `O(key_len)` plus the counted order/growth work; the
 pool is `≤2N` nodes and `N ≤ cap/2`. The actual executed source ticks per op
 still need to be derived from the generated `StatementRun` events and the
 coefficients of the source-price API.
+
+## 8. Linked Spike differential and executed step counts
+
+`N=5000 differential_spike.sh` runs the isolated PNK candidate as a bare-metal
+Spike guest. The guest writes `sum(values) + count` to `OUTPUT_ADDR`; the model
+computes the same sequence. All checksums match:
+
+| phase | sequence | Spike steps | checksum |
+|---|---|---|---|
+| 0 | 5,000 inserts, final 5,000-entry iteration | 38,004,620 | match |
+| 1 | phase 0 + 1,000 deletes | 40,995,787 | match |
+| 2 | phase 1 + truncate 5,000 -> 1,250 | 48,123,994 | match |
+
+Phase deltas give actual executed machine-step costs for the bookkeeping the
+lead asked to charge explicitly:
+
+- 1,000 explicit deletes: `2,991,167` steps, about `2,991` steps/delete.
+- 3,750 truncation deletes: `7,128,207` steps, about `1,901` steps/delete
+  (the trie is smaller after truncation, so this is not a lower bound for the
+  deep case; it is the actual measured phase).
+- 5,000 inserts with 6 growths plus one 5,000-item iteration: `38,004,620`
+  steps total, including all resize/rebuild work.
+- Growth/rebuild totals are already included in phase 0; no O(N) scan is hidden
+  outside the measured phases.
+
+These are Spike machine steps, not yet the source-price `WorkEvent` ticks used
+by the certificate. They establish that the compiled candidate has the claimed
+behavior and give a calibration path for the source-event derivation; they do
+not by themselves prove the `9e11` bound. The step counts scale sub-quadratically
+at these sizes, but the asymptotic certificate still needs the per-operation
+`StatementRun` events and coefficient calibration.
