@@ -695,4 +695,29 @@ theorem ite_transfer_false {C F : Type}
 
 #print axioms ite_transfer_true
 #print axioms ite_transfer_false
+
+/-- **Charge at the actual call-site argument move.**  Instantiating the composed
+prefix charge at the very pair list the `.call` clause emits
+(`convArgs.zip names` with `convArgs := (List.range names.length).map (fun x => 2*x)`,
+SSACcTrans.lean:142-147): the inserted argument moves cost exactly
+`certifiedMoveCharge` of that list, and the rest of the call site is charged where the
+move actually reaches it. -/
+theorem call_arg_prefix_charge {C F : Type} (ssa : Spt Nat) (args : List Nat)
+    (tail : WordLangProgHOL (BitVec 64))
+    (s mid : WordSemStateFiniteExact 64 C F)
+    (hfix : fixClock s (evaluate (.move 1
+      (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) s) = (none, mid)) :
+    wordExecutionCost nativeWordPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+          fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) s =
+      nativeWordPrice
+        (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+          fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) s +
+      certifiedMoveCharge (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa))) +
+      wordExecutionCost nativeWordPrice tail mid :=
+  wec_move_seq_charge 1 _ tail s mid hfix
+
+#print axioms call_arg_prefix_charge
 end InitECandidate.Runtime.FineCost
