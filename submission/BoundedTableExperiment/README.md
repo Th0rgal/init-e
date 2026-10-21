@@ -1209,3 +1209,13 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`.
   actual scores.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 62. Actual memzero iterations
+
+`CandidateMemzeroTrace.lean` proves actual zeroing iteration traces:
+- `candidateMemzeroStep32_trace`: four zero stores plus `i += 32`;
+- `candidateMemzeroWhile8_trace` / `candidateMemzeroWhileByte_trace`: aligned
+  8-byte and byte-loop iterations as zero store plus bump.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. These are the copy and
+zeroing iterations used by growth and truncate.
