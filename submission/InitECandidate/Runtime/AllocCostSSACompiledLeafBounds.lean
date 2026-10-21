@@ -187,6 +187,20 @@ theorem ssaCcTrans_return_move_length
       fun x => 2 * (x + 1)).zip (nums.map (optionLookup ssa))).length = nums.length := by
   simp
 
+/-- **Actual compiled fragment of `alloc`.**  `stackMov` and `retMov` are the
+actual emitted stack-move programs from `listNextVarRenameMove`, not counts, so
+the stack-side move accounting is their own structure. -/
+theorem ssaCcTrans_alloc_shape
+    (num : Nat) (numset : WordLangCutsetsHOL) (ssa : Spt Nat) (na : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit)) :
+    (ssaCcTrans ((.alloc num numset) : WordLangProgHOL (BitVec 64)) ssa na lt).1 =
+      .seq ((listNextVarRenameMove ssa (na + 2) ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).1
+        (.seq (.move 1 [(2, optionLookup ((listNextVarRenameMove ssa (na + 2) ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).2.1 num)])
+          (.seq (.alloc 2 (Flapjack.WordAlloc.applyNummapsKey (optionLookup ((listNextVarRenameMove ssa (na + 2) ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).2.1) numset))
+            ((listNextVarRenameMove (sptInter ((listNextVarRenameMove ssa (na + 2) ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).2.1 (sptUnion numset.1 numset.2)) (((listNextVarRenameMove ssa (na + 2) ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).2.2 + 2) ((sptToAList (sptUnion numset.1 numset.2)).map Prod.fst) : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).1)) := by
+  simp only [ssaCcTrans]
+
+#print axioms ssaCcTrans_alloc_shape
 #print axioms ssaCcTrans_raise_shape
 #print axioms ssaCcTrans_return_shape
 #print axioms ssaCcTrans_return_move_length
