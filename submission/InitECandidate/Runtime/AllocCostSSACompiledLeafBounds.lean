@@ -321,6 +321,46 @@ theorem listNextVarRenameMove_price {C F : Type}
   rw [listNextVarRenameMove_shape]
   exact nativeWordPrice_move_eq_certified 0 _ s
 
+/-! ## Parallel-move self-filtering at the physical-register level
+
+A pair `(dst, src)` is a *self move* at the physical level when `dst / 2 = src / 2`
+(both halves name the same physical register).  The allocator drops exactly those,
+and cycle breaking adds at most one auxiliary pair per remaining (nonself) pair, so
+the emitted list has length at most twice the nonself count. -/
+
+/-- The physical-level self filter: keep only pairs whose halves land in different
+physical registers. -/
+def physNonself (L : List (Nat × Nat)) : List (Nat × Nat) :=
+  L.filter fun p => decide (p.1 / 2 ≠ p.2 / 2)
+
+/-- The nonself pair count. -/
+def nonselfCount (L : List (Nat × Nat)) : Nat := (physNonself L).length
+
+/-- The self pair count. -/
+def selfCount (L : List (Nat × Nat)) : Nat :=
+  (L.filter fun p => decide (p.1 / 2 = p.2 / 2)).length
+
+/-- **Nothing self-referential survives the filter.** -/
+theorem physNonself_no_self (L : List (Nat × Nat)) :
+    (physNonself L).filter (fun p => decide (p.1 / 2 = p.2 / 2)) = [] := by
+  simp [physNonself, List.filter_filter]
+
+/-- The nonself count never exceeds the list length. -/
+theorem nonselfCount_le (L : List (Nat × Nat)) : nonselfCount L ≤ L.length := by
+  simpa [nonselfCount, physNonself] using List.length_filter_le _ L
+
+/-- **Coalescing bound with cycles.**  If the self moves have been dropped and
+cycle breaking added at most one auxiliary pair per nonself pair, the emitted
+parallel-move list has length at most twice the nonself count - i.e. every moved
+value costs at most two pairs, and self moves cost none. -/
+theorem parmove_emitted_len_le (L E : List (Nat × Nat)) (auxLen : Nat)
+    (hE : E.length ≤ nonselfCount L + auxLen) (haux : auxLen ≤ nonselfCount L) :
+    E.length ≤ 2 * nonselfCount L := by
+  omega
+
+#print axioms parmove_emitted_len_le
+#print axioms nonselfCount_le
+#print axioms physNonself_no_self
 #print axioms listNextVarRenameMove_shape
 #print axioms listNextVarRenameMove_price
 #print axioms wec_seq_some_split
