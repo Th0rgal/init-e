@@ -12,7 +12,7 @@ pop, saved-cut SSA relation and emitted continuation execution from the original
 root/cut/compiler invariants. Exact restoration/binder prices are retained.
 Only the smaller continuation-body IH is used; no target run is assumed. -/
 theorem ssa_returning_success_cost {C F : Type}
-    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat) (bodyEntry : Spt Nat → Nat → Nat)
     (body callee : WordLangProgHOL (BitVec 64))
     (source target : WordSemStateFiniteExact 64 C F)
     (targetPrices : ∀ p, TP p ≤ wordOptimizerLocalPrice p target)
@@ -52,11 +52,10 @@ theorem ssa_returning_success_cost {C F : Type}
     (stackValues : WordSemStackEq.sValEq
       (WordSemStateFiniteExact.pushEnv (first,second) none source).stack
       (WordSemStateFiniteExact.pushEnv (targetFirst,targetSecond) none target).stack)
-    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
-      (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na map st.locals ct.locals ∧
-      isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
-      ssaMapOK na map ∧ ltOK lt → SSAQuantitativeSimulation SP TP body st ct map na lt)
+    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F),
+      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel retNext retMap st.locals ct.locals ∧
+      isAllocVar retNext ∧ everyVarHOL (fun key => decide (key < retNext)) body = true ∧
+      ssaMapOK retNext retMap ∧ ltOK tables → SSAQuantitativeAllowance SP TP body st ct retMap retNext tables (bodyEntry retMap retNext))
     (x : WordLocW 64) (values : List (WordLocW 64)) (returned : WordSemStateFiniteExact 64 C F)
     (sourceRun : evaluate callee (callEnv args size (pushEnv (first,second) none source)) =
       (some (.result x values), returned))
@@ -74,7 +73,7 @@ theorem ssa_returning_success_cost {C F : Type}
         Flapjack.WordAlloc.wordStateEqRel sourceFinal.2 targetFinal.2 ∧
         SSAResultLocals finalNext finalMap tables sourceFinal.2.locals targetFinal.2.locals sourceFinal.1 ∧
         retCont (fun p _ => TP p) registers continuation l1 l2 none (targetFirst,targetSecond) targetBody.1 targetBody.2 ≤
-          TP retMove + TP (.move 1 (renamed.zip registers)) +
+          TP retMove + TP (.move 1 (renamed.zip registers)) + bodyEntry retMap retNext +
             retCont (fun p _ => SP p) returns body l1 l2 none (first,second) sourceBody.1 sourceBody.2 := by
   let sourceEntry := WordSemStateFiniteExact.callEnv args size
     (WordSemStateFiniteExact.pushEnv (first,second) none source)
@@ -138,7 +137,7 @@ theorem ssa_returning_success_cost {C F : Type}
     intro p
     rw [← wordOptimizerLocalPrice_state_independent p target targetPopped]
     exact targetPrices p
-  obtain ⟨permutation, post⟩ := ssa_returning_general_continuation_exact SP TP body popped targetPopped ssa targetPrices'
+  obtain ⟨permutation, post⟩ := ssa_returning_general_continuation_entry SP TP bodyEntry body popped targetPopped ssa targetPrices'
     (sptUnion firstNames secondNames) counter returns values tables retMove moveMap moveNext moveNext
     renamed retMap retNext compiled finalMap finalNext moveProduced renameProduced bodyProduced
     (Nat.le_refl _) (moveProps.2.1 allocated) restricted valid stackClass sourceNames lengths distinct below

@@ -10,7 +10,7 @@ returns retain source-error exemption; accepted returns derive frame restoration
 and exact continuation work; terminal/escaping outcomes pay no continuation.
 No desired target run, continuation post-relation or callee IH is assumed. -/
 theorem ssa_returning_outcomes_cost {C F : Type}
-    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat) (bodyEntry : Spt Nat → Nat → Nat)
     (body callee : WordLangProgHOL (BitVec 64))
     (source target : WordSemStateFiniteExact 64 C F)
     (targetPrices : ∀ p, TP p ≤ wordOptimizerLocalPrice p target)
@@ -50,11 +50,10 @@ theorem ssa_returning_outcomes_cost {C F : Type}
     (stackValues : WordSemStackEq.sValEq
       (WordSemStateFiniteExact.pushEnv (first,second) none source).stack
       (WordSemStateFiniteExact.pushEnv (targetFirst,targetSecond) none target).stack)
-    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
-      (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na map st.locals ct.locals ∧
-      isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
-      ssaMapOK na map ∧ ltOK lt → SSAQuantitativeSimulation SP TP body st ct map na lt) :
+    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F),
+      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel retNext retMap st.locals ct.locals ∧
+      isAllocVar retNext ∧ everyVarHOL (fun key => decide (key < retNext)) body = true ∧
+      ssaMapOK retNext retMap ∧ ltOK tables → SSAQuantitativeAllowance SP TP body st ct retMap retNext tables (bodyEntry retMap retNext)) :
     let sourceEntry := callEnv args size (pushEnv (first,second) none source)
     let targetEntry := callEnv args size (pushEnv (targetFirst,targetSecond) none target)
     let registers := (List.range returns.length).map (fun index => 2*(index+1))
@@ -68,7 +67,7 @@ theorem ssa_returning_outcomes_cost {C F : Type}
         Flapjack.WordAlloc.wordStateEqRel sourceFinal.2 targetFinal.2 ∧
         SSAResultLocals finalNext finalMap tables sourceFinal.2.locals targetFinal.2.locals sourceFinal.1 ∧
         retCont (fun p _ => TP p) registers continuation l1 l2 none (targetFirst,targetSecond) targetBody.1 targetBody.2 ≤
-          TP retMove + TP (.move 1 (renamed.zip registers)) +
+          TP retMove + TP (.move 1 (renamed.zip registers)) + bodyEntry retMap retNext +
             retCont (fun p _ => SP p) returns body l1 l2 none (first,second) sourceBody.1 sourceBody.2 := by
   let sourceEntry := WordSemStateFiniteExact.callEnv args size
     (WordSemStateFiniteExact.pushEnv (first,second) none source)
@@ -131,7 +130,7 @@ theorem ssa_returning_outcomes_cost {C F : Type}
       · refine ⟨returned.permute, ?_⟩
         rw [Flapjack.WordAlloc.callRetTail_result_err _ _ _ _ _ _ _ _ _ badReturn]
         exact Or.inl rfl
-      · have success := ssa_returning_success_cost SP TP body callee source target targetPrices ssa counter
+      · have success := ssa_returning_success_cost SP TP bodyEntry body callee source target targetPrices ssa counter
           firstNames secondNames first second targetFirst targetSecond args size returns l1 l2 tables
           retMove moveMap moveNext renamed retMap retNext compiled finalMap finalNext
           moveProduced renameProduced bodyProduced frame valid stackClass firstDomain secondDomain mapped cutBounds

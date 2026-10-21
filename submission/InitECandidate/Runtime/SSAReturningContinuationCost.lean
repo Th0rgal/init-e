@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SSAQuantitativeCost
+import InitECandidate.Runtime.SSAQuantitativeAllowanceCore
 import InitECandidate.Runtime.SSALoopSetupExecutedCost
 import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticCallReturn
 namespace InitECandidate.Runtime.FineCost
@@ -10,8 +10,8 @@ set_option maxHeartbeats 6000000
 witness for semantic transport and executed cost. Original compiler equations
 and cut/binding invariants derive both emitted move runs. Only the smaller
 continuation-body quantitative IH remains; emitted move work is proved here. -/
-theorem ssa_returning_general_continuation_exact {C F : Type}
-    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+theorem ssa_returning_general_continuation_entry {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat) (bodyEntry : Spt Nat → Nat → Nat)
     (body : WordLangProgHOL (BitVec 64))
     (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat)
     (targetPrices : ∀ p, TP p ≤ wordOptimizerLocalPrice p target)
@@ -32,11 +32,10 @@ theorem ssa_returning_general_continuation_exact {C F : Type}
     (below : ∀ name ∈ returns, name < counter)
     (bodyBounds : everyVarHOL (fun key => decide (key < counter)) body = true)
     (frame : Flapjack.WordAlloc.wordStateEqRel source target) (tableValid : ltOK tables)
-    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
-      (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na map st.locals ct.locals ∧
-      isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
-      ssaMapOK na map ∧ ltOK lt → SSAQuantitativeSimulation SP TP body st ct map na lt) :
+    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F),
+      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel retNext retMap st.locals ct.locals ∧
+      isAllocVar retNext ∧ everyVarHOL (fun key => decide (key < retNext)) body = true ∧
+      ssaMapOK retNext retMap ∧ ltOK tables → SSAQuantitativeAllowance SP TP body st ct retMap retNext tables (bodyEntry retMap retNext)) :
     let registers := (List.range returns.length).map (fun index => 2*(index+1))
     let prepared := setVars registers values target
     ∃ permutation : Nat → Nat → Nat,
@@ -48,7 +47,7 @@ theorem ssa_returning_general_continuation_exact {C F : Type}
         SSAResultLocals finalNext finalMap tables sourceRun.2.locals targetRun.2.locals sourceRun.1 ∧
         wordExecutionCost (fun p _ => TP p)
           (.seq retMove (.seq (.move 1 (renamed.zip registers)) compiled)) prepared ≤
-          TP retMove + TP (.move 1 (renamed.zip registers)) +
+          TP retMove + TP (.move 1 (renamed.zip registers)) + bodyEntry retMap retNext +
             wordExecutionCost (fun p _ => SP p) body sourceState := by
   classical
   let registers := (List.range returns.length).map (fun index => 2*(index+1))
@@ -96,7 +95,7 @@ theorem ssa_returning_general_continuation_exact {C F : Type}
       exact Nat.lt_of_lt_of_le bound boundIncrease,bodyBounds⟩
   obtain ⟨permutation,post⟩ := bodyIH
     (WordSemStateFiniteExact.setVars returns values source)
-    (WordSemStateFiniteExact.setVars renamed values refreshed) retMap retNext tables
+    (WordSemStateFiniteExact.setVars renamed values refreshed)
     ⟨copyFrame,copyRelated,retProps.2.1 bindingClass,finalBodyBounds,retProps.2.2.2,tableValid⟩
   refine ⟨permutation, ?_⟩
   dsimp only at post ⊢
@@ -132,6 +131,57 @@ theorem ssa_returning_general_continuation_exact {C F : Type}
     rw [head1, head2]
     dsimp only [prepared, registers] at bodyCost ⊢
     omega
+
+
+/-- Zero-entry specialization preserves the exact continuation API. -/
+theorem ssa_returning_general_continuation_exact {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (body : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat)
+    (targetPrices : ∀ p, TP p ≤ wordOptimizerLocalPrice p target)
+    (names : Spt Unit) (counter : Nat) (returns : List Nat) (values : List (WordLocW 64))
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (retMove : WordLangProgHOL (BitVec 64)) (moveMap : Spt Nat) (moveNext bindNext : Nat)
+    (renamed : List Nat) (retMap : Spt Nat) (retNext : Nat)
+    (compiled : WordLangProgHOL (BitVec 64)) (finalMap : Spt Nat) (finalNext : Nat)
+    (moveProduced : listNextVarRenameMove (width := 64) (sptInter ssa names) (counter+2)
+      ((sptToAList names).map Prod.fst) = (retMove,moveMap,moveNext))
+    (renameProduced : listNextVarRename returns moveMap bindNext = (renamed,retMap,retNext))
+    (bodyProduced : ssaCcTrans body retMap retNext tables = (compiled,finalMap,finalNext))
+    (bindingIncrease : moveNext ≤ bindNext) (bindingClass : isAllocVar bindNext)
+    (related : ssaLocalsRel counter (sptInter ssa names) source.locals target.locals)
+    (valid : ssaMapOK counter ssa) (stackClass : isStackVar counter)
+    (sourceDomain : sptDomain source.locals = sptDomain names)
+    (lengths : returns.length = values.length) (distinct : returns.Nodup)
+    (below : ∀ name ∈ returns, name < counter)
+    (bodyBounds : everyVarHOL (fun key => decide (key < counter)) body = true)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target) (tableValid : ltOK tables)
+    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
+      (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na map st.locals ct.locals ∧
+      isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
+      ssaMapOK na map ∧ ltOK lt → SSAQuantitativeSimulation SP TP body st ct map na lt) :
+    let registers := (List.range returns.length).map (fun index => 2*(index+1))
+    let prepared := setVars registers values target
+    ∃ permutation : Nat → Nat → Nat,
+      let sourceState := {setVars returns values source with permute := permutation}
+      let sourceRun := evaluate body sourceState
+      let targetRun := evaluate (.seq retMove (.seq (.move 1 (renamed.zip registers)) compiled)) prepared
+      sourceRun.1 = some .error ∨
+        sourceRun.1 = targetRun.1 ∧ Flapjack.WordAlloc.wordStateEqRel sourceRun.2 targetRun.2 ∧
+        SSAResultLocals finalNext finalMap tables sourceRun.2.locals targetRun.2.locals sourceRun.1 ∧
+        wordExecutionCost (fun p _ => TP p)
+          (.seq retMove (.seq (.move 1 (renamed.zip registers)) compiled)) prepared ≤
+          TP retMove + TP (.move 1 (renamed.zip registers)) +
+            wordExecutionCost (fun p _ => SP p) body sourceState := by
+  have result := ssa_returning_general_continuation_entry SP TP (fun _ _ => 0) body source target ssa
+    targetPrices names counter returns values tables retMove moveMap moveNext bindNext renamed retMap retNext
+    compiled finalMap finalNext moveProduced renameProduced bodyProduced bindingIncrease bindingClass
+    related valid stackClass sourceDomain lengths distinct below bodyBounds frame tableValid
+    (fun st ct h =>
+      (ssa_quantitative_allowance_zero SP TP body st ct retMap retNext tables).mpr
+        (bodyIH st ct retMap retNext tables h))
+  simpa only [Nat.add_zero] using result
 
 /-- Cardinality corollary of the exact emitted-move-price theorem. This
 fallback is not needed when a tighter physical move price is available. -/
@@ -251,6 +301,7 @@ theorem ssa_returning_normal_continuation {C F : Type}
     moveProduced renameProduced bodyProduced (Nat.le_refl _) (moveProps.2.1 allocated)
     related valid stackClass sourceDomain lengths distinct below bodyBounds frame tableValid bodyIH
 
+#print axioms ssa_returning_general_continuation_entry
 #print axioms ssa_returning_general_continuation_exact
 #print axioms ssa_returning_normal_continuation
 #print axioms ssa_returning_general_continuation

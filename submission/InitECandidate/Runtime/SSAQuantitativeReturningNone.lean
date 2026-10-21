@@ -21,6 +21,45 @@ noncomputable def ssaReturningLocalPrice (price : WordLangProgHOL (BitVec 64) �
       | _ => 0
   | _ => 0
 
+/-- Actual continuation-entry map after stack refresh and return binding.
+The amount depends on emitted compiler metadata, not a global map bound. -/
+noncomputable def ssaReturningBodyContext
+    (program : WordLangProgHOL (BitVec 64)) (map : Spt Nat) (next : Nat) : Spt Nat × Nat :=
+  match program with
+  | .call (some (returns,names,_,_,_)) _ _ none =>
+    let allNames := sptUnion names.1 names.2
+    let keys := (sptToAList allNames).map Prod.fst
+    let stack := listNextVarRenameMove (width := 64) map (next+2) keys
+    let refresh := listNextVarRenameMove (width := 64) (sptInter stack.2.1 allNames) (stack.2.2+2) keys
+    let bindings := listNextVarRename returns refresh.2.1 refresh.2.2
+    (bindings.2.1,bindings.2.2)
+  | _ => (map,next)
+
+noncomputable def ssaReturningBodyEntry (entry : Spt Nat → Nat → Nat)
+    (program : WordLangProgHOL (BitVec 64)) (map : Spt Nat) (next : Nat) : Nat :=
+  match program with
+  | .call (some _) _ _ none =>
+    let binding := ssaReturningBodyContext program map next
+    entry binding.1 binding.2
+  | _ => 0
+
+noncomputable def ssaReturningEntryPrice (TP : WordLangProgHOL (BitVec 64) → Nat)
+    (entry : Spt Nat → Nat → Nat) (program : WordLangProgHOL (BitVec 64))
+    (map : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)) : Nat :=
+  ssaReturningLocalPrice TP program map next tables + ssaReturningBodyEntry entry program map next
+
+/-- Smaller-body IH only at the actual return-binding compilation context. -/
+def ssaReturningBodyPremise {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat) (entry : Spt Nat → Nat → Nat)
+    (body program : WordLangProgHOL (BitVec 64)) (map : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) : Prop :=
+  let binding := ssaReturningBodyContext program map next
+  ∀ (st ct : WordSemStateFiniteExact 64 C F),
+    Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel binding.2 binding.1 st.locals ct.locals ∧
+    isAllocVar binding.2 ∧ everyVarHOL (fun key => decide (key < binding.2)) body = true ∧
+    ssaMapOK binding.2 binding.1 ∧ ltOK tables →
+    SSAQuantitativeAllowance SP TP body st ct binding.1 binding.2 tables (entry binding.1 binding.2)
+
 theorem ssa_returning_destination_guard (dest : Option Nat) (args : List Nat)
     (ssa : Spt Nat) :
     wordSemBadDestArgs dest
@@ -40,20 +79,17 @@ theorem ssa_returning_convention_distinct (count : Nat) :
 entry invariants and only the smaller continuation IH. Emitted prefixes,
 callee stack transport, selected continuation and root/suffix scheduler work
 compose at exact local prices; no callee compiler IH or target run is assumed. -/
-theorem ssa_quantitative_returning_none {C F : Type}
-    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+theorem ssa_quantitative_returning_none_fund_entry {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat) (bodyEntry : Spt Nat → Nat → Nat)
     (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat) (next : Nat)
     (returns : List Nat) (firstNames secondNames : Spt Unit)
     (body : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat) (dest : Option Nat) (args : List Nat)
     (tables : List (Spt Nat × Spt Unit × Spt Unit))
-    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
-      (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na map st.locals ct.locals ∧
-      isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
-      ssaMapOK na map ∧ ltOK lt → SSAQuantitativeSimulation SP TP body st ct map na lt)
+    (bodyIH : ssaReturningBodyPremise (C := C) (F := F) SP TP bodyEntry body
+      (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none) ssa next tables)
     (sourcePrices : ∀ p, TP p ≤ SP p)
     (targetPrices : ∀ p, TP p ≤ wordOptimizerLocalPrice p target)
-    (localPrice : ssaReturningLocalPrice TP
+    (localPrice : ssaReturningEntryPrice TP bodyEntry
       (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none) ssa next tables ≤
         SP (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none))
     (premises : Flapjack.WordAlloc.wordStateEqRel source target ∧
@@ -124,6 +160,12 @@ theorem ssa_quantitative_returning_none {C F : Type}
             (.seq stackMove (.seq (.move 1 (convArgs.zip renamedArgs)) targetCall),finalMap,finalNext) := by
           simp only [ssaCcTrans,stackProduced,moveProduced,renameProduced,bodyProduced]
           rfl
+        have bodyIH' : ∀ (st ct : WordSemStateFiniteExact 64 C F),
+            Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel retNext retMap st.locals ct.locals ∧
+            isAllocVar retNext ∧ everyVarHOL (fun key => decide (key < retNext)) body = true ∧
+            ssaMapOK retNext retMap ∧ ltOK tables →
+            SSAQuantitativeAllowance SP TP body st ct retMap retNext tables (bodyEntry retMap retNext) := by
+          simpa only [ssaReturningBodyPremise,ssaReturningBodyContext,stackProduced,moveProduced,renameProduced] using bodyIH
         have prefixRun : WordSemStateFiniteExact.evaluate
             (.seq stackMove (.seq (.move 1 (convArgs.zip renamedArgs)) targetCall)) target =
             WordSemStateFiniteExact.evaluate targetCall prepared := by
@@ -243,9 +285,10 @@ theorem ssa_quantitative_returning_none {C F : Type}
           simpa [sourceBase,targetBase,WordSemStateFiniteExact.decClock,
             Flapjack.WordAlloc.wordStateEqRel,h13] using preparedFrame
         have localBound : TP stackMove + TP (.move 1 (convArgs.zip renamedArgs)) + TP targetCall +
-            (TP retMove + TP (.move 1 (renamed.zip registers))) ≤
+            (TP retMove + TP (.move 1 (renamed.zip registers)) + bodyEntry retMap retNext) ≤
             SP (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none) := by
-          simpa only [ssaReturningLocalPrice, compiledWhole, targetCall, continuation] using localPrice
+          simpa only [ssaReturningEntryPrice,ssaReturningLocalPrice,ssaReturningBodyEntry,ssaReturningBodyContext,stackProduced,moveProduced,renameProduced,
+            compiledWhole,targetCall,continuation,Nat.add_assoc] using localPrice
         have seqZero : ∀ p q, TP (.seq p q) = 0 := by
           intro p q
           have bound := targetPrices (.seq p q)
@@ -332,14 +375,14 @@ theorem ssa_quantitative_returning_none {C F : Type}
                   {WordSemStateFiniteExact.decClock source with permute := (Flapjack.WordAlloc.ppPerm rootPermutation suffix)}))) = _
             rw [Flapjack.WordAlloc.pushEnv_ppPerm]
             rfl
-          have outcome := ssa_returning_outcomes_cost SP TP body callee sourceBase targetBase
+          have outcome := ssa_returning_outcomes_cost SP TP bodyEntry body callee sourceBase targetBase
             (fun p => by rw [← wordOptimizerLocalPrice_state_independent p target targetBase]; exact targetPrices p)
             fresh counter firstNames secondNames first second targetFirst targetSecond calleeArgs size returns l1 l2 tables
             retMove moveMap moveNext renamed retMap retNext compiled finalMap finalNext
             moveProduced renameProduced bodyProduced baseFrame properties.2.2.2 (properties.2.1 allocated)
             firstDomain secondDomain mapped cutBounds returnBounds (not_not.mp (not_or.mp badCut).2) bodyBounds tableValid
             firstRelation injection sourceRoots targetRoots sourcePerm targetPerm sourceRootRead targetRootRead
-            rootFacts.2.1 entry stackValues bodyIH
+            rootFacts.2.1 entry stackValues bodyIH'
           let targetBody := WordSemStateFiniteExact.evaluate callee targetEntry
           have continuationOutcome : ∃ permutation,
               let sourceBody := ((WordSemStateFiniteExact.evaluate callee sourceEntry).1,
@@ -347,7 +390,7 @@ theorem ssa_quantitative_returning_none {C F : Type}
               SSAQuantitativeOutcome finalMap finalNext tables
                 (Flapjack.WordAlloc.callRetTail returns body l1 l2 (first,second) none sourceBody)
                 (Flapjack.WordAlloc.callRetTail registers continuation l1 l2 (targetFirst,targetSecond) none targetBody)
-                (TP retMove + TP (.move 1 (renamed.zip registers)) +
+                (TP retMove + TP (.move 1 (renamed.zip registers)) + bodyEntry retMap retNext +
                   retCont (fun p _ => SP p) returns body l1 l2 none (first,second) sourceBody.1 sourceBody.2)
                 (retCont (fun p _ => TP p) registers continuation l1 l2 none
                   (targetFirst,targetSecond) targetBody.1 targetBody.2) := by
@@ -359,7 +402,7 @@ theorem ssa_quantitative_returning_none {C F : Type}
             (fun result => retCont (fun p _ => SP p) returns body l1 l2 none (first,second) result.1 result.2)
             (SP (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none))
             (TP stackMove + TP (.move 1 (convArgs.zip renamedArgs)) + TP targetCall)
-            (TP retMove + TP (.move 1 (renamed.zip registers)))
+            (TP retMove + TP (.move 1 (renamed.zip registers)) + bodyEntry retMap retNext)
             (retCont (fun p _ => TP p) registers continuation l1 l2 none (targetFirst,targetSecond) targetBody.1 targetBody.2)
             localBound (fun _ => rfl) continuationOutcome
           have targetCallCost := ret_call_cost (fun p (_ : WordSemStateFiniteExact 64 C F) => TP p)
@@ -385,5 +428,44 @@ theorem ssa_quantitative_returning_none {C F : Type}
           rw [prefixRun, targetRun, sourceSuffix, targetCost, sourceCost]
           exact post
 
+
+/-- Zero-entry specialization preserves the original returning-call API. -/
+theorem ssa_quantitative_returning_none {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat) (next : Nat)
+    (returns : List Nat) (firstNames secondNames : Spt Unit)
+    (body : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat) (dest : Option Nat) (args : List Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
+      (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na map st.locals ct.locals ∧
+      isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
+      ssaMapOK na map ∧ ltOK lt → SSAQuantitativeSimulation SP TP body st ct map na lt)
+    (sourcePrices : ∀ p, TP p ≤ SP p)
+    (targetPrices : ∀ p, TP p ≤ wordOptimizerLocalPrice p target)
+    (localPrice : ssaReturningLocalPrice TP
+      (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none) ssa next tables ≤
+        SP (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none))
+    (premises : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun key => decide (key < next))
+        (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables) :
+    SSAQuantitativeSimulation SP TP
+      (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none)
+      source target ssa next tables := by
+  apply ssa_quantitative_returning_none_fund_entry SP TP (fun _ _ => 0) source target ssa next
+    returns firstNames secondNames body l1 l2 dest args tables
+  · intro st ct h
+    let binding := ssaReturningBodyContext
+      (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args none) ssa next
+    exact (ssa_quantitative_allowance_zero SP TP body st ct binding.1 binding.2 tables).mpr
+      (bodyIH st ct binding.1 binding.2 tables h)
+  · exact sourcePrices
+  · exact targetPrices
+  · simpa only [ssaReturningEntryPrice,ssaReturningBodyEntry,Nat.add_zero] using localPrice
+  · exact premises
+
+#print axioms ssa_quantitative_returning_none_fund_entry
 #print axioms ssa_quantitative_returning_none
 end InitECandidate.Runtime.FineCost
