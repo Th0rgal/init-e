@@ -3507,12 +3507,314 @@ theorem evaluate_loop_outcome_agree {C F : Type}
               exact ⟨rS', sS', rT', sT', by rw [hcontS]; exact hrunS',
                 by rw [hcontT]; exact hrunT', hout'⟩
 
-/-- **The loop's quantitative transfer.**  From the body's quantitative transfer at every pair of
-states the compiler relates (`LoopBodyTransfer`) and the locals-domain agreement the compiler
-relation deliberately omits (`LoopLocalsDomAgrees`), the loop node transfers with `B` per executed
-iteration, of which there are at most `source.clock + 1`: the runs agree
-(`evaluate_loop_outcome_agree`) and the executed cost bound is `wec_loop_transfer_clock`, whose two
-explicit hypotheses are derived above (`loopBodyStep_of_transfer`, `loopCutAgrees_of_localsDom`). -/
+/-! ### The budget in ACTUALLY EXECUTED iterations
+
+`wec_loop_transfer_clock` bounds the loop by `B * (s.clock + 1)`, a FUEL count: the initial clock can
+be arbitrarily larger than the iterations a run actually performs, so that shape cannot be composed.
+The budget below is the trace's own count instead.  `loopIterCountAux` computes the number of body
+executions the evaluator's loop clause performs from a state, by the SAME recursion the clause takes:
+consult the cut (a failed cut runs nothing), run the body, test the continuation, and recurse at the
+decremented clock.  The cut and the body are charged BEFORE the clock is consulted, which is why the
+count of a zero-clock entry is one and not zero - a property of the trace, not a fuel allowance.
+
+`wec_loop_transfer_iters` then states the loop's transfer as `B * loopIterCount`: no clock, no
+multiplier, no floor. -/
+
+/-- The number of body executions the loop's trace performs from `s`, computed by literally the same
+recursion the evaluator's loop clause takes.  `names` is the loop's live set (the cut table), `body`
+its body.  The `n` is FUEL FOR THE PROOF ORDER only, never for the accounting: it is always at least
+`s.clock` (see `loopIterCount`), and one iteration always consumes exactly one unit of it because
+`decClock` decreases the clock by one. -/
+noncomputable def loopIterCountAux {C F : Type} (names : WordLangNumSetHOL)
+    (body : WordLangProgHOL (BitVec 64)) : Nat → WordSemStateFiniteExact 64 C F → Nat
+  | 0, s =>
+    match cutState (names, .ln) s with
+    | none => 0
+    | some _ => 1
+  | n + 1, s =>
+    match cutState (names, .ln) s with
+    | none => 0
+    | some cutS =>
+      match fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) with
+      | (res, mid) =>
+        if wordSemContLoop res then
+          (if mid.clock = 0 then 1
+           else 1 + loopIterCountAux names body n
+             (Flapjack.WordSemStateFiniteExact.decClock mid))
+        else 1
+
+/-- The loop's executed-iteration count from `s`: the trace itself, with the state's own clock as the
+proof-order fuel (which is enough, since every iteration either stops or decrements the clock). -/
+noncomputable def loopIterCount {C F : Type} (names : WordLangNumSetHOL)
+    (body : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) : Nat :=
+  loopIterCountAux names body s.clock s
+
+/-- One step of the trace's count, at positive fuel. -/
+theorem loopIterCountAux_succ {C F : Type} (names : WordLangNumSetHOL)
+    (body : WordLangProgHOL (BitVec 64)) (n : Nat) (s : WordSemStateFiniteExact 64 C F) :
+    loopIterCountAux names body (n + 1) s =
+      (match cutState (names, .ln) s with
+       | none => 0
+       | some cutS =>
+         match fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) with
+         | (res, mid) =>
+           if wordSemContLoop res then
+             (if mid.clock = 0 then 1
+              else 1 + loopIterCountAux names body n
+                (Flapjack.WordSemStateFiniteExact.decClock mid))
+           else 1) := rfl
+
+/-- One step of the trace's count at zero fuel: the cut decides, and it is one body execution when
+the cut succeeds (the trace stops after this iteration because no proof-order fuel is left). -/
+theorem loopIterCountAux_zero {C F : Type} (names : WordLangNumSetHOL)
+    (body : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
+    loopIterCountAux names body 0 s =
+      (match cutState (names, .ln) s with
+       | none => 0
+       | some _ => 1) := rfl
+
+/-- **The loop's transfer counted in executed iterations.**  Every executed iteration costs at most
+the body's differential `B`, and the count is the trace's own: `loopIterCountAux n s` with `n` at
+least the entry clock.  Proof by induction on that fuel; the single iteration at an exhausted clock
+is charged as one iteration, which is why the count can exceed the clock by one. -/
+theorem wec_loop_transfer_iters_aux {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat)
+    (hbody : LoopBodyStep (C := C) (F := F) names body bodyC B)
+    (hcut : LoopCutAgrees (C := C) (F := F) names) :
+    ∀ (n : Nat) (s t : WordSemStateFiniteExact 64 C F), s.clock ≤ n →
+      Flapjack.WordAlloc.wordStateEqRel s t →
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+          (.loop names bodyC liveOut) t ≤
+        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+          (.loop names body liveOut) s +
+          B * loopIterCountAux (C := C) (F := F) names body n s := by
+  intro n
+  induction n with
+  | zero =>
+    intro s t hle hrel
+    have hclk : s.clock = 0 := by omega
+    cases hs : cutState (names, .ln) s with
+    | none =>
+      have hcnt : loopIterCountAux (C := C) (F := F) names body 0 s = 0 := by
+        simp only [loopIterCountAux_zero, hs]
+      have hnoneS : ¬ ∃ cs, cutState (names, .ln) s = some cs := by
+        rintro ⟨cs, hcs⟩
+        rw [hs] at hcs
+        cases hcs
+      have hnoneT : ¬ ∃ ct, cutState (names, .ln) t = some ct :=
+        fun h => hnoneS ((hcut s t hrel).mpr h)
+      have ht : cutState (names, .ln) t = none := by
+        cases htt : cutState (names, .ln) t with
+        | none => rfl
+        | some ct => exact absurd ⟨ct, htt⟩ hnoneT
+      rw [hcnt, wec_loop_cutState_none names liveOut body s hs,
+        wec_loop_cutState_none names liveOut bodyC t ht]
+      omega
+    | some cutS =>
+      have hcnt : loopIterCountAux (C := C) (F := F) names body 0 s = 1 := by
+        simp only [loopIterCountAux_zero, hs]
+      obtain ⟨cutT, ht⟩ := (hcut s t hrel).mp ⟨cutS, hs⟩
+      rcases hRunS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) with
+        ⟨resultS, midS⟩
+      rcases hRunT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) with
+        ⟨resultT, midT⟩
+      obtain ⟨hcont, hrelMid, hcost⟩ :=
+        hbody s t cutS cutT resultS midS resultT midT hrel hs ht hRunS hRunT
+      have hmid0 : midS.clock = 0 := by
+        have h1 : midS.clock ≤ cutS.clock :=
+          (fixClock_IMP_LESS_EQ cutS resultS midS
+            (WordSemStateFiniteExact.evaluate body cutS) hRunS).1
+        have h2 : cutS.clock = s.clock := (cutState_clock_termdep (names, .ln) s cutS hs).1
+        omega
+      cases hc : wordSemContLoop resultS with
+      | false =>
+        have hcT : wordSemContLoop resultT = false := by rw [← hcont]; exact hc
+        rw [hcnt, Nat.mul_one]
+        exact wec_loop_stop_transfer names liveOut body bodyC s t cutS cutT B hs ht
+          resultS midS resultT midT hRunS hRunT hc hcT hcost
+      | true =>
+        have hcT : wordSemContLoop resultT = true := by rw [← hcont]; exact hc
+        have hmidT0 : midT.clock = 0 := by
+          have h := wordStateEqRel_clock hrelMid
+          omega
+        rw [hcnt, Nat.mul_one]
+        exact wec_loop_cont_done_transfer names liveOut body bodyC s t cutS cutT B hs ht
+          resultS midS resultT midT hRunS hRunT hc hcT hcost hmid0 hmidT0
+  | succ n ih =>
+    intro s t hle hrel
+    cases hs : cutState (names, .ln) s with
+    | none =>
+      have hcnt : loopIterCountAux (C := C) (F := F) names body (n + 1) s = 0 := by
+        simp only [loopIterCountAux_succ, hs]
+      have hnoneS : ¬ ∃ cs, cutState (names, .ln) s = some cs := by
+        rintro ⟨cs, hcs⟩
+        rw [hs] at hcs
+        cases hcs
+      have hnoneT : ¬ ∃ ct, cutState (names, .ln) t = some ct :=
+        fun h => hnoneS ((hcut s t hrel).mpr h)
+      have ht : cutState (names, .ln) t = none := by
+        cases htt : cutState (names, .ln) t with
+        | none => rfl
+        | some ct => exact absurd ⟨ct, htt⟩ hnoneT
+      rw [hcnt, wec_loop_cutState_none names liveOut body s hs,
+        wec_loop_cutState_none names liveOut bodyC t ht]
+      omega
+    | some cutS =>
+      obtain ⟨cutT, ht⟩ := (hcut s t hrel).mp ⟨cutS, hs⟩
+      rcases hRunS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) with
+        ⟨resultS, midS⟩
+      rcases hRunT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) with
+        ⟨resultT, midT⟩
+      obtain ⟨hcont, hrelMid, hcost⟩ :=
+        hbody s t cutS cutT resultS midS resultT midT hrel hs ht hRunS hRunT
+      have hclk : midS.clock = 0 ↔ midT.clock = 0 := by
+        have hclkEq := wordStateEqRel_clock hrelMid
+        omega
+      have hbound : midS.clock ≤ n + 1 := by
+        have h1 : midS.clock ≤ cutS.clock :=
+          (fixClock_IMP_LESS_EQ cutS resultS midS
+            (WordSemStateFiniteExact.evaluate body cutS) hRunS).1
+        have h2 : cutS.clock = s.clock := (cutState_clock_termdep (names, .ln) s cutS hs).1
+        omega
+      cases hc : wordSemContLoop resultS with
+      | false =>
+        have hcnt : loopIterCountAux (C := C) (F := F) names body (n + 1) s = 1 := by
+          simp only [loopIterCountAux_succ, hs, hRunS, hc, Bool.false_eq_true, if_false]
+        have hcT : wordSemContLoop resultT = false := by rw [← hcont]; exact hc
+        rw [hcnt, Nat.mul_one]
+        exact wec_loop_stop_transfer names liveOut body bodyC s t cutS cutT B hs ht
+          resultS midS resultT midT hRunS hRunT hc hcT hcost
+      | true =>
+        have hcT : wordSemContLoop resultT = true := by rw [← hcont]; exact hc
+        by_cases hzS : midS.clock = 0
+        · have hzT : midT.clock = 0 := hclk.mp hzS
+          have hcnt : loopIterCountAux (C := C) (F := F) names body (n + 1) s = 1 := by
+            simp only [loopIterCountAux_succ, hs, hRunS, hc, hzS, if_true, eq_self_iff_true]
+          rw [hcnt, Nat.mul_one]
+          exact wec_loop_cont_done_transfer names liveOut body bodyC s t cutS cutT B hs ht
+            resultS midS resultT midT hRunS hRunT hc hcT hcost hzS hzT
+        · have hzT : midT.clock = 0 → False := fun h => hzS (hclk.mpr h)
+          have hcnt : loopIterCountAux (C := C) (F := F) names body (n + 1) s =
+              1 + loopIterCountAux (C := C) (F := F) names body n
+                (Flapjack.WordSemStateFiniteExact.decClock midS) := by
+            simp only [loopIterCountAux_succ, hs, hRunS, hc, if_neg hzS, if_true, eq_self_iff_true]
+          have hle' : (Flapjack.WordSemStateFiniteExact.decClock midS).clock ≤ n := by
+            show midS.clock - 1 ≤ n
+            omega
+          have hrelDec : Flapjack.WordAlloc.wordStateEqRel
+              (Flapjack.WordSemStateFiniteExact.decClock midS)
+              (Flapjack.WordSemStateFiniteExact.decClock midT) :=
+            wordStateEqRel_decClock hrelMid
+          have hrec := ih (Flapjack.WordSemStateFiniteExact.decClock midS)
+            (Flapjack.WordSemStateFiniteExact.decClock midT) hle' hrelDec
+          have hstep := wec_loop_step_transfer names liveOut body bodyC s t cutS cutT B
+            (B * loopIterCountAux (C := C) (F := F) names body n
+              (Flapjack.WordSemStateFiniteExact.decClock midS)) hs ht
+            resultS midS resultT midT hRunS hRunT hcont hclk hcost hrec
+          rw [hcnt, Nat.mul_add, Nat.mul_one]
+          exact hstep
+
+/-- **The loop's transfer at the trace's own iteration count.**  No clock, no multiplier: the
+compiled loop costs at most the source loop plus `B` per iteration the run actually performs. -/
+theorem wec_loop_transfer_iters {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat)
+    (hbody : LoopBodyStep (C := C) (F := F) names body bodyC B)
+    (hcut : LoopCutAgrees (C := C) (F := F) names)
+    (s t : WordSemStateFiniteExact 64 C F)
+    (hrel : Flapjack.WordAlloc.wordStateEqRel s t) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.loop names bodyC liveOut) t ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.loop names body liveOut) s +
+        B * loopIterCount (C := C) (F := F) names body s :=
+  wec_loop_transfer_iters_aux names liveOut body bodyC B hbody hcut s.clock s t
+    (le_refl _) hrel
+
+#print axioms loopIterCountAux_zero
+#print axioms loopIterCountAux_succ
+#print axioms wec_loop_transfer_iters_aux
+#print axioms wec_loop_transfer_iters
+
+/-- The count is a property of the TRACE, not a fuel allowance: it exceeds the entry clock by at most
+one, and only because the iteration at an exhausted clock is executed (cut and body first).  This is
+exactly why `B * clock` is false and `B * (clock + 1)` was the loose but sound fuel shape. -/
+theorem loopIterCountAux_le_clock {C F : Type} (names : WordLangNumSetHOL)
+    (body : WordLangProgHOL (BitVec 64)) :
+    ∀ (n : Nat) (s : WordSemStateFiniteExact 64 C F), s.clock ≤ n →
+      loopIterCountAux (C := C) (F := F) names body n s ≤ s.clock + 1 := by
+  intro n
+  induction n with
+  | zero =>
+    intro s hle
+    have hclk : s.clock = 0 := by omega
+    cases hs : cutState (names, .ln) s with
+    | none =>
+      have hcnt : loopIterCountAux (C := C) (F := F) names body 0 s = 0 := by
+        simp only [loopIterCountAux_zero, hs]
+      rw [hcnt]
+      omega
+    | some cutS =>
+      have hcnt : loopIterCountAux (C := C) (F := F) names body 0 s = 1 := by
+        simp only [loopIterCountAux_zero, hs]
+      rw [hcnt]
+      omega
+  | succ n ih =>
+    intro s hle
+    cases hs : cutState (names, .ln) s with
+    | none =>
+      have hcnt : loopIterCountAux (C := C) (F := F) names body (n + 1) s = 0 := by
+        simp only [loopIterCountAux_succ, hs]
+      rw [hcnt]
+      omega
+    | some cutS =>
+      rcases hRunS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) with
+        ⟨resultS, midS⟩
+      have hclkS : cutS.clock = s.clock := (cutState_clock_termdep (names, .ln) s cutS hs).1
+      have hmid : midS.clock ≤ cutS.clock :=
+        (fixClock_IMP_LESS_EQ cutS resultS midS
+          (WordSemStateFiniteExact.evaluate body cutS) hRunS).1
+      cases hc : wordSemContLoop resultS with
+      | false =>
+        have hcnt : loopIterCountAux (C := C) (F := F) names body (n + 1) s = 1 := by
+          simp only [loopIterCountAux_succ, hs, hRunS, hc, Bool.false_eq_true, if_false]
+        rw [hcnt]
+        omega
+      | true =>
+        by_cases hz : midS.clock = 0
+        · have hcnt : loopIterCountAux (C := C) (F := F) names body (n + 1) s = 1 := by
+            simp only [loopIterCountAux_succ, hs, hRunS, hc, hz, if_true, eq_self_iff_true]
+          rw [hcnt]
+          omega
+        · have hcnt : loopIterCountAux (C := C) (F := F) names body (n + 1) s =
+              1 + loopIterCountAux (C := C) (F := F) names body n
+                (Flapjack.WordSemStateFiniteExact.decClock midS) := by
+            simp only [loopIterCountAux_succ, hs, hRunS, hc, if_neg hz, if_true, eq_self_iff_true]
+          have hle' : (Flapjack.WordSemStateFiniteExact.decClock midS).clock ≤ n := by
+            show midS.clock - 1 ≤ n
+            omega
+          have hrec := ih (Flapjack.WordSemStateFiniteExact.decClock midS) hle'
+          rw [hcnt]
+          show 1 + loopIterCountAux (C := C) (F := F) names body n
+            (Flapjack.WordSemStateFiniteExact.decClock midS) ≤ s.clock + 1
+          have hdec : (Flapjack.WordSemStateFiniteExact.decClock midS).clock = midS.clock - 1 := rfl
+          omega
+
+/-- The loop's executed-iteration count exceeds its entry clock by at most one. -/
+theorem loopIterCount_le_clock_succ {C F : Type} (names : WordLangNumSetHOL)
+    (body : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
+    loopIterCount (C := C) (F := F) names body s ≤ s.clock + 1 :=
+  loopIterCountAux_le_clock names body s.clock s (le_refl _)
+
+#print axioms loopIterCountAux_le_clock
+#print axioms loopIterCount_le_clock_succ
+
+/-- **The loop's quantitative transfer, counted in EXECUTED iterations.**  From the body's
+quantitative transfer at every pair of states the compiler relates (`LoopBodyTransfer`) and the
+locals-domain agreement the compiler relation deliberately omits (`LoopLocalsDomAgrees`), the loop
+node transfers with `B` per iteration the run actually performs - the budget is
+`B * loopIterCount`, the trace's own count, NOT a function of the entry clock.  The runs agree
+(`evaluate_loop_outcome_agree`) and the cost bound is `wec_loop_transfer_iters`, whose two explicit
+hypotheses are derived above (`loopBodyStep_of_transfer`, `loopCutAgrees_of_localsDom`). -/
 theorem loop_quantTransfer {C F : Type}
     (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64))
     (source target : WordSemStateFiniteExact 64 C F) (B : Nat)
@@ -3520,10 +3822,10 @@ theorem loop_quantTransfer {C F : Type}
     (hloc : LoopLocalsDomAgrees (C := C) (F := F))
     (hrel : Flapjack.WordAlloc.wordStateEqRel source target) :
     quantTransfer (C := C) (F := F) (.loop names body liveOut) (.loop names bodyC liveOut)
-      source target (B * (source.clock + 1)) := by
+      source target (B * loopIterCount (C := C) (F := F) names body source) := by
   refine ⟨evaluate_loop_outcome_agree names liveOut body bodyC B hbody hloc source.clock
     source target (le_refl _) hrel, ?_⟩
-  exact wec_loop_transfer_clock names liveOut body bodyC B
+  exact wec_loop_transfer_iters names liveOut body bodyC B
     (loopBodyStep_of_transfer names body bodyC B hbody)
     (loopCutAgrees_of_localsDom hloc names) source target hrel
 
@@ -3551,7 +3853,7 @@ theorem ssaCcTrans_loop_quant {C F : Type}
     (hbody : LoopBodyTransfer (C := C) (F := F) body bodyC B)
     (hloc : LoopLocalsDomAgrees (C := C) (F := F)) :
     quantSsaSimulation (C := C) (F := F) (.loop names body exitNames) source target ssa next tables
-      (B * (source.clock + 1)) := by
+      (B * loopIterCount (C := C) (F := F) names body source) := by
   obtain ⟨⟨rS, sS, rT, sT, hrunS, hrunT, hout⟩, hcost⟩ :=
     loop_quantTransfer names exitNames body bodyC source target B hbody hloc hinv.1
   refine ⟨?_, ⟨rS, sS, rT, sT, hrunS, ?_, hout⟩, ?_⟩

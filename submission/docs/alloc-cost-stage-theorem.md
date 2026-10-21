@@ -666,6 +666,10 @@ Notes for whoever continues:
   false for the same reason: the loop recharges the body at every level.
 - **the `+ 1` is real**: the cut and the body are charged before the clock is consulted, so a loop entered at
   clock 0 still executes its body once.  A bound `B * s.clock` without the `+ 1` is false.
+  NOTE (superseded): `B * (s.clock + 1)` is still a FUEL shape - it charges the entry clock, not the
+  iterations the run performs, and the entry clock can be arbitrarily large relative to them.  It is kept
+  only as an intermediate lemma; the delivered transfer is `B * loopIterCount`, the trace's own count (see
+  the iteration-count section at the end of this file).
 - **both extra hypotheses are genuine**, and neither follows from `wordStateEqRel`:
   `LoopCutAgrees` because cutability reads `locals` (which the relation deliberately does not constrain), and
   `LoopBodyStep` because the body's own cost transfer at each iteration is exactly what the body's simulation
@@ -714,7 +718,7 @@ not just one cutset's worth.
 | `LoopBodyStep names body bodyC B` | `LoopBodyTransfer` + `wordStateEqRel_cutState` + `fix_clock_evaluate` |
 | `LoopCutAgrees names` | `LoopLocalsDomAgrees` + `cutState_exists_iff` (any cutset, not just `names`) |
 | loop run agreement | `LoopBodyTransfer` + `LoopLocalsDomAgrees` (clock induction) |
-| loop cost bound `B * (s.clock + 1)` | `wec_loop_transfer_clock` at the two derived hypotheses |
+| loop cost bound `B * loopIterCount ... source` | `wec_loop_transfer_iters` at the two derived hypotheses |
 
 Support: `sptSubsetLive_congr` (subset-liveness is a domain property), `cutState_exists_iff`
 (`cutState cs s` succeeds iff both name sets are live in `s.locals`), `cutState_exists_congr` (hence
@@ -729,7 +733,7 @@ EXIT cutset).
         (hbody : LoopBodyTransfer body bodyC B) (hloc : LoopLocalsDomAgrees)
         (hrel  : wordStateEqRel source target) :
         quantTransfer (.loop names body liveOut) (.loop names bodyC liveOut) source target
-          (B * (source.clock + 1))
+          (B * loopIterCount names body source)
 
     theorem ssaCcTrans_loop_quant
         (bodyIH : forall st ct map na lt, wordStateEqRel st ct /\ ssaLocalsRel na map st.locals ct.locals /\
@@ -740,7 +744,7 @@ EXIT cutset).
                     .loop names bodyC exitNames)
         (hbody : LoopBodyTransfer body bodyC B) (hloc : LoopLocalsDomAgrees) :
         quantSsaSimulation (.loop names body exitNames) source target ssa next tables
-          (B * (source.clock + 1))
+          (B * loopIterCount names body source)
 
 `ssaCcTrans_loop_quant` mirrors `ssaCcTransCorrectLoop`'s bundle verbatim (`bodyIH` + the six premises)
 for the semantic conjunct, and transports the quantitative conjuncts of `loop_quantTransfer` through
@@ -793,3 +797,85 @@ for the semantic conjunct, and transports the quantitative conjuncts of `loop_qu
   `rw [hs] at hnone; cases hnone` in a branch is fine, but the same tactic closed a second branch's
   goals in an earlier draft, producing a spurious "unsolved goals".  Use newlines inside `next`
   branches of a `split`.
+
+## The loop's budget is counted in EXECUTED iterations, not in the entry clock
+
+`B * (s.clock + 1)` is a FUEL bound: it charges the entry clock, and at the composition stage the entry
+clock can be arbitrarily larger than the iterations a run actually performs.  The loop's quantitative
+transfer is therefore stated, and proved, against the trace's OWN iteration count.  Everything is at
+`wordExecutionCost refinedWordLocalPrice`; the clock-shaped `wec_loop_transfer_clock` /
+`wec_loop_transfer_clock_double` remain in the file as intermediate lemmas only.
+
+### The count is the trace
+
+    noncomputable def loopIterCountAux (names) (body) : Nat -> state -> Nat
+      | 0, s   => match cutState (names, .ln) s with | none => 0 | some _ => 1
+      | n + 1, s =>
+          match cutState (names, .ln) s with
+          | none => 0
+          | some cutS =>
+            match fixClock cutS (evaluate body cutS) with
+            | (res, mid) =>
+                if wordSemContLoop res then
+                  (if mid.clock = 0 then 1 else 1 + loopIterCountAux names body n (decClock mid))
+                else 1
+
+    noncomputable def loopIterCount (names) (body) (s) : Nat := loopIterCountAux names body s.clock s
+
+This is literally the recursion the evaluator's `.loop` clause takes, so every step of it is one
+iteration the run performs: the cut is consulted first (a failed cut runs NOTHING - no charge, no body),
+one body execution costs one unit, and the only recursion is at `decClock mid`, i.e. the next iteration's
+state.  The `Nat` argument is FUEL FOR THE PROOF ORDER ONLY, never for the accounting: it is always at
+least `s.clock` (`loopIterCount` passes exactly `s.clock`), one iteration consumes exactly one unit
+because `decClock` decrements the clock, and the clause at an exhausted clock is the `mid.clock = 0`
+branch, which terminates the count with `1`.  So the fuel never truncates a trace: the theorem is always
+instantiated at `s.clock <= n`.
+
+Trace facts, both proved:
+
+    theorem loopIterCount_le_clock_succ : loopIterCount names body s <= s.clock + 1
+
+- an executed iteration costs `B` even at an exhausted clock (`mid.clock = 0`), which is the ONE extra
+  iteration relative to the entry clock: the cut and the body run BEFORE the clock is consulted, so a
+  loop entered at clock 0 executes one iteration.  That is exactly what made `B * clock` false; in
+  executed-iteration terms it is a property of the trace (the `+ 1` above), not a fuel allowance.
+
+### The transfer
+
+    theorem wec_loop_transfer_iters_aux
+        (hbody : LoopBodyStep names body bodyC B) (hcut : LoopCutAgrees names) :
+        forall n s t, s.clock <= n -> wordStateEqRel s t ->
+          cost (.loop names bodyC liveOut) t <=
+            cost (.loop names body liveOut) s + B * loopIterCountAux names body n s
+
+    theorem wec_loop_transfer_iters
+        (hbody : LoopBodyStep names body bodyC B) (hcut : LoopCutAgrees names)
+        (hrel : wordStateEqRel s t) :
+        cost (.loop names bodyC liveOut) t <=
+          cost (.loop names body liveOut) s + B * loopIterCount names body s
+
+Proof: induction on the FUEL (which mirrors the trace exactly, so the recursive instance is at the
+`decClock` middles and their own count), with the three one-step shapes already available
+(`wec_loop_stop_transfer`, `wec_loop_cont_done_transfer`, `wec_loop_cont_live_transfer`) supplying the
+single-iteration transfer.  The count equation at each step is the definitional unfolding
+(`loopIterCountAux_succ`, `loopIterCountAux_zero`, proved by `rfl`), reduced with
+`simp only [..., hs, hRunS, hc]`, plus `if_pos`/`if_neg` on the middle's clock and
+`Bool.false_eq_true` for the `wordSemContLoop ... = false` condition.
+
+### The delivered constructors now use it
+
+`loop_quantTransfer` and `ssaCcTrans_loop_quant` conclude with budget
+`B * loopIterCount names body source`: no clock, no multiplier, no floor.  Their other inputs are
+unchanged (`LoopBodyTransfer`, `LoopLocalsDomAgrees`, and for the `quantSsaSimulation` form
+`bodyIH` + the six-conjunct premise + `hshape`), and the run half (`evaluate_loop_outcome_agree`) is
+untouched because the outcome agreement does not depend on the budget at all.
+
+Axioms: `loopIterCountAux_succ`, `loopIterCountAux_zero`, `loopIterCountAux_le_clock`,
+`loopIterCount_le_clock_succ`, `wec_loop_transfer_iters_aux`, `wec_loop_transfer_iters`,
+`loop_quantTransfer`, `ssaCcTrans_loop_quant` all depend only on `propext`, `Classical.choice` and
+`Quot.sound` (the two count equations inherit `Classical.choice` from the noncomputable count; the
+recursion itself is structural).
+
+One trap worth keeping: the count's match must be REDUCED, not rewritten - `rw [loopIterCountAux_succ,
+hs]` leaves the `match some cutS with ...` unreduced (the pattern variable shadows), while
+`simp only [loopIterCountAux_succ, hs, hRunS, hc]` performs the iota steps.
