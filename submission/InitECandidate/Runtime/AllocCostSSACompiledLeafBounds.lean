@@ -989,4 +989,51 @@ theorem move_price_differential_zero {C F : Type} (pri : Nat) (pairs : List (Nat
 
 #print axioms refinedWordLocalPrice_state_independent
 #print axioms move_price_differential_zero
+
+/-- **Same site on both runs: only the tail's cost differs.**  Because the canonical
+price is state-independent, a call site that appears identically on the source and the
+target contributes no differential at all - neither the node price nor the canonical
+price of the emitted move - so the transfer reduces to the tail's transfer at the
+reached states.  This is the shape the table transfer needs: the source side pays only
+for the nodes the allocator ADDS, not for the ones both runs share. -/
+theorem call_site_transfer_no_differential {C F : Type} (ssa : Spt Nat) (args : List Nat)
+    (tail : WordLangProgHOL (BitVec 64))
+    (source target midS midT : WordSemStateFiniteExact 64 C F)
+    (hS : fixClock source (evaluate (.move 1
+      (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) source) = (none, midS))
+    (hT : fixClock target (evaluate (.move 1
+      (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) target) = (none, midT))
+    (extra2 : Nat)
+    (htail : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      tail midT <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        tail midS + extra2) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) source + extra2 := by
+  rw [call_arg_prefix_charge_refined ssa args tail target midT hT,
+      call_arg_prefix_charge_refined ssa args tail source midS hS]
+  have hn : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) target =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) source :=
+    refinedWordLocalPrice_state_independent _ _ _
+  have hm : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) target =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) source :=
+    refinedWordLocalPrice_state_independent _ _ _
+  rw [hn, hm]
+  omega
+
+#print axioms call_site_transfer_no_differential
 end InitECandidate.Runtime.FineCost
