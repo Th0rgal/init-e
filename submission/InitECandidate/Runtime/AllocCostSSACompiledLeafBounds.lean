@@ -487,6 +487,19 @@ theorem allocMovePrice_le_certifiedCharge (pairs : List (Nat × Nat)) :
   have h := nonselfCount_le pairs
   split <;> split <;> omega
 
+/-- **The certificate charges at most my executed-cost charge, on the real node.**
+Composing finite-auth's `goSeq_move` with the sharp dominance gives, for an actually
+emitted move node,
+`12 * (parmove (physPairs pairs)).length <= certifiedMoveCharge pairs`
+- the schedule and the executed cost agree on the same pair list, with self moves
+free and no target-run assumption. -/
+theorem move_node_schedule_le_charge {pri : Nat} {pairs : List (Nat × Nat)}
+    {before : Nat} (ok : (goSeq before (.move pri pairs)).1 = true) :
+    12 * (Flapjack.Compiler.Backend.Parmove.parmove (physPairs pairs)).length ≤
+      certifiedMoveCharge pairs :=
+  le_trans (goSeq_move ok) (allocMovePrice_le_certifiedCharge pairs)
+
+#print axioms move_node_schedule_le_charge
 #print axioms allocMovePrice_le_certifiedCharge
 #print axioms allocMovePrice_eq
 #print axioms move_node_schedule_le
