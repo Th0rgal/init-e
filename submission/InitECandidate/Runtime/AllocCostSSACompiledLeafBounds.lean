@@ -2362,4 +2362,30 @@ theorem wec_move_optimizer_state_independent {C F : Type}
 #print axioms wec_skip_optimizer_state_independent
 #print axioms wec_inst_optimizer_state_independent
 #print axioms wec_move_optimizer_state_independent
+/-- The call node's successful path, in the form the callee's transfer consumes: with the frame looked
+up, a live clock and no handler, the call charges its node price plus the CALLEE's cost at the environment
+the call constructs (callEnv at the returned arguments, the looked-up stack size, and the decremented
+clock).  That environment is exactly the state transformedCalleeRel.spec delivers a bound for, and the
+frame is exactly what findCode_some_lookup turns into the code-table lookups .spec asks for. -/
+theorem wec_call_none_success {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (hgv : WordSemStateFiniteExact.getVars args s = some xs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfc : wordSemFindCode dest xs s.code s.stackSize = some (args1, prog, ss))
+    (hclk : s.clock = 0 → False) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none dest args none) s =
+      41 + wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog
+        (Flapjack.WordSemStateFiniteExact.callEnv args1 ss (Flapjack.WordSemStateFiniteExact.decClock s)) := by
+  rw [wordExecutionCost, hgv]
+  dsimp only
+  rw [if_neg (by rw [hbad]; decide : ¬ (wordSemBadDestArgs dest args = true))]
+  simp only [wordSemAddRetLoc]
+  rw [hfc]
+  dsimp only
+  rw [dif_neg hclk]
+  simp only [refinedWordLocalPrice_call_none]
+
+#print axioms wec_call_none_success
 end InitECandidate.Runtime.FineCost
