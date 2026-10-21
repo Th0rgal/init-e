@@ -1174,3 +1174,15 @@ binary-search `whileNext` trace:
 `statements + nativeCost*(whileOverhead + loopMoves fn) + guard + body + rest`.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 59. Actual memcpy/memzero AST decomposition
+
+`CandidateMemcpyShape.lean` pins the actual `memcpy` and `memzero` bodies:
+- `candidateMemcpy_body` and `candidateMemzero_body`: exact `i := 0`, alignment
+  `ite`, 32-byte/8-byte/byte loops, and `return 0` structure;
+- all loop, store, bump, and return equations (`_while32`, `_step32`, `_while8`,
+  `_while8Bytes`, `_whileByte`, `_bump32`, `_bump1`, `_return`) as `rfl`.
+
+The offset-0 store address is the two-argument `add [dst, i]`, higher offsets
+use three-argument `add`. Axioms are `propext`, `Classical.choice`,
+`Quot.sound`.
