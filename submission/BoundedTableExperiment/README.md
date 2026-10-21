@@ -927,3 +927,11 @@ unchanged. This is the framing half needed when `htab_set` writes nodes, key
 bytes, or table arrays while the path buffer remains live.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 41. Link invariant framing under outside stores
+
+`NodeLinkInv.store_other` proves that an actual one-word store at an address
+outside `node`, `node+8`, and `node+16` preserves the node's left/right/route
+words. This lets a path-buffer push be framed against the live node links.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.

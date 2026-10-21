@@ -71,7 +71,37 @@ theorem NodeLinkInv.setRight {F : Type} {s : PanSemStateFiniteExact 64 F}
     dsimp only
     rw [frame, inv.routeAt]
 
+/-- An actual one-word store outside all three node cells preserves the node
+link invariant. -/
+theorem NodeLinkInv.store_other {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {node left right route : BitVec 64} (inv : NodeLinkInv s node left right route)
+    {watched : BitVec 64} (value : HolWordLab 64)
+    (leftSeparate : node ≠ watched)
+    (rightSeparate : node + 8 ≠ watched)
+    (routeSeparate : node + 16 ≠ watched)
+    {postMem : BitVec 64 → HolWordLab 64}
+    (store : @panMemStoresHOL 64 _ watched [value]
+      s.memaddrs (Classical.decPred _) s.memory = some postMem) :
+    NodeLinkInv { s with memory := postMem } node left right route := by
+  constructor
+  · letI : DecidablePred s.memaddrs := Classical.decPred _
+    have frame := actual_one_word_store_frame watched node s.memaddrs
+      s.memory value leftSeparate postMem store
+    dsimp only
+    rw [frame, inv.leftAt]
+  · letI : DecidablePred s.memaddrs := Classical.decPred _
+    have frame := actual_one_word_store_frame watched (node + 8) s.memaddrs
+      s.memory value rightSeparate postMem store
+    dsimp only
+    rw [frame, inv.rightAt]
+  · letI : DecidablePred s.memaddrs := Classical.decPred _
+    have frame := actual_one_word_store_frame watched (node + 16) s.memaddrs
+      s.memory value routeSeparate postMem store
+    dsimp only
+    rw [frame, inv.routeAt]
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.NodeLinkInv.setLeft
 #print axioms BoundedTableExperiment.NodeLinkInv.setRight
+#print axioms BoundedTableExperiment.NodeLinkInv.store_other
