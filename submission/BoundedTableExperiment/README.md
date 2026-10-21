@@ -1240,3 +1240,14 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`.
   and `return 0`.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 65. Full actual memcpy body event list
+
+`candidateMemcpy_body_events` gives the full event list of an actual `memcpy`
+body:
+
+`statement :: (init ++ [frame 1] ++ (statement :: cost(statementUnit+branchMoves fn)
+ :: (guard ++ branch) ++ rest))`
+
+with the actual `i := 0` initializer and alignment guard runs. Axioms are
+`propext`, `Classical.choice`, `Quot.sound`.

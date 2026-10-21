@@ -98,9 +98,33 @@ theorem candidateMemcpy_rest_trace {F : Type} {fn : MlS}
       | seqStop terminal _ => exact absurd rfl terminal
   | seqStop terminal _ => exact absurd rfl terminal
 
+/-- Full actual `memcpy` body event list. -/
+theorem candidateMemcpy_body_events {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s memcpyBody none post events) :
+    ∃ (value : ValueHOL 64) (branchValue : BitVec 64)
+      (initEvents guardEvents branchEvents restEvents : List WorkEvent),
+      events = .statement :: (initEvents ++ [.frame 1] ++
+        (.statement :: .cost (statementUnit + branchMoves fn) ::
+          (guardEvents ++ branchEvents) ++ restEvents)) ∧
+      CostedExpressionRun s (.const 0) (some value) initEvents ∧
+      CostedExpressionRun (setVarHOLFinite (ofString "i") value s)
+        (.cmp .equal (.op .and [.op .or [loc "dst",loc "src"],.const 7]) (.const 0))
+        (some (.val (.word branchValue))) guardEvents := by
+  obtain ⟨value, initEvents, bodyEvents, bodyPost, hbody, initRun, _, bodyRun⟩ :=
+    candidateMemcpy_body_trace run
+  obtain ⟨_, iteEvents, restEvents, hsplit, iteRun, _⟩ :=
+    candidateMemcpy_afterInit_trace bodyRun
+  obtain ⟨branchValue, guardEvents, branchEvents, halign, guard, _⟩ :=
+    candidateMemcpy_align_trace iteRun
+  refine ⟨value, branchValue, initEvents, guardEvents, branchEvents,
+    restEvents, ?_, initRun, guard⟩
+  rw [hbody, hsplit, halign]
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateMemcpy_body_trace
 #print axioms BoundedTableExperiment.candidateMemcpy_align_trace
 #print axioms BoundedTableExperiment.candidateMemcpy_afterInit_trace
 #print axioms BoundedTableExperiment.candidateMemcpy_rest_trace
+#print axioms BoundedTableExperiment.candidateMemcpy_body_events
