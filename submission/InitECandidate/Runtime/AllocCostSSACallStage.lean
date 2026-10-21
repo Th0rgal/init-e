@@ -23,6 +23,66 @@ open Flapjack Flapjack.WordSemStateFiniteExact Flapjack.WordAlloc
 open Flapjack.Compiler.Backend.WordAlloc
 open InitECandidate.Runtime.WordToStack
 
+/-- **Direct returning-call decomposition.**  At the actual reached states the
+literal call clause is its node price plus the callee-body run plus the
+return-handler continuation.  The program is the explicit `.call (some …)`
+form, the root node price is first generalised to an opaque `localPrice` (a
+definitional alias, so no case split can select the `wordCallReturned`
+predicate hidden inside the price term), and the known discriminants are then
+rewritten one at a time with `dsimp only` reducing the resulting concrete
+matches. -/
+theorem wec_call_returning_result_unfold {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (vals0 : List (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (location : WordLocW 64) (returned : List (WordLocW 64))
+    (middle popped : WordSemStateFiniteExact 64 C F)
+    (hget : getVars args s = some vals0)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) vals0) s.code s.stackSize =
+        some (args1, prog, ss))
+    (hdom : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcut : wordSemCutEnvs names s.locals = some envs)
+    (hz : s.clock ≠ 0)
+    (hrun : fixClock
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)))
+      (evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+          (some (.result location returned), middle))
+    (hloc : location = .loc l1 l2)
+    (hlen : returned.length = values.length)
+    (hpop : popEnv middle = some popped)
+    (hdu : sptDomainEqUnion popped.locals envs.1 envs.2) :
+    wordExecutionCost price
+        (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+      price (.call (some (values, names, retCode, l1, l2)) dest args handler) s +
+        wordExecutionCost price prog
+          (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))) +
+        wordExecutionCost price retCode
+          (WordSemStateFiniteExact.setVars values returned popped) := by
+  have hcond : ¬ (location ≠ .loc l1 l2 ∨ returned.length ≠ values.length) := by
+    simp [hloc, hlen]
+  rw [wordExecutionCost]
+  generalize hLocal : price (.call (some (values, names, retCode, l1, l2)) dest args handler) s
+    = localPrice
+  rw [hget]; try dsimp only
+  rw [hbad]; try dsimp only
+  rw [hfind]; try dsimp only
+  simp only [hdom]; try dsimp only
+  rw [hcut]; try dsimp only [wordSemCutEnvs]
+  rw [dif_neg hz]; try dsimp only
+  rw [hrun]; try dsimp only
+  simp only [hcond]; try dsimp only
+  rw [hpop]; try dsimp only
+  simp only [hdu]; try dsimp only
+  rfl
+
 /-- **Returning-call stage decomposition at the allocator relation.**
 
 For source and allocated call states related by `SsaAllocRel` (the original
@@ -112,6 +172,7 @@ theorem ssaCall_continuation_stage {C F : Type}
   exact nativeWordPrice_returnContinuation_transfer retCode
     (WordSemStateFiniteExact.setVars values returned popped) ys hval' hne
 
+#print axioms wec_call_returning_result_unfold
 #print axioms ssaCall_returning_cost_stage
 #print axioms ssaCall_body_stage
 #print axioms ssaCall_continuation_stage
