@@ -21,8 +21,7 @@ structure LoopPricingG where
       cost + vp (compileExpHOLExact context tmp live e).2.1 ≤ price e
   listOk : ∀ (context : CrepToLoopContextExact) (tmp : Nat) (live : NumSet) (es : List (CrepExpHOL 64)),
     ∃ cost, A.works (compileExpsHOLExact context tmp live es).1 = some cost ∧
-      cost + vps (compileExpsHOLExact context tmp live es).2.1 +
-        39 * (compileExpsHOLExact context tmp live es).2.1.length ≤ priceList es
+      cost + vps (compileExpsHOLExact context tmp live es).2.1 ≤ priceList es
   /-- Generated assignments are within the value price. -/
   assignWork : ∀ n v, ∃ k, A.work (.assign n v) = some k ∧ k ≤ vp v
   /-- Leaf prices of the Loop statements compiled Crep leaves end in. -/

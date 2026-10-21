@@ -5,7 +5,7 @@ open Flapjack Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proof
 
 /-- Conditional transfer: guard materialization, the comparison, the selected
 compiled branch (with the original relations) and the join. -/
-theorem ite_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (unitOk : P.L.ite ≤ unit) {F : Type} {context : CrepToLoopContextExact} {live : NumSet}
+theorem ite_loop_paidG (P : LoopPricingG) (f : Nat) {K : StmtK} (unitOk : P.L.ite ≤ K.ite) {F : Type} {context : CrepToLoopContextExact} {live : NumSet}
     {t : CrepSemHOLState 64 F} {u : LoopSemStateFiniteExact 64 F}
     {condition : CrepExpHOL 64} {yes no : CrepProgHOL 64} {word : BitVec 64} {wb : Nat}
     (guard : evalCrepSemHOLExp t condition = some (.word word))
@@ -13,7 +13,7 @@ theorem ite_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (unitOk : P.L.i
     (rel : CrepLoopRel context live t u)
     (ih : ∀ u', CrepLoopRel context live t u' →
       LoopPaidG P.L f context live t u' (if word ≠ 0 then yes else no) wb) :
-    LoopPaidG P.L f context live t u (.ite condition yes no) (unit + P.price condition + wb) := by
+    LoopPaidG P.L f context live t u (.ite condition yes no) (K.ite + P.price condition + wb) := by
   classical
   have crepRun : evalCrepSemHOLProgExact t (.ite condition yes no) =
       evalCrepSemHOLProgExact t (if word ≠ 0 then yes else no) := by
@@ -95,7 +95,7 @@ theorem ite_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (unitOk : P.L.i
       wc ≤ wb →
       LoopRunRel context live (evalCrepSemHOLProgExact t (if word ≠ 0 then yes else no))
         (LoopSemStateFiniteExact.cutRes live output) →
-      LoopPaidG P.L f context live t u (.ite condition yes no) (unit + P.price condition + wb) := by
+      LoopPaidG P.L f context live t u (.ite condition yes no) (K.ite + P.price condition + wb) := by
     intro E k output wc hE child childBound runRel
     obtain ⟨wt, tWork, tBound⟩ := tailWork k output wc child
     obtain ⟨wTotal, totalWork, totalBound⟩ := P.A.run_append f np _ codeCost

@@ -10,11 +10,11 @@ induction on function-indexed Crep work. Crep function `fn` runs as Loop
 function `labOf funcs fn` (its `crep_to_loop` label); calls charge their
 (caller, callee) Loop surcharges through `CrepFitG.callOk`. Unconditional:
 the optimisation pass is root's `loop_optimise_executed_workG`. -/
-theorem crep_loop_executed_workG (P : LoopPricingG) {unit prim ret shortP : Nat}
+theorem crep_loop_executed_workG (P : LoopPricingG) {K : StmtK} {shortP : Nat}
     {callP : CName → CName → Nat → Nat} {funcs : HolFiniteMapExact Basis.Pure.MlString.MlString (Nat × Nat)}
-    (fit : CrepFitG P unit prim ret shortP callP funcs) {F : Type} {fn : CName}
+    (fit : CrepFitG P K shortP callP funcs) {F : Type} {fn : CName}
     {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64} {w : Nat}
-    (work : CrepWorkG P unit prim callP shortP ret fn t p w) :
+    (work : CrepWorkG P K callP shortP fn t p w) :
     ∀ (u : LoopSemStateFiniteExact 64 F) (context : CrepToLoopContextExact) (live : NumSet),
       context.funcs = funcs →
       (evalCrepSemHOLProgExact t p).1 ≠ some .error → CrepLoopRel context live t u →
@@ -111,10 +111,10 @@ theorem crep_loop_executed_workG (P : LoopPricingG) {unit prim ret shortP : Nat}
       | word w =>
         have hw := exit w hev
         subst hw
-        exact while_false_loop_paidG P (labOf funcs fn) fit.iteOk fit.iterOk fit.breakOk fit.contOk hev rel
+        exact while_false_loop_paidG P (labOf funcs fn) fit.whileBreakOk fit.whileContOk hev rel
   | @whileTimeout fn t condition body word guard nonzero clock =>
     intro u context live hfun ok rel
-    exact while_timeout_loop_paidG P (labOf funcs fn) fit.iteOk fit.iterOk fit.breakOk fit.contOk guard nonzero clock rel
+    exact while_timeout_loop_paidG P (labOf funcs fn) fit.whileBreakOk fit.whileContOk guard nonzero clock rel
   | @whileLoop fn t condition body word bodyWork result middle restWork guard nonzero clock one run
       again rest ihOne ihRest =>
     intro u context live hfun ok rel
@@ -127,14 +127,14 @@ theorem crep_loop_executed_workG (P : LoopPricingG) {unit prim ret shortP : Nat}
         rw [if_pos nonzero, run]
         rcases again with rfl | rfl <;> rfl
       rw [← crepRun]; exact ok
-    exact while_loop_loop_paidG P (labOf funcs fn) fit.iteOk fit.iterOk fit.breakOk fit.contOk guard nonzero clock run again rel
+    exact while_loop_loop_paidG P (labOf funcs fn) fit.whileBreakOk fit.whileContOk guard nonzero clock run again rel
       (fun u' rel' => ihOne u' context live hfun (by rw [run]; exact bodyOk) rel')
       (fun u' rel' => ihRest u' context live hfun restOk rel')
   | @whileStop fn t condition body word bodyWork result middle guard nonzero clock one run stop
       ihOne =>
     intro u context live hfun ok rel
     have bodyOk := while_body_not_error guard nonzero clock run ok
-    exact while_stop_loop_paidG P (labOf funcs fn) fit.iteOk fit.iterOk fit.breakOk fit.contOk guard nonzero clock run stop ok rel
+    exact while_stop_loop_paidG P (labOf funcs fn) fit.whileBreakOk fit.whileContOk guard nonzero clock run stop ok rel
       (fun u' rel' => ihOne u' context live hfun (by rw [run]; exact bodyOk) rel')
   | @callShort fn t returnInfo function arguments short =>
     intro u context live hfun ok rel

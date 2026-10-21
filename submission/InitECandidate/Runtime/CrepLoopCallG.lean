@@ -9,16 +9,16 @@ in the caller's Loop function `labOf funcs fn`. The callee body runs in the
 callee's function `labOf funcs fname`, the target label the compiled call
 carries. The per-function `optimiseHOL` pass is root's coefficient-one
 `loop_optimise_executed_workG`. -/
-theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP : CName → CName → Nat → Nat}
+theorem call_loop_paidG (P : LoopPricingG) {K : StmtK} {shortP : Nat} {callP : CName → CName → Nat → Nat}
     {funcs : HolFiniteMapExact Basis.Pure.MlString.MlString (Nat × Nat)}
-    (fit : CrepFitG P unit prim ret shortP callP funcs) (fn : CName) {F : Type}
+    (fit : CrepFitG P K shortP callP funcs) (fn : CName) {F : Type}
     (caltyp : Option (List Nat × Option (BitVec 64 × CrepProgHOL 64)))
     (fname : Flapjack.Basis.Pure.MlString.MlString) (argexps : List (CrepExpHOL 64))
     (v1 : CrepSemHOLState 64 F) (t : LoopSemStateFiniteExact 64 F)
     (ctxt : CrepToLoopContextExact) (hfun : ctxt.funcs = funcs) (l : NumSet) (w : Nat)
     (ok : (evalCrepSemHOLProgExact v1 (.call caltyp fname argexps)).1 ≠ some .error)
     (rel : CrepLoopRel ctxt l v1 t)
-    (shortW : v1.clock = 0 → callP fn fname (crepRetCount caltyp) + shortP + P.priceList argexps ≤ w)
+    (shortW : v1.clock = 0 → callP fn fname (crepRetCount caltyp) + shortP + P.priceList argexps + K.argP argexps.length ≤ w)
     (ihb : ∀ (args : List (HolWordLab 64)) (prog : CrepProgHOL 64)
         (newlocals : HolFiniteMapExact Nat (HolWordLab 64)),
       argexps.mapM (evalCrepSemHOLExp v1) = some args →
@@ -35,7 +35,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
         (∀ r post, evalCrepSemHOLProgExact { decClockCrepSemHOL v1 with locals := newlocals } prog =
             (r, post) →
           (∀ eid rts hp, r = some (.exception eid) → caltyp ≠ some (rts, some (eid, hp))) →
-          callP fn fname (crepRetCount caltyp) + P.priceList argexps + args.length + wb + ret * crepCallPayloadWords r ≤ w) ∧
+          callP fn fname (crepRetCount caltyp) + P.priceList argexps + K.argP argexps.length + wb + K.exit r ≤ w) ∧
         (∀ (st : CrepSemHOLState 64 F) (eid : BitVec 64) (rts : List Nat) (hp : CrepProgHOL 64),
           evalCrepSemHOLProgExact { decClockCrepSemHOL v1 with locals := newlocals } prog =
             (some (.exception eid), st) →
@@ -45,7 +45,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
               (evalCrepSemHOLProgExact { st with locals := v1.locals } hp).1 ≠ some .error →
               CrepLoopRel ctxt l { st with locals := v1.locals } u' →
               LoopPaidG P.L (labOf funcs fn) ctxt l { st with locals := v1.locals } u' hp wh) ∧
-            callP fn fname rts.length + P.priceList argexps + args.length + wb + ret + wh ≤ w)) :
+            callP fn fname rts.length + P.priceList argexps + K.argP argexps.length + wb + K.hdlP + wh ≤ w)) :
     LoopPaidG P.L (labOf funcs fn) ctxt l v1 t (.call caltyp fname argexps) w := by
   classical
   rcases hEvalAll : evalCrepSemHOLProgExact v1 (.call caltyp fname argexps) with ⟨res, s1⟩
@@ -178,10 +178,10 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
   have preAllowance : P.A.works (p ++ temps.zipWith HolLoopProg.assign les) =
       some (preCode + moveCost) := by
     rw [P.A.works_append, preSupported, moveSupported]; rfl
-  have argOk := fit.argOk temps.length
+  have argOk := fit.argOk argexps.length
   have retOk := fit.retOk
   have handleOk := fit.handleOk
-  have raiseRetOk := fit.raiseRetOk
+  have exnOk := fit.exnOk
   have shortOk := fit.shortOk
   have callOk := fit.callOk fn fname (crepRetCount caltyp)
   rw [hloc] at callOk
@@ -189,6 +189,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
   have htsE : P.L.ts (loopCallee (some loc) vals) = P.L.ts loc := rfl
   have argLen : args.length = argexps.length := (opt_mmap_length_eq _ _ _ hargs).symm
   have tempsLen : temps.length = args.length := by rw [htlen, hlen]
+  have argCostEq : P.L.argCost temps.length = P.L.argCost argexps.length := by rw [tempsLen, argLen]
   have finish : ∀ (k : Nat) (stmt : HolLoopProg 64)
       (o : Option (LoopSemStateFiniteExact.LoopResultExact 64) × LoopSemStateFiniteExact 64 F)
       (wc : Nat) (R : Option (LoopSemStateFiniteExact.LoopResultExact 64))
@@ -348,7 +349,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
         have crepBound := bodyBound _ _ heq (by intro _ _ _ _ h; cases h)
         refine ⟨ck + ck', resultToLoop (some (.return retvs)), t1, hrunF, h3s, h3m, h3g, h3c, rfl, trivial,
           wl, wlWork, ?_⟩
-        simp only [crepCallPayloadWords] at crepBound
+        simp only [StmtK.exit] at crepBound
         omega
       · rename_i _ eid st' heq
         simp only [Prod.mk.injEq] at he
@@ -364,7 +365,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
         have crepBound := bodyBound _ _ heq (by intro _ _ _ _ h; cases h)
         refine ⟨ck + ck', resultToLoop (some (.exception eid)), t1, hrunF, h3s, h3m, h3g, h3c, rfl, trivial,
           wl, wlWork, ?_⟩
-        simp only [crepCallPayloadWords] at crepBound
+        simp only [StmtK.exit] at crepBound
         omega
       · rename_i _ r' st' hn hb hcn hr hx heq
         simp only [Prod.mk.injEq] at he
@@ -630,7 +631,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
               simpa [X, LoopSemStateFiniteExact.setVars, localsResultRel] using this
             · have l2 : retvs.length = rn.length := by simpa using hlen2
               have l3 : rn.length = nrhss.length := by rw [hrn]
-              simp only [crepCallPayloadWords] at crepBound
+              simp only [StmtK.exit] at crepBound
               have payloadPrice := Nat.mul_le_mul_right retvs.length retOk
               have hm : P.L.ret * (List.map wlabWlocExact retvs).length = P.L.ret * retvs.length := by
                 rw [List.length_map]
@@ -677,7 +678,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
               (LoopSemStateFiniteExact.setVar (ctxt.vmax + 1) (.word eid)
                 { t1 with locals := sptInter sA.locals l }), hrunF, h2s, h2m, h2g, h2c, rfl, trivial,
               wl, wlWork, ?_⟩
-            simp only [crepCallPayloadWords] at crepBound
+            simp only [StmtK.exit] at crepBound
             omega
           | some hq =>
             obtain ⟨eid', hp⟩ := hq
@@ -919,7 +920,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
                 (LoopSemStateFiniteExact.setVar (ctxt.vmax + 1) (.word eid)
                   { t1 with locals := sptInter sA.locals l }), hrunF, h2s, h2m, h2g, h2c, rfl, trivial,
                 wl, wlWork, ?_⟩
-              simp only [crepCallPayloadWords] at crepBound
+              simp only [StmtK.exit] at crepBound
               omega
         · rename_i _ r' st' hn hb hcn hr hx heq
           simp only [Prod.mk.injEq] at he
@@ -963,7 +964,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
           have crepBound := bodyBound _ _ heq (by
             intro e rts' hp' h
             exact (hx e h).elim)
-          have payloadZero : crepCallPayloadWords (some r) = 0 := by
+          have payloadZero : K.exit (some r) = 0 := by
             cases r <;> first | rfl | exact absurd rfl (hr _) | exact absurd rfl (hx _) | exact (hx _ rfl).elim | (exfalso; exact hx _ rfl)
           refine ⟨ck + ck', resultToLoop (some r), t1, hrunF, h2s, h2m, h2g, h2c, rfl, ?_,
             wl, wlWork, ?_⟩

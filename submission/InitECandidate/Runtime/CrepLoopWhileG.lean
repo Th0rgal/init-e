@@ -59,13 +59,11 @@ theorem loopWhile_seq_continue_workG (P : LoopPricingG) (f : Nat) {F : Type} {cC
   · exact ⟨_, LoopWorkG.seqStop body, by omega⟩
 
 /-- False guard: the loop body runs once to its `Break 0` and the loop exits. -/
-theorem while_false_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (hu : P.L.ite ≤ unit) (hi : P.L.iter ≤ unit) (hb : P.breakC ≤ unit) (hc : P.contC ≤ unit) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem while_false_loop_paidG (P : LoopPricingG) (f : Nat) {K : StmtK} (hb : P.L.iter + P.L.ite + P.breakC ≤ K.wh) (hc : P.L.iter + P.L.ite + P.contC ≤ K.wh) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64}
     (hev : evalCrepSemHOLExp v1 e = some (.word 0)) (rel : CrepLoopRel ctxt l v1 t) :
-    LoopPaidG P.L f ctxt l v1 t (.while e c) (unit + unit + unit + P.price e) := by
-  have unitOk := hu
-  have := hi
+    LoopPaidG P.L f ctxt l v1 t (.while e c) (K.wh + P.price e) := by
   have := hb
   have := hc
   classical
@@ -133,14 +131,12 @@ theorem while_false_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (hu : P
       (loopWhile_locals_rel_insert_of ctxt l nl v1.locals _ st.locals hl h1l hlnl tmp htmp _)
 
 /-- Timeout before an iteration: the loop's entry cut times out. -/
-theorem while_timeout_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (hu : P.L.ite ≤ unit) (hi : P.L.iter ≤ unit) (hb : P.breakC ≤ unit) (hc : P.contC ≤ unit) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem while_timeout_loop_paidG (P : LoopPricingG) (f : Nat) {K : StmtK} (hb : P.L.iter + P.L.ite + P.breakC ≤ K.wh) (hc : P.L.iter + P.L.ite + P.contC ≤ K.wh) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64} {w : BitVec 64}
     (hev : evalCrepSemHOLExp v1 e = some (.word w)) (hw : w ≠ 0) (hz : v1.clock = 0)
     (rel : CrepLoopRel ctxt l v1 t) :
-    LoopPaidG P.L f ctxt l v1 t (.while e c) (unit + unit + unit + P.price e) := by
-  have unitOk := hu
-  have := hi
+    LoopPaidG P.L f ctxt l v1 t (.while e c) (K.wh + P.price e) := by
   have := hb
   have := hc
   classical
@@ -240,7 +236,7 @@ theorem loopWhile_iterG (P : LoopPricingG) {F : Type} {ctxt : CrepToLoopContextE
 
 /-- A normally completing (or continuing) iteration followed by the rest of
 the loop. -/
-theorem while_loop_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (hu : P.L.ite ≤ unit) (hi : P.L.iter ≤ unit) (hb : P.breakC ≤ unit) (hc : P.contC ≤ unit) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem while_loop_loop_paidG (P : LoopPricingG) (f : Nat) {K : StmtK} (hb : P.L.iter + P.L.ite + P.breakC ≤ K.wh) (hc : P.L.iter + P.L.ite + P.contC ≤ K.wh) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 middle : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64} {w : BitVec 64}
     {result : Option (CrepResultHOLExact 64)} {wb wr : Nat}
@@ -251,9 +247,7 @@ theorem while_loop_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (hu : P.
     (ihBody : ∀ u', CrepLoopRel ctxt l (decClockCrepSemHOL v1) u' →
       LoopPaidG P.L f ctxt l (decClockCrepSemHOL v1) u' c wb)
     (ihRest : ∀ u', CrepLoopRel ctxt l middle u' → LoopPaidG P.L f ctxt l middle u' (.while e c) wr) :
-    LoopPaidG P.L f ctxt l v1 t (.while e c) (unit + unit + unit + P.price e + wb + wr) := by
-  have unitOk := hu
-  have := hi
+    LoopPaidG P.L f ctxt l v1 t (.while e c) (K.wh + P.price e + wb + wr) := by
   have := hb
   have := hc
   classical
@@ -299,7 +293,7 @@ theorem while_loop_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (hu : P.
     exact relRest
 
 /-- An iteration whose body exits the loop (break) or the enclosing code. -/
-theorem while_stop_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (hu : P.L.ite ≤ unit) (hi : P.L.iter ≤ unit) (hb : P.breakC ≤ unit) (hc : P.contC ≤ unit) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
+theorem while_stop_loop_paidG (P : LoopPricingG) (f : Nat) {K : StmtK} (hb : P.L.iter + P.L.ite + P.breakC ≤ K.wh) (hc : P.L.iter + P.L.ite + P.contC ≤ K.wh) {F : Type} {ctxt : CrepToLoopContextExact} {l : NumSet}
     {v1 middle : CrepSemHOLState 64 F} {t : LoopSemStateFiniteExact 64 F}
     {e : CrepExpHOL 64} {c : CrepProgHOL 64} {w : BitVec 64}
     {result : Option (CrepResultHOLExact 64)} {wb : Nat}
@@ -310,9 +304,7 @@ theorem while_stop_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (hu : P.
     (rel : CrepLoopRel ctxt l v1 t)
     (ihBody : ∀ u', CrepLoopRel ctxt l (decClockCrepSemHOL v1) u' →
       LoopPaidG P.L f ctxt l (decClockCrepSemHOL v1) u' c wb) :
-    LoopPaidG P.L f ctxt l v1 t (.while e c) (unit + unit + unit + P.price e + wb) := by
-  have unitOk := hu
-  have := hi
+    LoopPaidG P.L f ctxt l v1 t (.while e c) (K.wh + P.price e + wb) := by
   have := hb
   have := hc
   classical

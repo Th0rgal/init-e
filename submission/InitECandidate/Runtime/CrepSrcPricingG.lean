@@ -62,23 +62,23 @@ noncomputable def srcPricing (c : Compiler.Encoders.Asm.AsmConfigExact 64) : Loo
       have := nodeTs_le_srcK c es
       simp only [nodeTsM, srcPriceListM]; omega)
 
-theorem srcPricing_fit (c : Compiler.Encoders.Asm.AsmConfigExact 64) {unit prim ret shortP : Nat}
+theorem srcPricing_fit (c : Compiler.Encoders.Asm.AsmConfigExact 64) {K : StmtK} {shortP : Nat}
     {callP : CName → CName → Nat → Nat} {funcs : HolFiniteMapExact Basis.Pure.MlString.MlString (Nat × Nat)}
-    (hu : 37 ≤ unit) (hffi : ffiSel ≤ unit) (hp : 111 ≤ prim) (hr : 49 ≤ ret)
+    (hK : StmtK.Le (selK_min c) K)
     (callOk : ∀ fn g n, (wsLeaf c).call + (wsLeaf c).cont + (wsLeaf c).cs (labOf funcs fn) (labOf funcs g) + (wsLeaf c).ts (labOf funcs g) +
       (wsLeaf c).rn n + (wsLeaf c).rn 1 ≤ callP fn g n)
     (shortOk : (wsLeaf c).shortC ≤ shortP) :
-    CrepFitG (srcPricing c) unit prim ret shortP callP funcs :=
-  let f := tightPricing_fit c (funcs := funcs) hu hffi hp hr callOk shortOk
+    CrepFitG (srcPricing c) K shortP callP funcs :=
+  let f := tightPricing_fit c (funcs := funcs) hK callOk shortOk
   { f with }
 
 /-- Crep work at the source charge's prices transfers to function-indexed Loop
 work at the actual compiled leaf prices `wsLeaf c`. -/
-theorem crep_loop_src_workG (c : Compiler.Encoders.Asm.AsmConfigExact 64) {unit prim ret shortP : Nat}
+theorem crep_loop_src_workG (c : Compiler.Encoders.Asm.AsmConfigExact 64) {K : StmtK} {shortP : Nat}
     {callP : CName → CName → Nat → Nat} {funcs : HolFiniteMapExact Basis.Pure.MlString.MlString (Nat × Nat)}
-    (fit : CrepFitG (srcPricing c) unit prim ret shortP callP funcs) {F : Type} {fn : CName}
+    (fit : CrepFitG (srcPricing c) K shortP callP funcs) {F : Type} {fn : CName}
     {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64} {w : Nat}
-    (work : @CrepWorkF (nodePriceK srcK) srcPriceListM unit prim callP shortP ret F fn t p w)
+    (work : @CrepWorkF (nodePriceK srcK) srcPriceListM K callP shortP F fn t p w)
     (u : LoopSemStateFiniteExact 64 F) (context : CrepToLoopContextExact) (live : NumSet)
     (hfun : context.funcs = funcs) (ok : (evalCrepSemHOLProgExact t p).1 ≠ some .error)
     (rel : CrepLoopRel context live t u) :
