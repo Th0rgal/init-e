@@ -2145,4 +2145,26 @@ theorem transformedCalleeRel.spec {C F : Type}
   hrel dest arity body bodyC source target h1 h2
 
 #print axioms transformedCalleeRel.spec
+/-- The frame that wordSemFindCode returns comes from a lookup in the code table: this is the seam
+between the call's accounting (which unpacks the returned code and stack size) and the global
+transformedCalleeRel (which is stated over sptLookup). -/
+theorem findCode_some_lookup {StackSize : Type}
+    (dest : Nat) (ys : List (WordLocW 64))
+    (code : Spt (Nat × WordLangProgHOL (BitVec 64))) (ss : Spt StackSize)
+    (args' : List (WordLocW 64)) (body : WordLangProgHOL (BitVec 64)) (ssOpt : Option StackSize)
+    (h : wordSemFindCode (some dest) ys code ss = some (args', body, ssOpt)) :
+    ∃ arity, sptLookup dest code = some (arity, body) ∧ args' = ys ∧ ssOpt = sptLookup dest ss := by
+  cases hlk : sptLookup dest code with
+  | none =>
+    simp only [wordSemFindCode, hlk] at h
+    cases h
+  | some pair =>
+    obtain ⟨arity, exp⟩ := pair
+    simp only [wordSemFindCode, hlk] at h
+    split at h
+    · cases h
+      exact ⟨arity, rfl, rfl, rfl⟩
+    · cases h
+
+#print axioms findCode_some_lookup
 end InitECandidate.Runtime.FineCost
