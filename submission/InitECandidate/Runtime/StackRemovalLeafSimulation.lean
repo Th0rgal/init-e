@@ -29,6 +29,7 @@ theorem removalCostSimulation_leaf {F : Type} (gap : Nat) (bounds : BitVec 64 ×
     case set name reg => exact removalCostSimulation_set _ gap false bounds reg name (Nat.le_refl _) source
     case opCurrHeap op dest input => exact removalCostSimulation_opCurrHeap _ gap false bounds op dest input (Nat.le_refl _) source
     case stackGetSize reg => exact removalCostSimulation_stackGetSize _ gap false bounds reg (Nat.le_refl _) source
+    case stackSetSize reg => exact removalCostSimulation_stackSetSize _ gap false bounds reg (Nat.le_refl _) source
     case stackAlloc count => exact removalCostSimulation_stackAlloc _ gap count bounds (Nat.le_refl _) source
     case stackFree count => exact removalCostSimulation_stackFree _ gap false bounds count (Nat.le_refl _) source
     case stackLoad reg count =>

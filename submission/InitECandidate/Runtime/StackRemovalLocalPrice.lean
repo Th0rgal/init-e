@@ -8,7 +8,7 @@ open Flapjack.Compiler.Encoders.Asm
 memory offsets retain one instruction; large offsets and frames pay by size. -/
 noncomputable def removalLocalPrice (gap : Nat) (bounds : BitVec 64 × BitVec 64) : HolProg 64 → Nat
   | .get _ _ | .set _ _ | .opCurrHeap _ _ _ => 1 + gap
-  | .stackGetSize _ => 7 + 3 * gap
+  | .stackGetSize _ | .stackSetSize _ => 7 + 3 * gap
   | .stackLoad _ count =>
       if asmOffsetOkExact 0 bounds (StackRemove.wordOffset count) then 1 + gap
       else (count / 255 + 3) * (1 + gap)

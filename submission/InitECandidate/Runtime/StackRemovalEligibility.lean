@@ -12,7 +12,7 @@ def removalSupported : HolProg 64 → Bool
   | .call none _ _ => true
   | .call (some (body, _, _, _)) _ handler => removalSupported body &&
       (match handler with | none => true | some (hp, _, _) => removalSupported hp)
-  | .rawCall _ | .get _ _ | .set _ _ | .opCurrHeap _ _ _ | .stackGetSize _
+  | .rawCall _ | .get _ _ | .set _ _ | .opCurrHeap _ _ _ | .stackGetSize _ | .stackSetSize _
     | .stackAlloc _ | .stackFree _ | .stackLoad _ _ | .stackStore _ _ => true
   | p => executionAtomic p
 termination_by p => sizeOf p
