@@ -2,6 +2,7 @@ import InitECandidate.Runtime.AllocCostSSAStageCases
 import Flapjack.Compiler.Backend.WordAlloc.SSACcTrans
 import Flapjack.Compiler.Backend.WordUnreach.Proofs
 import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticSeq
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticIf
 import InitECandidate.Runtime.AllocMoveTable
 import InitECandidate.Runtime.WordRefinedLocalPrice
 import InitECandidate.Runtime.WordStackRefinedLeaf
@@ -1968,4 +1969,54 @@ theorem fixInconsistencies_suffix_transfer {C F : Type}
 
 #print axioms compiled_branch_transfer
 #print axioms fixInconsistencies_suffix_transfer
+/-! ## The quantitative ite constructor
+
+Both halves come from facts already proved: the simulation half is the compiler's own ite correctness
+(ssaCcTransCorrectIf, with its invariant IHs), and the quantitative half is the program-parametric
+transfer of the compiled ite, which ite_quantTransfer_then builds from the SELECTED branch's transfer
+and the comparison that selects it.  The only extra input is the compiled program's shape, i.e. that
+the compiler's ite really is that .ite node - exactly what ssaCcTrans_ite_shape states. -/
+theorem ssaCcTrans_ite_quant_then {C F : Type}
+    (cmp : Cmp) (left : Nat) (immediate : WordRegImm (BitVec 64))
+    (left' : Nat) (immediate' : WordRegImm (BitVec 64))
+    (first second thenB elseB : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (extra : Nat)
+    (firstIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat) (next : Nat)
+      (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) first = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation first source target ssa next tables)
+    (secondIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat) (next : Nat)
+      (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) second = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation second source target ssa next tables)
+    (hinv : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) (.ite cmp left immediate first second) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables)
+    (hshape : (ssaCcTrans (.ite cmp left immediate first second) ssa next tables).1 =
+      .ite cmp left' immediate' thenB elseB)
+    (xS yS xT yT : WordLocW 64)
+    (hxS : getVar left source = some xS) (hyS : getVarImm immediate source = some yS)
+    (hcS : wordSemWordCmp cmp xS yS = some true)
+    (hxT : getVar left' target = some xT) (hyT : getVarImm immediate' target = some yT)
+    (hcT : wordSemWordCmp cmp xT yT = some true)
+    (hbr : quantTransfer (C := C) (F := F) first thenB source target extra) :
+    quantSsaSimulation (.ite cmp left immediate first second) source target ssa next tables extra := by
+  obtain ⟨⟨rS, sS, rT, sT, hrunS, hrunT, hout⟩, hcost⟩ :=
+    ite_quantTransfer_then cmp left left' immediate immediate' first second thenB elseB
+      source target extra xS yS xT yT hxS hyS hcS hxT hyT hcT hbr
+  refine ⟨Flapjack.Compiler.Backend.WordAlloc.ssaCcTransCorrectIf cmp left immediate first second source target ssa next tables
+    firstIH secondIH hinv, ⟨rS, sS, rT, sT, hrunS, ?_, hout⟩, ?_⟩
+  · rw [hshape]
+    exact hrunT
+  · rw [hshape]
+    exact hcost
+
+#print axioms ssaCcTrans_ite_quant_then
 end InitECandidate.Runtime.FineCost
