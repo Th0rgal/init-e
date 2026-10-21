@@ -526,3 +526,25 @@ arithmetic the way the ite was assembled from `evaluate_ite_true/false`.
 - close the continuation-flag goal with `rw [if_pos (by rw [hc])]` and do NOT append `rfl`: `rw` already
   discharges `true = true`, and the extra `rfl` then fails with "no goals to be solved" while Lean still reports
   the lemma's axioms as clean, so the error looks like it is on a different line.
+
+## Next step: make the code relation the call case's only interface
+
+`wec_call_none_callee_transfer` currently takes the two frames as hypotheses.  They can be made internal, leaving
+`transformedCalleeRel` as the sole interface:
+
+    theorem wec_call_none_callee_transfer_of_code
+        (hrel   : transformedCalleeRel (C := C) (F := F) origCode transCode budget)
+        (hcode  : s.code  = origCode)
+        (hcode' : s'.code = transCode)
+        (hgv, hgv', hbad, hclk, hclk' as in the existing lemma) :
+        wordExecutionCost refined (.call none dest args none) s'
+          <= wordExecutionCost refined (.call none dest args none) s + budget
+
+Proof: `cases` on `wordSemFindCode dest xs origCode s.stackSize`.  The `none` case charges 41 on both sides, so
+`omega`.  In the `some (args1, prog, ss)` case, `findCode_some_lookup` supplies the `sptLookup` facts, and
+`transformedCalleeRel.spec` supplies the callee bound at `callEnv args1 ss (decClock s)` - exactly the two inputs
+`wec_call_none_callee_transfer` asks for.  The transformed side's frame comes from the relation's own lookup, so
+nothing about the target frame has to be assumed.
+
+Doing this leaves the call case with: the code relation, the `getVars` facts, the bad-destination fact, and the
+clocks.  Everything else is internal.
