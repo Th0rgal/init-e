@@ -1279,3 +1279,15 @@ tail split, full body event list, and full body score. Axioms are `propext`,
 - `:= rfl` loop/step/key-call/return equations.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 69. Actual htab_truncate trace
+
+`CandidateTruncateTrace.lean` proves:
+- `candidateTruncate_body_trace`: actual truncate body splits into the loop run
+  and `return 0`;
+- `candidateTruncate_while_run_split`: actual truncate loop stop/iterate/break/
+  continue with real guard/body/rest runs;
+- `candidateTruncateStep_pos` / `candidateTruncateStep_leaf`: actual iteration
+  declarations for `pos` and the double-load `leaf`, with local post updates.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
