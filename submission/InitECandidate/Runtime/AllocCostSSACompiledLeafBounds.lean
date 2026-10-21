@@ -1734,4 +1734,26 @@ theorem seq_fallthrough {C F : Type} (f g : WordLangProgHOL (BitVec 64))
     rwa [fixClock_fst] at hg'
 
 #print axioms seq_fallthrough
+/-! ## The suffix's shape, charged
+
+`fixInconsistencies` returns its branch suffix as `.seq (.move (priority prio true) lmov) lseq`
+(SSAFixInconsistencies.lean:71).  This is that shape's cost: state independent, from the move
+node's state-independent price, its certified fall-through (Nodup + all sources present), and the
+same two facts for the remainder. -/
+theorem suffix_seq_cost_independent {C F : Type}
+    (prio : Nat) (moves : List (Nat × Nat)) (rest : WordLangProgHOL (BitVec 64))
+    (hnodup : (moves.map Prod.fst).Nodup)
+    (hget : ∀ (s : WordSemStateFiniteExact 64 C F), WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none)
+    (hrest_cost : ∀ (s t : WordSemStateFiniteExact 64 C F),
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice rest s = wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice rest t)
+    (hrest_fall : ∀ (s : WordSemStateFiniteExact 64 C F), (fixClock s (WordSemStateFiniteExact.evaluate rest s)).1 = none)
+    (s1 s2 : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq (.move prio moves) rest) s1 =
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq (.move prio moves) rest) s2 := by
+  refine wec_seq_state_independent (.move prio moves) rest
+    (wec_move_state_independent prio moves) hrest_cost ?_ s1 s2
+  intro s
+  exact move_fallthrough prio moves s hnodup (hget s)
+
+#print axioms suffix_seq_cost_independent
 end InitECandidate.Runtime.FineCost
