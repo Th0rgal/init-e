@@ -109,6 +109,21 @@ theorem merge_overhead_bound (n lmovLen rmovLen fakeCount : Nat)
     28 * lmovLen + 28 * rmovLen + 14 * fakeCount ≤ 70 * n := by
   omega
 
+/-- **Actual compiled fragment of `seq`.**  The clause threads the SSA map and
+the next fresh variable through the first half (`ssa'`, `na'`) and compiles the
+second half against those, so the emitted program is the compiled halves in
+sequence - note the second half is compiled at the *threaded* map, not the source
+one. -/
+theorem ssaCcTrans_seq_shape {width : Nat} [NeZero width]
+    (s1 s2 : WordLangProgHOL (BitVec width)) (ssa : Spt Nat) (na : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit)) :
+    (ssaCcTrans (.seq s1 s2) ssa na lt).1 =
+      .seq (ssaCcTrans s1 ssa na lt).1
+        (ssaCcTrans s2 (ssaCcTrans s1 ssa na lt).2.1
+          (ssaCcTrans s1 ssa na lt).2.2 lt).1 := by
+  simp only [ssaCcTrans]
+
+#print axioms ssaCcTrans_seq_shape
 #print axioms merge_overhead_bound
 #print axioms ssaCcTrans_inst_shape
 #print axioms ssaCcTrans_assign_shape
