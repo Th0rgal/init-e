@@ -1814,4 +1814,51 @@ theorem allocOnly_cost_independent {C F : Type}
 
 #print axioms allocOnly_fallthrough
 #print axioms allocOnly_cost_independent
+/-! ## The suffixes are allocator-only
+
+`fakeMoves` produces only skip, instruction, move and seq nodes: the empty case is `.skip`, the step
+is `.seq seqL (.move ...)` or `.seq seqL (fakeMove ...)` where `fakeMove v = .inst (.const v 0)`
+(SSAFixInconsistencies.lean:36-57).  Hence every inconsistency-fixing suffix is `AllocOnly`. -/
+/-- Auxiliary form: instead of projecting the tuple, the caller supplies the equation, so the
+components are substituted definitionally by `cases`. -/
+theorem fakeMoves_allocOnly_aux (prio : Option (Unit ⊕ Unit)) :
+    ∀ (xs : List Nat) (ssaL ssaR : Spt Nat) (na : Nat)
+      (l r : WordLangProgHOL (BitVec 64)) (na' : Nat) (sl sr : Spt Nat),
+      Flapjack.Compiler.Backend.WordAlloc.fakeMoves (width := 64) prio xs ssaL ssaR na = (l, r, na', sl, sr) → AllocOnly l
+  | [], ssaL, ssaR, na => by
+      intro l r na' sl sr h
+      simp only [Flapjack.Compiler.Backend.WordAlloc.fakeMoves] at h
+      cases h
+      exact AllocOnly.skip
+  | x :: xs, ssaL, ssaR, na => by
+      intro l r na' sl sr h
+      obtain ⟨a, b, c, d, e, he⟩ :
+          ∃ a b c d e, Flapjack.Compiler.Backend.WordAlloc.fakeMoves (width := 64) prio xs ssaL ssaR na = (a, b, c, d, e) :=
+        ⟨_, _, _, _, _, rfl⟩
+      have ih : AllocOnly a := fakeMoves_allocOnly_aux prio xs ssaL ssaR na a b c d e he
+      have hfst : (a, b, c, d, e).1 = a := rfl
+      simp only [Flapjack.Compiler.Backend.WordAlloc.fakeMoves] at h
+      rw [he, hfst] at h
+      split at h <;>
+        (injection h with h1 _
+         rw [← h1]
+         first
+           | exact ih
+           | exact AllocOnly.seq a _ ih (AllocOnly.inst _)
+           | exact AllocOnly.seq a _ ih (AllocOnly.move _ _))
+
+/-- The projected form, for callers that only have the program. -/
+theorem fakeMoves_allocOnly (prio : Option (Unit ⊕ Unit))
+    (xs : List Nat) (ssaL ssaR : Spt Nat) (na : Nat) :
+    AllocOnly (Flapjack.Compiler.Backend.WordAlloc.fakeMoves (width := 64) prio xs ssaL ssaR na).1 := by
+  obtain ⟨p1, p2, p3, p4, p5, he⟩ :
+      ∃ a b c d e, Flapjack.Compiler.Backend.WordAlloc.fakeMoves (width := 64) prio xs ssaL ssaR na = (a, b, c, d, e) :=
+    ⟨_, _, _, _, _, rfl⟩
+  have hb := he
+  rw [he]
+  show AllocOnly p1
+  exact fakeMoves_allocOnly_aux prio xs ssaL ssaR na p1 p2 p3 p4 p5 hb
+
+#print axioms fakeMoves_allocOnly_aux
+#print axioms fakeMoves_allocOnly
 end InitECandidate.Runtime.FineCost
