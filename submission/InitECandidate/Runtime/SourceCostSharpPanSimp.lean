@@ -3,21 +3,11 @@ import InitECandidate.Runtime.SourceCostSharpSource
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
-theorem replayUnits_eventSum (ev : List WorkEvent) :
-    replayUnits ev = eventSum (fun e => match e with
-      | .memory k | .globalAccess k => k - 1 | _ => 0) ev := by
-  induction ev with
-  | nil => rfl
-  | cons head tail ih => cases head <;> simp only [replayUnits, eventSum, ih] <;> omega
-
 theorem SimpWorkLe.sharpScore {a b : List WorkEvent} (le : SimpWorkLe a b) :
     sharpScore a ≤ sharpScore b := by
   have w := le.score sharpSourceWeights
-  have r : replayUnits a ≤ replayUnits b := by
-    rw [replayUnits_eventSum, replayUnits_eventSum]; exact le _
   simp only [sharpScore, sharpSourceScore]
-  have := Nat.mul_le_mul_left (sharpReplayBound + 5) r
-  omega
+  exact w
 
 /-- `pan_simp` with its installed code map never increases the sharp score. -/
 theorem simp_compile_run_sharp {F : Type} {s post : PanSemStateFiniteExact 64 F} {p : ProgHOL 64} {r ev}

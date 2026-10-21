@@ -11,11 +11,17 @@ original entry under a fresh name. Following the pinned
 `compile_top_semantics_decls` proof at run level, the compiled entry run costs
 at most the source entry run plus a one-time initialiser cost. -/
 
-/-- The one-time cost of the generated entry: its own call (statement, frame of
-the return shape, return copy), the constant initialiser stores and the final
-`Skip`. -/
+/-- The one-time cost of the generated entry: its own call (call base, return
+slots, exit with at most an exception's re-raise check and the payload copy)
+and the constant initialiser stores. -/
 def globalsTopInit (returnShape : ShapeHOL) (globalCount payload : Nat) : Nat :=
-  20 + 4 * sizeOfShapeHOL returnShape + 57 * globalCount + 5 * payload
+  343 + 19 * sizeOfShapeHOL returnShape + 289 * globalCount + 49 * payload
+
+theorem callExitOverhead_le (r : Option (PanSemResultExact 64)) :
+    callExitOverhead r ≤ 147 + 49 * callPayloadWords r := by
+  rcases r with _ | r
+  · simp [callExitOverhead, callPayloadWords, returnCopy]
+  · cases r <;> simp [callExitOverhead, callPayloadWords, returnCopy] <;> omega
 
 theorem globals_bvSubZero (x : BitVec 64) : x - 0 = x := by simp
 
@@ -389,6 +395,7 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
     simp only [expressionListEvents, List.flatMap_nil, List.length_nil, callGlobalEvents,
       List.nil_append, List.append_nil, structsT, sharp_size_nil, globalsTopInit] at outer ⊢
     gsimp
+    have := callExitOverhead_le r
     omega
   · obtain ⟨_, _, _, hinfo⟩ := globals_plan_handler_info hplan
     cases hinfo
