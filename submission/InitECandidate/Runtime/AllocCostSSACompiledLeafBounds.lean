@@ -222,6 +222,33 @@ theorem ssaCcTrans_call_arg_move_price {C F : Type}
       (if args.length ≤ 1 then 14 else 28) * args.length := by
   rw [nativeWordPrice_move, ssaCcTrans_call_arg_move_length]
 
+/-- **Returning-call argument moves.**  The `.call (some …)` clause uses
+`convArgs := (List.range names.length).map (fun x => 2 * (x + 1))` (registers 2,
+4, …), so the inserted argument list again has one pair per source argument. -/
+theorem ssaCcTrans_call_some_arg_move_length
+    (args : List Nat) (ssa : Spt Nat) :
+    (((List.range (args.map (optionLookup ssa)).length).map
+      fun x => 2 * (x + 1)).zip (args.map (optionLookup ssa))).length = args.length := by
+  simp
+
+/-- **Return-value moves.**  `ret'.zip regs` with
+`regs := (List.range ret.length).map (fun x => 2 * (x + 1))`, i.e. one pair per
+returned value. -/
+theorem ssaCcTrans_call_ret_move_length
+    (ret : List Nat) (ret' : List Nat) :
+    (ret'.zip ((List.range ret.length).map fun x => 2 * (x + 1))).length ≤ ret.length := by
+  simp
+
+/-- **Single inserted pair costs 14.** -/
+theorem nativeWordPrice_move_single {C F : Type}
+    (pri : Nat) (dst src : Nat) (s : WordSemStateFiniteExact 64 C F) :
+    nativeWordPrice (.move pri [(dst, src)]) s = 14 := by
+  rw [nativeWordPrice_move]
+  simp
+
+#print axioms ssaCcTrans_call_some_arg_move_length
+#print axioms ssaCcTrans_call_ret_move_length
+#print axioms nativeWordPrice_move_single
 #print axioms ssaCcTrans_call_arg_move_length
 #print axioms ssaCcTrans_call_arg_move_price
 #print axioms ssaCcTrans_alloc_shape
