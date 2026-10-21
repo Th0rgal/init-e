@@ -103,9 +103,44 @@ theorem path_store_one_word_score {F : Type} (coeff : Work)
   simp [executionWork, WorkEvent.units, Work.plus, Work.score]
   omega
 
+/-- Concatenating path-slot event traces adds their scores. -/
+theorem path_stores_score_append (coeff : Work) (left right : List WorkEvent) :
+    coeff.score (executionWork (left ++ right)) =
+      coeff.score (executionWork left) + coeff.score (executionWork right) :=
+  executionWork_score_append coeff left right
+
+/-- The score of a flat list of path-slot traces is the sum of their scores. -/
+theorem path_stores_score (coeff : Work) (runs : List (List WorkEvent)) :
+    coeff.score (executionWork runs.flatten) =
+      (runs.map fun events => coeff.score (executionWork events)).sum := by
+  induction runs with
+  | nil => simp [executionWork, Work.score]
+  | cons head tail ih =>
+      simp [List.flatten_cons, path_stores_score_append, ih, List.sum_cons]
+
+/-- One one-word path slot with no operand events. -/
+def oneWordSlotEvents : List WorkEvent :=
+  [.statement, .memory 1, .cost (storeOverhead 1)]
+
+/-- `n` one-word path slots charge `n` times the per-slot statement, memory,
+and native store-overhead work. -/
+theorem n_path_slots_score (coeff : Work) :
+    ∀ n, coeff.score (executionWork (List.flatten (List.replicate n oneWordSlotEvents))) =
+      n * (coeff.statements + coeff.memoryAccesses +
+        coeff.nativeCost * storeOverhead 1) := by
+  intro n
+  induction n with
+  | zero => simp [executionWork, Work.score]
+  | succ n ih =>
+      rw [List.replicate_succ, List.flatten_cons, path_stores_score_append, ih]
+      simp [oneWordSlotEvents, executionWork, WorkEvent.units, Work.plus, Work.score]
+      rw [Nat.succ_mul]
+      omega
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.storeValue_events
 #print axioms BoundedTableExperiment.path_store_one_word_events
 #print axioms BoundedTableExperiment.path_load_expression_cost
 #print axioms BoundedTableExperiment.path_store_one_word_score
+#print axioms BoundedTableExperiment.n_path_slots_score

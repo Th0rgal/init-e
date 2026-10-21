@@ -801,3 +801,17 @@ The two expression runs are the actual `CostedExpressionRun`s from section 31.
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. This is the full
 statement-run cost of one path slot store; composing several slots and the
 binary-search load loop remains open.
+
+## 33. Multi-slot path-store score composition
+
+`PathStatementCoupling.lean` adds:
+
+- `path_stores_score_append`: concatenated path-slot traces add scores;
+- `path_stores_score`: the score of a flat list of slot traces is the sum of
+  the per-trace scores;
+- `n_path_slots_score`: `n` one-word slots charge
+  `n * (statements + memoryAccesses + nativeCost * storeOverhead 1)`.
+
+Axioms are `propext` and `Quot.sound` for the composition lemmas. This composes
+the path push across slots; composing with the binary-search load loop into the
+whole operation still needs the loop-level event trace.
