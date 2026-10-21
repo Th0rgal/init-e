@@ -4,10 +4,10 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack
 
 /-- Payload words returned through a Crep call boundary. A propagated
-exception is charged as two words: its compiled re-raise check. -/
+exception is charged as three words: its compiled handler check and re-raise. -/
 def crepCallPayloadWords : Option (CrepResultHOLExact 64) → Nat
   | some (.return values) => values.length
-  | some (.exception _) => 2
+  | some (.exception _) => 3
   | _ => 0
 
 /-- Executed Crep work, parametrized by the price of each evaluated
@@ -120,7 +120,7 @@ inductive CrepWorkP (price : CrepExpHOL 64 → Nat) (priceList : List (CrepExpHO
         (some (.exception code), post))
       (handlerRun : CrepWorkP price priceList unit prim call ret { post with locals := t.locals } handler handlerWork) :
       CrepWorkP price priceList unit prim call ret t (.call (some (rts, some (code, handler))) function arguments)
-        (call + priceList arguments + values.length + bodyWork + handlerWork)
+        (call + priceList arguments + values.length + bodyWork + ret + handlerWork)
 
 
 /-- Executed Crep work at the node-count price used by the Pan-to-Crep transfer. -/

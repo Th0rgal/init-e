@@ -213,7 +213,7 @@ theorem done_plan_no_fire_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
 theorem call_events_score_sharp (arguments bodyEvents : List WorkEvent) (a f x : Nat) :
     sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
       bodyEvents ++ [.cost x]))) =
-    sharpScore arguments + (240 + 40 * a + 19 * f) + sharpScore bodyEvents + x := by
+    sharpScore arguments + (196 + 40 * a + 19 * f) + sharpScore bodyEvents + x := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
     sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead]
   omega
@@ -394,7 +394,7 @@ theorem call_timeout_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
         (evalCrepSemHOLExp t'') = some (values.flatMap flattenHOL) → t''.code = t.code →
       t''.clock = t.clock →
       CrepWorkS t'' (.call ri function ((compileExpExactHOLWList context arguments).flatMap
-        Prod.fst)) (240 + sharpCrepList ((compileExpExactHOLWList context arguments).flatMap
+        Prod.fst)) (196 + sharpCrepList ((compileExpExactHOLWList context arguments).flatMap
           Prod.fst)) := by
     intro t'' ri hargs hcode hclk
     exact CrepWorkP.callShort (Or.inr ⟨_, hargs, Or.inr (Or.inr (by rw [hclk]; exact htclock))⟩)

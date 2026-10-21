@@ -4,7 +4,7 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 /-! Native overheads of executed statements beyond their expressions, at the
-native Crep prices (`CrepWorkS`): a statement unit is 37, a call 240 plus one
+native Crep prices (`CrepWorkS`): a statement unit is 37, a call 196 plus one
 argument move (39) and one argument slot (1) per word, a returned word 49.
 `Skip`, sequencing, declarations and assignments emit no unit: their Crep code
 is the expressions' own. -/
@@ -22,7 +22,7 @@ def returnOverhead (n : Nat) : Nat := statementUnit + 40 * n
 def raiseOverhead (n : Nat) : Nat := 51 * n + 86
 
 /-- A call with `n` argument words. -/
-def callOverhead (n : Nat) : Nat := 240 + 40 * n
+def callOverhead (n : Nat) : Nat := 196 + 40 * n
 
 /-- Zero-initialised return slots of a declaring call. -/
 def slotOverhead (n : Nat) : Nat := 19 * n
@@ -30,10 +30,10 @@ def slotOverhead (n : Nat) : Nat := 19 * n
 /-- Copying `n` returned words to the caller. -/
 def returnCopy (n : Nat) : Nat := 49 * n
 
-/-- Leaving a call: copying the returned words, or for a propagated exception
-its payload and the compiled re-raise check. -/
+/-- Leaving a call: copying the returned words, or for an exception its
+payload and the compiled handler check and re-raise. -/
 def callExitOverhead : Option (PanSemResultExact 64) → Nat
-  | some (.exception _ value) => returnCopy (flattenHOL value).length + 98
+  | some (.exception _ value) => returnCopy (flattenHOL value).length + 147
   | result => returnCopy (callPayloadWords result)
 
 /-- A primitive over `n` argument words: the primitive and one slot per word. -/

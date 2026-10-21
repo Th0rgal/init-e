@@ -338,7 +338,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
         · rw [if_pos hn]
         · rfl
       · rfl
-    · refine ⟨240 + sharpCrepList (arguments.map crepSimpExpHOL), ?_, by omega⟩
+    · refine ⟨196 + sharpCrepList (arguments.map crepSimpExpHOL), ?_, by omega⟩
       unfold crepSimpProgHOL
       exact .callShort (Or.inr ⟨_, crepSimp_args_sharp t _ _ hvals, Or.inr (Or.inr hc)⟩)
   | @callBody t returnInfo function arguments values body locals bodyWork result post args lookup
@@ -363,7 +363,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
         some (crepSimpProgHOL body, locals) := by
       rw [crepSimp_lookup_sharp, lookup]; rfl
     have := crepSimp_listWork_sharp arguments
-    refine ⟨240 + sharpCrepList (arguments.map crepSimpExpHOL) + values.length + wb +
+    refine ⟨196 + sharpCrepList (arguments.map crepSimpExpHOL) + values.length + wb +
       49 * crepCallPayloadWords result, ?_, by omega⟩
     unfold crepSimpProgHOL
     refine .callBody args' lookup' ?_ clock hb run' ?_
@@ -399,7 +399,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
         some (crepSimpProgHOL body, locals) := by
       rw [crepSimp_lookup_sharp, lookup]; rfl
     have := crepSimp_listWork_sharp arguments
-    refine ⟨240 + sharpCrepList (arguments.map crepSimpExpHOL) + values.length + wb + wh, ?_, by omega⟩
+    refine ⟨196 + sharpCrepList (arguments.map crepSimpExpHOL) + values.length + wb + 49 + wh, ?_, by omega⟩
     simp only [crepSimpProgHOL]
     exact .callHandler args' lookup' names clock hb run' hh
 

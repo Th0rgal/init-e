@@ -70,7 +70,7 @@ structure LoopPricing where
         39 * (compileExpsHOLExact context tmp live es).2.1.length ≤ priceList es
   unitOk : 37 ≤ unit
   primOk : 85 ≤ prim
-  callOk : 240 ≤ call
+  callOk : 196 ≤ call
   retOk : 49 ≤ ret
 
 /-- Crep work priced by a Loop pricing. -/

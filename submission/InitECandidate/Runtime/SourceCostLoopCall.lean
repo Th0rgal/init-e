@@ -53,7 +53,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
               (evalCrepSemHOLProgExact { st with locals := v1.locals } hp).1 ≠ some .error →
               CrepLoopRel ctxt l { st with locals := v1.locals } u' →
               LoopPaid ctxt l { st with locals := v1.locals } u' hp wh) ∧
-            P.call + P.priceList argexps + args.length + wb + wh ≤ w)) :
+            P.call + P.priceList argexps + args.length + wb + P.ret + wh ≤ w)) :
     LoopPaid ctxt l v1 t (.call caltyp fname argexps) w := by
   classical
   rcases hEvalAll : evalCrepSemHOLProgExact v1 (.call caltyp fname argexps) with ⟨res, s1⟩
