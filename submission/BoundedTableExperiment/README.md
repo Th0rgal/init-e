@@ -649,3 +649,18 @@ routes are `> d` must equal `splitIndex`. Axioms are only `propext` and
 loop; executable checks on several paths return the same index as
 `splitIndex`. The iterative loop-to-`splitIndex` refinement is still not
 mechanized.
+
+## 24. Checked growth-copy amortization
+
+`GrowthBudget.lean` proves that for structural capacity doubling, the total
+capacity moved over all growths is at most the final capacity:
+
+- `capSum base n <= base * 2^n` (`capSum_le_final`);
+- hence a single growth moves at most twice the old live capacity
+  (`capSum_succ_le_two_mul_final`).
+
+Axioms are only `propext` and `Quot.sound`. Truncation does not shrink capacity
+and performs no array copy; each removal pays one delete descent plus one
+swap-remove/truncate body. So resize/copy is amortized O(1) per fresh insert in
+capacity units (source price per relocated node is the measured 1203; the
+memcpy-per-byte price remains unpriced).
