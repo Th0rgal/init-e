@@ -62,13 +62,14 @@ theorem cutStateColourTransportLiveCode {C F : Type} (n1 n2 : NumSet) (f : Nat �
 
 theorem colourIndexed_loop {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat)
     (SP : Nat → WordLangProgHOL (BitVec 64) → Nat)
-    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (function : Nat) (f : Nat → Nat)
+    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (col : Nat → Nat → Nat)
+    (function : Nat) (f : Nat → Nat)
     (sourceFree : WordProps.noInstallCode source) (targetFree : WordProps.noInstallCode target)
     (leafPrice : ∀ p, TP (applyColour f p) ≤ SP function p)
     (permuteCost : IndexedPermuteCost C F SP) (names exitNames : NumSet)
     (body : WordLangProgHOL (BitVec 64))
-    (ihBody : ColourIndexedGoal C F TP SP source target function f body) :
-    ColourIndexedGoal C F TP SP source target function f (.loop names body exitNames) := by
+    (ihBody : ColourIndexedGoal C F TP SP source target col function f body) :
+    ColourIndexedGoal C F TP SP source target col function f (.loop names body exitNames) := by
   classical
   have hrenameLn : ∀ f, applyNummapKey f (.ln : NumSet) = .ln := fun _ => rfl
   have ht := (evaluate_def_rebound (width := 64) (C := C) (F := F)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
@@ -77,18 +78,18 @@ theorem colourIndexed_loop {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Na
     intro free
     simpa only [noInstallSubprogsHOL, notCreatedSubprogsWithMemOp] using free
   suffices ∀ n (st cst : WordSemStateFiniteExact 64 C F) live lt,
-      st.clock = n → noInstallSubprogsHOL (.loop names body exitNames : WordLangProgHOL (BitVec 64)) = true →
+      st.clock = n → ColourCalleeIH C F TP SP source target col st.termdep st.clock → noInstallSubprogsHOL (.loop names body exitNames : WordLangProgHOL (BitVec 64)) = true →
       st.code = source → cst.code = target →
       colouringOk f (.loop names body exitNames) live lt ∧ wordStateEqRel st {cst with code := st.code} ∧
         strongLocalsRel f (sptDomain names) st.locals cst.locals →
       ColourIndexedPost TP SP function f (.loop names body exitNames) live lt st cst by
-    intro st cst live lt free sourceCode targetCode h
-    exact this st.clock st cst live lt rfl free sourceCode targetCode
+    intro st cst live lt calleeIH free sourceCode targetCode h
+    exact this st.clock st cst live lt rfl calleeIH free sourceCode targetCode
       ⟨h.1, h.2.1, by simpa only [getLive] using h.2.2⟩
   intro n
   induction n using Nat.strongRecOn with
   | ind n ih =>
-    rintro st cst live lt hn free sourceCode targetCode ⟨hc, hs, hl⟩
+    rintro st cst live lt hn calleeIH free sourceCode targetCode ⟨hc, hs, hl⟩
     have bodyFree := bodyFreeOf free
     have targetLoop : applyColour f (.loop names body exitNames) =
         .loop (applyNummapKey f names) (applyColour f body) (applyNummapKey f exitNames) := rfl
@@ -111,7 +112,9 @@ theorem colourIndexed_loop {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Na
         intro q; rw [cutState_withPermute, hcut]; rfl
       have entryCode : entry.code = source := (cutState_code _ _ _ hcut).trans sourceCode
       have centryCode : centry.code = target := (cutState_code _ _ _ hccut).trans targetCode
-      obtain ⟨p, hp⟩ := ihBody entry centry names ((names, exitNames) :: lt) bodyFree entryCode centryCode
+      have entryClocks := cutState_clock_termdep (names, .ln) st entry hcut
+      obtain ⟨p, hp⟩ := ihBody entry centry names ((names, exitNames) :: lt)
+        (calleeIH.mono (by right; exact ⟨entryClocks.2, entryClocks.1.le⟩)) bodyFree entryCode centryCode
         ⟨hc.2.2, hentry, hentrylocals⟩
       dsimp only at hp
       rcases hb : evaluate body {entry with permute := p} with ⟨res, out⟩
@@ -185,8 +188,13 @@ theorem colourIndexed_loop {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Na
               (by rw [centryCode]; exact targetFree)
             rw [hcb] at h
             exact h.trans centryCode
+          have outClocks := evaluate_clock body {entry with permute := p} res out hb
           obtain ⟨q, hq⟩ := ih (decClock out).clock hlt (decClock out) (decClock cout)
-            live lt rfl free outCode coutCode
+            live lt rfl (calleeIH.mono (by
+              right
+              simp only [decClock]
+              exact ⟨outClocks.2.trans entryClocks.2, by have := entryClocks.1; simp only at outClocks; omega⟩))
+            free outCode coutCode
             ⟨hc, by simpa [decClock, wordStateEqRel] using wsrDecClock hsout, hnames⟩
           obtain ⟨p0, run0, cost0⟩ := permuteCost function body
             {entry with permute := p} q (by rw [hb]; exact herr)

@@ -73,12 +73,41 @@ def ColourIndexedPost {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat)
         wordExecutionCost (fun p _ => TP p) (applyColour f prog) cst ≤
           wordFunctionExecutionCost (fun l p _ => SP l p) function prog sourceState
 
-/-- `evaluate_apply_colour`'s premises over the two tables. -/
+/-- Guarded callee summaries: every source-table callee, entered from a state
+below `(depth, clock)`, satisfies the quantitative colouring conclusion at its
+own label and colouring, against the same entry over the allocated table. -/
+def ColourCalleeIH (C F : Type) (TP : WordLangProgHOL (BitVec 64) → Nat)
+    (SP : Nat → WordLangProgHOL (BitVec 64) → Nat)
+    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (col : Nat → Nat → Nat)
+    (depth clock : Nat) : Prop :=
+  ∀ (label arity : Nat) (body : WordLangProgHOL (BitVec 64)) (entry : WordSemStateFiniteExact 64 C F)
+    (targetPermute : Nat → Nat → Nat),
+    Prod.Lex (· < ·) (· < ·) (entry.termdep, entry.clock) (depth, clock) →
+    sptLookup label source = some (arity, body) → entry.code = source →
+    Flapjack.Compiler.Backend.WordAlloc.Proofs.evenStartingLocals entry.locals →
+    ColourIndexedPost TP SP label (col label) body .ln [] entry
+      {entry with code := target, permute := targetPermute}
+
+theorem ColourCalleeIH.mono {C F : Type} {TP : WordLangProgHOL (BitVec 64) → Nat}
+    {SP : Nat → WordLangProgHOL (BitVec 64) → Nat}
+    {source target : Spt (Nat × WordLangProgHOL (BitVec 64))} {col : Nat → Nat → Nat}
+    {depth clock depth' clock' : Nat}
+    (ih : ColourCalleeIH C F TP SP source target col depth clock)
+    (le : depth' < depth ∨ (depth' = depth ∧ clock' ≤ clock)) :
+    ColourCalleeIH C F TP SP source target col depth' clock' := by
+  intro label arity body entry targetPermute smaller
+  apply ih label arity body entry targetPermute
+  simp only [Prod.lex_def] at smaller ⊢
+  omega
+
+/-- `evaluate_apply_colour`'s premises over the two tables, with guarded
+callee summaries at the current termination depth and clock. -/
 def ColourIndexedGoal (C F : Type) (TP : WordLangProgHOL (BitVec 64) → Nat)
     (SP : Nat → WordLangProgHOL (BitVec 64) → Nat)
-    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (function : Nat) (f : Nat → Nat)
-    (prog : WordLangProgHOL (BitVec 64)) : Prop :=
+    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (col : Nat → Nat → Nat)
+    (function : Nat) (f : Nat → Nat) (prog : WordLangProgHOL (BitVec 64)) : Prop :=
   ∀ (st cst : WordSemStateFiniteExact 64 C F) (live : NumSet) (lt : List (NumSet × NumSet)),
+    ColourCalleeIH C F TP SP source target col st.termdep st.clock →
     noInstallSubprogsHOL prog = true → st.code = source → cst.code = target →
     colouringOk f prog live lt ∧ wordStateEqRel st {cst with code := st.code} ∧
       strongLocalsRel f (sptDomain (getLive prog live lt)) st.locals cst.locals →
@@ -142,14 +171,15 @@ theorem cscLeaf_applyColour (f : Nat → Nat) (p : WordLangProgHOL (BitVec 64))
 table, the leaf code frame, and the leaf price bound. -/
 theorem colourIndexed_atomic {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat)
     (SP : Nat → WordLangProgHOL (BitVec 64) → Nat)
-    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (function : Nat) (f : Nat → Nat)
+    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (col : Nat → Nat → Nat)
+    (function : Nat) (f : Nat → Nat)
     (sourceFree : WordProps.noInstallCode source)
     (sameDomain : ∀ label, sptMem label target = sptMem label source)
     (leafPrice : ∀ p, TP (applyColour f p) ≤ SP function p)
     (prog : WordLangProgHOL (BitVec 64)) (atomic : wordCostAtomic prog = true)
     (semantic : applyColourGoal C F prog) :
-    ColourIndexedGoal C F TP SP source target function f prog := by
-  intro st cst live lt free sourceCode targetCode ⟨hc, hs, hl⟩
+    ColourIndexedGoal C F TP SP source target col function f prog := by
+  intro st cst live lt _ free sourceCode targetCode ⟨hc, hs, hl⟩
   have leaf : WordToWord.cscLeaf prog = true := by
     cases prog <;> simp_all [wordCostAtomic, WordToWord.cscLeaf, noInstallSubprogsHOL,
       notCreatedSubprogsWithMemOp]

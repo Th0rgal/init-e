@@ -74,17 +74,18 @@ theorem run_code {C F : Type} (prog : WordLangProgHOL (BitVec 64)) (state : Word
 /-- Sequence over the two tables. -/
 theorem colourIndexed_seq {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat)
     (SP : Nat → WordLangProgHOL (BitVec 64) → Nat)
-    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (function : Nat) (f : Nat → Nat)
+    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (col : Nat → Nat → Nat)
+    (function : Nat) (f : Nat → Nat)
     (sourceFree : WordProps.noInstallCode source) (targetFree : WordProps.noInstallCode target)
     (leafPrice : ∀ p, TP (applyColour f p) ≤ SP function p)
     (permuteCost : IndexedPermuteCost C F SP) (first second : WordLangProgHOL (BitVec 64))
-    (ihFirst : ColourIndexedGoal C F TP SP source target function f first)
-    (ihSecond : ColourIndexedGoal C F TP SP source target function f second) :
-    ColourIndexedGoal C F TP SP source target function f (.seq first second) := by
-  rintro st cst live lt free sourceCode targetCode ⟨hc, hs, hl⟩
+    (ihFirst : ColourIndexedGoal C F TP SP source target col function f first)
+    (ihSecond : ColourIndexedGoal C F TP SP source target col function f second) :
+    ColourIndexedGoal C F TP SP source target col function f (.seq first second) := by
+  rintro st cst live lt calleeIH free sourceCode targetCode ⟨hc, hs, hl⟩
   have parts : noInstallSubprogsHOL first = true ∧ noInstallSubprogsHOL second = true := by
     simpa only [noInstallSubprogsHOL, notCreatedSubprogsWithMemOp, Bool.and_eq_true] using free
-  obtain ⟨p1, hp1⟩ := ihFirst st cst (getLive second live lt) lt parts.1 sourceCode targetCode
+  obtain ⟨p1, hp1⟩ := ihFirst st cst (getLive second live lt) lt calleeIH parts.1 sourceCode targetCode
     ⟨hc.2.2, hs, by simpa only [getLive] using hl⟩
   dsimp only at hp1
   rcases he1 : evaluate first {st with permute := p1} with ⟨r1, s1⟩
@@ -124,7 +125,9 @@ theorem colourIndexed_seq {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat
       simp only [Nat.add_zero]
       exact Nat.add_le_add head cost1
   | none =>
-    obtain ⟨p2, hp2⟩ := ihSecond s1 cs1 live lt parts.2 middleCode targetMiddleCode
+    have clocks := evaluate_clock first {st with permute := p1} none s1 he1
+    obtain ⟨p2, hp2⟩ := ihSecond s1 cs1 live lt
+      (calleeIH.mono (by right; exact ⟨clocks.2, clocks.1⟩)) parts.2 middleCode targetMiddleCode
       ⟨hc.2.1, frame1, locals1⟩
     dsimp only at hp2
     obtain ⟨p0, run0, cost0⟩ := permuteCost function first {st with permute := p1} p2
@@ -148,13 +151,14 @@ theorem colourIndexed_seq {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat
 /-- Conditional over the two tables. -/
 theorem colourIndexed_ite {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat)
     (SP : Nat → WordLangProgHOL (BitVec 64) → Nat)
-    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (function : Nat) (f : Nat → Nat)
+    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (col : Nat → Nat → Nat)
+    (function : Nat) (f : Nat → Nat)
     (leafPrice : ∀ p, TP (applyColour f p) ≤ SP function p)
     (cmp : Cmp) (left : Nat) (right : WordRegImm (BitVec 64)) (yes no : WordLangProgHOL (BitVec 64))
-    (ihYes : ColourIndexedGoal C F TP SP source target function f yes)
-    (ihNo : ColourIndexedGoal C F TP SP source target function f no) :
-    ColourIndexedGoal C F TP SP source target function f (.ite cmp left right yes no) := by
-  rintro st cst live lt free sourceCode targetCode ⟨hc, hs, hl⟩
+    (ihYes : ColourIndexedGoal C F TP SP source target col function f yes)
+    (ihNo : ColourIndexedGoal C F TP SP source target col function f no) :
+    ColourIndexedGoal C F TP SP source target col function f (.ite cmp left right yes no) := by
+  rintro st cst live lt calleeIH free sourceCode targetCode ⟨hc, hs, hl⟩
   have parts : noInstallSubprogsHOL yes = true ∧ noInstallSubprogsHOL no = true := by
     simpa only [noInstallSubprogsHOL, notCreatedSubprogsWithMemOp, Bool.and_eq_true] using free
   have hv : ∀ perm : Nat → Nat → Nat,
@@ -193,7 +197,7 @@ theorem colourIndexed_ite {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat
       | none => exact stuck (by rw [evaluate, hx, hy]; simp [hw])
       | some decision =>
         have branch : ∀ (arm : WordLangProgHOL (BitVec 64))
-            (armIH : ColourIndexedGoal C F TP SP source target function f arm)
+            (armIH : ColourIndexedGoal C F TP SP source target col function f arm)
             (armFree : noInstallSubprogsHOL arm = true)
             (armLive : ∀ key, sptDomain (getLive arm live lt) key →
               sptDomain (sptUnion (getLive yes live lt) (getLive no live lt)) key)
@@ -214,7 +218,7 @@ theorem colourIndexed_ite {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat
                   wordExecutionCost (fun p _ => TP p) (applyColour f arm) cst),
             ColourIndexedPost TP SP function f (.ite cmp left right yes no) live lt st cst := by
           intro arm armIH armFree armLive armOk sourceSel targetSel sourceCost targetCost
-          obtain ⟨perm, hp⟩ := armIH st cst live lt armFree sourceCode targetCode
+          obtain ⟨perm, hp⟩ := armIH st cst live lt calleeIH armFree sourceCode targetCode
             ⟨armOk, hs, slrMono hl (fun k hk => hm k (armLive k hk))⟩
           refine ⟨perm, ?_⟩
           dsimp only at hp ⊢
@@ -240,11 +244,12 @@ theorem colourIndexed_ite {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat
 /-- MustTerminate over the two tables. -/
 theorem colourIndexed_mustTerminate {C F : Type} (TP : WordLangProgHOL (BitVec 64) → Nat)
     (SP : Nat → WordLangProgHOL (BitVec 64) → Nat)
-    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (function : Nat) (f : Nat → Nat)
+    (source target : Spt (Nat × WordLangProgHOL (BitVec 64))) (col : Nat → Nat → Nat)
+    (function : Nat) (f : Nat → Nat)
     (leafPrice : ∀ p, TP (applyColour f p) ≤ SP function p) (body : WordLangProgHOL (BitVec 64))
-    (ih : ColourIndexedGoal C F TP SP source target function f body) :
-    ColourIndexedGoal C F TP SP source target function f (.mustTerminate body) := by
-  rintro st cst live lt free sourceCode targetCode ⟨hc, hs, hl⟩
+    (ih : ColourIndexedGoal C F TP SP source target col function f body) :
+    ColourIndexedGoal C F TP SP source target col function f (.mustTerminate body) := by
+  rintro st cst live lt calleeIH free sourceCode targetCode ⟨hc, hs, hl⟩
   have bodyFree : noInstallSubprogsHOL body = true := by
     simpa only [noInstallSubprogsHOL, notCreatedSubprogsWithMemOp, Bool.true_and] using free
   have hdep : cst.termdep = st.termdep := by simp_all [wordStateEqRel]
@@ -255,7 +260,8 @@ theorem colourIndexed_mustTerminate {C F : Type} (TP : WordLangProgHOL (BitVec 6
   · let s := {st with clock := wordSemMustTerminateLimit 64, termdep := st.termdep - 1}
     let cs := {cst with clock := wordSemMustTerminateLimit 64, termdep := cst.termdep - 1}
     have hsc : wordStateEqRel s {cs with code := s.code} := by simp_all [s, cs, wordStateEqRel]
-    obtain ⟨perm, hp⟩ := ih s cs live lt bodyFree sourceCode targetCode
+    obtain ⟨perm, hp⟩ := ih s cs live lt (calleeIH.mono (by left; show st.termdep - 1 < st.termdep; omega))
+      bodyFree sourceCode targetCode
       ⟨hc, hsc, by simpa only [getLive] using hl⟩
     rcases he : evaluate body {s with permute := perm} with ⟨res, rs⟩
     dsimp only at hp
