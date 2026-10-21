@@ -1,0 +1,532 @@
+/* Candidate participant-only replacement for guest/src/lib/htab.pnk.
+   Isolated experiment: not yet wired into any build.
+
+   Compressed binary Patricia trie over raw key bytes, MSB-first, plus the
+   original insertion-order/swap-remove order arrays.  Header prefix 0..64 is
+   byte-identical to the old table, so direct HT_KEYLEN / HT_COUNT clients are
+   unchanged. */
+
+#define HT_KEYLEN    0
+#define HT_KEYSTRIDE 8
+#define HT_CAP       16
+#define HT_COUNT     24
+#define HT_KEYS      32
+#define HT_VALS      40
+#define HT_USED      48
+#define HT_ORDER     56
+#define HT_ORDER_POS 64
+#define HT_ROOT      72
+#define HT_LEAF_FREE 80
+#define HT_INT_FREE  88
+#define HT_NODES     96
+#define HT_PATH      104
+#define HT_DEPTH     112
+#define HT_SIZE      120
+
+#define HT_NODE_SIZE 24
+
+fun 1 htab_new(1 key_len, 1 cap) {
+  var 1 t = alloc(HT_SIZE);
+  var stride = (key_len + 7) & (0 - 8);
+  st t + HT_KEYLEN, key_len;
+  st t + HT_KEYSTRIDE, stride;
+  st t + HT_CAP, cap;
+  st t + HT_COUNT, 0;
+  var 1 keys = alloc(cap * stride);
+  st t + HT_KEYS, keys;
+  var 1 vals = alloc(cap * 8);
+  st t + HT_VALS, vals;
+  var 1 order = alloc(cap * 8);
+  st t + HT_ORDER, order;
+  var 1 order_pos = alloc(cap * 8);
+  st t + HT_ORDER_POS, order_pos;
+  var 1 nodes = alloc((cap >> 1) * HT_NODE_SIZE);
+  st t + HT_NODES, nodes;
+  var 1 path = alloc(key_len * 64);
+  st t + HT_PATH, path;
+  st t + HT_DEPTH, 0;
+  st t + HT_ROOT, 0;
+  st t + HT_LEAF_FREE, 1;
+  var i = 0;
+  while i < cap {
+    st vals + i * 8, i + 2;
+    i = i + 1;
+  }
+  st vals + (cap - 1) * 8, 0;
+  st t + HT_INT_FREE, nodes;
+  i = 0;
+  while i < (cap >> 1) {
+    st nodes + i * HT_NODE_SIZE, nodes + (i + 1) * HT_NODE_SIZE;
+    i = i + 1;
+  }
+  st nodes + (cap >> 1) - 1 * HT_NODE_SIZE, 0;
+  return t;
+}
+
+fun 1 htab_new_scratch(1 key_len, 1 cap) {
+  var 1 t = scratch_alloc(HT_SIZE);
+  var stride = (key_len + 7) & (0 - 8);
+  st t + HT_KEYLEN, key_len;
+  st t + HT_KEYSTRIDE, stride;
+  st t + HT_CAP, cap;
+  st t + HT_COUNT, 0;
+  var 1 keys = scratch_alloc(cap * stride);
+  st t + HT_KEYS, keys;
+  var 1 vals = scratch_alloc(cap * 8);
+  st t + HT_VALS, vals;
+  var 1 order = scratch_alloc(cap * 8);
+  st t + HT_ORDER, order;
+  var 1 order_pos = scratch_alloc(cap * 8);
+  st t + HT_ORDER_POS, order_pos;
+  var 1 nodes = scratch_alloc((cap >> 1) * HT_NODE_SIZE);
+  st t + HT_NODES, nodes;
+  var 1 path = scratch_alloc(key_len * 64);
+  st t + HT_PATH, path;
+  st t + HT_DEPTH, 0;
+  st t + HT_ROOT, 0;
+  st t + HT_LEAF_FREE, 1;
+  var i = 0;
+  while i < cap {
+    st vals + i * 8, i + 2;
+    i = i + 1;
+  }
+  st vals + (cap - 1) * 8, 0;
+  st t + HT_INT_FREE, nodes;
+  i = 0;
+  while i < (cap >> 1) {
+    st nodes + i * HT_NODE_SIZE, nodes + (i + 1) * HT_NODE_SIZE;
+    i = i + 1;
+  }
+  st nodes + (cap >> 1) - 1 * HT_NODE_SIZE, 0;
+  return t;
+}
+
+/* Leaf ids are 1..cap; internal id cap+1+k maps to node k. */
+fun 1 htab_key_ptr(1 t, 1 leaf) {
+  return (lds 1 (t + HT_KEYS)) + (leaf - 1) * (lds 1 (t + HT_KEYSTRIDE));
+}
+
+fun 1 htab_node_ptr(1 t, 1 node) {
+  return (lds 1 (t + HT_NODES)) + (node - (lds 1 (t + HT_CAP)) - 1) * HT_NODE_SIZE;
+}
+
+fun 1 htab_bit(1 key, 1 route) {
+  var b = ld8 (key + (route >> 8));
+  var m = route ^ 255;
+  if (b & m) != 0 { return 1; }
+  return 0;
+}
+
+/* First differing bit position, MSB-first, or 8*key_len if equal. */
+fun 1 htab_first_diff(1 a, 1 b, 1 key_len) {
+  var i = 0;
+  while i < key_len {
+    var x = ld8 (a + i);
+    var y = ld8 (b + i);
+    x = x ^ y;
+    if x != 0 {
+      var bit = 0;
+      while bit < 8 {
+        if (x & (128 >> bit)) != 0 {
+          return i * 256 + (255 - (128 >> bit));
+        }
+        bit = bit + 1;
+      }
+    }
+    i = i + 1;
+  }
+  return key_len * 256;
+}
+
+fun 1 htab_new_leaf(1 t, 1 key, 1 value) {
+  var 1 leaf = lds 1 (t + HT_LEAF_FREE);
+  st t + HT_LEAF_FREE, lds 1 ((lds 1 (t + HT_VALS)) + (leaf - 1) * 8);
+  var 1 dst = htab_key_ptr(t, leaf);
+  memcpy(dst, key, lds 1 (t + HT_KEYLEN));
+  st (lds 1 (t + HT_VALS)) + (leaf - 1) * 8, value;
+  return leaf;
+}
+
+fun 1 htab_free_leaf(1 t, 1 leaf) {
+  st (lds 1 (t + HT_VALS)) + (leaf - 1) * 8, lds 1 (t + HT_LEAF_FREE);
+  st t + HT_LEAF_FREE, leaf;
+  return 0;
+}
+
+fun 1 htab_new_internal(1 t, 1 bit) {
+  var 1 np = lds 1 (t + HT_INT_FREE);
+  st t + HT_INT_FREE, lds 1 np;
+  st np, 0;
+  st np + 8, 0;
+  st np + 16, bit;
+  return np;
+}
+
+fun 1 htab_free_internal(1 t, 1 node) {
+  st node, lds 1 (t + HT_INT_FREE);
+  st t + HT_INT_FREE, node;
+  return 0;
+}
+
+/* Leaf reached by the key's branching path, or 0. */
+fun 1 htab_find_leaf(1 t, 1 key) {
+  var cap = lds 1 (t + HT_CAP);
+  var node = lds 1 (t + HT_ROOT);
+  while node != 0 {
+    if node <=+ cap { return node; }
+    var np = node;
+    var route = lds 1 (np + 16);
+    var b = ld8 (key + (route >> 8));
+    var m = route ^ 255;
+    if (b & m) != 0 { node = lds 1 (np + 8); }
+    else { node = lds 1 np; }
+  }
+  return 0;
+}
+
+/* Same descent as htab_find_leaf, but records the internal-node path so a
+   new-key insertion can locate its split point by binary search instead of a
+   second root-to-leaf walk. */
+fun 1 htab_find_leaf_path(1 t, 1 key) {
+  var cap = lds 1 (t + HT_CAP);
+  var 1 path = lds 1 (t + HT_PATH);
+  var node = lds 1 (t + HT_ROOT);
+  var depth = 0;
+  while node != 0 {
+    if node <=+ cap {
+      st t + HT_DEPTH, depth;
+      return node;
+    }
+    st path + depth * 8, node;
+    depth = depth + 1;
+    var route = lds 1 (node + 16);
+    var b = ld8 (key + (route >> 8));
+    var m = route ^ 255;
+    if (b & m) != 0 { node = lds 1 (node + 8); }
+    else { node = lds 1 node; }
+  }
+  st t + HT_DEPTH, depth;
+  return 0;
+}
+
+fun {1,1} htab_get(1 t, 1 key) {
+  var leaf = htab_find_leaf(t, key);
+  if leaf == 0 { return <0, 0>; }
+  var kp = htab_key_ptr(t, leaf);
+  var eq = memeq(kp, key, lds 1 (t + HT_KEYLEN));
+  if eq == 0 {
+    return <0, 0>;
+  }
+  return <1, lds 1 ((lds 1 (t + HT_VALS)) + (leaf - 1) * 8)>;
+}
+
+fun 1 htab_has(1 t, 1 key) {
+  var {1,1} r = htab_get(t, key);
+  return r.0;
+}
+
+fun 1 htab_relocate(1 n, 1 oldbase, 1 newbase, 1 cap) {
+  var delta = newbase - oldbase;
+  var i = 0;
+  while i < (cap >> 1) {
+    var np = newbase + i * 24;
+    var c0 = lds 1 np;
+    var c1 = lds 1 (np + 8);
+    if c0 >+ cap { c0 = c0 + delta; }
+    if c1 >+ cap { c1 = c1 + delta; }
+    st np, c0;
+    st np + 8, c1;
+    i = i + 1;
+  }
+  var root = lds 1 (n + HT_ROOT);
+  if root >+ cap { st n + HT_ROOT, root + delta; }
+  var ifree = lds 1 (n + HT_INT_FREE);
+  if ifree >+ cap { st n + HT_INT_FREE, ifree + delta; }
+  return 0;
+}
+
+fun 1 htab_grow(1 t) {
+  var cap = lds 1 (t + HT_CAP);
+  var count = lds 1 (t + HT_COUNT);
+  var stride = lds 1 (t + HT_KEYSTRIDE);
+  var 1 n = htab_new(lds 1 (t + HT_KEYLEN), cap * 2);
+  var ncap = lds 1 (n + HT_CAP);
+  var 1 nkeys = lds 1 (n + HT_KEYS);
+  var 1 nvals = lds 1 (n + HT_VALS);
+  var 1 norder = lds 1 (n + HT_ORDER);
+  var 1 npos = lds 1 (n + HT_ORDER_POS);
+  var 1 nnodes = lds 1 (n + HT_NODES);
+  memcpy(nkeys, lds 1 (t + HT_KEYS), cap * stride);
+  memcpy(nvals, lds 1 (t + HT_VALS), cap * 8);
+  memcpy(norder, lds 1 (t + HT_ORDER), cap * 8);
+  memcpy(npos, lds 1 (t + HT_ORDER_POS), cap * 8);
+  var 1 obase = lds 1 (t + HT_NODES);
+  var delta = nnodes - obase;
+  var i = 0;
+  while i < (cap >> 1) {
+    var op = obase + i * 24;
+    var np = nnodes + i * 24;
+    var c0 = lds 1 op;
+    var c1 = lds 1 (op + 8);
+    if c0 >+ cap { c0 = c0 + delta; }
+    if c1 >+ cap { c1 = c1 + delta; }
+    st np, c0;
+    st np + 8, c1;
+    st np + 16, lds 1 (op + 16);
+    i = i + 1;
+  }
+  var root = lds 1 (t + HT_ROOT);
+  if root >+ cap { root = root + delta; }
+  st n + HT_ROOT, root;
+  var ifree = lds 1 (t + HT_INT_FREE);
+  if ifree != 0 { ifree = ifree + delta; }
+  i = cap >> 1;
+  while i < (ncap >> 1) {
+    var np = nnodes + i * 24;
+    st np, ifree;
+    ifree = np;
+    i = i + 1;
+  }
+  st n + HT_INT_FREE, ifree;
+  var lfree = lds 1 (t + HT_LEAF_FREE);
+  i = cap + 1;
+  while i <= ncap {
+    st nvals + (i - 1) * 8, lfree;
+    lfree = i;
+    i = i + 1;
+  }
+  st n + HT_LEAF_FREE, lfree;
+  st n + HT_COUNT, count;
+  memcpy(t, n, HT_SIZE);
+  return 0;
+}
+
+fun 1 htab_set(1 t, 1 key, 1 value) {
+  var cap = lds 1 (t + HT_CAP);
+  if (lds 1 (t + HT_ROOT)) == 0 {
+    var 1 only = htab_new_leaf(t, key, value);
+    st t + HT_ROOT, only;
+    st (lds 1 (t + HT_ORDER)), only;
+    st (lds 1 (t + HT_ORDER_POS)) + (only - 1) * 8, 0;
+    st t + HT_COUNT, 1;
+    return 0;
+  }
+  var leaf = htab_find_leaf_path(t, key);
+  if leaf != 0 {
+    var kp = htab_key_ptr(t, leaf);
+    var eq = memeq(kp, key, lds 1 (t + HT_KEYLEN));
+    if eq != 0 {
+      st (lds 1 (t + HT_VALS)) + (leaf - 1) * 8, value;
+      return 0;
+    }
+  }
+  if ((lds 1 (t + HT_COUNT)) + 1) * 2 >+ cap {
+    htab_grow(t);
+    cap = lds 1 (t + HT_CAP);
+    leaf = htab_find_leaf_path(t, key);
+  }
+  var kp = htab_key_ptr(t, leaf);
+  var d = htab_first_diff(key, kp, lds 1 (t + HT_KEYLEN));
+  var 1 new_leaf = htab_new_leaf(t, key, value);
+  var 1 new_int = htab_new_internal(t, d);
+  var 1 path = lds 1 (t + HT_PATH);
+  var depth = lds 1 (t + HT_DEPTH);
+  var lo = 0;
+  var hi = depth;
+  while lo < hi {
+    var mid = (lo + hi) >> 1;
+    var mr = lds 1 ((lds 1 (path + mid * 8)) + 16);
+    if mr >+ d { hi = mid; } else { lo = mid + 1; }
+  }
+  var parent = 0;
+  var cur = leaf;
+  if lo != depth {
+    cur = lds 1 (path + lo * 8);
+  }
+  if lo != 0 {
+    parent = lds 1 (path + (lo - 1) * 8);
+  }
+  var dir = 0;
+  if parent != 0 {
+    var pr = lds 1 (parent + 16);
+    var pb = ld8 (key + (pr >> 8));
+    var pm = pr ^ 255;
+    if (pb & pm) != 0 { dir = 1; }
+  }
+  var nip = new_int;
+  var side = htab_bit(key, d);
+  if side != 0 {
+    st nip, cur;
+    st nip + 8, new_leaf;
+  } else {
+    st nip, new_leaf;
+    st nip + 8, cur;
+  }
+  if parent == 0 {
+    st t + HT_ROOT, new_int;
+  } else {
+    var pp = parent;
+    if dir != 0 { st pp + 8, new_int; }
+    else { st pp, new_int; }
+  }
+  var pos = lds 1 (t + HT_COUNT);
+  st (lds 1 (t + HT_ORDER)) + pos * 8, new_leaf;
+  st (lds 1 (t + HT_ORDER_POS)) + (new_leaf - 1) * 8, pos;
+  st t + HT_COUNT, pos + 1;
+  return 0;
+}
+
+fun 1 htab_del(1 t, 1 key) {
+  var cap = lds 1 (t + HT_CAP);
+  var leaf = htab_find_leaf(t, key);
+  if leaf == 0 { return 0; }
+  var kp = htab_key_ptr(t, leaf);
+  var eq = memeq(kp, key, lds 1 (t + HT_KEYLEN));
+  if eq == 0 {
+    return 0;
+  }
+  var parent = 0;
+  var grand = 0;
+  var dir = 0;
+  var gdir = 0;
+  var cur = lds 1 (t + HT_ROOT);
+  while cur != 0 {
+    if cur <=+ cap { break; }
+    var np = cur;
+    var bit = lds 1 (np + 16);
+    grand = parent;
+    gdir = dir;
+    parent = cur;
+    dir = htab_bit(key, bit);
+    if dir != 0 { cur = lds 1 (np + 8); }
+    else { cur = lds 1 np; }
+  }
+  if parent == 0 {
+    st t + HT_ROOT, 0;
+  } else {
+    var pp = parent;
+    var sibling = 0;
+    if dir != 0 { sibling = lds 1 pp; }
+    else { sibling = lds 1 (pp + 8); }
+    if grand == 0 {
+      st t + HT_ROOT, sibling;
+    } else {
+      var gp = grand;
+      if gdir != 0 { st gp + 8, sibling; }
+      else { st gp, sibling; }
+    }
+    htab_free_internal(t, parent);
+  }
+  htab_free_leaf(t, leaf);
+  var pos = lds 1 ((lds 1 (t + HT_ORDER_POS)) + (leaf - 1) * 8);
+  var last = (lds 1 (t + HT_COUNT)) - 1;
+  if pos != last {
+    var moved = lds 1 ((lds 1 (t + HT_ORDER)) + last * 8);
+    st (lds 1 (t + HT_ORDER)) + pos * 8, moved;
+    st (lds 1 (t + HT_ORDER_POS)) + (moved - 1) * 8, pos;
+  }
+  st t + HT_COUNT, last;
+  return 1;
+}
+
+fun 1 htab_truncate(1 t, 1 n) {
+  while (lds 1 (t + HT_COUNT)) >+ n {
+    var pos = (lds 1 (t + HT_COUNT)) - 1;
+    var leaf = lds 1 ((lds 1 (t + HT_ORDER)) + pos * 8);
+    var 1 key = htab_key_ptr(t, leaf);
+    htab_del(t, key);
+  }
+  return 0;
+}
+
+fun 1 htab_count(1 t) { return lds 1 (t + HT_COUNT); }
+fun 1 htab_cap(1 t) { return lds 1 (t + HT_CAP); }
+
+fun {1,1,1} htab_slot(1 t, 1 leaf) {
+  if leaf == 0 { return <0, 0, 0>; }
+  var kp = htab_key_ptr(t, leaf);
+  return <1, kp, lds 1 ((lds 1 (t + HT_VALS)) + (leaf - 1) * 8)>;
+}
+
+fun {1,1,1} htab_item(1 t, 1 ordinal) {
+  var leaf = lds 1 ((lds 1 (t + HT_ORDER)) + ordinal * 8);
+  return htab_slot(t, leaf);
+}
+
+fun {1,1} htab_keys(1 t) {
+  var stride = lds 1 (t + HT_KEYSTRIDE);
+  var n = lds 1 (t + HT_COUNT);
+  var 1 out = alloc(n * stride + 8);
+  var i = 0;
+  while i < n {
+    var leaf = lds 1 ((lds 1 (t + HT_ORDER)) + i * 8);
+    var 1 src = htab_key_ptr(t, leaf);
+    memcpy(out + i * stride, src, stride);
+    i = i + 1;
+  }
+  return <out, n>;
+}
+
+fun 1 htab_copy(1 t) {
+  var cap = lds 1 (t + HT_CAP);
+  var stride = lds 1 (t + HT_KEYSTRIDE);
+  var 1 n = alloc(HT_SIZE);
+  memcpy(n, t, HT_SIZE);
+  var 1 keys = alloc(cap * stride);
+  memcpy(keys, lds 1 (t + HT_KEYS), cap * stride);
+  st n + HT_KEYS, keys;
+  var 1 vals = alloc(cap * 8);
+  memcpy(vals, lds 1 (t + HT_VALS), cap * 8);
+  st n + HT_VALS, vals;
+  var 1 order = alloc(cap * 8);
+  memcpy(order, lds 1 (t + HT_ORDER), cap * 8);
+  st n + HT_ORDER, order;
+  var 1 order_pos = alloc(cap * 8);
+  memcpy(order_pos, lds 1 (t + HT_ORDER_POS), cap * 8);
+  st n + HT_ORDER_POS, order_pos;
+  var 1 nodes = alloc((cap >> 1) * HT_NODE_SIZE);
+  memcpy(nodes, lds 1 (t + HT_NODES), (cap >> 1) * HT_NODE_SIZE);
+  st n + HT_NODES, nodes;
+  htab_relocate(n, lds 1 (t + HT_NODES), nodes, cap);
+  return n;
+}
+
+fun 1 htab_copy_scratch(1 t) {
+  var cap = lds 1 (t + HT_CAP);
+  var stride = lds 1 (t + HT_KEYSTRIDE);
+  var 1 n = scratch_alloc(HT_SIZE);
+  memcpy(n, t, HT_SIZE);
+  var 1 keys = scratch_alloc(cap * stride);
+  memcpy(keys, lds 1 (t + HT_KEYS), cap * stride);
+  st n + HT_KEYS, keys;
+  var 1 vals = scratch_alloc(cap * 8);
+  memcpy(vals, lds 1 (t + HT_VALS), cap * 8);
+  st n + HT_VALS, vals;
+  var 1 order = scratch_alloc(cap * 8);
+  memcpy(order, lds 1 (t + HT_ORDER), cap * 8);
+  st n + HT_ORDER, order;
+  var 1 order_pos = scratch_alloc(cap * 8);
+  memcpy(order_pos, lds 1 (t + HT_ORDER_POS), cap * 8);
+  st n + HT_ORDER_POS, order_pos;
+  var 1 nodes = scratch_alloc((cap >> 1) * HT_NODE_SIZE);
+  memcpy(nodes, lds 1 (t + HT_NODES), (cap >> 1) * HT_NODE_SIZE);
+  st n + HT_NODES, nodes;
+  htab_relocate(n, lds 1 (t + HT_NODES), nodes, cap);
+  return n;
+}
+
+/* Compatibility shims for internal-only entry points. */
+fun 1 htab_find_slot(1 t, 1 key) {
+  var leaf = htab_find_leaf(t, key);
+  if leaf == 0 { return 0; }
+  var kp = htab_key_ptr(t, leaf);
+  var eq = memeq(kp, key, lds 1 (t + HT_KEYLEN));
+  if eq == 0 {
+    return 0;
+  }
+  return leaf;
+}
+
+fun 1 htab_insert_raw(1 t, 1 key, 1 value) {
+  return htab_set(t, key, value);
+}

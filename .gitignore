@@ -9,3 +9,7 @@ cakeml/
 evm-asm/
 flapjack/
 work-*.log
+
+.build/
+
+/submission/CandidateGuestStaging/

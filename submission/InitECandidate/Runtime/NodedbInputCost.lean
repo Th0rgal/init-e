@@ -35,3 +35,16 @@ theorem nodedb_call_cost_le_input (count inputLength : BitVec 64) (inputLimit : 
 #print axioms nodedb_body_cost_mono
 #print axioms nodedb_call_cost_le_input
 end InitECandidate.Runtime
+
+namespace InitECandidate.Runtime
+
+/-- Concrete audit: the checked worst-case database-builder bound at the
+full 128 MiB input cap is far above the 900,000,000,000 executed-work target.
+This is the numeric obstruction of the uniform linear-probing / capacity-linear
+`setBodyCost` bound, not a claim about average-case hash behaviour. -/
+theorem nodedb_full_input_cost_gt_budget :
+    900000000000 < nodedbInputCallCost 134217712 := by
+  decide
+
+#print axioms nodedb_full_input_cost_gt_budget
+end InitECandidate.Runtime
