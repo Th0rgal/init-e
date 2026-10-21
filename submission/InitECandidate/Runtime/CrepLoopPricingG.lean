@@ -21,7 +21,8 @@ structure LoopPricingG where
       cost + vp (compileExpHOLExact context tmp live e).2.1 ≤ price e
   listOk : ∀ (context : CrepToLoopContextExact) (tmp : Nat) (live : NumSet) (es : List (CrepExpHOL 64)),
     ∃ cost, A.works (compileExpsHOLExact context tmp live es).1 = some cost ∧
-      cost + vps (compileExpsHOLExact context tmp live es).2.1 ≤ priceList es
+      cost + vps (compileExpsHOLExact context tmp live es).2.1 +
+        39 * (compileExpsHOLExact context tmp live es).2.1.length ≤ priceList es
   /-- Generated assignments are within the value price. -/
   assignWork : ∀ n v, ∃ k, A.work (.assign n v) = some k ∧ k ≤ vp v
   /-- Leaf prices of the Loop statements compiled Crep leaves end in. -/
@@ -32,6 +33,8 @@ structure LoopPricingG where
   breakOk : ∀ l, ∃ k, L.lf (.break l) = some k ∧ k ≤ breakC
   contC : Nat
   contOk : ∀ l, ∃ k, L.lf (.continue l) = some k ∧ k ≤ contC
+  constC : Nat
+  constOk : ∀ w, vp (.const w) ≤ constC
   raiseC : Nat
   raiseOk : ∀ e, ∃ k, L.lf (.raise e) = some k ∧ k ≤ raiseC
   returnC : Nat
@@ -60,7 +63,7 @@ def leafPrice : CrepProgHOL 64 → Option Nat
   | .break _ => some P.breakC
   | .continue _ => some P.contC
   | .extCall _ _ _ _ _ => some P.ffiC
-  | .raise _ => some (P.vp (.const 0) + P.raiseC)
+  | .raise _ => some (P.constC + P.raiseC)
   | .assign _ value => some (P.price value)
   | .storeGlob _ value => some (P.price value + P.setC)
   | .shMem _ _ address => some (P.price address + P.shareC)
