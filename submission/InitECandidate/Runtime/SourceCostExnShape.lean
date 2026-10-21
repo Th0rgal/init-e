@@ -1,11 +1,12 @@
 import InitECandidate.Runtime.SourceCostGlobalsDomain
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! An exception result carries a value of its declared exception shape. -/
 
 theorem StatementRun.eshapes_eq {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
-    (run : StatementRun s p r post ev) : post.eshapes = s.eshapes := by
+    (run : StatementRun fn s p r post ev) : post.eshapes = s.eshapes := by
   classical
   have h := evaluateInvariantsHOLFinite p (PanPropsEvalStateFiniteExact.ofPanSemFinite s) _ _ rfl
   have he := h.2.2.2.1
@@ -46,7 +47,7 @@ theorem exn_stopPlan {F : Type} (bodyResult : Option (PanSemResultExact 64))
   split at h <;> simp_all
 
 theorem StatementRun.exn_declared {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
-    (run : StatementRun s p r post ev) : ExnDeclared s r := by
+    (run : StatementRun fn s p r post ev) : ExnDeclared s r := by
   induction run
   case seqNext one _ _ ih2 =>
     intro eid v h; have := ih2 eid v h; rwa [one.eshapes_eq] at this

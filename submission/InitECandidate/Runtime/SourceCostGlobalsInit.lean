@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsRun
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! The one-time initialiser cost of `pan_globals`'s generated entry: each
 global initialised by a constant becomes one `TopAddr` store. -/
@@ -47,12 +48,12 @@ theorem globals_constStores : ∀ (decls : List (DeclHOL 64)) (context : PanGlob
     simp only [compileDecsExactHOL] at hi
     exact globals_constStores rest context ready i hi
 
-/-- One constant store costs 57: statement 10, `TopAddr` address 25, constant
-10, one memory word 12. -/
+/-- One constant store costs 212: `TopAddr` address 128, constant 19, one
+stored word 65. -/
 theorem globals_constStore_score (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {address word : BitVec 64} {r ev}
-    (run : StatementRun s (.store (.op .sub [.topAddr, .const address]) (.const word)) r post ev)
-    (ok : r ≠ some .error) : sharpSourceScore B ev = 57 := by
+    (run : StatementRun fn s (.store (.op .sub [.topAddr, .const address]) (.const word)) r post ev)
+    (ok : r ≠ some .error) : sharpSourceScore B ev = 212 := by
   cases run
   case storeValue =>
     rename_i _ value _ aev vev _ dst src
@@ -60,18 +61,21 @@ theorem globals_constStore_score (B : Nat) {F : Type} {s post : PanSemStateFinit
     have hv : value = .val (.word word) := by
       have := src.sound; simp [expressionValue, evalHOLExact] at this; exact this.symm
     subst hv
-    rw [src.events_eq, expressionEvents]
-    simp only [flattenHOL, List.length_singleton, srcScore_statement, sharpSourceScore_append,
-      srcScore_expression, srcScore_copy, srcScore_memory, sharpSourceScore_nil]
+    have constPrice : sourcePrice s (.const word) = 19 := by
+      simp [sourcePrice, sourcePrices, exprPrices]
+    rw [src.events_eq, srcScore_statement, sharpSourceScore_append, sharpSourceScore_append,
+      srcScore_expressionEvents, constPrice]
+    simp only [flattenHOL, List.length_singleton, srcScore_memory, srcScore_cost, sharpSourceScore_nil,
+      globalAddressPrice, storeOverhead] at addr ⊢
     omega
   all_goals exact absurd rfl ok
 
-/-- The initialiser block of the generated entry costs `57` per store plus the
-final `Skip`. -/
+/-- The initialiser block of the generated entry costs `212` per store; the
+final `Skip` is free. -/
 theorem globals_inits_score (B : Nat) {F : Type} :
     ∀ (inits : List (ProgHOL 64)) {s post : PanSemStateFiniteExact 64 F} {r ev},
-      ConstStores inits → StatementRun s (nestedSeqHOL inits) r post ev → r ≠ some .error →
-        sharpSourceScore B ev ≤ 57 * inits.length + 10
+      ConstStores inits → StatementRun fn s (nestedSeqHOL inits) r post ev → r ≠ some .error →
+        sharpSourceScore B ev ≤ 212 * inits.length
   | [], _, _, _, _, _, run, _ => by
     cases run
     simp [srcScore_statement, sharpSourceScore_nil]
@@ -83,7 +87,7 @@ theorem globals_inits_score (B : Nat) {F : Type} :
     | seqNext one two =>
       have a := globals_constStore_score B one (by simp)
       have b := globals_inits_score B rest restStores two ok
-      rw [sharpSourceScore_append]
+      gsimp
       simp only [List.length_cons]
       omega
     | seqStop terminal one =>

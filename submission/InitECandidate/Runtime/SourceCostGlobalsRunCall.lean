@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsCallBase
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-- A call destination that `pan_globals` leaves in place. -/
 def globalsPlainInfo :
@@ -56,15 +57,16 @@ theorem globals_callDone_plain (B : Nat) {F : Type} {s post : PanSemStateFiniteE
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post)
-    (ihBody : GlobalsLe B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (ihBody : GlobalsLe function B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plain : globalsPlainInfo info = true) :
-    GlobalsLe B s (.call info function arguments) result post
+    GlobalsLe fn B s (.call info function arguments) result post
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-        [.copy (callPayloadWords bodyResult)] ++ callGlobalEvents s info)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++ bodyEvents ++
+        [.cost (callExitOverhead bodyResult)] ++ callGlobalEvents s info)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.callDone args lookup clock bodyRun plan) ok rel target
   have values' := globals_list_values rel arguments values args
@@ -75,7 +77,7 @@ theorem globals_callDone_plain (B : Nat) {F : Type} {s post : PanSemStateFiniteE
   rw [globals_compile_call_plain context function arguments plain] at target
   cases target
   case callDone =>
-    rename_i vs body' callee' rs' br' bp' bev' clock' bodyRun' lookup' args' plan'
+    rename_i vs body' callee' rs' br' bp' bev' clock' lookup' bodyRun' args' plan'
     have : vs = values := Option.some.inj (args'.symm.trans values')
     subst this
     obtain ⟨hb, hc, hrs⟩ := globals_lookup_match rel lookup lookup'
@@ -84,11 +86,10 @@ theorem globals_callDone_plain (B : Nat) {F : Type} {s post : PanSemStateFiniteE
     obtain ⟨hbr, -⟩ := globals_sub_match bodyRun bodyOk relEntry bodyRun'
     subst hbr
     rw [globals_callGlobal_plain context t plain, globals_rel_structs rel]
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_copy, srcScore_frame,
-      sharpSourceScore_nil]
+    gsimp
     omega
   case callHandler =>
-    rename_i vs body' callee' rs' br' bp' bev' entry' program' hev' clock' bodyRun' plan' lookup' args' _
+    rename_i vs body' callee' rs' br' bp' bev' entry' program' hev' clock' plan' lookup' bodyRun' args' _
     have : vs = values := Option.some.inj (args'.symm.trans values')
     subst this
     obtain ⟨hb, hc, hrs⟩ := globals_lookup_match rel lookup lookup'
@@ -112,17 +113,18 @@ theorem globals_callHandler_plain (B : Nat) {F : Type} {s post : PanSemStateFini
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s info returnShape bodyResult bodyPost = .handler handlerEntry handlerProgram)
-    (handlerRun : StatementRun handlerEntry handlerProgram result post handlerEvents)
-    (ihBody : GlobalsLe B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
-    (ihHandler : GlobalsLe B handlerEntry handlerProgram result post handlerEvents)
+    (handlerRun : StatementRun fn handlerEntry handlerProgram result post handlerEvents)
+    (ihBody : GlobalsLe function B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (ihHandler : GlobalsLe fn B handlerEntry handlerProgram result post handlerEvents)
     (plain : globalsPlainInfo info = true) :
-    GlobalsLe B s (.call info function arguments) result post
+    GlobalsLe fn B s (.call info function arguments) result post
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-        [.copy (callPayloadWords bodyResult)] ++ handlerEvents)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++ bodyEvents ++
+        [.cost (callExitOverhead bodyResult)] ++ handlerEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match
     (StatementRun.callHandler args lookup clock bodyRun plan handlerRun) ok rel target
@@ -134,7 +136,7 @@ theorem globals_callHandler_plain (B : Nat) {F : Type} {s post : PanSemStateFini
   rw [globals_compile_call_plain context function arguments plain] at target
   cases target
   case callDone =>
-    rename_i vs body' callee' rs' br' bp' bev' clock' bodyRun' lookup' args' plan'
+    rename_i vs body' callee' rs' br' bp' bev' clock' lookup' bodyRun' args' plan'
     have : vs = values := Option.some.inj (args'.symm.trans values')
     subst this
     obtain ⟨hb, hc, hrs⟩ := globals_lookup_match rel lookup lookup'
@@ -145,7 +147,7 @@ theorem globals_callHandler_plain (B : Nat) {F : Type} {s post : PanSemStateFini
     rw [hplan] at plan'
     cases plan'
   case callHandler =>
-    rename_i vs body' callee' rs' br' bp' bev' entry' program' hev' clock' bodyRun' plan' lookup' args'
+    rename_i vs body' callee' rs' br' bp' bev' entry' program' hev' clock' plan' lookup' bodyRun' args'
       handlerRun'
     have : vs = values := Option.some.inj (args'.symm.trans values')
     subst this
@@ -162,8 +164,7 @@ theorem globals_callHandler_plain (B : Nat) {F : Type} {s post : PanSemStateFini
       (globals_plan_handler_noTemp plan h)
       (fun n e f => globals_plan_handler_present plan (bodyRun.covered cov n e f)) _ _ _ handlerRun'
     rw [globals_rel_structs rel]
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_copy, srcScore_frame,
-      sharpSourceScore_nil]
+    gsimp
     omega
   case callTimeout =>
     rename_i _ _ _ _ clock' _ _
@@ -177,9 +178,11 @@ theorem globals_callTimeout_plain (B : Nat) {F : Type} {s : PanSemStateFiniteExa
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock = 0) (plain : globalsPlainInfo info = true) :
-    GlobalsLe B s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
+    GlobalsLe fn B s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
       (.statement :: (expressionListEvents s arguments ++
-        [.frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ callGlobalEvents s info)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++ callGlobalEvents s info)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have values' := globals_list_values rel arguments values args
   have listLe := globals_list_le B rel arguments (globals_ready_call_args ready) (globals_args_ok args)
@@ -194,7 +197,7 @@ theorem globals_callTimeout_plain (B : Nat) {F : Type} {s : PanSemStateFiniteExa
     obtain ⟨hb, hc, hrs⟩ := globals_lookup_match rel lookup lookup'
     subst hb hc hrs
     rw [globals_callGlobal_plain context t plain, globals_rel_structs rel]
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_frame, sharpSourceScore_nil]
+    gsimp
     omega
   case callDone => rename_i _ _ _ _ _ _ _ clock' _ _ _ _; omega
   case callHandler => rename_i _ _ _ _ _ _ _ _ _ _ clock' _ _ _ _ _; omega

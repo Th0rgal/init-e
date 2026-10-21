@@ -2,6 +2,7 @@ import InitECandidate.Runtime.SourceCostPanSimpBase
 import Flapjack.Pancake.Proofs.PanSimp.RetToTailAssembly
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! `pan_simp$ret_to_tail` never increases executed source work on non-error
 runs. The tail-call rewrite reuses the original call's argument, lookup,
@@ -9,61 +10,62 @@ clock and callee-body premises; its result and final state are forced by the
 pinned `evaluateSeqCallRetEqHOL` and `StatementRun.sound`. -/
 
 /-- Non-error run transformation with no more work. -/
-def SimpRunLeOk {F : Type} (q q' : ProgHOL 64) : Prop :=
-  ∀ {s : PanSemStateFiniteExact 64 F} {r post ev}, StatementRun s q r post ev →
-    r ≠ some .error → ∃ ev', StatementRun s q' r post ev' ∧ SimpWorkLe ev' ev
+def SimpRunLeOk (fn : Flapjack.Pancake.PanLang.MlS) {F : Type} (q q' : ProgHOL 64) : Prop :=
+  ∀ {s : PanSemStateFiniteExact 64 F} {r post ev}, StatementRun fn s q r post ev →
+    r ≠ some .error → ∃ ev', StatementRun fn s q' r post ev' ∧ SimpWorkLe ev' ev
 
 theorem simpOk_while_runs {F : Type} {condition : ExpHOL 64} {body body' : ProgHOL 64}
-    (hb : SimpRunLeOk (F := F) body body') :
-    SimpRunLeOk (F := F) (.while condition body) (.while condition body') := by
+    (hb : SimpRunLeOk fn (F := F) body body') :
+    SimpRunLeOk fn (F := F) (.while condition body) (.while condition body') := by
   intro s r post ev run ok
+  generalize hf : fn = f0 at run
   generalize hq : ProgHOL.while condition body = q at run
   induction run with
   | whileFalse guard =>
-    cases hq; exact ⟨_, .whileFalse guard, SimpWorkLe.refl _⟩
+    cases hq; subst hf; exact ⟨_, .whileFalse guard, SimpWorkLe.refl _⟩
   | whileNext guard nonzero clock one rest ihOne ihRest =>
-    cases hq
+    cases hq; subst hf
     obtain ⟨e1, r1, l1⟩ := hb one (by simp)
-    obtain ⟨e2, r2, l2⟩ := ihRest ok rfl
+    obtain ⟨e2, r2, l2⟩ := ihRest ok rfl rfl
     refine ⟨_, .whileNext guard nonzero clock r1 r2, fun c => ?_⟩
     have := l1 c; have := l2 c
     simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileContinue guard nonzero clock one rest ihOne ihRest =>
-    cases hq
+    cases hq; subst hf
     obtain ⟨e1, r1, l1⟩ := hb one (by simp)
-    obtain ⟨e2, r2, l2⟩ := ihRest ok rfl
+    obtain ⟨e2, r2, l2⟩ := ihRest ok rfl rfl
     refine ⟨_, .whileContinue guard nonzero clock r1 r2, fun c => ?_⟩
     have := l1 c; have := l2 c
     simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileBreak guard nonzero clock one ihOne =>
-    cases hq
+    cases hq; subst hf
     obtain ⟨e1, r1, l1⟩ := hb one (by simp)
     refine ⟨_, .whileBreak guard nonzero clock r1, fun c => ?_⟩
     have := l1 c
     simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileTimeout guard nonzero clock =>
-    cases hq; exact ⟨_, .whileTimeout guard nonzero clock, SimpWorkLe.refl _⟩
+    cases hq; subst hf; exact ⟨_, .whileTimeout guard nonzero clock, SimpWorkLe.refl _⟩
   | whileMissingGuard guard =>
-    cases hq; exact ⟨_, .whileMissingGuard guard, SimpWorkLe.refl _⟩
+    cases hq; subst hf; exact ⟨_, .whileMissingGuard guard, SimpWorkLe.refl _⟩
   | whilePropagate guard nonzero clock notBreak notContinue one ihOne =>
-    cases hq
+    cases hq; subst hf
     obtain ⟨e1, r1, l1⟩ := hb one ok
     refine ⟨_, .whilePropagate guard nonzero clock notBreak notContinue r1, fun c => ?_⟩
     have := l1 c
     simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileInvalidGuard guard invalid =>
-    cases hq; exact ⟨_, .whileInvalidGuard guard invalid, SimpWorkLe.refl _⟩
+    cases hq; subst hf; exact ⟨_, .whileInvalidGuard guard invalid, SimpWorkLe.refl _⟩
   | _ => cases hq
 
 theorem simpOk_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info function arguments}
     (hh : ∀ returns exception handlerVar handler,
       info = some (returns, some (exception, handlerVar, handler)) →
-      SimpRunLeOk (F := F) handler (g handler)) :
-    SimpRunLeOk (F := F) (.call info function arguments)
+      SimpRunLeOk fn (F := F) handler (g handler)) :
+    SimpRunLeOk fn (F := F) (.call info function arguments)
       (.call (simpMapInfo g info) function arguments) := by
   intro s r post ev run ok
   cases run with
@@ -86,8 +88,8 @@ theorem simpOk_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info functi
     exact SimpWorkLe.refl _
 
 theorem simpOk_decCall_runs {F : Type} {name shape function arguments} {cont cont' : ProgHOL 64}
-    (hc : SimpRunLeOk (F := F) cont cont') :
-    SimpRunLeOk (F := F) (.decCall name shape function arguments cont)
+    (hc : SimpRunLeOk fn (F := F) cont cont') :
+    SimpRunLeOk fn (F := F) (.decCall name shape function arguments cont)
       (.decCall name shape function arguments cont') := by
   intro s r post ev run ok
   cases run with
@@ -108,8 +110,8 @@ theorem simpOk_decCall_runs {F : Type} {name shape function arguments} {cont con
     exact ⟨_, .declareCallStopped args lookup clock bodyRun terminal, SimpWorkLe.refl _⟩
 
 theorem simpOk_dec_runs {F : Type} {name shape value} {body body' : ProgHOL 64}
-    (hb : SimpRunLeOk (F := F) body body') :
-    SimpRunLeOk (F := F) (.dec name shape value body) (.dec name shape value body') := by
+    (hb : SimpRunLeOk fn (F := F) body body') :
+    SimpRunLeOk fn (F := F) (.dec name shape value body) (.dec name shape value body') := by
   intro s r post ev run ok
   cases run with
   | declareValue init shapeMatch bodyRun =>
@@ -122,8 +124,8 @@ theorem simpOk_dec_runs {F : Type} {name shape value} {body body' : ProgHOL 64}
   | declareFailure init => exact ⟨_, .declareFailure init, SimpWorkLe.refl _⟩
 
 theorem simpOk_ite_runs {F : Type} {condition} {yes yes' no no' : ProgHOL 64}
-    (hy : SimpRunLeOk (F := F) yes yes') (hn : SimpRunLeOk (F := F) no no') :
-    SimpRunLeOk (F := F) (.ite condition yes no) (.ite condition yes' no') := by
+    (hy : SimpRunLeOk fn (F := F) yes yes') (hn : SimpRunLeOk fn (F := F) no no') :
+    SimpRunLeOk fn (F := F) (.ite condition yes no) (.ite condition yes' no') := by
   intro s r post ev run ok
   cases run with
   | iteYes guard nonzero body =>
@@ -141,8 +143,8 @@ theorem simpOk_ite_runs {F : Type} {condition} {yes yes' no no' : ProgHOL 64}
   | iteInvalidGuard guard invalid => exact ⟨_, .iteInvalidGuard guard invalid, SimpWorkLe.refl _⟩
 
 theorem simpOk_seq_runs {F : Type} {a a' b b' : ProgHOL 64}
-    (ha : SimpRunLeOk (F := F) a a') (hb : SimpRunLeOk (F := F) b b') :
-    SimpRunLeOk (F := F) (.seq a b) (.seq a' b') := by
+    (ha : SimpRunLeOk fn (F := F) a a') (hb : SimpRunLeOk fn (F := F) b b') :
+    SimpRunLeOk fn (F := F) (.seq a b) (.seq a' b') := by
   intro s r post ev run ok
   cases run with
   | seqNext one two =>
@@ -173,7 +175,7 @@ theorem simp_plan_noHandler {F : Type} {s : PanSemStateFiniteExact 64 F} {return
 /-- The tail-call rewrite of `seq_call_ret`, on a non-error run. -/
 theorem simp_tail_run {F : Type} (returnName : MlStringHOL) (function : MlStringHOL)
     (arguments : List (ExpHOL 64)) :
-    SimpRunLeOk (F := F)
+    SimpRunLeOk fn (F := F)
       (.seq (.call (some (some (.local, returnName), none)) function arguments)
         (.return (.var .local returnName)))
       (.call none function arguments) := by
@@ -185,7 +187,7 @@ theorem simp_tail_run {F : Type} (returnName : MlStringHOL) (function : MlString
     rw [run.sound] at h
     simpa [seqCallRetHOL] using h
   -- the original call run, in either sequence rule
-  have callPart : ∃ r1 post1 left, StatementRun s
+  have callPart : ∃ r1 post1 left, StatementRun fn s
       (.call (some (some (.local, returnName), none)) function arguments) r1 post1 left ∧
       r1 ≠ some .error ∧ SimpWorkLe left ev := by
     cases run with
@@ -201,7 +203,7 @@ theorem simp_tail_run {F : Type} (returnName : MlStringHOL) (function : MlString
   | callDone args lookup clock bodyRun plan =>
     obtain ⟨r', p', plan'⟩ := simp_plan_noHandler (info := none) (returns := none)
       (s := s) (returnShape := _) (bodyResult := _) (bodyPost := _) (Or.inl rfl)
-    have tail := StatementRun.callDone (info := none) args lookup clock bodyRun plan'
+    have tail := StatementRun.callDone (fn := fn) (info := none) args lookup clock bodyRun plan'
     have hs := tail.sound
     rw [sem] at hs
     simp only [Prod.mk.injEq] at hs
@@ -213,7 +215,7 @@ theorem simp_tail_run {F : Type} (returnName : MlStringHOL) (function : MlString
   | callArgumentsFailure args => exact absurd rfl ok1
   | callLookupFailure args lookup => exact absurd rfl ok1
   | callTimeout args lookup clock =>
-    have tail := StatementRun.callTimeout (info := none) args lookup clock
+    have tail := StatementRun.callTimeout (fn := fn) (info := none) args lookup clock
     have hs := tail.sound
     rw [sem] at hs
     simp only [Prod.mk.injEq] at hs
@@ -221,7 +223,7 @@ theorem simp_tail_run {F : Type} (returnName : MlStringHOL) (function : MlString
     exact ⟨_, tail, le⟩
 
 theorem simp_seqCallRet_run {F : Type} (a b : ProgHOL 64) :
-    SimpRunLeOk (F := F) (.seq a b) (seqCallRetHOL (.seq a b)) := by
+    SimpRunLeOk fn (F := F) (.seq a b) (seqCallRetHOL (.seq a b)) := by
   by_cases hshape : ∃ returnName function arguments,
       a = .call (some (some (.local, returnName), none)) function arguments ∧
         b = .return (.var .local returnName)
@@ -246,18 +248,18 @@ theorem simp_seqCallRet_run {F : Type} (a b : ProgHOL 64) :
     rw [e]
     exact fun run _ => ⟨_, run, SimpWorkLe.refl _⟩
 
-theorem SimpRunLeOk.trans {F : Type} {a b c : ProgHOL 64} (h1 : SimpRunLeOk (F := F) a b)
-    (h2 : SimpRunLeOk (F := F) b c) : SimpRunLeOk (F := F) a c := by
+theorem SimpRunLeOk.trans {F : Type} {a b c : ProgHOL 64} (h1 : SimpRunLeOk fn (F := F) a b)
+    (h2 : SimpRunLeOk fn (F := F) b c) : SimpRunLeOk fn (F := F) a c := by
   intro s r post ev run ok
   obtain ⟨e1, r1, l1⟩ := h1 run ok
   obtain ⟨e2, r2, l2⟩ := h2 r1 ok
   exact ⟨e2, r2, l2.trans l1⟩
 
-theorem SimpRunLeOk.refl {F : Type} (a : ProgHOL 64) : SimpRunLeOk (F := F) a a :=
+theorem SimpRunLeOk.refl {F : Type} (a : ProgHOL 64) : SimpRunLeOk fn (F := F) a a :=
   fun run _ => ⟨_, run, SimpWorkLe.refl _⟩
 
 /-- `ret_to_tail` never increases executed source work on non-error runs. -/
-theorem simp_retToTail_run {F : Type} : ∀ p : ProgHOL 64, SimpRunLeOk (F := F) p (retToTailHOL p)
+theorem simp_retToTail_run {F : Type} : ∀ p : ProgHOL 64, SimpRunLeOk fn (F := F) p (retToTailHOL p)
   | .seq a b => by
     have e : retToTailHOL (.seq a b) = seqCallRetHOL (.seq (retToTailHOL a) (retToTailHOL b)) := by
       rw [retToTailHOL]
@@ -295,11 +297,11 @@ theorem simp_retToTail_run {F : Type} : ∀ p : ProgHOL 64, SimpRunLeOk (F := F)
         .call (simpMapInfo retToTailHOL (some (returns, some (exception, handlerVar, handler))))
           function arguments := by
       rw [retToTailHOL]; rfl
-    have ih : SimpRunLeOk (F := F) handler (retToTailHOL handler) := simp_retToTail_run handler
+    have ih : SimpRunLeOk fn (F := F) handler (retToTailHOL handler) := simp_retToTail_run handler
     have hh : ∀ returns' exception' handlerVar' handler',
         some (returns, some (exception, handlerVar, handler)) =
           some (returns', some (exception', handlerVar', handler')) →
-        SimpRunLeOk (F := F) handler' (retToTailHOL handler') := by
+        SimpRunLeOk fn (F := F) handler' (retToTailHOL handler') := by
       intro r' e' v' h' heq
       simp only [Option.some.injEq, Prod.mk.injEq] at heq
       obtain ⟨-, -, -, rfl⟩ := heq

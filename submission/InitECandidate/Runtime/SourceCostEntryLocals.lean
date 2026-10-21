@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsCallBase
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! A destination-free call without arguments does not read the caller's
 locals: its run from the caller state with emptied locals has the same events. -/
@@ -11,8 +12,8 @@ theorem entry_plan_none {F : Type} (s s' bodyPost : PanSemStateFiniteExact 64 F)
   unfold callCostPlan; rfl
 
 theorem entry_empty_locals {F : Type} {s post : PanSemStateFiniteExact 64 F} {function : MlStringHOL}
-    {r ev} (run : StatementRun s (.call none function []) r post ev) :
-    ∃ post', StatementRun (emptyLocalsHOLFinite s) (.call none function []) r post' ev := by
+    {r ev} (run : StatementRun fn s (.call none function []) r post ev) :
+    ∃ post', StatementRun fn (emptyLocalsHOLFinite s) (.call none function []) r post' ev := by
   have argsEmpty : evalListHOLFinite (emptyLocalsHOLFinite s)
       (h := fun a => Classical.propDecidable ((emptyLocalsHOLFinite s).memaddrs a)) [] = some [] := by
     simp [evalListHOLFinite, evalListHOLExact]
@@ -22,7 +23,7 @@ theorem entry_empty_locals {F : Type} {s post : PanSemStateFiniteExact 64 F} {fu
     simp [evalListHOLFinite, evalListHOLExact] at values
     subst values
     rw [entry_plan_none s (emptyLocalsHOLFinite s)] at plan
-    have h := StatementRun.callDone (s := emptyLocalsHOLFinite s) argsEmpty lookup clock bodyRun plan
+    have h := StatementRun.callDone (fn := fn) (s := emptyLocalsHOLFinite s) argsEmpty lookup clock bodyRun plan
     simp only [expressionListEvents] at h ⊢
     exact ⟨_, h⟩
   | callHandler args lookup clock bodyRun plan handlerRun =>
@@ -34,27 +35,27 @@ theorem entry_empty_locals {F : Type} {s post : PanSemStateFiniteExact 64 F} {fu
     have values : _ := args
     simp [evalListHOLFinite, evalListHOLExact] at values
     subst values
-    have h := StatementRun.callLookupFailure (s := emptyLocalsHOLFinite s) (info := none) argsEmpty lookup
+    have h := StatementRun.callLookupFailure (fn := fn) (s := emptyLocalsHOLFinite s) (info := none) argsEmpty lookup
     simp only [expressionListEvents] at h ⊢
     exact ⟨_, h⟩
   | callTimeout args lookup clock =>
     have values : _ := args
     simp [evalListHOLFinite, evalListHOLExact] at values
     subst values
-    have h := StatementRun.callTimeout (s := emptyLocalsHOLFinite s) (info := none) argsEmpty lookup clock
+    have h := StatementRun.callTimeout (fn := fn) (s := emptyLocalsHOLFinite s) (info := none) argsEmpty lookup clock
     simp only [expressionListEvents, callGlobalEvents] at h ⊢
     exact ⟨_, h⟩
 
 /-- Re-dispatching a non-error destination-free call result through a
 destination-free call with the callee's return shape returns the same result. -/
 theorem entry_plan_same {F : Type} {s post : PanSemStateFiniteExact 64 F} {function : MlStringHOL}
-    {r ev} (run : StatementRun s (.call none function []) r post ev) (ok : r ≠ some .error)
+    {r ev} (run : StatementRun fn s (.call none function []) r post ev) (ok : r ≠ some .error)
     {body callee returnShape}
     (lookup : lookupCodeHOLFinite s.code.lookup function [] = some (body, callee, returnShape))
     (s' bodyPost : PanSemStateFiniteExact 64 F) {res p}
     (plan : callCostPlan s' none returnShape r bodyPost = .done res p) : res = r := by
   cases run with
-  | @callDone _ _ _ _ _ _ _ _ bodyResult _ _ _ _ args lookup' clock bodyRun plan0 =>
+  | @callDone fn _ _ _ _ _ _ _ _ bodyResult _ _ _ _ args lookup' clock bodyRun plan0 =>
     have values : _ := args
     simp [evalListHOLFinite, evalListHOLExact] at values
     subst values
@@ -83,7 +84,7 @@ theorem entry_plan_same {F : Type} {s post : PanSemStateFiniteExact 64 F} {funct
     cases plan; rfl
 
 theorem entry_plan_ok {F : Type} {s post : PanSemStateFiniteExact 64 F} {function : MlStringHOL}
-    {r ev} (run : StatementRun s (.call none function []) r post ev) (ok : r ≠ some .error)
+    {r ev} (run : StatementRun fn s (.call none function []) r post ev) (ok : r ≠ some .error)
     {body callee returnShape}
     (lookup : lookupCodeHOLFinite s.code.lookup function [] = some (body, callee, returnShape))
     (s' bodyPost : PanSemStateFiniteExact 64 F) {res p}
@@ -109,4 +110,27 @@ theorem entry_lookup_noargs {code : HolFiniteMapExact MlS (List (MlS × ShapeHOL
 
 #print axioms entry_plan_ok
 #print axioms entry_empty_locals
+/-- A top-level call run re-indexed to another calling function: only the
+call's own site charge changes. -/
+theorem call_none_refn (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F} {function : MlStringHOL}
+    {r ev} (run : StatementRun fn s (.call none function []) r post ev) (ok : r ≠ some .error)
+    (other : MlS) :
+    ∃ ev', StatementRun other s (.call none function []) r post ev' ∧
+      sharpSourceScore B ev' + callMoves fn function = sharpSourceScore B ev + callMoves other function := by
+  cases run with
+  | callDone args lookup clock bodyRun plan =>
+    refine ⟨_, .callDone args lookup clock bodyRun plan, ?_⟩
+    simp only [sharpSourceScore_cons, sharpSourceScore_append, sharpSource_cost, sharpSource_statement]
+    omega
+  | callHandler args lookup clock bodyRun plan handlerRun =>
+    obtain ⟨_, _, _, h⟩ := globals_plan_handler_info plan
+    cases h
+  | callArgumentsFailure args => exact absurd rfl ok
+  | callLookupFailure args lookup => exact absurd rfl ok
+  | callTimeout args lookup clock =>
+    refine ⟨_, .callTimeout args lookup clock, ?_⟩
+    simp only [sharpSourceScore_cons, sharpSourceScore_append, sharpSource_cost, sharpSource_statement]
+    omega
+
+#print axioms call_none_refn
 end InitECandidate.Runtime.FineCost

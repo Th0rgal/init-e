@@ -1,18 +1,19 @@
 import InitECandidate.Runtime.PanStatementWork
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
-def HasStatementCost {F : Type} (s : PanSemStateFiniteExact 64 F) (p : ProgHOL 64) : Prop :=
-  ∃ result post events, StatementRun s p result post events
+def HasStatementCost {F : Type} (fn : MlS) (s : PanSemStateFiniteExact 64 F) (p : ProgHOL 64) : Prop :=
+  ∃ result post events, StatementRun fn s p result post events
 
 theorem StatementRun.hasCost {F : Type} {s post : PanSemStateFiniteExact 64 F}
-    {p : ProgHOL 64} {result events} (run : StatementRun s p result post events) :
-    HasStatementCost s p := ⟨result, post, events, run⟩
+    {p : ProgHOL 64} {result events} (run : StatementRun fn s p result post events) :
+    HasStatementCost fn s p := ⟨result, post, events, run⟩
 
 /-- Every atomic source clause has a canonical expression/size-aware cost trace,
 without assuming success, well-typed input, valid memory or an accepting oracle. -/
 theorem atomic_statement_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
-    (p : ProgHOL 64) (supported : atomic p = true) : HasStatementCost s p := by
+    (p : ProgHOL 64) (supported : atomic p = true) : HasStatementCost fn s p := by
   classical
   cases p with
   | skip => exact (StatementRun.skip s).hasCost
@@ -97,7 +98,7 @@ theorem atomic_statement_cost_complete {F : Type} (s : PanSemStateFiniteExact 64
     by_cases clock : s.clock = 0
     · exact (StatementRun.tickTimeout clock).hasCost
     · exact (StatementRun.tickStep clock).hasCost
-  | annot tag text => exact (StatementRun.annotation (s := s) (tag := tag) (text := text)).hasCost
+  | annot tag text => exact (StatementRun.annotation (fn := fn) (s := s) (tag := tag) (text := text)).hasCost
   | extCall function configuration configurationLength array arrayLength =>
     rcases he : evaluateHOLFiniteState s (.extCall function configuration configurationLength array arrayLength) with ⟨result, post⟩
     exact (StatementRun.external he).hasCost
@@ -111,16 +112,16 @@ theorem atomic_statement_cost_complete {F : Type} (s : PanSemStateFiniteExact 64
 
 /-- The trace result is forced to agree with the authoritative evaluator. -/
 theorem HasStatementCost.exact_trace {F : Type} {s : PanSemStateFiniteExact 64 F}
-    {p : ProgHOL 64} (hasCost : HasStatementCost s p) :
-    ∃ events, StatementRun s p (evaluateHOLFiniteState s p).1
+    {p : ProgHOL 64} (hasCost : HasStatementCost fn s p) :
+    ∃ events, StatementRun fn s p (evaluateHOLFiniteState s p).1
       (evaluateHOLFiniteState s p).2 events := by
   obtain ⟨result, post, events, run⟩ := hasCost
   exact ⟨events, by simpa only [run.sound] using run⟩
 
 theorem sequence_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
-    (first second : ProgHOL 64) (one : HasStatementCost s first)
-    (two : ∀ post, evaluateHOLFiniteState s first = (none, post) → HasStatementCost post second) :
-    HasStatementCost s (.seq first second) := by
+    (first second : ProgHOL 64) (one : HasStatementCost fn s first)
+    (two : ∀ post, evaluateHOLFiniteState s first = (none, post) → HasStatementCost fn post second) :
+    HasStatementCost fn s (.seq first second) := by
   obtain ⟨result, post, events, run⟩ := one
   cases result with
   | none =>
@@ -131,8 +132,8 @@ theorem sequence_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
 theorem conditional_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
     (condition : ExpHOL 64) (yes no : ProgHOL 64)
     (branch : ∀ word, expressionValue s condition = some (.val (.word word)) →
-      HasStatementCost s (if word = 0 then no else yes)) :
-    HasStatementCost s (.ite condition yes no) := by
+      HasStatementCost fn s (if word = 0 then no else yes)) :
+    HasStatementCost fn s (.ite condition yes no) := by
   classical
   by_cases word : ∃ value, expressionValue s condition = some (.val (.word value))
   · obtain ⟨value, guard⟩ := word
@@ -152,8 +153,8 @@ theorem declaration_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
     (name : MlStringHOL) (shape : ShapeHOL) (initializer : ExpHOL 64) (body : ProgHOL 64)
     (bodyCost : ∀ value, expressionValue s initializer = some value →
       shapeEqHOL shape (shapeOfHOLExact value) = true →
-      HasStatementCost (setVarHOLFinite name value s) body) :
-    HasStatementCost s (.dec name shape initializer body) := by
+      HasStatementCost fn (setVarHOLFinite name value s) body) :
+    HasStatementCost fn s (.dec name shape initializer body) := by
   cases he : expressionValue s initializer with
   | none => exact (StatementRun.declareFailure (name := name) (shape := shape) (body := body) ⟨he, rfl⟩).hasCost
   | some value =>
@@ -172,13 +173,13 @@ normal/continue exits. The global proof must discharge these recursive costs. -/
 theorem while_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
     (condition : ExpHOL 64) (body : ProgHOL 64)
     (bodyCost : ∀ word, expressionValue s condition = some (.val (.word word)) →
-      word ≠ 0 → s.clock ≠ 0 → HasStatementCost (decClockHOLFinite s) body)
+      word ≠ 0 → s.clock ≠ 0 → HasStatementCost fn (decClockHOLFinite s) body)
     (nextCost : s.clock ≠ 0 → ∀ post, evaluateHOLFiniteState (decClockHOLFinite s) body = (none, post) →
-      HasStatementCost post (.while condition body))
+      HasStatementCost fn post (.while condition body))
     (continueCost : s.clock ≠ 0 → ∀ post,
       evaluateHOLFiniteState (decClockHOLFinite s) body = (some .continue, post) →
-      HasStatementCost post (.while condition body)) :
-    HasStatementCost s (.while condition body) := by
+      HasStatementCost fn post (.while condition body)) :
+    HasStatementCost fn s (.while condition body) := by
   classical
   by_cases word : ∃ value, expressionValue s condition = some (.val (.word value))
   · obtain ⟨value, guard⟩ := word
@@ -210,12 +211,12 @@ theorem call_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
     (calleeCost : ∀ values body callee returnShape,
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments = some values →
       lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape) →
-      s.clock ≠ 0 → HasStatementCost (callEntryStateHOLFinite s callee) body)
+      s.clock ≠ 0 → HasStatementCost function (callEntryStateHOLFinite s callee) body)
     (handlerCost : ∀ callee body returnShape result post entry program, s.clock ≠ 0 →
       evaluateHOLFiniteState (callEntryStateHOLFinite s callee) body = (result, post) →
       callCostPlan s info returnShape result post = .handler entry program →
-      HasStatementCost entry program) :
-    HasStatementCost s (.call info function arguments) := by
+      HasStatementCost fn entry program) :
+    HasStatementCost fn s (.call info function arguments) := by
   classical
   cases args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments with
   | none => exact (StatementRun.callArgumentsFailure (info := info) (function := function) args).hasCost
@@ -241,11 +242,11 @@ theorem declared_call_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
     (calleeCost : ∀ values body callee returnShape,
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments = some values →
       lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape) →
-      s.clock ≠ 0 → HasStatementCost (callEntryStateHOLFinite s callee) body)
+      s.clock ≠ 0 → HasStatementCost function (callEntryStateHOLFinite s callee) body)
     (continuationCost : ∀ callee body value post, s.clock ≠ 0 →
       evaluateHOLFiniteState (callEntryStateHOLFinite s callee) body = (some (.returned value), post) →
-      HasStatementCost (setVarHOLFinite name value { post with locals := s.locals }) continuation) :
-    HasStatementCost s (.decCall name shape function arguments continuation) := by
+      HasStatementCost fn (setVarHOLFinite name value { post with locals := s.locals }) continuation) :
+    HasStatementCost fn s (.decCall name shape function arguments continuation) := by
   classical
   cases args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments with
   | none => exact (StatementRun.declareCallArgumentsFailure (name := name) (shape := shape)

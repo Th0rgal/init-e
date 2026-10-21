@@ -2,6 +2,7 @@ import InitECandidate.Runtime.PanStatementWork
 import Flapjack.Pancake.PanSimp
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! Shared infrastructure for the `pan_simp` executed-work transfer. -/
 
@@ -42,9 +43,9 @@ theorem SimpWorkLe.trans {a b c : List WorkEvent} (h1 : SimpWorkLe a b) (h2 : Si
     SimpWorkLe a c := fun coeff => Nat.le_trans (h1 coeff) (h2 coeff)
 
 /-- A run of a program transforms into a run of `q'` with no more work. -/
-def SimpRunLe {F : Type} (q q' : ProgHOL 64) : Prop :=
-  ∀ {s : PanSemStateFiniteExact 64 F} {r post ev}, StatementRun s q r post ev →
-    ∃ ev', StatementRun s q' r post ev' ∧ SimpWorkLe ev' ev
+def SimpRunLe (fn : Flapjack.Pancake.PanLang.MlS) {F : Type} (q q' : ProgHOL 64) : Prop :=
+  ∀ {s : PanSemStateFiniteExact 64 F} {r post ev}, StatementRun fn s q r post ev →
+    ∃ ev', StatementRun fn s q' r post ev' ∧ SimpWorkLe ev' ev
 
 theorem simp_smartSeq_skip (q : ProgHOL 64) : smartSeqHOL (.skip : ProgHOL 64) q = q := rfl
 
@@ -53,11 +54,11 @@ theorem simp_smartSeq_ne {pre : ProgHOL 64} (q : ProgHOL 64) (h : pre ≠ .skip)
   cases pre <;> first | exact absurd rfl h | rfl
 
 theorem simp_skip_run {F : Type} {s : PanSemStateFiniteExact 64 F} {r post ev}
-    (run : StatementRun s .skip r post ev) : r = none ∧ post = s ∧ ev = [.statement] := by
+    (run : StatementRun fn s .skip r post ev) : r = none ∧ post = s ∧ ev = [.statement] := by
   cases run; exact ⟨rfl, rfl, rfl⟩
 
-theorem simp_smartSeq_congr {F : Type} {pre q q' : ProgHOL 64} (h : SimpRunLe (F := F) q q') :
-    SimpRunLe (F := F) (smartSeqHOL pre q) (smartSeqHOL pre q') := by
+theorem simp_smartSeq_congr {F : Type} {pre q q' : ProgHOL 64} (h : SimpRunLe fn (F := F) q q') :
+    SimpRunLe fn (F := F) (smartSeqHOL pre q) (smartSeqHOL pre q') := by
   intro s r post ev run
   by_cases hp : pre = .skip
   · subst hp; exact h run
@@ -73,49 +74,50 @@ theorem simp_smartSeq_congr {F : Type} {pre q q' : ProgHOL 64} (h : SimpRunLe (F
 
 /-- Loop congruence: a body transformation lifts to every iteration. -/
 theorem simp_while_runs {F : Type} {condition : ExpHOL 64} {body body' : ProgHOL 64}
-    (hb : SimpRunLe (F := F) body body') :
-    SimpRunLe (F := F) (.while condition body) (.while condition body') := by
+    (hb : SimpRunLe fn (F := F) body body') :
+    SimpRunLe fn (F := F) (.while condition body) (.while condition body') := by
   intro s r post ev run
+  generalize hf : fn = f0 at run
   generalize hq : ProgHOL.while condition body = q at run
   induction run with
   | whileFalse guard =>
-    cases hq; exact ⟨_, .whileFalse guard, SimpWorkLe.refl _⟩
+    cases hq; subst hf; exact ⟨_, .whileFalse guard, SimpWorkLe.refl _⟩
   | whileNext guard nonzero clock one rest ihOne ihRest =>
-    cases hq
+    cases hq; subst hf
     obtain ⟨e1, r1, l1⟩ := hb one
-    obtain ⟨e2, r2, l2⟩ := ihRest rfl
+    obtain ⟨e2, r2, l2⟩ := ihRest rfl rfl
     refine ⟨_, .whileNext guard nonzero clock r1 r2, fun c => ?_⟩
     have := l1 c; have := l2 c
     simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileContinue guard nonzero clock one rest ihOne ihRest =>
-    cases hq
+    cases hq; subst hf
     obtain ⟨e1, r1, l1⟩ := hb one
-    obtain ⟨e2, r2, l2⟩ := ihRest rfl
+    obtain ⟨e2, r2, l2⟩ := ihRest rfl rfl
     refine ⟨_, .whileContinue guard nonzero clock r1 r2, fun c => ?_⟩
     have := l1 c; have := l2 c
     simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileBreak guard nonzero clock one ihOne =>
-    cases hq
+    cases hq; subst hf
     obtain ⟨e1, r1, l1⟩ := hb one
     refine ⟨_, .whileBreak guard nonzero clock r1, fun c => ?_⟩
     have := l1 c
     simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileTimeout guard nonzero clock =>
-    cases hq; exact ⟨_, .whileTimeout guard nonzero clock, SimpWorkLe.refl _⟩
+    cases hq; subst hf; exact ⟨_, .whileTimeout guard nonzero clock, SimpWorkLe.refl _⟩
   | whileMissingGuard guard =>
-    cases hq; exact ⟨_, .whileMissingGuard guard, SimpWorkLe.refl _⟩
+    cases hq; subst hf; exact ⟨_, .whileMissingGuard guard, SimpWorkLe.refl _⟩
   | whilePropagate guard nonzero clock notBreak notContinue one ihOne =>
-    cases hq
+    cases hq; subst hf
     obtain ⟨e1, r1, l1⟩ := hb one
     refine ⟨_, .whilePropagate guard nonzero clock notBreak notContinue r1, fun c => ?_⟩
     have := l1 c
     simp only [eventSum_cons, eventSum_append] at *
     omega
   | whileInvalidGuard guard invalid =>
-    cases hq; exact ⟨_, .whileInvalidGuard guard invalid, SimpWorkLe.refl _⟩
+    cases hq; subst hf; exact ⟨_, .whileInvalidGuard guard invalid, SimpWorkLe.refl _⟩
   | _ => cases hq
 
 /-- The handler-body map used by `seq_assoc` and `ret_to_tail` on call
@@ -167,8 +169,8 @@ theorem simp_plan_map_handler {F : Type} (g : ProgHOL 64 → ProgHOL 64)
 theorem simp_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info function arguments}
     (hh : ∀ returns exception handlerVar handler,
       info = some (returns, some (exception, handlerVar, handler)) →
-      SimpRunLe (F := F) handler (g handler)) :
-    SimpRunLe (F := F) (.call info function arguments)
+      SimpRunLe fn (F := F) handler (g handler)) :
+    SimpRunLe fn (F := F) (.call info function arguments)
       (.call (simpMapInfo g info) function arguments) := by
   intro s r post ev run
   cases run with
@@ -191,8 +193,8 @@ theorem simp_call_runs {F : Type} (g : ProgHOL 64 → ProgHOL 64) {info function
     exact SimpWorkLe.refl _
 
 theorem simp_decCall_runs {F : Type} {name shape function arguments} {cont cont' : ProgHOL 64}
-    (hc : SimpRunLe (F := F) cont cont') :
-    SimpRunLe (F := F) (.decCall name shape function arguments cont)
+    (hc : SimpRunLe fn (F := F) cont cont') :
+    SimpRunLe fn (F := F) (.decCall name shape function arguments cont)
       (.decCall name shape function arguments cont') := by
   intro s r post ev run
   cases run with
@@ -213,8 +215,8 @@ theorem simp_decCall_runs {F : Type} {name shape function arguments} {cont cont'
     exact ⟨_, .declareCallStopped args lookup clock bodyRun terminal, SimpWorkLe.refl _⟩
 
 theorem simp_dec_runs {F : Type} {name shape value} {body body' : ProgHOL 64}
-    (hb : SimpRunLe (F := F) body body') :
-    SimpRunLe (F := F) (.dec name shape value body) (.dec name shape value body') := by
+    (hb : SimpRunLe fn (F := F) body body') :
+    SimpRunLe fn (F := F) (.dec name shape value body) (.dec name shape value body') := by
   intro s r post ev run
   cases run with
   | declareValue init shapeMatch bodyRun =>
@@ -227,8 +229,8 @@ theorem simp_dec_runs {F : Type} {name shape value} {body body' : ProgHOL 64}
   | declareFailure init => exact ⟨_, .declareFailure init, SimpWorkLe.refl _⟩
 
 theorem simp_ite_runs {F : Type} {condition} {yes yes' no no' : ProgHOL 64}
-    (hy : SimpRunLe (F := F) yes yes') (hn : SimpRunLe (F := F) no no') :
-    SimpRunLe (F := F) (.ite condition yes no) (.ite condition yes' no') := by
+    (hy : SimpRunLe fn (F := F) yes yes') (hn : SimpRunLe fn (F := F) no no') :
+    SimpRunLe fn (F := F) (.ite condition yes no) (.ite condition yes' no') := by
   intro s r post ev run
   cases run with
   | iteYes guard nonzero body =>

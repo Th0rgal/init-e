@@ -5,6 +5,7 @@ import Flapjack.Pancake.CrepToLoop.Proofs.StateRelImpSemantics
 import Flapjack.Pancake.Proofs.PanGlobals.CompileTopSemanticsDecls
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! Installed whole-program entry: the program `pan_to_crep` receives, its
 installed Crep code, and the installed Loop code (`crep_to_loop$compile_prog`
@@ -117,7 +118,7 @@ theorem entry_loop_sharp_work {F : Type} (target : Compiler.Encoders.Asm.AsmArch
     (startLookup : holAlookup (compileProgDeclsHOLW panCode) start = some ([], startProgram))
     (sites : ∀ entry ∈ functionsHOL panCode, sharpSitesProg sharpReplayBound entry.2.2.1 = true)
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
-    (run : StatementRun { s with clock := clock } (.call none start []) r post events)
+    (run : StatementRun fn { s with clock := clock } (.call none start []) r post events)
     (ok : r ≠ some .error) :
     let program := crepSimpProgHOL (compileProgExactHOLW (entryPanContext panCode) (.call none start []))
     let loopProgram := compileHOLExact (entryLoopContext target panCode) .ln program

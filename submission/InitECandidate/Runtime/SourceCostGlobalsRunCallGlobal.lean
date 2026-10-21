@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsRunCall
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! A call into a global: `pan_globals` declares the temporary at the global's
 shape around the call and stores it back to the `TopAddr` slot. -/
@@ -51,26 +52,27 @@ theorem globals_temp_store_events (B : Nat) {F : Type} {u : PanSemStateFiniteExa
     (dst : CostedExpressionRun u (.op .sub [.topAddr, .const address]) (some (.val (.word word))) aev)
     (src : CostedExpressionRun u (.var .local globalsTemp) (some value') vev)
     (bound : u.locals.lookup globalsTemp = some value) :
-    sharpSourceScore B (.statement :: (aev ++ vev ++ [.memory (flattenHOL value').length])) =
-      40 + 17 * (flattenHOL value).length + (B + 5) * ((flattenHOL value).length - 1) := by
+    sharpSourceScore B (.statement :: (aev ++ vev ++ [.memory (flattenHOL value').length,
+      .cost (storeOverhead (flattenHOL value').length)])) ≤
+      globalAddressPrice + 156 * (flattenHOL value).length := by
   have read : expressionValue u (.var .local globalsTemp) = some value := by
     simpa [expressionValue, evalHOLExact] using bound
   have hv : value' = value := Option.some.inj (src.sound.symm.trans read)
   subst hv
   have addr := globals_address_events B dst
-  rw [src.events_eq, expressionEvents]
-  simp only [globalEvents, resultWords, read, Option.map_some, Option.getD_some]
-  simp only [srcScore_statement, sharpSourceScore_append, srcScore_expression, srcScore_copy,
-    srcScore_memory, sharpSourceScore_nil]
+  have price : sourcePrice u (.var .local globalsTemp) = 14 * (flattenHOL value').length := by
+    simp [sourcePrice, sourcePrices, exprPrices, valueInfo, bound]; omega
+  rw [src.events_eq, srcScore_statement, sharpSourceScore_append, sharpSourceScore_append,
+    srcScore_expressionEvents, price]
+  gsimp
   omega
 
 /-- The temporary's store back to the global slot. -/
 theorem globals_temp_store_score (B : Nat) {F : Type} {u post : PanSemStateFiniteExact 64 F}
     {address : BitVec 64} {r ev} {value : ValueHOL 64}
-    (run : StatementRun u (.store (.op .sub [.topAddr, .const address]) (.var .local globalsTemp)) r post ev)
+    (run : StatementRun fn u (.store (.op .sub [.topAddr, .const address]) (.var .local globalsTemp)) r post ev)
     (ok : r ≠ some .error) (bound : u.locals.lookup globalsTemp = some value) :
-    sharpSourceScore B ev =
-      40 + 17 * (flattenHOL value).length + (B + 5) * ((flattenHOL value).length - 1) := by
+    sharpSourceScore B ev ≤ globalAddressPrice + 156 * (flattenHOL value).length := by
   cases run
   case storeValue => exact globals_temp_store_events B (by assumption) (by assumption) bound
   all_goals exact absurd rfl ok
@@ -81,15 +83,16 @@ theorem globals_callDone_global (B : Nat) {F : Type} {s post : PanSemStateFinite
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s (some (some (.global, name), none)) returnShape bodyResult bodyPost =
       .done result post)
-    (ihBody : GlobalsLe B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents) :
-    GlobalsLe B s (.call (some (some (.global, name), none)) function arguments) result post
+    (ihBody : GlobalsLe function B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents) :
+    GlobalsLe fn B s (.call (some (some (.global, name), none)) function arguments) result post
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-        [.copy (callPayloadWords bodyResult)] ++
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++ bodyEvents ++
+        [.cost (callExitOverhead bodyResult)] ++
         callGlobalEvents s (some (some (.global, name), none)))) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.callDone args lookup clock bodyRun plan) ok rel target
@@ -98,14 +101,14 @@ theorem globals_callDone_global (B : Nat) {F : Type} {s post : PanSemStateFinite
   have bodyOk := globals_body_ok plan ok
   obtain ⟨readyBody, entryNoTemp, entryCode⟩ := globals_entry_ready code lookup
   have relEntry := globalsRel_callEntry rel callee
-  have b := fun r p e (run : StatementRun (callEntryStateHOLFinite t callee) (compileProgExactHOL context body) r p e) =>
+  have b := fun r p e (run : StatementRun function (callEntryStateHOLFinite t callee) (compileProgExactHOL context body) r p e) =>
     ihBody context _ relEntry bodyOk readyBody entryCode entryNoTemp cov r p e run
   cases found : context.globals.lookup name with
   | none =>
     rw [globals_compile_call_missing context name function arguments found] at target
     cases target
     case callDone =>
-      rename_i vs body' callee' rs' br' bp' bev' clock' bodyRun' lookup' args' plan'
+      rename_i vs body' callee' rs' br' bp' bev' clock' lookup' bodyRun' args' plan'
       have : vs = values := Option.some.inj (args'.symm.trans values')
       subst this
       obtain ⟨hb, hc, hrs⟩ := globals_lookup_match rel lookup lookup'
@@ -122,7 +125,7 @@ theorem globals_callDone_global (B : Nat) {F : Type} {s post : PanSemStateFinite
         | omega
         | (simp only [globalEvents, srcScore_global, sharpSourceScore_nil]; omega)
     case callHandler =>
-      rename_i _ _ _ _ _ _ _ _ _ _ _ _ plan' _ _ _
+      rename_i _ _ _ _ _ _ _ _ _ _ _ plan' _ _ _ _
       obtain ⟨_, _, _, hinfo⟩ := globals_plan_handler_info plan'
       cases hinfo
     case callTimeout =>
@@ -137,7 +140,7 @@ theorem globals_callDone_global (B : Nat) {F : Type} {s post : PanSemStateFinite
     rw [globals_callGlobal_global hold]
     cases target
     case declareCallReturn =>
-      rename_i vs body' callee' rs' v bp' bev' cev post' clock' bodyRun' shapeMatch' lookup' args'
+      rename_i vs body' callee' rs' v bp' bev' cev post' clock' shapeMatch' lookup' bodyRun' args'
         contRun'
       have : vs = values := Option.some.inj (args'.symm.trans values')
       subst this
@@ -161,12 +164,13 @@ theorem globals_callDone_global (B : Nat) {F : Type} {s post : PanSemStateFinite
       have cont := globals_temp_store_score B contRun' (by rw [hr]; exact ok)
         (value := v) (by simp [setVarHOLFinite, FUPDATE])
       have tempOld : t.locals.lookup globalsTemp = none := by rw [← globalsRel_locals rel]; exact h
-      rw [tempOld, ← hreturn, hshape, sizeT, sizeS, ← hsize]
-      simp only [callPayloadWords, Option.map_none, Option.getD_none, srcScore_statement,
-        sharpSourceScore_append, srcScore_copy, srcScore_frame, srcScore_global, sharpSourceScore_nil]
+      rw [← hreturn, hshape, sizeT, sizeS, ← hsize]
+      simp only [callExitOverhead, callPayloadWords, Option.map_none, Option.getD_none]
+      gsimp
+      simp only [globalAddressPrice] at cont
       omega
     case declareCallStopped =>
-      rename_i vs body' callee' rs' br' bp' bev' terminal' clock' bodyRun' lookup' args'
+      rename_i vs body' callee' rs' br' bp' bev' terminal' clock' lookup' bodyRun' args'
       have : vs = values := Option.some.inj (args'.symm.trans values')
       subst this
       obtain ⟨hb, hc, hrs⟩ := globals_lookup_match rel lookup lookup'
@@ -175,8 +179,7 @@ theorem globals_callDone_global (B : Nat) {F : Type} {s post : PanSemStateFinite
       obtain ⟨hbr, -⟩ := globals_sub_match bodyRun bodyOk relEntry bodyRun'
       subst hbr
       rw [sizeT]
-      simp only [srcScore_statement, sharpSourceScore_append, srcScore_copy, srcScore_frame,
-        srcScore_global, sharpSourceScore_nil]
+      gsimp
       omega
     case declareCallTimeout =>
       rename_i _ _ _ _ clock' _ _

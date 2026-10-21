@@ -4,6 +4,7 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact Flapjack.LoopSemStateFiniteExact
 open Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect Flapjack.Compiler.Encoders.Asm
 open InitE InitECandidate.Proofs.FrontendStages
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! The pinned Word entry. `pan_to_word`'s `state_rel_imp_semantics` runs
 `Call NONE (SOME firstLoopName) [0] NONE` from the Word target state. That
@@ -57,7 +58,7 @@ theorem entry_loop_word_rel {C F : Type} (G : PanSemStateFiniteExact 64 F) (panC
 /-- Guest source → pinned Word entry: the `pan_to_word` entry call
 `Call NONE (SOME firstLoopName) [0] NONE`, from the Word target state of the
 pinned `state_rel_imp_semantics` at a clock extension, executes Word work at
-most `sharpScore ev + 5330` under `loopWordPrice`. Every target premise is a
+most `sharpScore ev + 20127` under `loopWordPrice`. Every target premise is a
 premise of the pinned theorem. -/
 theorem guest_word_entry (input : Guest.InputBlob) {C : Type}
     (target : WordSemStateFiniteExact 64 C Guest.HostMemory) (arch : AsmArchitecture) (clock : Nat)
@@ -82,12 +83,12 @@ theorem guest_word_entry (input : Guest.InputBlob) {C : Type}
       (Guest.guestAst.map declToHOL) = some s1)
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 Guest.HostMemory}
     {ev : List WorkEvent}
-    (run : StatementRun { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
+    (run : StatementRun fn { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
       r post ev)
     (ok : r ≠ some .error) :
     ∃ entryClock,
       wordExecutionCost loopWordPrice (.call none (some firstLoopName) [0] none)
-        { target with clock := entryClock } ≤ sharpScore ev + 5330 := by
+        { target with clock := entryClock } ≤ sharpScore ev + 20127 := by
   classical
   obtain ⟨T, -, extra, word⟩ := guest_source_word input C target arch clock hmem hnolabels hmdomain hs1 run ok
   obtain ⟨body, rshape, hmain, -⟩ := guest_main_lookup

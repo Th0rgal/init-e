@@ -3,17 +3,18 @@ import InitECandidate.Runtime.SourceCostSharpCrepSimp
 import InitECandidate.Runtime.SourceCostLoopSource
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-- Sharp end-to-end statement transfer: source -> pan_to_crep -> simp_prog
 -> crep_to_loop (installed optimiser discharged), with factor one at every
 stage. Loop work is at most the sharp score of the SAME canonical source
-events: 10 per statement, 5 per expression, 5 per moved word, 12 per memory
-word, 4 per frame slot, plus 45 per replayed word of a certified multiword
-load. Preprocessing (pan_simp/structs/globals) is separate. -/
+events: their native-price payloads plus 14 per moved word and 37 per
+shared-memory operation. Preprocessing
+(pan_simp/structs/globals) is separate. -/
 theorem source_loop_sharp_work {F : Type}
     {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
-    (run : StatementRun s p r post events) (t : CrepSemHOLState 64 F)
+    (run : StatementRun fn s p r post events) (t : CrepSemHOLState 64 F)
     (context : PanToCrepContextExact 64) (resultOk : r ≠ some .error)
     (rel : SourceCrepRel context s t) (localised : localisedProgHOL p = true)
     (checked : sharpSitesProg sharpReplayBound p = true)
@@ -54,29 +55,14 @@ theorem source_loop_sharp_work {F : Type}
   intro h
   rcases cr with _ | (_ | _ | _ | _ | _ | _ | _) <;> simp_all [resultToLoop]
 
-/-- The sharp score as an explicit dot product over the canonical event
-vector plus the replay count, which is `k - 1` for every `memory k` and every
-`globalAccess k`. -/
+/-- The sharp score as an explicit dot product over the canonical event vector. -/
 theorem sharpScore_eq (ev : List WorkEvent) :
-    sharpScore ev = 10 * (executionWork ev).statements + 5 * (executionWork ev).expressions +
-      5 * (executionWork ev).movedWords + 12 * (executionWork ev).memoryAccesses +
-      4 * (executionWork ev).frameSlots + 40 * (executionWork ev).globalAccesses +
-      17 * (executionWork ev).globalWords + 45 * replayUnits ev := by
-  simp only [sharpScore, sharpSourceScore, sharpSourceWeights, Work.score, sharpReplayBound]
+    sharpScore ev = (executionWork ev).nativeCost + 14 * (executionWork ev).movedWords +
+      37 * (executionWork ev).nativeEvents +
+      128 * (executionWork ev).globalAccesses + 156 * (executionWork ev).globalWords := by
+  simp only [sharpScore, sharpSourceScore, sharpSourceWeights, Work.score]
   omega
-
-/-- Calibration: an event vector with the u256_add Seq-free counts (9 statements,
-44 expressions, 102 moved words, 4 frame slots, 4 scalar operations, no memory
-accesses, no replay) is priced at 836 Loop units. -/
-theorem sharpScore_u256_add_counts (ev : List WorkEvent)
-    (statements : (executionWork ev).statements = 9) (expressions : (executionWork ev).expressions = 44)
-    (moved : (executionWork ev).movedWords = 102) (memory : (executionWork ev).memoryAccesses = 0)
-    (frames : (executionWork ev).frameSlots = 4) (globals : (executionWork ev).globalAccesses = 0)
-    (globalWords : (executionWork ev).globalWords = 0) (replay : replayUnits ev = 0) :
-    sharpScore ev = 836 := by
-  rw [sharpScore_eq, statements, expressions, moved, memory, frames, globals, globalWords, replay]
 
 #print axioms source_loop_sharp_work
 #print axioms sharpScore_eq
-#print axioms sharpScore_u256_add_counts
 end InitECandidate.Runtime.FineCost

@@ -4,6 +4,7 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.PanGlobalsCompileTopSemanticsDecls Flapjack.PanGlobalsCompileDecsStructural
 open Flapjack.PanGlobalsDeclListExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! Whole-program `pan_globals` entry. `compile_top` installs a new entry with
 the original entry's name: it runs the global initialisers and then calls the
@@ -11,11 +12,17 @@ original entry under a fresh name. Following the pinned
 `compile_top_semantics_decls` proof at run level, the compiled entry run costs
 at most the source entry run plus a one-time initialiser cost. -/
 
-/-- The one-time cost of the generated entry: its own call (statement, frame of
-the return shape, return copy), the constant initialiser stores and the final
-`Skip`. -/
+/-- The one-time cost of the generated entry: its own call (call base, return
+slots, exit with at most an exception's re-raise check and the payload copy)
+and the constant initialiser stores. -/
 def globalsTopInit (returnShape : ShapeHOL) (globalCount payload : Nat) : Nat :=
-  20 + 4 * sizeOfShapeHOL returnShape + 57 * globalCount + 5 * payload
+  343 + 19 * sizeOfShapeHOL returnShape + 212 * globalCount + 49 * payload
+
+theorem callExitOverhead_le (r : Option (PanSemResultExact 64)) :
+    callExitOverhead r ≤ 147 + 49 * callPayloadWords r := by
+  rcases r with _ | r
+  · simp [callExitOverhead, callPayloadWords, returnCopy]
+  · cases r <;> simp [callExitOverhead, callPayloadWords, returnCopy] <;> omega
 
 theorem globals_bvSubZero (x : BitVec 64) : x - 0 = x := by simp
 
@@ -60,6 +67,7 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
       (∀ d ∈ code, isFunctionHOL d = true ∨ isDeclHOL d = true ∨ isExnDeclHOL d = true))
     (body : ProgHOL 64) (rshape : ShapeHOL)
     (hstartLookup : (functionsHOL code).lookup start = some ([], body, rshape))
+    (hlabels : LabelInvariant start (newMainNameHOL code))
     (ready : ∀ entry ∈ functionsHOL code,
       globalsReadyProg entry.2.2.1 = true ∧ globalsTemp ∉ entry.2.1.map Prod.fst)
     (constGlobals : constGlobalDecls (code.filter isDeclHOL) = true)
@@ -67,13 +75,14 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
     (hs1 : @PanSemStateFiniteExact.evaluateDeclsHOLFinite 64 F _
       { s with structs := [] } (fun a => Classical.propDecidable (s.memaddrs a)) code = some s1)
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F} {ev : List WorkEvent}
-    (run : StatementRun s1 (.call none start []) r post ev) (ok : r ≠ some .error) :
+    (run : StatementRun fn s1 (.call none start []) r post ev) (ok : r ≠ some .error) :
     ∃ T, @PanSemStateFiniteExact.evaluateDeclsHOLFinite 64 F _
         { t with structs := [] } (fun a => Classical.propDecidable (t.memaddrs a))
         (compileTopExactHOL code start) = some T ∧
-      ∃ r' post' ev', StatementRun { T with clock := T.clock + 1 } (.call none start []) r' post' ev' ∧
+      ∃ r' post' ev', StatementRun fn { T with clock := T.clock + 1 } (.call none start []) r' post' ev' ∧
         r' = r ∧ sharpSourceScore B ev' ≤ sharpSourceScore B ev +
-          globalsTopInit rshape (code.filter isDeclHOL).length (callPayloadWords r) := by
+          globalsTopInit rshape (code.filter isDeclHOL).length (callPayloadWords r) +
+          callMoves start (newMainNameHOL code) := by
   classical
   obtain ⟨hdistinct, ht, hcode, hglobals, halign, hgood, rfl, rfl, hdisj, hmem,
     htopNot, hbound, hkinds⟩ := h
@@ -287,11 +296,14 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
       exact hTlookup f (ps, p, rs) (lookupMem _ _ _ hlk)
 
   -- Source: rename the entry and empty the caller locals; events unchanged.
-  have frun := fperm_run start nm run ok (fpermCodeHOL start nm s1.code) rfl
+  have hinv : LabelInvariant start nm := by rw [hnm]; exact hlabels
+  have frun := fperm_run start nm hinv run ok (fpermCodeHOL start nm s1.code) rfl
   have hcall : fpermHOL start nm (.call none start [] : ProgHOL 64) = .call none nm [] := by
     rw [fperm_call]; simp [simpMapInfo, fpermName]
   rw [hcall, hC2] at frun
-  obtain ⟨post2, erun⟩ := entry_empty_locals frun
+  obtain ⟨post2, erun0⟩ := entry_empty_locals frun
+  -- The renamed entry runs inside the generated entry `start`.
+  obtain ⟨evS, erun, hS⟩ := call_none_refn B erun0 ok start
   -- The renamed, compiled code satisfies the pan_globals certificate.
   obtain ⟨C2, hC2def⟩ : ∃ C2 : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL),
       C2 = HolFiniteMapExact.empty.updateList (functionsHOL (fpermDecsHOL start nm code)) := ⟨_, rfl⟩
@@ -318,14 +330,14 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
     rw [hs1form]
     exact hcov
   -- Target inner call: the pan_globals statement transfer.
-  obtain ⟨ev2, inner⟩ := source_evaluation_cost_trace t' (.call none nm [] : ProgHOL 64)
+  obtain ⟨ev2, inner⟩ := source_evaluation_cost_trace start t' (.call none nm [] : ProgHOL 64)
   have inner' := inner
   rw [← globals_compile_call_entry ctx nm] at inner'
   have le2 := globals_run_le B erun ctx t' hrelT ok
     (by simp [globalsReadyProg, globalsReadyExps]) codeReady (by rfl) cov _ _ _ inner'
   obtain ⟨hr2, -⟩ := globals_sub_match erun ok hrelT inner'
   -- Initialiser run: constant stores.
-  obtain ⟨ev1, initTrace⟩ := source_evaluation_cost_trace
+  obtain ⟨ev1, initTrace⟩ := source_evaluation_cost_trace start
     { T with locals := HolFiniteMapExact.empty } (nestedSeqHOL inits)
   rw [hrun] at initTrace
   have stores : ConstStores inits := by
@@ -363,7 +375,7 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
   have entryState : callEntryStateHOLFinite { T with clock := T.clock + 1 } HolFiniteMapExact.empty =
       { T with locals := HolFiniteMapExact.empty } := by
     simp [callEntryStateHOLFinite]
-  have bodyRun := StatementRun.seqNext initTrace inner
+  have bodyRun := StatementRun.seqNext (fn := start) initTrace inner
   rw [← entryState] at bodyRun
   have args0 : evalListHOLFinite { T with clock := T.clock + 1 }
       (h := fun a => Classical.propDecidable (({ T with clock := T.clock + 1 } :
@@ -372,7 +384,7 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
   rcases hplan : callCostPlan { T with clock := T.clock + 1 } none rshape
       (evaluateHOLFiniteState t' (.call none nm [])).1 (evaluateHOLFiniteState t' (.call none nm [])).2
     with ⟨res, pst⟩ | ⟨e, p⟩
-  · have outer := StatementRun.callDone (s := { T with clock := T.clock + 1 }) args0 hlk
+  · have outer := StatementRun.callDone (fn := fn) (s := { T with clock := T.clock + 1 }) args0 hlk
       (by simp) bodyRun hplan
     have srcLk : C2.lookup nm = some ([], fpermHOL start nm body, rshape) := by
       rw [hC2def, emptyUpdateListLookup _ _ hfpNodup]
@@ -388,8 +400,13 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
     rw [hr2] at outer ⊢
     simp only [expressionListEvents, List.flatMap_nil, List.length_nil, callGlobalEvents,
       List.nil_append, List.append_nil, structsT, sharp_size_nil, globalsTopInit] at outer ⊢
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_copy, srcScore_frame,
-      sharpSourceScore_nil]
+    gsimp
+    have := callExitOverhead_le r
+    have hfp : fpermName start nm start = nm := by simp [fpermName]
+    have hcm : callMoves (fpermName start nm fn) nm = callMoves fn start := by
+      have h := callMoves_fperm hinv fn start
+      rwa [hfp] at h
+    have hgoal : callMoves start (newMainNameHOL code) = callMoves start nm := by rw [hnm]
     omega
   · obtain ⟨_, _, _, hinfo⟩ := globals_plan_handler_info hplan
     cases hinfo

@@ -3,6 +3,7 @@ import InitECandidate.Runtime.SourceCostGlobalsInvariant
 import Flapjack.Pancake.Proofs.PanGlobals.FpermCode
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! `pan_globals` renames the original entry to a fresh name (`fperm`). A
 renamed run has exactly the same canonical events: no event mentions a
@@ -22,10 +23,10 @@ theorem fperm_lookup (f g : MlS) {F : Type} {s : PanSemStateFiniteExact 64 F} {f
   simp only [lookupCodeCanonicalHOL] at h
   rw [h, lookup]; rfl
 
-theorem fperm_run (f g : MlS) {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 64} {r post ev}
-    (run : StatementRun s p r post ev) :
+theorem fperm_run (f g : MlS) (hinv : LabelInvariant f g) {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 64} {r post ev}
+    (run : StatementRun fn s p r post ev) :
     r ≠ some .error → ∀ C, C = fpermCodeHOL f g s.code →
-      StatementRun { s with code := C } (fpermHOL f g p) r { post with code := C } ev := by
+      StatementRun (fpermName f g fn) { s with code := C } (fpermHOL f g p) r { post with code := C } ev := by
   induction run with
   | assignInvalid expr invalid => intro ok; exact absurd rfl ok
   | assignFailure expr => intro ok; exact absurd rfl ok
@@ -74,43 +75,50 @@ theorem fperm_run (f g : MlS) {F : Type} {s : PanSemStateFiniteExact 64 F} {p : 
   | iteYes guard nonzero body ihBody =>
     intro ok C hC
     simp only [fpermHOL]
+    rw [← branchMoves_fperm hinv]
     exact .iteYes (simpCode_costed C guard) nonzero (ihBody ok C hC)
   | iteNo guard body ihBody =>
     intro ok C hC
     simp only [fpermHOL]
+    rw [← branchMoves_fperm hinv]
     exact .iteNo (simpCode_costed C guard) (ihBody ok C hC)
-  | whileFalse guard => intro _ C _; simp only [fpermHOL]; exact .whileFalse (simpCode_costed C guard)
+  | whileFalse guard => intro _ C _; simp only [fpermHOL]; rw [← loopMoves_fperm hinv]; exact .whileFalse (simpCode_costed C guard)
   | whileTimeout guard nonzero clock =>
-    intro _ C _; simp only [fpermHOL]; exact .whileTimeout (simpCode_costed C guard) nonzero clock
+    intro _ C _; simp only [fpermHOL]; rw [← loopMoves_fperm hinv]; exact .whileTimeout (simpCode_costed C guard) nonzero clock
   | whileNext guard nonzero clock one rest ihOne ihRest =>
     intro ok C hC
     have r1 := ihOne (by simp) C hC
     have r2 := ihRest ok C (by rw [one.code_eq]; exact hC)
     simp only [fpermHOL] at r2 ⊢
+    rw [← loopMoves_fperm hinv]
     exact .whileNext (simpCode_costed C guard) nonzero clock r1 r2
   | whileContinue guard nonzero clock one rest ihOne ihRest =>
     intro ok C hC
     have r1 := ihOne (by simp) C hC
     have r2 := ihRest ok C (by rw [one.code_eq]; exact hC)
     simp only [fpermHOL] at r2 ⊢
+    rw [← loopMoves_fperm hinv]
     exact .whileContinue (simpCode_costed C guard) nonzero clock r1 r2
   | whileBreak guard nonzero clock one ihOne =>
     intro ok C hC
     simp only [fpermHOL]
+    rw [← loopMoves_fperm hinv]
     exact .whileBreak (simpCode_costed C guard) nonzero clock (ihOne (by simp) C hC)
   | whilePropagate guard nonzero clock notBreak notContinue one ihOne =>
     intro ok C hC
     simp only [fpermHOL]
+    rw [← loopMoves_fperm hinv]
     exact .whilePropagate (simpCode_costed C guard) nonzero clock notBreak notContinue (ihOne ok C hC)
-  | @assignValue s kind name expression value events expr valid =>
+  | @assignValue fn s kind name expression value events expr valid =>
     intro _ C _
-    have run' := StatementRun.assignValue (simpCode_costed C expr) (s := { s with code := C })
+    have run' := StatementRun.assignValue (fn := fpermName f g fn) (simpCode_costed C expr) (s := { s with code := C })
       (kind := kind) (name := name) valid
     rw [simpCode_setKvar] at run'
     simp only [fpermHOL]; exact run'
-  | returnValue expr size => intro _ C _; simp only [fpermHOL]; exact .returnValue (simpCode_costed C expr) size
+  | returnValue expr size => intro _ C _; simp only [fpermHOL]; rw [← returnMoves_fperm hinv]; exact .returnValue (simpCode_costed C expr) size
   | raiseValue expr declared shapeMatches size =>
     intro _ C _; simp only [fpermHOL]
+    rw [← raiseMoves_fperm hinv]
     exact .raiseValue (simpCode_costed C expr) declared shapeMatches size
   | storeValue dst src write =>
     intro _ C _; simp only [fpermHOL]
@@ -125,31 +133,31 @@ theorem fperm_run (f g : MlS) {F : Type} {s : PanSemStateFiniteExact 64 F} {p : 
     intro ok C hC
     simp only [fpermHOL]
     exact .declareValue (simpCode_costed C init) shapeMatch (ih ok C hC)
-  | @primitiveValue s name operator arguments values value args operation valid =>
+  | @primitiveValue fn s name operator arguments values value args operation valid =>
     intro _ C _
-    have run' := StatementRun.primitiveValue ((PanSimp.evalListCodeUpd C s arguments).trans args)
+    have run' := StatementRun.primitiveValue (fn := fpermName f g fn) ((PanSimp.evalListCodeUpd C s arguments).trans args)
       operation valid (s := { s with code := C })
     rw [simpCode_listEvents] at run'
     simp only [fpermHOL]; exact run'
-  | @external s function configuration configurationLength array arrayLength result post run =>
+  | @external fn s function configuration configurationLength array arrayLength result post run =>
     intro _ C _
-    have run' := StatementRun.external (evaluateCodeUpd_ExtCall C s function configuration
+    have run' := StatementRun.external (fn := fpermName f g fn) (evaluateCodeUpd_ExtCall C s function configuration
       configurationLength array arrayLength result post run)
     rw [simpCode_external] at run'
     simp only [fpermHOL]; exact run'
-  | @sharedLoad s operator kind name address result post run =>
+  | @sharedLoad fn s operator kind name address result post run =>
     intro _ C _
-    have run' := StatementRun.sharedLoad (evaluateCodeUpd_ShMemLoad C s operator kind name address
+    have run' := StatementRun.sharedLoad (fn := fpermName f g fn) (evaluateCodeUpd_ShMemLoad C s operator kind name address
       result post run)
     rw [simpCode_sharedLoad] at run'
     simp only [fpermHOL]; exact run'
-  | @sharedStore s operator address value result post run =>
+  | @sharedStore fn s operator address value result post run =>
     intro _ C _
-    have run' := StatementRun.sharedStore (evaluateCodeUpd_ShMemStore C s operator address value
+    have run' := StatementRun.sharedStore (fn := fpermName f g fn) (evaluateCodeUpd_ShMemStore C s operator address value
       result post run)
     rw [simpCode_sharedStore] at run'
     simp only [fpermHOL]; exact run'
-  | @callDone s info function arguments values body callee returnShape bodyResult bodyPost
+  | @callDone fn s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents result post args lookup clock bodyRun plan ihBody =>
     intro ok C hC
     have bodyOk : bodyResult ≠ some .error := by
@@ -158,11 +166,11 @@ theorem fperm_run (f g : MlS) {F : Type} {s : PanSemStateFiniteExact 64 F} {p : 
     have lookup' := fperm_lookup f g lookup
     rw [← hC] at lookup'
     have r1 := ihBody bodyOk C hC
-    have run' := StatementRun.callDone args' lookup' clock r1
+    have run' := StatementRun.callDone (fn := fpermName f g fn) args' lookup' clock r1
       (simpCode_plan_done C (simp_plan_map_done (fpermHOL f g) plan))
     rw [simpCode_listEvents, simpCode_callGlobal, callGlobalEvents_simpMapInfo] at run'
-    rw [fperm_call]; exact run'
-  | @callHandler s info function arguments values body callee returnShape bodyResult bodyPost
+    rw [fperm_call]; rw [← callMoves_fperm hinv]; exact run'
+  | @callHandler fn s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post args lookup clock bodyRun plan
       handlerRun ihBody ihHandler =>
     intro ok C hC
@@ -175,29 +183,29 @@ theorem fperm_run (f g : MlS) {F : Type} {s : PanSemStateFiniteExact 64 F} {p : 
     have entryCode : handlerEntry.code = s.code := by
       rw [simpCode_plan_handler_code plan, bodyRun.code_eq]; rfl
     have r2 := ihHandler ok C (by rw [entryCode]; exact hC)
-    have run' := StatementRun.callHandler args' lookup' clock r1
+    have run' := StatementRun.callHandler (fn := fpermName f g fn) args' lookup' clock r1
       (simpCode_plan_handler C (simp_plan_map_handler (fpermHOL f g) plan).1) r2
     rw [simpCode_listEvents] at run'
-    rw [fperm_call]; exact run'
-  | @callTimeout s info function arguments values body callee returnShape args lookup clock =>
+    rw [fperm_call]; rw [← callMoves_fperm hinv]; exact run'
+  | @callTimeout fn s info function arguments values body callee returnShape args lookup clock =>
     intro _ C hC
     have args' := (PanSimp.evalListCodeUpd C s arguments).trans args
     have lookup' := fperm_lookup f g lookup
     rw [← hC] at lookup'
-    have run' := StatementRun.callTimeout (info := simpMapInfo (fpermHOL f g) info) args' lookup' clock
+    have run' := StatementRun.callTimeout (fn := fpermName f g fn) (info := simpMapInfo (fpermHOL f g) info) args' lookup' clock
     rw [simpCode_listEvents, simpCode_callGlobal, callGlobalEvents_simpMapInfo] at run'
-    rw [fperm_call]; exact run'
-  | @declareCallTimeout s name shape function arguments continuation values body callee returnShape
+    rw [fperm_call]; rw [← callMoves_fperm hinv]; exact run'
+  | @declareCallTimeout fn s name shape function arguments continuation values body callee returnShape
       args lookup clock =>
     intro _ C hC
     have args' := (PanSimp.evalListCodeUpd C s arguments).trans args
     have lookup' := fperm_lookup f g lookup
     rw [← hC] at lookup'
-    have run' := StatementRun.declareCallTimeout (name := name) (shape := shape)
+    have run' := StatementRun.declareCallTimeout (fn := fpermName f g fn) (name := name) (shape := shape)
       (continuation := fpermHOL f g continuation) args' lookup' clock
     rw [simpCode_listEvents] at run'
-    simp only [fpermHOL]; exact run'
-  | @declareCallReturn s name shape function arguments continuation values body callee returnShape
+    simp only [fpermHOL]; rw [← callMoves_fperm hinv]; exact run'
+  | @declareCallReturn fn s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents continuationEvents result post args lookup clock bodyRun shapeMatch
       continuationRun ihBody ihContinuation =>
     intro ok C hC
@@ -207,10 +215,10 @@ theorem fperm_run (f g : MlS) {F : Type} {s : PanSemStateFiniteExact 64 F} {p : 
     have r1 := ihBody (by simp) C hC
     have r2 := ihContinuation ok C
       (by show C = fpermCodeHOL f g bodyPost.code; rw [bodyRun.code_eq]; exact hC)
-    have run' := StatementRun.declareCallReturn args' lookup' clock r1 shapeMatch r2
+    have run' := StatementRun.declareCallReturn (fn := fpermName f g fn) args' lookup' clock r1 shapeMatch r2
     rw [simpCode_listEvents] at run'
-    simp only [fpermHOL]; exact run'
-  | @declareCallStopped s name shape function arguments continuation values body callee returnShape
+    simp only [fpermHOL]; rw [← callMoves_fperm hinv]; exact run'
+  | @declareCallStopped fn s name shape function arguments continuation values body callee returnShape
       bodyResult bodyPost bodyEvents args lookup clock bodyRun terminal ihBody =>
     intro ok C hC
     have bodyOk : bodyResult ≠ some .error := by
@@ -219,10 +227,10 @@ theorem fperm_run (f g : MlS) {F : Type} {s : PanSemStateFiniteExact 64 F} {p : 
     have lookup' := fperm_lookup f g lookup
     rw [← hC] at lookup'
     have r1 := ihBody bodyOk C hC
-    have run' := StatementRun.declareCallStopped (name := name) (shape := shape)
+    have run' := StatementRun.declareCallStopped (fn := fpermName f g fn) (name := name) (shape := shape)
       (continuation := fpermHOL f g continuation) args' lookup' clock r1 terminal
     rw [simpCode_stopPlan, simpCode_listEvents] at run'
-    simp only [fpermHOL]; exact run'
+    simp only [fpermHOL]; rw [← callMoves_fperm hinv]; exact run'
 
 #print axioms fperm_run
 end InitECandidate.Runtime.FineCost

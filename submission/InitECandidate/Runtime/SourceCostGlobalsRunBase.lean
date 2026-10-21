@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsDomain
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! `pan_globals` statement transfer: every compiled run from a related state
 costs no more, under `sharpSourceScore B`, than the source run. The target run
@@ -13,18 +14,18 @@ def GlobalsCovered {F : Type} (context : PanGlobalsContextExact 64) (s : PanSemS
   ∀ name entry, context.globals.lookup name = some entry → GlobalsPresent s name
 
 theorem StatementRun.covered {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
-    (run : StatementRun s p r post ev) {context : PanGlobalsContextExact 64}
+    (run : StatementRun fn s p r post ev) {context : PanGlobalsContextExact 64}
     (cov : GlobalsCovered context s) : GlobalsCovered context post :=
   fun name entry found => run.globals_present name (cov name entry found)
 
 /-- The transfer statement for one source run. -/
-def GlobalsLe (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (p : ProgHOL 64)
+def GlobalsLe (fn : Flapjack.Pancake.PanLang.MlS) (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (p : ProgHOL 64)
     (r : Option (PanSemResultExact 64)) (_post : PanSemStateFiniteExact 64 F)
     (ev : List WorkEvent) : Prop :=
   ∀ (context : PanGlobalsContextExact 64) (t : PanSemStateFiniteExact 64 F),
     panGlobalsStateRelHOLExact true context s t → r ≠ some .error → globalsReadyProg p = true →
       GlobalsCodeReady s.code → s.locals.lookup globalsTemp = none → GlobalsCovered context s →
-      ∀ r' t' ev', StatementRun t (compileProgExactHOL context p) r' t' ev' →
+      ∀ r' t' ev', StatementRun fn t (compileProgExactHOL context p) r' t' ev' →
         sharpSourceScore B ev' ≤ sharpSourceScore B ev
 
 theorem globals_costed (B : Nat) {F : Type} {context : PanGlobalsContextExact 64}
@@ -79,9 +80,9 @@ theorem globals_compile_seq (context : PanGlobalsContextExact 64) (a b : ProgHOL
 
 theorem globals_seqNext (B : Nat) {F : Type} {s middle post : PanSemStateFiniteExact 64 F}
     {a b : ProgHOL 64} {r left right}
-    (one : StatementRun s a none middle left) (two : StatementRun middle b r post right)
-    (ih1 : GlobalsLe B s a none middle left) (ih2 : GlobalsLe B middle b r post right) :
-    GlobalsLe B s (.seq a b) r post (left ++ right) := by
+    (one : StatementRun fn s a none middle left) (two : StatementRun fn middle b r post right)
+    (ih1 : GlobalsLe fn B s a none middle left) (ih2 : GlobalsLe fn B middle b r post right) :
+    GlobalsLe fn B s (.seq a b) r post (left ++ right) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_seq] at target
@@ -91,15 +92,15 @@ theorem globals_seqNext (B : Nat) {F : Type} {s middle post : PanSemStateFiniteE
     have l := ih1 context t rel (by simp) ready.1 code h cov _ _ _ one'
     have r2 := ih2 context _ rel1 ok ready.2 (by rw [one.code_eq]; exact code)
       (one.noTemp ready.1 code h) (one.covered cov) _ _ _ two'
-    rw [sharpSourceScore_append, sharpSourceScore_append]; omega
+    gsimp; omega
   | seqStop terminal one' =>
     obtain ⟨hr, _⟩ := globals_sub_match one (by simp) rel one'
     exact absurd hr terminal
 
 theorem globals_seqStop (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {a b : ProgHOL 64} {r left} (terminal : r ≠ none)
-    (one : StatementRun s a r post left) (ih : GlobalsLe B s a r post left) :
-    GlobalsLe B s (.seq a b) r post left := by
+    (one : StatementRun fn s a r post left) (ih : GlobalsLe fn B s a r post left) :
+    GlobalsLe fn B s (.seq a b) r post left := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_seq] at target

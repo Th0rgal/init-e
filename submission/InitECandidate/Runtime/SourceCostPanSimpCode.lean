@@ -2,6 +2,7 @@ import InitECandidate.Runtime.SourceCostPanSimpCodeBase
 import InitECandidate.Runtime.SourceCostPanSimpAssoc
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! `pan_simp` on the installed code map: a non-error source run under the
 original code map is matched, with no more work, by a run under the code map
@@ -13,7 +14,7 @@ theorem simpCode_callGlobal {F : Type} (s : PanSemStateFiniteExact 64 F)
     callGlobalEvents { s with code := c } info = callGlobalEvents s info := rfl
 
 theorem simpCode_preserved {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
-    (run : StatementRun s p r post ev) (ok : r ≠ some .error)
+    (run : StatementRun fn s p r post ev) (ok : r ≠ some .error)
     (c : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL))
     (hc : PanSimp.CodeRel s.code c) : post.code = s.code :=
   (PanSimp.codeSimAll p s r post c run.sound ok hc).2
@@ -46,19 +47,19 @@ compiled body under the compiled code map. -/
 theorem simpCode_body {F : Type} {s post : PanSemStateFiniteExact 64 F} {body : ProgHOL 64} {r ev ev1}
     (c : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL))
     (ok : r ≠ some .error)
-    (moved : StatementRun { s with code := c } body r { post with code := c } ev1)
+    (moved : StatementRun fn { s with code := c } body r { post with code := c } ev1)
     (le : SimpWorkLe ev1 ev) :
-    ∃ ev', StatementRun { s with code := c } (panSimpCompileHOL body) r { post with code := c } ev' ∧
+    ∃ ev', StatementRun fn { s with code := c } (panSimpCompileHOL body) r { post with code := c } ev' ∧
       SimpWorkLe ev' ev := by
   obtain ⟨e1, r1, l1⟩ := simp_seqAssoc_run (F := F) body .skip moved
   obtain ⟨e2, r2, l2⟩ := simp_retToTail_run (F := F) _ r1 ok
   exact ⟨e2, r2, l2.trans (l1.trans le)⟩
 
 theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 64} {r post ev}
-    (run : StatementRun s p r post ev) :
+    (run : StatementRun fn s p r post ev) :
     r ≠ some .error → ∀ (c : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL)),
       PanSimp.CodeRel s.code c →
-      ∃ ev', StatementRun { s with code := c } p r { post with code := c } ev' ∧ SimpWorkLe ev' ev := by
+      ∃ ev', StatementRun fn { s with code := c } p r { post with code := c } ev' ∧ SimpWorkLe ev' ev := by
   induction run with
   | assignInvalid expr invalid => intro ok; exact absurd rfl ok
   | assignFailure expr => intro ok; exact absurd rfl ok
@@ -163,9 +164,9 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
       try have := l2 co
       simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
-  | @assignValue s kind name expression value events expr valid =>
+  | @assignValue fn s kind name expression value events expr valid =>
     intro _ c _
-    have run' := StatementRun.assignValue (simpCode_costed c expr) (s := { s with code := c })
+    have run' := StatementRun.assignValue (fn := fn) (simpCode_costed c expr) (s := { s with code := c })
       (kind := kind) (name := name) valid
     rw [simpCode_setKvar] at run'
     exact ⟨_, run', SimpWorkLe.refl _⟩
@@ -190,26 +191,26 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
       try have := l2 co
       simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
-  | @primitiveValue s name operator arguments values value args operation valid =>
+  | @primitiveValue fn s name operator arguments values value args operation valid =>
     intro _ c _
     refine ⟨_, .primitiveValue ((PanSimp.evalListCodeUpd c s arguments).trans args) operation valid,
       fun co => ?_⟩
     simp only [simpCode_listEvents]
     exact Nat.le_refl _
-  | @external s function configuration configurationLength array arrayLength result post run =>
+  | @external fn s function configuration configurationLength array arrayLength result post run =>
     intro _ c _
     refine ⟨_, .external (evaluateCodeUpd_ExtCall c s function configuration configurationLength
       array arrayLength result post run), ?_⟩
     rw [simpCode_external]; exact SimpWorkLe.refl _
-  | @sharedLoad s operator kind name address result post run =>
+  | @sharedLoad fn s operator kind name address result post run =>
     intro _ c _
     refine ⟨_, .sharedLoad (evaluateCodeUpd_ShMemLoad c s operator kind name address result post run), ?_⟩
     rw [simpCode_sharedLoad]; exact SimpWorkLe.refl _
-  | @sharedStore s operator address value result post run =>
+  | @sharedStore fn s operator address value result post run =>
     intro _ c _
     refine ⟨_, .sharedStore (evaluateCodeUpd_ShMemStore c s operator address value result post run), ?_⟩
     rw [simpCode_sharedStore]; exact SimpWorkLe.refl _
-  | @callDone s info function arguments values body callee returnShape bodyResult bodyPost
+  | @callDone fn s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents result post args lookup clock bodyRun plan ihBody =>
     intro ok c hc
     have bodyOk : bodyResult ≠ some .error := by
@@ -225,7 +226,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
       try have := l2 co
       simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
       omega⟩
-  | @callHandler s info function arguments values body callee returnShape bodyResult bodyPost
+  | @callHandler fn s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post args lookup clock bodyRun plan
       handlerRun ihBody ihHandler =>
     intro ok c hc
@@ -245,7 +246,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
         have := l1 co; have := l2 co
         simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
         omega⟩
-  | @callTimeout s info function arguments values body callee returnShape args lookup clock =>
+  | @callTimeout fn s info function arguments values body callee returnShape args lookup clock =>
     intro _ c hc
     have args' := (PanSimp.evalListCodeUpd c s arguments).trans args
     have lookup' : lookupCodeHOLFinite c.lookup function values =
@@ -253,7 +254,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
       rw [PanSimp.lookupCodeRel s.code c hc function values, lookup]; rfl
     refine ⟨_, .callTimeout args' lookup' clock, ?_⟩
     simp only [simpCode_listEvents, simpCode_callGlobal]; exact SimpWorkLe.refl _
-  | @declareCallTimeout s name shape function arguments continuation values body callee returnShape
+  | @declareCallTimeout fn s name shape function arguments continuation values body callee returnShape
       args lookup clock =>
     intro _ c hc
     have args' := (PanSimp.evalListCodeUpd c s arguments).trans args
@@ -262,7 +263,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
       rw [PanSimp.lookupCodeRel s.code c hc function values, lookup]; rfl
     refine ⟨_, .declareCallTimeout args' lookup' clock, ?_⟩
     simp only [simpCode_listEvents]; exact SimpWorkLe.refl _
-  | @declareCallReturn s name shape function arguments continuation values body callee returnShape
+  | @declareCallReturn fn s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents continuationEvents result post args lookup clock bodyRun shapeMatch
       continuationRun ihBody ihContinuation =>
     intro ok c hc
@@ -279,7 +280,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
         have := l1 co; have := l2 co
         simp only [simpCode_listEvents, simpCode_callGlobal, eventSum_cons, eventSum_append] at *
         omega⟩
-  | @declareCallStopped s name shape function arguments continuation values body callee returnShape
+  | @declareCallStopped fn s name shape function arguments continuation values body callee returnShape
       bodyResult bodyPost bodyEvents args lookup clock bodyRun terminal ihBody =>
     intro ok c hc
     have bodyOk : bodyResult ≠ some .error := by
@@ -290,7 +291,7 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
       rw [PanSimp.lookupCodeRel s.code c hc function values, lookup]; rfl
     obtain ⟨e0, r0, l0⟩ := ihBody bodyOk c hc
     obtain ⟨e1, r1, l1⟩ := simpCode_body c bodyOk r0 l0
-    have run' := StatementRun.declareCallStopped (name := name) (shape := shape)
+    have run' := StatementRun.declareCallStopped (fn := fn) (name := name) (shape := shape)
       (continuation := continuation) args' lookup' clock r1 terminal
     rw [simpCode_stopPlan] at run'
     exact ⟨_, run', fun co => by
@@ -302,10 +303,10 @@ theorem simp_code_run {F : Type} {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 
 a non-error source run of `p` is matched by a run of `pan_simp$compile p`
 under the compiled code map with no more work under every coefficient vector. -/
 theorem simp_compile_run {F : Type} {s post : PanSemStateFiniteExact 64 F} {p : ProgHOL 64} {r ev}
-    (run : StatementRun s p r post ev) (ok : r ≠ some .error)
+    (run : StatementRun fn s p r post ev) (ok : r ≠ some .error)
     (c : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL))
     (hc : PanSimp.CodeRel s.code c) :
-    ∃ ev', StatementRun { s with code := c } (panSimpCompileHOL p) r { post with code := c } ev' ∧
+    ∃ ev', StatementRun fn { s with code := c } (panSimpCompileHOL p) r { post with code := c } ev' ∧
       SimpWorkLe ev' ev := by
   obtain ⟨e0, r0, l0⟩ := simp_code_run run ok c hc
   exact simpCode_body c ok r0 l0

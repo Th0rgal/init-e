@@ -1,14 +1,15 @@
 import InitECandidate.Runtime.GuestCostSourceLoopTop
-import InitECandidate.Runtime.LoopWordCost
+import InitECandidate.Runtime.LoopWordPDefault
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact Flapjack.LoopSemStateFiniteExact
 open Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect Flapjack.Compiler.Encoders.Asm
 open InitE InitECandidate.Proofs.FrontendStages
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! The guest's source → Word transfer: the installed Loop entry of
 `guest_source_loop`, compiled by `loop_to_word`, run from any Word state
 related to it as in the pinned `compile_correct`, executes Word work at most
-`sharpScore ev + 5330` under `loopWordPrice`. -/
+`sharpScore ev + 20127` under `loopWordPrice`. -/
 
 /-- Guest source → Word executed work. -/
 theorem guest_source_word (input : Guest.InputBlob) {C : Type} (W : Type)
@@ -25,7 +26,7 @@ theorem guest_source_word (input : Guest.InputBlob) {C : Type} (W : Type)
       (Guest.guestAst.map declToHOL) = some s1)
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 Guest.HostMemory}
     {ev : List WorkEvent}
-    (run : StatementRun { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
+    (run : StatementRun fn { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
       r post ev)
     (ok : r ≠ some .error) :
     let start := Flapjack.Basis.Pure.MlString.ofString "main"
@@ -43,7 +44,7 @@ theorem guest_source_word (input : Guest.InputBlob) {C : Type} (W : Type)
         LoopToWord.localsRelHOL ctxt loopState.locals t.locals →
         sptLookup 0 t.locals = some retv → goodDimindex 64 → ¬ wordSemIsWordLoc retv = true →
         (∀ k, sptMem k (accVarsHOL loopProgram .ln) → sptMem k ctxt) →
-        wordExecutionCost loopWordPrice (LoopToWord.compHOL ctxt loopProgram labels).1 t ≤ sharpScore ev + 5330 := by
+        wordExecutionCost loopWordPrice (LoopToWord.compHOL ctxt loopProgram labels).1 t ≤ sharpScore ev + 20127 := by
   intro start G panCode crepState loopState program loopProgram
   obtain ⟨T, hT, extra, wl, work, bound, -, loopOk⟩ :=
     guest_source_loop input target arch clock hmem hnolabels hmdomain hs1 run ok

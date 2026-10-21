@@ -1,11 +1,12 @@
 import InitECandidate.Runtime.SourceCostGlobalsRunExternal
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! The `pan_globals` statement transfer for every source run. -/
 
 theorem globals_error (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F} {p ev} :
-    GlobalsLe B s p (some .error) post ev := by
+    GlobalsLe fn B s p (some .error) post ev := by
   intro _ _ _ ok
   exact absurd rfl ok
 
@@ -15,14 +16,15 @@ theorem globals_callDone_any (B : Nat) {F : Type} {s post : PanSemStateFiniteExa
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post)
-    (ihBody : GlobalsLe B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents) :
-    GlobalsLe B s (.call info function arguments) result post
+    (ihBody : GlobalsLe function B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents) :
+    GlobalsLe fn B s (.call info function arguments) result post
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-        [.copy (callPayloadWords bodyResult)] ++ callGlobalEvents s info)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++ bodyEvents ++
+        [.cost (callExitOverhead bodyResult)] ++ callGlobalEvents s info)) := by
   rcases info with _ | ⟨_ | ⟨kind, name⟩, _ | ⟨exception, handlerVar, handler⟩⟩
   all_goals (try cases kind)
   all_goals first
@@ -37,16 +39,17 @@ theorem globals_callHandler_any (B : Nat) {F : Type} {s post : PanSemStateFinite
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s info returnShape bodyResult bodyPost = .handler handlerEntry handlerProgram)
-    (handlerRun : StatementRun handlerEntry handlerProgram result post handlerEvents)
-    (ihBody : GlobalsLe B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
-    (ihHandler : GlobalsLe B handlerEntry handlerProgram result post handlerEvents) :
-    GlobalsLe B s (.call info function arguments) result post
+    (handlerRun : StatementRun fn handlerEntry handlerProgram result post handlerEvents)
+    (ihBody : GlobalsLe function B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (ihHandler : GlobalsLe fn B handlerEntry handlerProgram result post handlerEvents) :
+    GlobalsLe fn B s (.call info function arguments) result post
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-        [.copy (callPayloadWords bodyResult)] ++ handlerEvents)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++ bodyEvents ++
+        [.cost (callExitOverhead bodyResult)] ++ handlerEvents)) := by
   by_cases plain : globalsPlainInfo info = true
   · exact globals_callHandler_plain B args lookup clock bodyRun plan handlerRun ihBody ihHandler plain
   · intro _ _ _ _ ready
@@ -63,9 +66,11 @@ theorem globals_callTimeout_any (B : Nat) {F : Type} {s : PanSemStateFiniteExact
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock = 0) :
-    GlobalsLe B s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
+    GlobalsLe fn B s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
       (.statement :: (expressionListEvents s arguments ++
-        [.frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ callGlobalEvents s info)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++ callGlobalEvents s info)) := by
   rcases info with _ | ⟨_ | ⟨kind, name⟩, _ | ⟨exception, handlerVar, handler⟩⟩
   all_goals (try cases kind)
   all_goals first
@@ -77,7 +82,7 @@ theorem globals_callTimeout_any (B : Nat) {F : Type} {s : PanSemStateFiniteExact
 program's run costs no more than the source run under `sharpSourceScore B`,
 for every non-error source run of a ready program. -/
 theorem globals_run_le (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
-    (run : StatementRun s p r post ev) : GlobalsLe B s p r post ev := by
+    (run : StatementRun fn s p r post ev) : GlobalsLe fn B s p r post ev := by
   induction run
   case skip s => exact globals_skip B s
   case seqNext one two ih1 ih2 => exact globals_seqNext B one two ih1 ih2
@@ -132,17 +137,17 @@ compiled program has a canonical run with the same result, ending in a state
 related by the original `compile_correct` relation, whose sharp score is at
 most the source run's. -/
 theorem globals_compile_run (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
-    (run : StatementRun s p r post ev) (ok : r ≠ some .error)
+    (run : StatementRun fn s p r post ev) (ok : r ≠ some .error)
     (context : PanGlobalsContextExact 64) (t : PanSemStateFiniteExact 64 F)
     (rel : panGlobalsStateRelHOLExact true context s t) (ready : globalsReadyProg p = true)
     (code : GlobalsCodeReady s.code) (noTemp : s.locals.lookup globalsTemp = none)
     (cov : GlobalsCovered context s) :
-    ∃ t' ev', StatementRun t (compileProgExactHOL context p) r t' ev' ∧
+    ∃ t' ev', StatementRun fn t (compileProgExactHOL context p) r t' ev' ∧
       panGlobalsStateRelHOLExact (goodResHOL r) context post t' ∧
       sharpSourceScore B ev' ≤ sharpSourceScore B ev := by
   obtain ⟨t', target, rel'⟩ := PanGlobalsCompileCorrectAssembly.compileCorrectHOL p s r context t post
     ⟨rel, run.sound, ok⟩
-  obtain ⟨ev', trace⟩ := source_evaluation_cost_trace t (compileProgExactHOL context p)
+  obtain ⟨ev', trace⟩ := source_evaluation_cost_trace fn t (compileProgExactHOL context p)
   rw [target] at trace
   exact ⟨t', ev', trace, rel', globals_run_le B run context t rel ok ready code noTemp cov _ _ _ trace⟩
 

@@ -1,11 +1,12 @@
 import InitECandidate.Runtime.SourceCostGlobalsRunAtomic
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem globals_address_events (B : Nat) {F : Type} {t : PanSemStateFiniteExact 64 F} {address : BitVec 64}
     {value : Option (ValueHOL 64)} {ev : List WorkEvent}
     (run : CostedExpressionRun t (.op .sub [.topAddr, .const address]) value ev) :
-    sharpSourceScore B ev = 25 := by
+    sharpSourceScore B ev = globalAddressPrice := by
   rw [run.events_eq]; exact globals_address_score B t address
 
 theorem globals_valid_global {F : Type} {s : PanSemStateFiniteExact 64 F} {name} {value : ValueHOL 64}
@@ -16,13 +17,13 @@ theorem globals_valid_global {F : Type} {s : PanSemStateFiniteExact 64 F} {name}
   · exact ⟨_, ‹_›⟩
   · simp at valid
 
-/-- A global assignment becomes a `TopAddr` store: its address (25), memory
+/-- A global assignment becomes a `TopAddr` store: its address (`globalAddressPrice`), memory
 words and replay are paid by the source copy and `globalAccess` event. -/
 theorem globals_assignGlobal (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F}
     {name} {expression : ExpHOL 64} {value : ValueHOL 64} {events : List WorkEvent}
     (expr : CostedExpressionRun s expression (some value) events)
     (valid : isValidValueHOLFinite s .global name value = true) :
-    GlobalsLe B s (.assign .global name expression) none (setKvarHOLFinite .global name value s)
+    GlobalsLe fn B s (.assign .global name expression) none (setKvarHOLFinite .global name value s)
       (.statement :: (events ++ .copy (flattenHOL value).length ::
         globalEvents .global (flattenHOL value).length)) := by
   intro context t rel ok ready code h cov r' t' ev' target
@@ -40,8 +41,9 @@ theorem globals_assignGlobal (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
     cases hv
     have addr := globals_address_events B
       (by assumption : CostedExpressionRun t (.op .sub [.topAddr, .const address]) _ _)
-    simp only [globalEvents, srcScore_statement, sharpSourceScore_append, srcScore_copy,
-      srcScore_memory, srcScore_global, sharpSourceScore_nil]
+    simp only [globalEvents] at *
+    gsimp
+    simp only [globalAddressPrice] at addr
     omega
   all_goals cases hr
 
@@ -51,8 +53,8 @@ theorem globals_primitiveValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 
       arguments = some values)
     (operation : panPrimopHOLExact operator values = some value)
     (valid : isValidValueHOLFinite s .local name value = true) :
-    GlobalsLe B s (.primitive name operator arguments) none (setVarHOLFinite name value s)
-      (.statement :: (expressionListEvents s arguments ++ [.scalar 1] ++
+    GlobalsLe fn B s (.primitive name operator arguments) none (setVarHOLFinite name value s)
+      (.statement :: (expressionListEvents s arguments ++ [.cost (primitiveOverhead (values.flatMap flattenHOL).length)] ++
         [.copy (flattenHOL value).length])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
@@ -69,8 +71,7 @@ theorem globals_primitiveValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 
     subst this
     rw [operation] at operation'
     cases operation'
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_scalar, srcScore_copy,
-      sharpSourceScore_nil]
+    gsimp
     omega
   all_goals cases hr
 
