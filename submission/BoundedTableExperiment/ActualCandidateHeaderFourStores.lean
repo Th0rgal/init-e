@@ -1,4 +1,5 @@
 import ActualCandidateHeaderStore
+import ActualCandidateStrideEval
 import InitECandidate.Runtime.GuestCostChargeFamily
 
 namespace BoundedTableExperiment
@@ -567,3 +568,67 @@ theorem candidate_header_four_stores_keys_run_shared {F : Type} (fn : MlS)
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidate_header_four_stores_keys_run_shared
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- The actual stride declaration followed by the full allocation/header
+prefix runs. -/
+theorem candidate_stride_header_run {F : Type} (fn : MlS)
+    (s : PanSemStateFiniteExact 64 F) (tail : ProgHOL 64)
+    (tbase keyLen stride cap : BitVec 64)
+    (tLocal : s.locals.lookup (ofString "t") = some (.val (.word tbase)))
+    (keyLocal : s.locals.lookup (ofString "key_len") = some (.val (.word keyLen)))
+    (capLocal : s.locals.lookup (ofString "cap") = some (.val (.word cap)))
+    (d0 : s.memaddrs (tbase + BitVec.ofNat 64 0))
+    (d1 : s.memaddrs (tbase + BitVec.ofNat 64 8))
+    (d2 : s.memaddrs (tbase + BitVec.ofNat 64 16))
+    (d3 : s.memaddrs (tbase + BitVec.ofNat 64 24)) :
+    ∃ result post events, StatementRun fn s
+      (.dec (ofString "stride") .one strideExpr (candidateAllocationPrefix tail))
+      result post events := by
+  have init : CostedExpressionRun s strideExpr
+      (some (.val (.word ((keyLen + BitVec.ofNat 64 7) &&&
+        (BitVec.ofNat 64 0 - BitVec.ofNat 64 8)))))
+      (expressionEvents s strideExpr) := by
+    apply costedExpression_events
+    simpa [expressionValue, evalHOLExact, evalListHOLExact,
+      PanSemStateFiniteExact.toExact, keyLocal, valueIsWord, wordOp, AndOp.and,
+      valueWord] using candidate_strideExpr_eval s keyLen keyLocal
+  have shapeMatch : shapeEqHOL .one
+      (shapeOfHOLExact (.val (.word ((keyLen + BitVec.ofNat 64 7) &&&
+        (BitVec.ofNat 64 0 - BitVec.ofNat 64 8))))) = true := by
+    simp [shapeOfHOLExact, shapeEqHOL]
+  let s' := setVarHOLFinite (ofString "stride")
+    (.val (.word ((keyLen + BitVec.ofNat 64 7) &&&
+      (BitVec.ofNat 64 0 - BitVec.ofNat 64 8)))) s
+  have hts : (ofString "stride") ≠ ofString "t" := by decide
+  have hts' : (ofString "t") ≠ ofString "stride" := by decide
+  have hks : (ofString "stride") ≠ ofString "key_len" := by decide
+  have hks' : (ofString "key_len") ≠ ofString "stride" := by decide
+  have hcs : (ofString "stride") ≠ ofString "cap" := by decide
+  have hcs' : (ofString "cap") ≠ ofString "stride" := by decide
+  have tLocal' : s'.locals.lookup (ofString "t") = some (.val (.word tbase)) := by
+    simpa [s', setVarHOLFinite, HolFiniteMapExact.lookup_updateEq, FUPDATE, hts, hts'] using tLocal
+  have keyLocal' : s'.locals.lookup (ofString "key_len") = some (.val (.word keyLen)) := by
+    simpa [s', setVarHOLFinite, HolFiniteMapExact.lookup_updateEq, FUPDATE, hks, hks'] using keyLocal
+  have capLocal' : s'.locals.lookup (ofString "cap") = some (.val (.word cap)) := by
+    simpa [s', setVarHOLFinite, HolFiniteMapExact.lookup_updateEq, FUPDATE, hcs, hcs'] using capLocal
+  obtain ⟨bodyEvents, bodyRun⟩ := candidate_header_allocations_run fn s' tail
+    tbase keyLen ((keyLen + BitVec.ofNat 64 7) &&& (BitVec.ofNat 64 0 - BitVec.ofNat 64 8))
+    cap tLocal' keyLocal' (by simp [s', setVarHOLFinite, FUPDATE, HolFiniteMapExact.lookup_updateEq]) capLocal'
+    (by change s.memaddrs (tbase + BitVec.ofNat 64 0); exact d0)
+    (by change s.memaddrs (tbase + BitVec.ofNat 64 8); exact d1)
+    (by change s.memaddrs (tbase + BitVec.ofNat 64 16); exact d2)
+    (by change s.memaddrs (tbase + BitVec.ofNat 64 24); exact d3)
+  exact ⟨_, _, _, StatementRun.declareValue init shapeMatch bodyRun⟩
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidate_stride_header_run
