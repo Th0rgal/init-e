@@ -1150,3 +1150,145 @@ depend only on `propext`, `Classical.choice` and `Quot.sound`.
 - `evaluate_loop_break` returns a CONJUNCTION: its first component is the exit-cut-success shape
   (`= (none, s2)`) and the second the failure shape (`= (some .error, middle)`); destructure both
   (`obtain ⟨hSome, hNone⟩`) - using the first in the `none` branch is a type error.
+
+## Root-audit fix: the loop at the renamed cutsets, FORWARD-ONLY cuts and safe runs
+
+### What was wrong
+
+The loop endpoints above carried the cut agreement across the setup's rename as one hypothesis,
+
+```lean
+def LoopCutRenAgrees (srcNames tgtNames : WordLangNumSetHOL) : Prop :=
+  ∀ st ct, wordStateEqRel st ct →
+    ((∃ cutS, cutState (srcNames, .ln) st = some cutS) ↔
+     (∃ cutT, cutState (tgtNames, .ln) ct = some cutT))
+```
+
+and the body's transfer in the SAME-NAMES shape
+
+```lean
+def LoopBodyTransfer (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat) : Prop :=
+  ∀ st ct, wordStateEqRel st ct → ⟨runs agree, cost bodyC ct ≤ cost body st + B⟩
+```
+
+Both are wrong for the pinned compiler theorem (`Flapjack/Compiler/Backend/WordAlloc/Proofs/
+SSASemanticLoop.lean:23-46`, `ssaCcTransCorrectLoop`):
+
+* the *backward* half of `LoopCutRenAgrees` is **false**.  `wordStateEqRel` ignores `locals`, so
+  for any two `wordStateEqRel`-related states one can pick locals at will: with
+  `st.locals = Spt.ln`, `ct.locals = sptInsert 0 (.word 0) Spt.ln`, `ssa = Spt.ln` and
+  `names = .ls ()` the renamed cutset `{0}` succeeds on the target while the source cut fails, and
+  the "forward" premise could equally be instantiated so that the source cut succeeds and the target
+  cut fails.  Every theorem taking it was therefore vacuous.
+* `LoopBodyTransfer`'s body hypothesis is the same-names shape: the compiler's own body IH is
+  *universal in `(map, na, lt)`* and guarded by six conjuncts (related, SSA-related locals, `isAllocVar`,
+  `everyVarHOL`, `ssaMapOK`, `ltOK`).
+
+### What replaced it
+
+**The body's shape** (mirrors the pinned compiler theorem's body IH verbatim):
+
+```lean
+noncomputable def LoopBodyTransferSSA (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat) : Prop :=
+  ∀ (st ct) (map : Spt Nat) (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
+    wordStateEqRel st ct ∧ ssaLocalsRel na map st.locals ct.locals ∧ isAllocVar na ∧
+    everyVarHOL (fun key => decide (key < na)) body = true ∧ ssaMapOK na map ∧ ltOK lt →
+      (∃ (rS) (sS) (rT) (sT), evaluate body st = (rS, sS) ∧ evaluate bodyC ct = (rT, sT) ∧
+        rS = rT ∧ wordStateEqRel sS sT) ∧
+      wordExecutionCost refinedWordLocalPrice bodyC ct ≤
+        wordExecutionCost refinedWordLocalPrice body st + B
+```
+
+**One addition, forced by the loop.**  `LoopBodyTransferSSA` concludes `wordStateEqRel sS sT`, which
+does not constrain `locals`; the *second* iteration's body is only available at pairs carrying the six
+conjuncts, so the iteration's cut pair needs an `ssaLocalsRel` that the previous iteration's conclusion
+does not give.  The loop therefore uses the same bundle with the post-state relation kept:
+
+```lean
+noncomputable def LoopBodyTransferSSAInv :=  -- exactly the above, plus
+    ... ∧ ssaLocalsRel na map sS.locals sT.locals
+```
+
+That conjunct is exactly the iteration invariant `ssaCcTransCorrectLoop` maintains (the body, reconcile
+moves included, leaves the source's entries mirrored at the renamed keys of the same map), and
+`LoopBodyTransferSSA_of_inv` projects `LoopBodyTransferSSA` back out, so nothing is weakened: the live
+endpoint assumes the compiler's bundle *plus* its loop invariant.
+
+**The cut premise is gone.**  The source's cut at `(names, .ln)` is derived from SAFETY of the source
+run (`cut_exists_of_loop_safe`: a failed cut evaluates to `error` at once, `evaluate_loop_cut_none`),
+safety at the next iteration from `evaluate_loop_cont` (`loop_safe_decClock`), and the target's renamed
+cut is the FORWARD image under `ssaLocalsRel` (`ssaLocalsRel_cutPair`, `renCut_domain_of_lookup`), never
+assumed.  A target cut that fails (reachable only through names the source does not carry) is charged
+the node price alone (`wec_loop_cutState_none`), as in the same-names route.
+
+**The endpoint** (the target contract, ending the file):
+
+```lean
+theorem wec_loop_transfer_safe_ren
+    (hbody : LoopBodyTransferSSAInv body bodyC B) (hrel : wordStateEqRel source target)
+    (hloc : ssaLocalsRel next ssa source.locals target.locals) (hisAlloc : isAllocVar next)
+    (hevery : everyVarHOL (fun key => decide (key < next)) (.loop names body liveOut) = true)
+    (hmap : ssaMapOK next ssa) (hlt : ltOK tables)
+    (hsafe : (evaluate (.loop names body liveOut) source).1 = some .error → False) :
+    wordExecutionCost refinedWordLocalPrice
+        (.loop (applyNummapKey (optionLookup ssa) names) bodyC
+          (applyNummapKey (optionLookup ssa) exitNames)) target ≤
+      wordExecutionCost refinedWordLocalPrice (.loop names body liveOut) source +
+        B * loopIterCount names body source
+```
+
+No fuel constant, no clock multiplier, no factor 2, no new price: `B` per executed SOURCE iteration.
+
+### Deleted endpoints
+
+Removed (each replaced in the file by a note at its old position):
+
+* `LoopCutRenAgrees` (the refuted hypothesis) and every theorem that consumed it:
+  `wec_loop_transfer_iters_ren`, `evaluate_loop_outcome_agree_ren`, `loop_quantTransfer_ren`,
+  `ssaCcTrans_loop_seq_quant_fused`, `ssaCcTrans_loop_seq_quant_literal` (with their `#print axioms`
+  lines).  Their `hcut`/`hcutExit` premises no longer exist anywhere in the file.
+* Kept (still sound, no `hcut`): `wordStateEqRel_cutState_any`, `LoopBodyStepRen`,
+  `loopBodyStep_ren_of_transfer`, `wec_loop_stop_transfer_ren`, `wec_loop_cont_done_transfer_ren`,
+  `wec_loop_cont_live_transfer_ren`, `cutState_ren_forward` (the forward half of the renamed cut
+  agreement, which is the derivation the new route reuses).
+
+New supporting facts: `sptLookup_sptInter_of_isSome/…_of_not_isSome/…_self`,
+`ssaLocalsRel_congr_map`, `ssaLocalsRel_congr_locals`, `ssaMapOK_sptInter`, `renCut_domain_of_lookup`,
+`renCut_domain_of_lookup_inter`, `ssaLocalsRel_cutPair`, `cutState_locals_inter`,
+`everyVarHOL_body_of_loop`, `cut_exists_of_loop_safe`, `loop_safe_decClock`, `wec_loop_ge_two`,
+`loopBodyStep_ssa_ren`, `loopBodyStep_ssa_entry`, `LoopIterTransferRen`,
+`wec_loop_transfer_step_generic`, `wec_loop_transfer_zero_generic`,
+`wec_loop_transfer_iters_safe_aux`.
+
+Axioms: `LoopBodyTransferSSA_of_inv`, `ssaLocalsRel_cutPair`, `cutState_locals_inter`,
+`cut_exists_of_loop_safe`, `loop_safe_decClock`, `wec_loop_ge_two`, `loopBodyStep_ssa_ren`,
+`loopBodyStep_ssa_entry`, `wec_loop_transfer_step_generic`, `wec_loop_transfer_zero_generic`,
+`wec_loop_transfer_iters_safe_aux` and `wec_loop_transfer_safe_ren` depend only on `propext`,
+`Classical.choice` and `Quot.sound`.
+
+### Residual for the next stage
+
+The *run* conjunct (`evaluate_loop_outcome_agree_ren`, hence `loop_quantTransfer_ren` and the two fused
+endpoints) is not re-established yet.  The name-cuts are covered by the same derivation, but the
+target's renamed EXIT cut - consulted on the `break 0` route - needs the images of the loop's live-OUT
+entries in the target's locals, and the loop invariant is stated on the loop's live-IN names: an exit
+name carried by `liveOut` but not by `names` has no `ssaLocalsRel` data.  Under the loop-shape premise
+that the exit set is carried by the live-in set
+(`∀ key, sptDomain exitNames key → sptDomain names key` - what the compiler establishes for `while`
+loops, whose live-out is contained in their live-in) the derivation goes through; it is not needed for
+this stage's budget, which consumes the cost conjunct only.
+
+### Proof notes
+
+* `wec_loop_cutState_none` + `wec_loop_ge_two` charge the failed-target-cut branches: the source loop
+  is at least the node price `2`, so `2 ≤ cost source + B * count` by `omega` - no case analysis on
+  the continuation test is needed there.
+* `cutStateConst` hides the cut state's locals behind an opaque witness; `cutState_locals_inter`
+  recovers them pointwise as `sptInter s.locals names` (unfolding `cutState`/`wordSemCutEnv`/
+  `wordSemCutEnvs` and splitting on `wordSemCutNames`), and `ssaLocalsRel_congr_locals` transports
+  the relation along them.
+* the invariant at the cut pair is *not* syntactically `sptInter ssa names` after one iteration
+  (`sptInter (sptInter ssa names) names`); `sptLookup_sptInter_self` + `ssaLocalsRel_congr_map`
+  normalise it.
+* `Nat.mul_add`/`Nat.mul_one` turn `B * (1 + k)` into `B + B * k`, which is the shape
+  `wec_loop_cont_live_transfer_ren` consumes.
