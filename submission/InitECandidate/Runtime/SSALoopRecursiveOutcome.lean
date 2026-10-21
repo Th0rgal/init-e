@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SSALoopQuantitativeEntry
 import InitECandidate.Runtime.SSALoopRecursiveCost
 import InitECandidate.Runtime.SSALoopTimeoutCost
+import InitECandidate.Runtime.SSALoopExitCost
 
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.WordAlloc
@@ -166,5 +167,189 @@ theorem ssa_loop_recursive_outcome {C F : Type} (ctx : SSALoopCostContext)
           dsimp only [SSALoopCostContext.targetLoop,SSALoopCostContext.sourceLoop] at *
           omega
 
+/-- Complete quantitative simulation of the emitted loop, before its
+one-off setup. The only semantic induction premise concerns the smaller
+source body. Recursive loop reasoning is discharged by clock induction. -/
+theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
+    (next : Nat)
+    (produced : ssaCcTrans ctx.body (sptInter ctx.refreshed ctx.names) next
+      ((ctx.refreshed,ctx.names,ctx.exits)::ctx.tables) = (ctx.output,ctx.mapOut,ctx.nextOut))
+    (valid : ssaMapOK next ctx.refreshed) (allocated : isAllocVar next)
+    (vars : everyVarHOL (fun key => decide (key < next)) ctx.body = true)
+    (entryInjection : ∀ x y, sptDomain ctx.names x → sptDomain ctx.names y →
+      optionLookup ctx.refreshed x = optionLookup ctx.refreshed y → x = y)
+    (exitInjection : ∀ x y, sptDomain ctx.exits x → sptDomain ctx.exits y →
+      optionLookup ctx.refreshed x = optionLookup ctx.refreshed y → x = y)
+    (namesMapped : ∀ key, sptDomain ctx.names key → sptDomain ctx.refreshed key)
+    (exitsMapped : ∀ key, sptDomain ctx.exits key → sptDomain ctx.refreshed key)
+    (namesBound : ∀ key, sptDomain ctx.names key → key < next)
+    (exitsBound : ∀ key, sptDomain ctx.exits key → key < next)
+    (tableValid : ltOK ctx.tables)
+    (seqZero : ∀ a b, ctx.TP (.seq a b) = 0)
+    (headCost : ctx.TP ctx.targetLoop + ctx.TP ctx.moves ≤ ctx.SP ctx.sourceLoop)
+    (bodyIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
+      (counter : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel counter map source.locals target.locals ∧ isAllocVar counter ∧
+      everyVarHOL (fun key => decide (key < counter)) ctx.body = true ∧
+      ssaMapOK counter map ∧ ltOK tables →
+      SSAQuantitativeSimulation ctx.SP ctx.TP ctx.body source target map counter tables)
+    (source target : WordSemStateFiniteExact 64 C F)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (strong : Flapjack.WordAlloc.strongLocalsRel (optionLookup ctx.refreshed)
+      (sptDomain ctx.names) source.locals target.locals) :
+    ∀ targetResult targetFinal, evaluate ctx.targetLoop target = (targetResult,targetFinal) →
+      SSALoopQuantitativePost ctx source target targetFinal targetResult := by
+  have headOnly : ctx.TP ctx.targetLoop ≤ ctx.SP ctx.sourceLoop :=
+    Nat.le_trans (Nat.le_add_right _ _) headCost
+  have solve : ∀ clock, ∀ source target : WordSemStateFiniteExact 64 C F,
+      target.clock = clock → Flapjack.WordAlloc.wordStateEqRel source target →
+      Flapjack.WordAlloc.strongLocalsRel (optionLookup ctx.refreshed)
+        (sptDomain ctx.names) source.locals target.locals →
+      ∀ targetResult targetFinal, evaluate ctx.targetLoop target = (targetResult,targetFinal) →
+        SSALoopQuantitativePost ctx source target targetFinal targetResult := by
+    intro clock
+    induction clock using Nat.strongRecOn with
+    | ind clock ih =>
+      intro source target clockEq frame strong targetResult targetFinal loopRun
+      have recursiveIH : ∀ nextSource nextTarget : WordSemStateFiniteExact 64 C F,
+          nextTarget.clock < target.clock →
+          Flapjack.WordAlloc.wordStateEqRel nextSource nextTarget ∧
+          Flapjack.WordAlloc.strongLocalsRel (optionLookup ctx.refreshed)
+            (sptDomain ctx.names) nextSource.locals nextTarget.locals ∧
+          (∀ key, sptDomain ctx.names key → sptDomain nextTarget.locals (optionLookup ctx.refreshed key)) →
+          ∀ nextResult nextFinal, evaluate ctx.targetLoop nextTarget = (nextResult,nextFinal) →
+            SSALoopQuantitativePost ctx nextSource nextTarget nextFinal nextResult := by
+        intro nextSource nextTarget strict input nextResult nextFinal nextRun
+        exact ih nextTarget.clock (by rwa [← clockEq]) nextSource nextTarget rfl input.1 input.2.1
+          nextResult nextFinal nextRun
+      cases sourceCut : wordSemCutEnv (ctx.names,.ln) source.locals with
+      | none =>
+        have stateCut : cutState (ctx.names,.ln) {source with permute := target.permute} = none := by
+          unfold cutState
+          dsimp only
+          rw [sourceCut]
+        have failed : evaluate ctx.sourceLoop {source with permute := target.permute} =
+            (some .error,{source with permute := target.permute}) := by
+          simp only [SSALoopCostContext.sourceLoop,evaluate_def_rebound,stateCut]
+        exact post_of_run ctx source _ target targetFinal _ targetResult target.permute failed (Or.inl rfl)
+      | some sourceEnv =>
+        obtain ⟨targetEnv,targetCut,domain,simulation⟩ := ssa_loop_quantitative_entry ctx.SP ctx.TP
+          source target ctx.refreshed next ctx.names ctx.exits ctx.body ctx.tables sourceEnv frame strong
+          valid allocated vars entryInjection exitInjection namesMapped namesBound tableValid bodyIH sourceCut
+        obtain ⟨permutation,bodyPost⟩ := simulation
+        dsimp only at bodyPost
+        rw [produced] at bodyPost
+        cases sourceBody : evaluate ctx.body {source with locals := sourceEnv,permute := permutation} with
+        | mk sourceResult sourceAfter =>
+          cases targetBody : evaluate ctx.output {target with locals := targetEnv} with
+          | mk targetBodyResult targetAfter =>
+            rw [sourceBody,targetBody] at bodyPost
+            dsimp only at bodyPost
+            have sourceStateCut : cutState (ctx.names,.ln) {source with permute := permutation} =
+                some {source with locals := sourceEnv,permute := permutation} := by
+              unfold cutState
+              dsimp only
+              rw [sourceCut]
+            have targetStateCut : cutState (ctx.targetNames,.ln) target =
+                some {target with locals := targetEnv} := by
+              unfold cutState
+              rw [targetCut]
+            rcases bodyPost with error | ⟨resultEqual,bodyFrame,bodyLocals,bodyCost⟩
+            · subst sourceResult
+              have actual := WordToWord.evaluate_loop_run ctx.names ctx.exits ctx.body
+                {source with permute := permutation} {source with locals := sourceEnv,permute := permutation}
+                sourceStateCut (some .error) sourceAfter sourceBody
+              have failed : evaluate ctx.sourceLoop {source with permute := permutation} =
+                  (some .error,sourceAfter) := by
+                simpa [wordSemContLoop,wordSemExitLoop] using actual
+              exact post_of_run ctx source _ target targetFinal _ targetResult permutation failed (Or.inl rfl)
+            · subst targetBodyResult
+              cases sourceResult with
+              | none =>
+                obtain ⟨reconciled,finalRun,finalFrame,entryLocals,finalCost⟩ :=
+                  ssa_body_none_reconcile_exact_cost ctx.TP seqZero sourceAfter
+                    {target with locals := targetEnv} targetAfter ctx.output ctx.mapOut ctx.refreshed
+                    ctx.nextOut ctx.names targetBody bodyFrame bodyLocals entryInjection
+                have finalRun' : evaluate ctx.finalBody {target with locals := targetEnv} = (none,reconciled) := by
+                  unfold SSALoopCostContext.finalBody SSALoopCostContext.moves
+                  generalize moveEq : ssaReconcile (width := 64) ctx.mapOut ctx.refreshed ctx.names = moves at finalRun ⊢
+                  cases moves <;> exact finalRun
+                have finalCost' : wordExecutionCost (fun p _ => ctx.TP p) ctx.finalBody
+                    {target with locals := targetEnv} ≤
+                    wordExecutionCost (fun p _ => ctx.TP p) ctx.output {target with locals := targetEnv} + ctx.TP ctx.moves := by
+                  unfold SSALoopCostContext.finalBody SSALoopCostContext.moves
+                  generalize moveEq : ssaReconcile (width := 64) ctx.mapOut ctx.refreshed ctx.names = moves at finalCost ⊢
+                  cases moves <;> exact finalCost
+                have bound := Nat.le_trans finalCost' (Nat.add_le_add_right bodyCost (ctx.TP ctx.moves))
+                exact ssa_loop_recursive_outcome ctx source target sourceAfter reconciled targetFinal
+                  sourceEnv targetEnv none targetResult permutation sourceCut targetCut sourceBody finalRun'
+                  finalFrame entryLocals rfl loopRun bound headCost recursiveIH
+              | some value =>
+                obtain ⟨finalRun,finalCost⟩ := ssa_body_terminal_reconcile ctx.TP seqZero ctx.output ctx.moves
+                  {target with locals := targetEnv} targetAfter value targetBody
+                by_cases continueZero : value = .continue 0
+                · subst value
+                  have entryLocals : Flapjack.WordAlloc.strongLocalsRel (optionLookup ctx.refreshed)
+                      (sptDomain ctx.names) sourceAfter.locals targetAfter.locals := by
+                    simpa [SSAResultLocals] using bodyLocals
+                  have bound : wordExecutionCost (fun p _ => ctx.TP p) ctx.finalBody
+                      {target with locals := targetEnv} ≤
+                      wordExecutionCost (fun p _ => ctx.SP p) ctx.body
+                        {source with locals := sourceEnv,permute := permutation} + ctx.TP ctx.moves := by
+                    exact Nat.le_trans (Nat.le_trans (Nat.le_of_eq finalCost) bodyCost)
+                      (Nat.le_add_right _ _)
+                  exact ssa_loop_recursive_outcome ctx source target sourceAfter targetAfter targetFinal
+                    sourceEnv targetEnv (some (.continue 0)) targetResult permutation sourceCut targetCut
+                    sourceBody finalRun bodyFrame entryLocals rfl loopRun bound headCost recursiveIH
+                · by_cases breakZero : value = .break 0
+                  · subst value
+                    cases exitCut : wordSemCutEnv (ctx.exits,.ln) sourceAfter.locals with
+                    | none =>
+                      have stateExit : cutState (ctx.exits,.ln) sourceAfter = none := by
+                        unfold cutState
+                        rw [exitCut]
+                      have actual := WordToWord.evaluate_loop_run ctx.names ctx.exits ctx.body
+                        {source with permute := permutation} {source with locals := sourceEnv,permute := permutation}
+                        sourceStateCut (some (.break 0)) sourceAfter sourceBody
+                      have failed : evaluate ctx.sourceLoop {source with permute := permutation} =
+                          (some .error,sourceAfter) := by
+                        simpa only [wordSemContLoop,Bool.false_eq_true,if_false,if_true,stateExit] using actual
+                      exact post_of_run ctx source _ target targetFinal _ targetResult permutation failed (Or.inl rfl)
+                    | some exitEnv =>
+                      have exitStrong : Flapjack.WordAlloc.strongLocalsRel (optionLookup ctx.refreshed)
+                          (sptDomain ctx.exits) sourceAfter.locals targetAfter.locals := by
+                        simpa [SSAResultLocals] using bodyLocals
+                      obtain ⟨targetExitEnv,sourceActual,targetActual,exitFrame,exitLocals,cost⟩ :=
+                        ssa_loop_break_zero_cost ctx.SP ctx.TP seqZero ctx.names ctx.exits ctx.refreshed
+                          ctx.mapOut next ctx.nextOut ctx.body ctx.output ctx.moves ctx.tables
+                          {source with permute := permutation} {source with locals := sourceEnv,permute := permutation}
+                          sourceAfter target {target with locals := targetEnv} targetAfter exitEnv produced
+                          valid allocated sourceStateCut targetStateCut sourceBody targetBody bodyFrame exitStrong
+                          exitInjection exitsMapped exitsBound exitCut bodyCost headOnly
+                      obtain ⟨rfl,rfl⟩ := Prod.mk.inj (targetActual.symm.trans loopRun)
+                      exact post_of_run ctx source _ target _ _ _ permutation sourceActual
+                        (Or.inr ⟨rfl,exitFrame,exitLocals,cost⟩)
+                  · have terminal : wordSemContLoop (some value) = false := by
+                      cases value <;> try rfl
+                      rename_i label
+                      have nz : label ≠ 0 := fun equal => continueZero (by rw [equal])
+                      simp [wordSemContLoop,nz]
+                    have notExit : (some value : Option (WordSemResult 64)) ≠ some (.break 0) :=
+                      fun equal => breakZero (Option.some.inj equal)
+                    obtain ⟨sourceActual,targetActual,cost⟩ := ssa_loop_terminal_cost ctx.SP ctx.TP seqZero
+                      ctx.names ctx.exits ctx.targetNames ctx.targetExits ctx.body ctx.output ctx.moves
+                      {source with permute := permutation} {source with locals := sourceEnv,permute := permutation}
+                      sourceAfter target {target with locals := targetEnv} targetAfter value sourceStateCut targetStateCut
+                      sourceBody targetBody terminal notExit bodyCost headOnly
+                    have finalLocals := ssa_loop_terminal_locals ctx.nextOut ctx.nextOut ctx.mapOut
+                      (sptInter ctx.refreshed ctx.exits) ctx.refreshed ctx.names ctx.exits ctx.tables
+                      sourceAfter.locals targetAfter.locals (some value) bodyLocals terminal notExit
+                    obtain ⟨rfl,rfl⟩ := Prod.mk.inj (targetActual.symm.trans loopRun)
+                    exact post_of_run ctx source _ target _ _ _ permutation sourceActual
+                      (Or.inr ⟨rfl,bodyFrame,finalLocals,cost⟩)
+  exact solve target.clock source target rfl frame strong
+
+#print axioms ssa_loop_quantitative_context
 #print axioms ssa_loop_recursive_outcome
 end InitECandidate.Runtime.FineCost
