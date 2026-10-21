@@ -94,6 +94,49 @@ theorem shapePrice_preIsel {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExac
   intro r d args x a a' l1 l2 s
   rcases r with _ | ⟨_, _, _, _, _⟩ <;> rfl
 
+/-- Nodes that may carry a constant re-assignment surcharge. -/
+def isSurNode : WordLangProgHOL (BitVec 64) → Bool
+  | .call _ _ _ _ | .alloc _ _ | .ffi _ _ _ _ _ _ | .install _ _ _ _ _ => true
+  | _ => false
+
+/-- A node surcharge: only on calls/alloc/ffi/install, and blind to a call's
+continuation and handler programs (so it survives their rewriting). -/
+structure SurShape (e : WordLangProgHOL (BitVec 64) → Nat) : Prop where
+  zero : ∀ p, isSurNode p = false → e p = 0
+  callRet : ∀ v n a a' l1 l2 d args h,
+    e (.call (some (v, n, a', l1, l2)) d args h) = e (.call (some (v, n, a, l1, l2)) d args h)
+  callHandler : ∀ r d args x a a' l1 l2,
+    e (.call r d args (some (x, a', l1, l2))) = e (.call r d args (some (x, a, l1, l2)))
+
+theorem surShape_zero_fn : SurShape (fun _ => 0) := ⟨fun _ _ => rfl, fun _ _ _ _ _ _ _ _ _ => rfl,
+  fun _ _ _ _ _ _ _ _ => rfl⟩
+
+theorem surShape_add {e f : WordLangProgHOL (BitVec 64) → Nat} (he : SurShape e) (hf : SurShape f) :
+    SurShape (fun p => e p + f p) :=
+  ⟨fun p h => by simp [he.zero p h, hf.zero p h],
+   fun v n a a' l1 l2 d args h => by simp only [he.callRet v n a a' l1 l2 d args h, hf.callRet v n a a' l1 l2 d args h],
+   fun r d args x a a' l1 l2 => by simp only [he.callHandler r d args x a a' l1 l2, hf.callHandler r d args x a a' l1 l2]⟩
+
+/-- Exact selector price plus 24 per surcharged constant re-assignment. -/
+noncomputable def bP {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
+    (e : WordLangProgHOL (BitVec 64) → Nat) (p : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) : Nat :=
+  preIselPrice c p s + 24 * e p
+
+theorem shapePrice_bP {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
+    {e : WordLangProgHOL (BitVec 64) → Nat} (he : SurShape e) : ShapePrice (bP (C := C) (F := F) c e) := by
+  have sp := shapePrice_preIsel (C := C) (F := F) c
+  constructor
+  · intro a b s; simp [bP, sp.seq0, he.zero (.seq a b) rfl]
+  · intro s; simp [bP, sp.skip0, he.zero .skip rfl]
+  · intro cmp r ri a b a' b' s
+    simp [bP, sp.ite cmp r ri a b a' b' s, he.zero (.ite cmp r ri a b) rfl, he.zero (.ite cmp r ri a' b') rfl]
+  · intro a a' s; simp [bP, sp.mustTerminate a a' s, he.zero (.mustTerminate a) rfl, he.zero (.mustTerminate a') rfl]
+  · intro n a a' x s; simp [bP, sp.loop n a a' x s, he.zero (.loop n a x) rfl, he.zero (.loop n a' x) rfl]
+  · intro v n a a' l1 l2 d args h s; simp only [bP, sp.callRet v n a a' l1 l2 d args h s, he.callRet v n a a' l1 l2 d args h]
+  · intro r d args x a a' l1 l2 s
+    simp only [bP, sp.callHandler r d args x a a' l1 l2 s, he.callHandler r d args x a a' l1 l2]
+
 theorem smartSeq_cost_le {C F : Type} {P : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat}
     (sp : ShapePrice P) (a b : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
     wordExecutionCost P (WordSimp.smartSeqHOL a b) s ≤ wordExecutionCost P (.seq a b) s := by
@@ -114,26 +157,28 @@ theorem iselX_assign_const (c : Compiler.Encoders.Asm.AsmConfigExact 64) (n : Na
     WordInst.instSelectExp, lineBound, isLeafProg, preAllocLeafBudget, WordToStack.refinedWordStackLeafBudget,
     WordToStack.refinedNativeInstructionPrice, Compiler.Encoders.Asm.HolInst.ofWordLangInst]
 
-theorem dropConsts_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (cs : Spt (BitVec 64)) :
+theorem dropConsts_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
+    {e : WordLangProgHOL (BitVec 64) → Nat} (he : SurShape e) (cs : Spt (BitVec 64)) :
     ∀ (vs : List Nat) (s : WordSemStateFiniteExact 64 C F), CsOk cs s →
-      wordExecutionCost (preIselPrice c) (dropConsts cs vs) s ≤ 24 * dropN cs vs := by
+      wordExecutionCost (bP c e) (dropConsts cs vs) s ≤ 24 * dropN cs vs := by
   intro vs
   induction vs with
-  | nil => intro s _; simp only [dropConsts]; rw [wordCost_leaf _ rfl]; simp [preIselPrice, wordOptimizerLocalPrice,
-      WordToStack.refinedWordLocalPrice, WordToStack.refinedWordStackLeafBudget]
+  | nil => intro s _; simp only [dropConsts]; rw [wordCost_leaf _ rfl]; simp [bP, he.zero .skip rfl, preIselPrice,
+      wordOptimizerLocalPrice, WordToStack.refinedWordLocalPrice, WordToStack.refinedWordStackLeafBudget]
   | cons n ns ih =>
     intro s hcs
     simp only [dropConsts, dropN, List.filter_cons]
     rcases hl : sptLookup n cs with _ | w
     · simp only [Option.isSome_none, Bool.false_eq_true, if_false]; exact ih s hcs
     · simp only [Option.isSome_some, if_true, List.length_cons]
-      have sp := shapePrice_preIsel (C := C) (F := F) c
+      have sp := shapePrice_bP (C := C) (F := F) c he
       refine le_trans (smartSeq_cost_le sp _ _ s) ?_
       rw [wordExecutionCost_seq, sp.seq0, evaluate_drop_consts_1 cs ns 0 s hcs]
       dsimp only
-      rw [wordCost_leaf (preIselPrice c) (p := .assign n (.const w)) rfl]
+      rw [wordCost_leaf (bP c e) (p := .assign n (.const w)) rfl]
       have h1 := ih s hcs
-      have h2 : preIselPrice c (.assign n (.const w)) s = 24 := iselX_assign_const c n w
+      have h2 : bP c e (.assign n (.const w)) s = 24 := by
+        simp only [bP, he.zero (.assign n (.const w)) rfl]; exact iselX_assign_const c n w
       simp only [dropN] at h1
       omega
 
@@ -166,54 +211,45 @@ def CfOk (c : Compiler.Encoders.Asm.AsmConfigExact 64) (sur : WordLangProgHOL (B
 /-- Source price for constant folding: the exact selected-code price plus 24
 per surcharged constant re-assignment. -/
 noncomputable def cfPrice {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
-    (sur : WordLangProgHOL (BitVec 64) → Nat) (p : WordLangProgHOL (BitVec 64))
+    (e sur : WordLangProgHOL (BitVec 64) → Nat) (p : WordLangProgHOL (BitVec 64))
     (s : WordSemStateFiniteExact 64 C F) : Nat :=
-  preIselPrice c p s + 24 * sur p
-
-theorem drop_node_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
-    (sur : WordLangProgHOL (BitVec 64) → Nat) (cs : Spt (BitVec 64)) (vs : List Nat)
-    (x : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) (hcs : CsOk cs s)
-    (hd : dropN cs vs ≤ sur x)
-    (top : wordExecutionCost (preIselPrice c) x s + 24 * sur x ≤ wordExecutionCost (cfPrice c sur) x s) :
-    wordExecutionCost (preIselPrice c) (WordSimp.smartSeqHOL (dropConsts cs vs) x) s ≤
-      wordExecutionCost (cfPrice c sur) x s := by
-  have sp := shapePrice_preIsel (C := C) (F := F) c
-  refine le_trans (smartSeq_cost_le sp _ _ s) ?_
-  rw [wordExecutionCost_seq, sp.seq0, evaluate_drop_consts_1 cs vs 0 s hcs]
-  dsimp only
-  have := dropConsts_cost c cs vs s hcs
-  omega
+  bP c (fun q => e q + sur q) p s
 
 theorem drop_node_cost2 {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
+    {e : WordLangProgHOL (BitVec 64) → Nat} (he : SurShape e)
     (sur : WordLangProgHOL (BitVec 64) → Nat) (cs : Spt (BitVec 64)) (vs : List Nat)
     (x y : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) (hcs : CsOk cs s)
     (hd : dropN cs vs ≤ sur y)
-    (top : wordExecutionCost (preIselPrice c) x s + 24 * sur y ≤ wordExecutionCost (cfPrice c sur) y s) :
-    wordExecutionCost (preIselPrice c) (WordSimp.smartSeqHOL (dropConsts cs vs) x) s ≤
-      wordExecutionCost (cfPrice c sur) y s := by
-  have sp := shapePrice_preIsel (C := C) (F := F) c
+    (top : wordExecutionCost (bP c e) x s + 24 * sur y ≤ wordExecutionCost (cfPrice c e sur) y s) :
+    wordExecutionCost (bP c e) (WordSimp.smartSeqHOL (dropConsts cs vs) x) s ≤
+      wordExecutionCost (cfPrice c e sur) y s := by
+  have sp := shapePrice_bP (C := C) (F := F) c he
   refine le_trans (smartSeq_cost_le sp _ _ s) ?_
   rw [wordExecutionCost_seq, sp.seq0, evaluate_drop_consts_1 cs vs 0 s hcs]
   dsimp only
-  have := dropConsts_cost c cs vs s hcs
+  have := dropConsts_cost c he cs vs s hcs
   omega
 
 theorem preIsel_le_cf {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
-    (sur : WordLangProgHOL (BitVec 64) → Nat) (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
-    preIselPrice c p s ≤ cfPrice c sur p s := Nat.le_add_right _ _
+    (e sur : WordLangProgHOL (BitVec 64) → Nat) (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
+    bP c e p s ≤ cfPrice c e sur p s := by simp only [cfPrice, bP]; omega
+
+theorem cf_extra {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
+    (e sur : WordLangProgHOL (BitVec 64) → Nat) (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
+    cfPrice c e sur p s = bP c e p s + 24 * sur p := by simp only [cfPrice, bP]; ring
 
 theorem leaf_top {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
-    (sur : WordLangProgHOL (BitVec 64) → Nat) (x : WordLangProgHOL (BitVec 64)) (hx : isLeafProg x = true)
+    (e sur : WordLangProgHOL (BitVec 64) → Nat) (x : WordLangProgHOL (BitVec 64)) (hx : isLeafProg x = true)
     (s : WordSemStateFiniteExact 64 C F) :
-    wordExecutionCost (preIselPrice c) x s + 24 * sur x ≤ wordExecutionCost (cfPrice c sur) x s := by
-  rw [wordCost_leaf _ hx, wordCost_leaf _ hx, cfPrice]
+    wordExecutionCost (bP c e) x s + 24 * sur x ≤ wordExecutionCost (cfPrice c e sur) x s := by
+  rw [wordCost_leaf _ hx, wordCost_leaf _ hx, cf_extra]
 
 theorem call_top {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
-    (sur : WordLangProgHOL (BitVec 64) → Nat) ret dest args h (s : WordSemStateFiniteExact 64 C F) :
-    wordExecutionCost (preIselPrice c) (.call ret dest args h) s + 24 * sur (.call ret dest args h) ≤
-      wordExecutionCost (cfPrice c sur) (.call ret dest args h) s := by
-  have := wordExecutionCost_call_top (preIselPrice c) (cfPrice c sur) (preIsel_le_cf c sur) ret dest args h s
-  simp only [cfPrice, Nat.add_sub_cancel_left] at this
+    (e sur : WordLangProgHOL (BitVec 64) → Nat) ret dest args h (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost (bP c e) (.call ret dest args h) s + 24 * sur (.call ret dest args h) ≤
+      wordExecutionCost (cfPrice c e sur) (.call ret dest args h) s := by
+  have := wordExecutionCost_call_top (bP c e) (cfPrice c e sur) (preIsel_le_cf c e sur) ret dest args h s
+  rw [cf_extra, Nat.add_sub_cancel_left] at this
   exact this
 
 /-- Two-price loop congruence: a body with the same runs and no more work
@@ -262,54 +298,54 @@ theorem loop_cost2 {C F : Type} (P Q : WordLangProgHOL (BitVec 64) → WordSemSt
   · simp only [hcont, Bool.false_eq_true, if_false]; omega
 
 /-- Constant folding's cost transfer. -/
-theorem cf_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (sur : WordLangProgHOL (BitVec 64) → Nat) :
+theorem cf_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
+    {bg : WordLangProgHOL (BitVec 64) → Nat} (he : SurShape bg) (sur : WordLangProgHOL (BitVec 64) → Nat) :
     ∀ (p : WordLangProgHOL (BitVec 64)) (cs : Spt (BitVec 64)) (s : WordSemStateFiniteExact 64 C F),
       gcFunConstOk s.gcFun → CsOk cs s → CfOk c sur p cs → (evaluate p s).1 ≠ some .error →
-      wordExecutionCost (preIselPrice c) (constFpLoop p cs).1 s ≤ wordExecutionCost (cfPrice c sur) p s
+      wordExecutionCost (bP c bg) (constFpLoop p cs).1 s ≤ wordExecutionCost (cfPrice c bg sur) p s
   | .assign v e, cs, s, _, _, hok, _ => by
       have : (constFpLoop (.assign v e) cs).1 = .assign v (constFpExp e cs) := by
         simp only [constFpLoop]; split <;> rfl
-      rw [this, wordCost_leaf _ rfl, wordCost_leaf _ rfl]
+      rw [this, wordCost_leaf _ rfl, wordCost_leaf _ rfl, cf_extra]
       simp only [CfOk] at hok
-      simp only [preIselPrice, cfPrice]; omega
+      simp only [bP, preIselPrice, he.zero (.assign v (constFpExp e cs)) rfl, he.zero (.assign v e) rfl]; omega
   | .store e v, cs, s, _, _, hok, _ => by
       simp only [constFpLoop]
-      rw [wordCost_leaf _ rfl, wordCost_leaf _ rfl]
+      rw [wordCost_leaf _ rfl, wordCost_leaf _ rfl, cf_extra]
       simp only [CfOk] at hok
-      simp only [preIselPrice, cfPrice]; omega
+      simp only [bP, preIselPrice, he.zero (.store (constFpExp e cs) v) rfl, he.zero (.store e v) rfl]; omega
   | .shareInst op v e, cs, s, _, _, hok, _ => by
       have : (constFpLoop (.shareInst op v e) cs).1 = .shareInst op v (constFpExp e cs) := by
         cases op <;> simp only [constFpLoop]
-      rw [this, wordCost_leaf _ rfl, wordCost_leaf _ rfl]
+      rw [this, wordCost_leaf _ rfl, wordCost_leaf _ rfl, cf_extra]
       simp only [CfOk] at hok
-      simp only [preIselPrice, cfPrice]; omega
+      simp only [bP, preIselPrice, he.zero (.shareInst op v (constFpExp e cs)) rfl, he.zero (.shareInst op v e) rfl]
+      omega
   | .alloc n names, cs, s, _, hcs, hok, _ => by
       simp only [constFpLoop]
-      exact drop_node_cost c sur cs _ _ s hcs hok (leaf_top c sur _ rfl s)
+      exact drop_node_cost2 c he sur cs _ _ _ s hcs hok (leaf_top c bg sur _ rfl s)
   | .ffi x0 x1 x2 x3 x4 names, cs, s, _, hcs, hok, _ => by
       simp only [constFpLoop]
-      exact drop_node_cost c sur cs _ _ s hcs hok (leaf_top c sur _ rfl s)
+      exact drop_node_cost2 c he sur cs _ _ _ s hcs hok (leaf_top c bg sur _ rfl s)
   | .install r1 r2 r3 r4 names, cs, s, _, hcs, hok, _ => by
       simp only [constFpLoop]
-      exact drop_node_cost c sur cs _ _ s hcs hok (leaf_top c sur _ rfl s)
+      exact drop_node_cost2 c he sur cs _ _ _ s hcs hok (leaf_top c bg sur _ rfl s)
   | .call none dest args h, cs, s, _, hcs, hok, _ => by
       simp only [constFpLoop]
-      exact drop_node_cost c sur cs _ _ s hcs hok (call_top c sur _ _ _ _ s)
+      exact drop_node_cost2 c he sur cs _ _ _ s hcs hok (call_top c bg sur _ _ _ _ s)
   | .call (some r) dest args (some h), cs, s, _, hcs, hok, _ => by
       simp only [constFpLoop]
-      exact drop_node_cost c sur cs _ _ s hcs hok (call_top c sur _ _ _ _ s)
+      exact drop_node_cost2 c he sur cs _ _ _ s hcs hok (call_top c bg sur _ _ _ _ s)
   | .call (some (n, names, rh, l1, l2)) dest args none, cs, s, hok0, hcs, hok, ok => by
       have ht := (evaluate_def_rebound (width := 64) (C := C) (F := F)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
-      have sp := shapePrice_preIsel (C := C) (F := F) c
+      have sp := shapePrice_bP (C := C) (F := F) c he
       simp only [CfOk] at hok
       simp only [constFpLoop]
       rcases hr : constFpLoop rh (deleteAll n (sptFilterV isGcConst (sptInter cs (allNames names)))) with ⟨rh', cs''⟩
       dsimp only
-      refine drop_node_cost2 c sur cs args _ _ s hcs hok.1 ?_
+      refine drop_node_cost2 c he sur cs args _ _ s hcs hok.1 ?_
       have pXY := sp.callRet n names rh rh' l1 l2 dest args none s
-      have qY : cfPrice c sur (.call (some (n, names, rh, l1, l2)) dest args none) s =
-          preIselPrice c (.call (some (n, names, rh, l1, l2)) dest args none) s +
-            24 * sur (.call (some (n, names, rh, l1, l2)) dest args none) := rfl
+      have qY := cf_extra c bg sur (.call (some (n, names, rh, l1, l2)) dest args none) s
       rw [ht] at ok
       rcases hgv : WordSemStateFiniteExact.getVars args s with _ | xs
       · simp only [hgv] at ok; exact absurd rfl ok
@@ -335,14 +371,14 @@ theorem cf_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (sur 
       simp only [hz, if_false] at ok
       rcases hcv : evaluate prog (callEnv args1 ss (pushEnv envs none (decClock s))) with ⟨rc, s2⟩
       rw [hcv] at ok
-      rw [ret_call_cost (preIselPrice c) n names rh' l1 l2 dest args none s xs hgv hbad' args1 prog ss hf hdc envs
+      rw [ret_call_cost (bP c bg) n names rh' l1 l2 dest args none s xs hgv hbad' args1 prog ss hf hdc envs
           hce hz rc s2 hcv,
-        ret_call_cost (cfPrice c sur) n names rh l1 l2 dest args none s xs hgv hbad' args1 prog ss hf hdc envs
+        ret_call_cost (cfPrice c bg sur) n names rh l1 l2 dest args none s xs hgv hbad' args1 prog ss hf hdc envs
           hce hz rc s2 hcv]
-      have mb := wordExecutionCost_mono (preIselPrice c) (cfPrice c sur) (preIsel_le_cf c sur) prog
+      have mb := wordExecutionCost_mono (bP c bg) (cfPrice c bg sur) (preIsel_le_cf c bg sur) prog
         (callEnv args1 ss (pushEnv envs none (decClock s)))
-      suffices kr : retCont (preIselPrice c) n rh' l1 l2 none envs rc s2 ≤
-          retCont (cfPrice c sur) n rh l1 l2 none envs rc s2 by omega
+      suffices kr : retCont (bP c bg) n rh' l1 l2 none envs rc s2 ≤
+          retCont (cfPrice c bg sur) n rh l1 l2 none envs rc s2 by omega
       rcases rc with _ | (⟨x, ys⟩ | ⟨x, y⟩ | _ | _ | _ | _ | _ | _)
       all_goals try (exact Nat.le_refl 0)
       simp only at ok
@@ -375,25 +411,25 @@ theorem cf_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (sur 
           rw [get_var_set_vars_ignore v n ys s1 hvn]
           exact push_env_pop_env_locals_thm (decClock s) _ s2 s1 envs names none
             ⟨hce, rfl, hsf.1, hp⟩ v (.word cc) ⟨hcs v cc h1, hgc, by rw [h2]; simp⟩
-        have ih := cf_cost c sur rh _ (setVars n ys s1) hok1 hcs' hok.2 ok
+        have ih := cf_cost c he sur rh _ (setVars n ys s1) hok1 hcs' hok.2 ok
         rw [hr] at ih
         exact ih
       · simp only [hdom]; exact Nat.le_refl 0
   | .seq p1 p2, cs, s, hg, hcs, hok, ok => by
       have aux1 := cf_aux (width := 64) p1 cs s hg hcs
       simp only [CfOk] at hok
-      have ih1 := cf_cost c sur p1 cs s hg hcs hok.1 (seq_ok_left ok)
+      have ih1 := cf_cost c he sur p1 cs s hg hcs hok.1 (seq_ok_left ok)
       simp only [constFpLoop]
       rcases h1 : constFpLoop p1 cs with ⟨p1', cs1⟩
       rw [h1] at aux1 ih1 hok
       simp only [CfGoal] at aux1 ih1 hok
       rcases h2 : constFpLoop p2 cs1 with ⟨p2', cs2⟩
       dsimp only
-      rw [wordExecutionCost_seq, wordExecutionCost_seq, (shapePrice_preIsel c).seq0, aux1.1]
-      rcases he : evaluate p1 s with ⟨_ | r, s1⟩
-      · have g1 : gcFunConstOk s1.gcFun := evaluate_gc_fun_const_ok p1 s none s1 ⟨he, hg⟩
-        rw [he] at aux1
-        have ih2 := cf_cost c sur p2 cs1 s1 g1 (aux1.2 rfl) hok.2 (seq_ok_right ok he)
+      rw [wordExecutionCost_seq, wordExecutionCost_seq, (shapePrice_bP c he).seq0, aux1.1]
+      rcases hev1 : evaluate p1 s with ⟨_ | r, s1⟩
+      · have g1 : gcFunConstOk s1.gcFun := evaluate_gc_fun_const_ok p1 s none s1 ⟨hev1, hg⟩
+        rw [hev1] at aux1
+        have ih2 := cf_cost c he sur p2 cs1 s1 g1 (aux1.2 rfl) hok.2 (seq_ok_right ok hev1)
         rw [h2] at ih2
         dsimp only at ih2 ⊢
         omega
@@ -405,9 +441,8 @@ theorem cf_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (sur 
       rcases hq : constFpLoop q cs with ⟨q', cs1⟩
       dsimp only
       rw [wordExecutionCost, wordExecutionCost]
-      have pr : preIselPrice c (.mustTerminate q') s ≤ cfPrice c sur (.mustTerminate q) s := by
-        simp [preIselPrice, cfPrice, wordOptimizerLocalPrice, WordToStack.refinedWordLocalPrice,
-          WordToStack.refinedWordStackLeafBudget]
+      have pr : bP c bg (.mustTerminate q') s ≤ cfPrice c bg sur (.mustTerminate q) s := by
+        rw [cf_extra, (shapePrice_bP c he).mustTerminate q q' s]; omega
       by_cases hz : s.termdep = 0
       · simp only [hz, dite_true]; omega
       simp only [hz, dite_false]
@@ -418,20 +453,19 @@ theorem cf_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (sur 
         rcases hb : evaluate q { s with clock := L, termdep := s.termdep - 1 } with ⟨r, s1⟩
         rw [hb] at ok
         rintro rfl; simp at ok
-      have ih := cf_cost c sur q cs { s with clock := L, termdep := s.termdep - 1 } hg
+      have ih := cf_cost c he sur q cs { s with clock := L, termdep := s.termdep - 1 } hg
         (csOk_same_locals hcs rfl) hok okb
       rw [hq] at ih
       dsimp only at ih
       omega
   | .ite cmp lhs rhs p1 p2, cs, s, hg, hcs, hok, ok => by
       have ht := (evaluate_def_rebound (width := 64) (C := C) (F := F)).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
-      have pr : ∀ a b, preIselPrice c (.ite cmp lhs rhs a b) s ≤ cfPrice c sur (.ite cmp lhs rhs p1 p2) s := by
-        intro a b; simp [preIselPrice, cfPrice, wordOptimizerLocalPrice, WordToStack.refinedWordLocalPrice,
-          WordToStack.refinedWordStackLeafBudget]
+      have pr : ∀ a b, bP c bg (.ite cmp lhs rhs a b) s ≤ cfPrice c bg sur (.ite cmp lhs rhs p1 p2) s := by
+        intro a b; rw [cf_extra, (shapePrice_bP c he).ite cmp lhs rhs p1 p2 a b s]; omega
       have ih1 := fun (h1 : CfOk c sur p1 cs) (okb : (evaluate p1 s).1 ≠ some .error) =>
-        cf_cost c sur p1 cs s hg hcs h1 okb
+        cf_cost c he sur p1 cs s hg hcs h1 okb
       have ih2 := fun (h2 : CfOk c sur p2 cs) (okb : (evaluate p2 s).1 ≠ some .error) =>
-        cf_cost c sur p2 cs s hg hcs h2 okb
+        cf_cost c he sur p2 cs s hg hcs h2 okb
       simp only [CfOk] at hok
       simp only [constFpLoop]
       rw [ht] at ok
@@ -476,11 +510,10 @@ theorem cf_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (sur 
   | .loop names body exits, cs, s, hg, hcs, hok, ok => by
       simp only [CfOk] at hok
       simp only [constFpLoop]
-      exact loop_cost2 (preIselPrice c) (cfPrice c sur) names exits body _
-        (fun s => by simp [preIselPrice, cfPrice, wordOptimizerLocalPrice, WordToStack.refinedWordLocalPrice,
-          WordToStack.refinedWordStackLeafBudget])
+      exact loop_cost2 (bP c bg) (cfPrice c bg sur) names exits body _
+        (fun s => by rw [cf_extra, (shapePrice_bP c he).loop names body _ exits s]; omega)
         (fun v gv => (cf_aux (width := 64) body .ln v gv (csOk_ln v)).1)
-        (fun v gv okv => cf_cost c sur body .ln v gv (csOk_ln v) hok okv) s.clock s rfl hg ok
+        (fun v gv okv => cf_cost c he sur body .ln v gv (csOk_ln v) hok okv) s.clock s rfl hg ok
   | .move a b, cs, s, _, _, _, _ | .inst a, cs, s, _, _, _, _ | .get a b, cs, s, _, _, _, _
   | .opCurrHeap a b d, cs, s, _, _, _, _ | .locValue a b, cs, s, _, _, _, _
   | .storeConsts a b d e f, cs, s, _, _, _, _ | .skip, cs, s, _, _, _, _ | .set a b, cs, s, _, _, _, _
@@ -488,17 +521,18 @@ theorem cf_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (sur 
   | .break a, cs, s, _, _, _, _ | .continue a, cs, s, _, _, _, _
   | .codeBufferWrite a b, cs, s, _, _, _, _ | .dataBufferWrite a b, cs, s, _, _, _, _ => by
       simp only [constFpLoop]
-      exact wordExecutionCost_mono _ _ (preIsel_le_cf c sur) _ s
+      exact wordExecutionCost_mono _ _ (preIsel_le_cf c bg sur) _ s
 
 /-- Constant folding endpoint: same run from every gc-safe state, and the
 folded program's work at the exact selector price is at most the source's at
 the price plus its constant re-assignment surcharge. -/
 theorem constFp_run_cost {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64)
+    {e : WordLangProgHOL (BitVec 64) → Nat} (he : SurShape e)
     (sur : WordLangProgHOL (BitVec 64) → Nat) (p : WordLangProgHOL (BitVec 64)) (hok : CfOk c sur p .ln)
     (s : WordSemStateFiniteExact 64 C F) (g : gcFunConstOk s.gcFun) (ok : (evaluate p s).1 ≠ some .error) :
     evaluate (constFp p) s = evaluate p s ∧
-      wordExecutionCost (preIselPrice c) (constFp p) s ≤ wordExecutionCost (cfPrice c sur) p s :=
-  ⟨evaluate_const_fp p s g, cf_cost c sur p .ln s g (csOk_ln s) hok ok⟩
+      wordExecutionCost (bP c e) (constFp p) s ≤ wordExecutionCost (cfPrice c e sur) p s :=
+  ⟨evaluate_const_fp p s g, cf_cost c he sur p .ln s g (csOk_ln s) hok ok⟩
 
 #print axioms constFp_run_cost
 #print axioms cf_cost
