@@ -858,28 +858,7 @@ theorem Padded0_c1 :
     ((Padded0.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded0_c2 :
-    ((Padded0.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded0_c3 :
-    ((Padded0.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded0_c4 :
-    ((Padded0.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded0_c5 :
-    ((Padded0.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded0_c6 :
-    ((Padded0.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded0_c7 :
-    ((Padded0.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded0_cover : Padded0.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded1_c0 :
@@ -890,28 +869,7 @@ theorem Padded1_c1 :
     ((Padded1.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded1_c2 :
-    ((Padded1.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded1_c3 :
-    ((Padded1.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded1_c4 :
-    ((Padded1.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded1_c5 :
-    ((Padded1.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded1_c6 :
-    ((Padded1.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded1_c7 :
-    ((Padded1.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded1_cover : Padded1.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded2_c0 :
@@ -922,28 +880,7 @@ theorem Padded2_c1 :
     ((Padded2.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded2_c2 :
-    ((Padded2.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded2_c3 :
-    ((Padded2.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded2_c4 :
-    ((Padded2.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded2_c5 :
-    ((Padded2.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded2_c6 :
-    ((Padded2.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded2_c7 :
-    ((Padded2.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded2_cover : Padded2.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded4_c0 :
@@ -954,28 +891,7 @@ theorem Padded4_c1 :
     ((Padded4.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded4_c2 :
-    ((Padded4.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded4_c3 :
-    ((Padded4.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded4_c4 :
-    ((Padded4.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded4_c5 :
-    ((Padded4.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded4_c6 :
-    ((Padded4.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded4_c7 :
-    ((Padded4.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded4_cover : Padded4.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded5_c0 :
@@ -986,28 +902,7 @@ theorem Padded5_c1 :
     ((Padded5.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded5_c2 :
-    ((Padded5.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded5_c3 :
-    ((Padded5.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded5_c4 :
-    ((Padded5.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded5_c5 :
-    ((Padded5.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded5_c6 :
-    ((Padded5.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded5_c7 :
-    ((Padded5.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded5_cover : Padded5.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded6_c0 :
@@ -1018,28 +913,7 @@ theorem Padded6_c1 :
     ((Padded6.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded6_c2 :
-    ((Padded6.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded6_c3 :
-    ((Padded6.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded6_c4 :
-    ((Padded6.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded6_c5 :
-    ((Padded6.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded6_c6 :
-    ((Padded6.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded6_c7 :
-    ((Padded6.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded6_cover : Padded6.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded64_c0 :
@@ -1054,24 +928,7 @@ theorem Padded64_c2 :
     ((Padded64.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded64_c3 :
-    ((Padded64.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded64_c4 :
-    ((Padded64.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded64_c5 :
-    ((Padded64.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded64_c6 :
-    ((Padded64.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded64_c7 :
-    ((Padded64.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded64_cover : Padded64.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded65_c0 :
@@ -1094,16 +951,7 @@ theorem Padded65_c4 :
     ((Padded65.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded65_c5 :
-    ((Padded65.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded65_c6 :
-    ((Padded65.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded65_c7 :
-    ((Padded65.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded65_cover : Padded65.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded66_c0 :
@@ -1114,28 +962,7 @@ theorem Padded66_c1 :
     ((Padded66.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded66_c2 :
-    ((Padded66.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded66_c3 :
-    ((Padded66.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded66_c4 :
-    ((Padded66.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded66_c5 :
-    ((Padded66.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded66_c6 :
-    ((Padded66.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded66_c7 :
-    ((Padded66.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded66_cover : Padded66.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded67_c0 :
@@ -1146,28 +973,7 @@ theorem Padded67_c1 :
     ((Padded67.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded67_c2 :
-    ((Padded67.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded67_c3 :
-    ((Padded67.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded67_c4 :
-    ((Padded67.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded67_c5 :
-    ((Padded67.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded67_c6 :
-    ((Padded67.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded67_c7 :
-    ((Padded67.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded67_cover : Padded67.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded68_c0 :
@@ -1178,28 +984,7 @@ theorem Padded68_c1 :
     ((Padded68.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded68_c2 :
-    ((Padded68.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded68_c3 :
-    ((Padded68.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded68_c4 :
-    ((Padded68.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded68_c5 :
-    ((Padded68.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded68_c6 :
-    ((Padded68.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded68_c7 :
-    ((Padded68.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded68_cover : Padded68.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded69_c0 :
@@ -1210,28 +995,7 @@ theorem Padded69_c1 :
     ((Padded69.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded69_c2 :
-    ((Padded69.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded69_c3 :
-    ((Padded69.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded69_c4 :
-    ((Padded69.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded69_c5 :
-    ((Padded69.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded69_c6 :
-    ((Padded69.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded69_c7 :
-    ((Padded69.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded69_cover : Padded69.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded70_c0 :
@@ -1242,28 +1006,7 @@ theorem Padded70_c1 :
     ((Padded70.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded70_c2 :
-    ((Padded70.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded70_c3 :
-    ((Padded70.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded70_c4 :
-    ((Padded70.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded70_c5 :
-    ((Padded70.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded70_c6 :
-    ((Padded70.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded70_c7 :
-    ((Padded70.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded70_cover : Padded70.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded71_c0 :
@@ -1274,28 +1017,7 @@ theorem Padded71_c1 :
     ((Padded71.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded71_c2 :
-    ((Padded71.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded71_c3 :
-    ((Padded71.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded71_c4 :
-    ((Padded71.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded71_c5 :
-    ((Padded71.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded71_c6 :
-    ((Padded71.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded71_c7 :
-    ((Padded71.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded71_cover : Padded71.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded72_c0 :
@@ -1306,28 +1028,7 @@ theorem Padded72_c1 :
     ((Padded72.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded72_c2 :
-    ((Padded72.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded72_c3 :
-    ((Padded72.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded72_c4 :
-    ((Padded72.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded72_c5 :
-    ((Padded72.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded72_c6 :
-    ((Padded72.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded72_c7 :
-    ((Padded72.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded72_cover : Padded72.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded73_c0 :
@@ -1338,28 +1039,7 @@ theorem Padded73_c1 :
     ((Padded73.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded73_c2 :
-    ((Padded73.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded73_c3 :
-    ((Padded73.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded73_c4 :
-    ((Padded73.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded73_c5 :
-    ((Padded73.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded73_c6 :
-    ((Padded73.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded73_c7 :
-    ((Padded73.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded73_cover : Padded73.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded74_c0 :
@@ -1370,28 +1050,7 @@ theorem Padded74_c1 :
     ((Padded74.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded74_c2 :
-    ((Padded74.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded74_c3 :
-    ((Padded74.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded74_c4 :
-    ((Padded74.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded74_c5 :
-    ((Padded74.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded74_c6 :
-    ((Padded74.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded74_c7 :
-    ((Padded74.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded74_cover : Padded74.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded75_c0 :
@@ -1402,28 +1061,7 @@ theorem Padded75_c1 :
     ((Padded75.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded75_c2 :
-    ((Padded75.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded75_c3 :
-    ((Padded75.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded75_c4 :
-    ((Padded75.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded75_c5 :
-    ((Padded75.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded75_c6 :
-    ((Padded75.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded75_c7 :
-    ((Padded75.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded75_cover : Padded75.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded76_c0 :
@@ -1434,28 +1072,7 @@ theorem Padded76_c1 :
     ((Padded76.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded76_c2 :
-    ((Padded76.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded76_c3 :
-    ((Padded76.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded76_c4 :
-    ((Padded76.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded76_c5 :
-    ((Padded76.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded76_c6 :
-    ((Padded76.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded76_c7 :
-    ((Padded76.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded76_cover : Padded76.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded77_c0 :
@@ -1466,28 +1083,7 @@ theorem Padded77_c1 :
     ((Padded77.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded77_c2 :
-    ((Padded77.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded77_c3 :
-    ((Padded77.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded77_c4 :
-    ((Padded77.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded77_c5 :
-    ((Padded77.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded77_c6 :
-    ((Padded77.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded77_c7 :
-    ((Padded77.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded77_cover : Padded77.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded78_c0 :
@@ -1498,28 +1094,7 @@ theorem Padded78_c1 :
     ((Padded78.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded78_c2 :
-    ((Padded78.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded78_c3 :
-    ((Padded78.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded78_c4 :
-    ((Padded78.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded78_c5 :
-    ((Padded78.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded78_c6 :
-    ((Padded78.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded78_c7 :
-    ((Padded78.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded78_cover : Padded78.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded79_c0 :
@@ -1534,24 +1109,7 @@ theorem Padded79_c2 :
     ((Padded79.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded79_c3 :
-    ((Padded79.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded79_c4 :
-    ((Padded79.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded79_c5 :
-    ((Padded79.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded79_c6 :
-    ((Padded79.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded79_c7 :
-    ((Padded79.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded79_cover : Padded79.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded80_c0 :
@@ -1562,28 +1120,7 @@ theorem Padded80_c1 :
     ((Padded80.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded80_c2 :
-    ((Padded80.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded80_c3 :
-    ((Padded80.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded80_c4 :
-    ((Padded80.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded80_c5 :
-    ((Padded80.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded80_c6 :
-    ((Padded80.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded80_c7 :
-    ((Padded80.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded80_cover : Padded80.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded81_c0 :
@@ -1594,28 +1131,7 @@ theorem Padded81_c1 :
     ((Padded81.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded81_c2 :
-    ((Padded81.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded81_c3 :
-    ((Padded81.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded81_c4 :
-    ((Padded81.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded81_c5 :
-    ((Padded81.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded81_c6 :
-    ((Padded81.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded81_c7 :
-    ((Padded81.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded81_cover : Padded81.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded82_c0 :
@@ -1626,28 +1142,7 @@ theorem Padded82_c1 :
     ((Padded82.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded82_c2 :
-    ((Padded82.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded82_c3 :
-    ((Padded82.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded82_c4 :
-    ((Padded82.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded82_c5 :
-    ((Padded82.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded82_c6 :
-    ((Padded82.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded82_c7 :
-    ((Padded82.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded82_cover : Padded82.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded83_c0 :
@@ -1658,28 +1153,7 @@ theorem Padded83_c1 :
     ((Padded83.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded83_c2 :
-    ((Padded83.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded83_c3 :
-    ((Padded83.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded83_c4 :
-    ((Padded83.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded83_c5 :
-    ((Padded83.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded83_c6 :
-    ((Padded83.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded83_c7 :
-    ((Padded83.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded83_cover : Padded83.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded84_c0 :
@@ -1690,28 +1164,7 @@ theorem Padded84_c1 :
     ((Padded84.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded84_c2 :
-    ((Padded84.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded84_c3 :
-    ((Padded84.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded84_c4 :
-    ((Padded84.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded84_c5 :
-    ((Padded84.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded84_c6 :
-    ((Padded84.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded84_c7 :
-    ((Padded84.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded84_cover : Padded84.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded85_c0 :
@@ -1722,28 +1175,7 @@ theorem Padded85_c1 :
     ((Padded85.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded85_c2 :
-    ((Padded85.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded85_c3 :
-    ((Padded85.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded85_c4 :
-    ((Padded85.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded85_c5 :
-    ((Padded85.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded85_c6 :
-    ((Padded85.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded85_c7 :
-    ((Padded85.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded85_cover : Padded85.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded86_c0 :
@@ -1754,28 +1186,7 @@ theorem Padded86_c1 :
     ((Padded86.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded86_c2 :
-    ((Padded86.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded86_c3 :
-    ((Padded86.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded86_c4 :
-    ((Padded86.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded86_c5 :
-    ((Padded86.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded86_c6 :
-    ((Padded86.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded86_c7 :
-    ((Padded86.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded86_cover : Padded86.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded87_c0 :
@@ -1786,28 +1197,7 @@ theorem Padded87_c1 :
     ((Padded87.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded87_c2 :
-    ((Padded87.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded87_c3 :
-    ((Padded87.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded87_c4 :
-    ((Padded87.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded87_c5 :
-    ((Padded87.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded87_c6 :
-    ((Padded87.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded87_c7 :
-    ((Padded87.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded87_cover : Padded87.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded88_c0 :
@@ -1818,28 +1208,7 @@ theorem Padded88_c1 :
     ((Padded88.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded88_c2 :
-    ((Padded88.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded88_c3 :
-    ((Padded88.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded88_c4 :
-    ((Padded88.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded88_c5 :
-    ((Padded88.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded88_c6 :
-    ((Padded88.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded88_c7 :
-    ((Padded88.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded88_cover : Padded88.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded89_c0 :
@@ -1850,28 +1219,7 @@ theorem Padded89_c1 :
     ((Padded89.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded89_c2 :
-    ((Padded89.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded89_c3 :
-    ((Padded89.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded89_c4 :
-    ((Padded89.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded89_c5 :
-    ((Padded89.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded89_c6 :
-    ((Padded89.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded89_c7 :
-    ((Padded89.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded89_cover : Padded89.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded90_c0 :
@@ -1882,28 +1230,7 @@ theorem Padded90_c1 :
     ((Padded90.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded90_c2 :
-    ((Padded90.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded90_c3 :
-    ((Padded90.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded90_c4 :
-    ((Padded90.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded90_c5 :
-    ((Padded90.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded90_c6 :
-    ((Padded90.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded90_c7 :
-    ((Padded90.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded90_cover : Padded90.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded91_c0 :
@@ -1914,28 +1241,7 @@ theorem Padded91_c1 :
     ((Padded91.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded91_c2 :
-    ((Padded91.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded91_c3 :
-    ((Padded91.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded91_c4 :
-    ((Padded91.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded91_c5 :
-    ((Padded91.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded91_c6 :
-    ((Padded91.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded91_c7 :
-    ((Padded91.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded91_cover : Padded91.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded92_c0 :
@@ -1946,28 +1252,7 @@ theorem Padded92_c1 :
     ((Padded92.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded92_c2 :
-    ((Padded92.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded92_c3 :
-    ((Padded92.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded92_c4 :
-    ((Padded92.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded92_c5 :
-    ((Padded92.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded92_c6 :
-    ((Padded92.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded92_c7 :
-    ((Padded92.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded92_cover : Padded92.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded93_c0 :
@@ -1978,28 +1263,7 @@ theorem Padded93_c1 :
     ((Padded93.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded93_c2 :
-    ((Padded93.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded93_c3 :
-    ((Padded93.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded93_c4 :
-    ((Padded93.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded93_c5 :
-    ((Padded93.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded93_c6 :
-    ((Padded93.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded93_c7 :
-    ((Padded93.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded93_cover : Padded93.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded94_c0 :
@@ -2010,28 +1274,7 @@ theorem Padded94_c1 :
     ((Padded94.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded94_c2 :
-    ((Padded94.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded94_c3 :
-    ((Padded94.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded94_c4 :
-    ((Padded94.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded94_c5 :
-    ((Padded94.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded94_c6 :
-    ((Padded94.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded94_c7 :
-    ((Padded94.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded94_cover : Padded94.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded95_c0 :
@@ -2042,28 +1285,7 @@ theorem Padded95_c1 :
     ((Padded95.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded95_c2 :
-    ((Padded95.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded95_c3 :
-    ((Padded95.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded95_c4 :
-    ((Padded95.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded95_c5 :
-    ((Padded95.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded95_c6 :
-    ((Padded95.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded95_c7 :
-    ((Padded95.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded95_cover : Padded95.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded96_c0 :
@@ -2074,28 +1296,7 @@ theorem Padded96_c1 :
     ((Padded96.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded96_c2 :
-    ((Padded96.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded96_c3 :
-    ((Padded96.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded96_c4 :
-    ((Padded96.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded96_c5 :
-    ((Padded96.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded96_c6 :
-    ((Padded96.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded96_c7 :
-    ((Padded96.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded96_cover : Padded96.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded97_c0 :
@@ -2106,28 +1307,7 @@ theorem Padded97_c1 :
     ((Padded97.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded97_c2 :
-    ((Padded97.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded97_c3 :
-    ((Padded97.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded97_c4 :
-    ((Padded97.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded97_c5 :
-    ((Padded97.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded97_c6 :
-    ((Padded97.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded97_c7 :
-    ((Padded97.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded97_cover : Padded97.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded98_c0 :
@@ -2138,28 +1318,7 @@ theorem Padded98_c1 :
     ((Padded98.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded98_c2 :
-    ((Padded98.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded98_c3 :
-    ((Padded98.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded98_c4 :
-    ((Padded98.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded98_c5 :
-    ((Padded98.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded98_c6 :
-    ((Padded98.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded98_c7 :
-    ((Padded98.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded98_cover : Padded98.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded99_c0 :
@@ -2170,28 +1329,7 @@ theorem Padded99_c1 :
     ((Padded99.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded99_c2 :
-    ((Padded99.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded99_c3 :
-    ((Padded99.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded99_c4 :
-    ((Padded99.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded99_c5 :
-    ((Padded99.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded99_c6 :
-    ((Padded99.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded99_c7 :
-    ((Padded99.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded99_cover : Padded99.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded100_c0 :
@@ -2202,28 +1340,7 @@ theorem Padded100_c1 :
     ((Padded100.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded100_c2 :
-    ((Padded100.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded100_c3 :
-    ((Padded100.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded100_c4 :
-    ((Padded100.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded100_c5 :
-    ((Padded100.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded100_c6 :
-    ((Padded100.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded100_c7 :
-    ((Padded100.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded100_cover : Padded100.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded101_c0 :
@@ -2234,28 +1351,7 @@ theorem Padded101_c1 :
     ((Padded101.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded101_c2 :
-    ((Padded101.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded101_c3 :
-    ((Padded101.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded101_c4 :
-    ((Padded101.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded101_c5 :
-    ((Padded101.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded101_c6 :
-    ((Padded101.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded101_c7 :
-    ((Padded101.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded101_cover : Padded101.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded102_c0 :
@@ -2266,28 +1362,7 @@ theorem Padded102_c1 :
     ((Padded102.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded102_c2 :
-    ((Padded102.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded102_c3 :
-    ((Padded102.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded102_c4 :
-    ((Padded102.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded102_c5 :
-    ((Padded102.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded102_c6 :
-    ((Padded102.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded102_c7 :
-    ((Padded102.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded102_cover : Padded102.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded103_c0 :
@@ -2298,28 +1373,7 @@ theorem Padded103_c1 :
     ((Padded103.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded103_c2 :
-    ((Padded103.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded103_c3 :
-    ((Padded103.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded103_c4 :
-    ((Padded103.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded103_c5 :
-    ((Padded103.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded103_c6 :
-    ((Padded103.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded103_c7 :
-    ((Padded103.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded103_cover : Padded103.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded104_c0 :
@@ -2330,28 +1384,7 @@ theorem Padded104_c1 :
     ((Padded104.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded104_c2 :
-    ((Padded104.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded104_c3 :
-    ((Padded104.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded104_c4 :
-    ((Padded104.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded104_c5 :
-    ((Padded104.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded104_c6 :
-    ((Padded104.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded104_c7 :
-    ((Padded104.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded104_cover : Padded104.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded105_c0 :
@@ -2362,28 +1395,7 @@ theorem Padded105_c1 :
     ((Padded105.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded105_c2 :
-    ((Padded105.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded105_c3 :
-    ((Padded105.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded105_c4 :
-    ((Padded105.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded105_c5 :
-    ((Padded105.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded105_c6 :
-    ((Padded105.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded105_c7 :
-    ((Padded105.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded105_cover : Padded105.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded106_c0 :
@@ -2394,28 +1406,7 @@ theorem Padded106_c1 :
     ((Padded106.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded106_c2 :
-    ((Padded106.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded106_c3 :
-    ((Padded106.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded106_c4 :
-    ((Padded106.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded106_c5 :
-    ((Padded106.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded106_c6 :
-    ((Padded106.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded106_c7 :
-    ((Padded106.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded106_cover : Padded106.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded107_c0 :
@@ -2426,28 +1417,7 @@ theorem Padded107_c1 :
     ((Padded107.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded107_c2 :
-    ((Padded107.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded107_c3 :
-    ((Padded107.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded107_c4 :
-    ((Padded107.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded107_c5 :
-    ((Padded107.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded107_c6 :
-    ((Padded107.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded107_c7 :
-    ((Padded107.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded107_cover : Padded107.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded108_c0 :
@@ -2458,28 +1428,7 @@ theorem Padded108_c1 :
     ((Padded108.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded108_c2 :
-    ((Padded108.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded108_c3 :
-    ((Padded108.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded108_c4 :
-    ((Padded108.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded108_c5 :
-    ((Padded108.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded108_c6 :
-    ((Padded108.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded108_c7 :
-    ((Padded108.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded108_cover : Padded108.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded109_c0 :
@@ -2490,28 +1439,7 @@ theorem Padded109_c1 :
     ((Padded109.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded109_c2 :
-    ((Padded109.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded109_c3 :
-    ((Padded109.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded109_c4 :
-    ((Padded109.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded109_c5 :
-    ((Padded109.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded109_c6 :
-    ((Padded109.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded109_c7 :
-    ((Padded109.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded109_cover : Padded109.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded110_c0 :
@@ -2522,28 +1450,7 @@ theorem Padded110_c1 :
     ((Padded110.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded110_c2 :
-    ((Padded110.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded110_c3 :
-    ((Padded110.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded110_c4 :
-    ((Padded110.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded110_c5 :
-    ((Padded110.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded110_c6 :
-    ((Padded110.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded110_c7 :
-    ((Padded110.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded110_cover : Padded110.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded111_c0 :
@@ -2554,28 +1461,7 @@ theorem Padded111_c1 :
     ((Padded111.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded111_c2 :
-    ((Padded111.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded111_c3 :
-    ((Padded111.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded111_c4 :
-    ((Padded111.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded111_c5 :
-    ((Padded111.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded111_c6 :
-    ((Padded111.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded111_c7 :
-    ((Padded111.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded111_cover : Padded111.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded112_c0 :
@@ -2586,28 +1472,7 @@ theorem Padded112_c1 :
     ((Padded112.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded112_c2 :
-    ((Padded112.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded112_c3 :
-    ((Padded112.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded112_c4 :
-    ((Padded112.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded112_c5 :
-    ((Padded112.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded112_c6 :
-    ((Padded112.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded112_c7 :
-    ((Padded112.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded112_cover : Padded112.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded113_c0 :
@@ -2618,28 +1483,7 @@ theorem Padded113_c1 :
     ((Padded113.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded113_c2 :
-    ((Padded113.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded113_c3 :
-    ((Padded113.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded113_c4 :
-    ((Padded113.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded113_c5 :
-    ((Padded113.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded113_c6 :
-    ((Padded113.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded113_c7 :
-    ((Padded113.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded113_cover : Padded113.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded114_c0 :
@@ -2650,28 +1494,7 @@ theorem Padded114_c1 :
     ((Padded114.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded114_c2 :
-    ((Padded114.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded114_c3 :
-    ((Padded114.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded114_c4 :
-    ((Padded114.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded114_c5 :
-    ((Padded114.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded114_c6 :
-    ((Padded114.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded114_c7 :
-    ((Padded114.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded114_cover : Padded114.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded115_c0 :
@@ -2682,28 +1505,7 @@ theorem Padded115_c1 :
     ((Padded115.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded115_c2 :
-    ((Padded115.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded115_c3 :
-    ((Padded115.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded115_c4 :
-    ((Padded115.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded115_c5 :
-    ((Padded115.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded115_c6 :
-    ((Padded115.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded115_c7 :
-    ((Padded115.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded115_cover : Padded115.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded116_c0 :
@@ -2714,28 +1516,7 @@ theorem Padded116_c1 :
     ((Padded116.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded116_c2 :
-    ((Padded116.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded116_c3 :
-    ((Padded116.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded116_c4 :
-    ((Padded116.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded116_c5 :
-    ((Padded116.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded116_c6 :
-    ((Padded116.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded116_c7 :
-    ((Padded116.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded116_cover : Padded116.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded117_c0 :
@@ -2746,28 +1527,7 @@ theorem Padded117_c1 :
     ((Padded117.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded117_c2 :
-    ((Padded117.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded117_c3 :
-    ((Padded117.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded117_c4 :
-    ((Padded117.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded117_c5 :
-    ((Padded117.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded117_c6 :
-    ((Padded117.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded117_c7 :
-    ((Padded117.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded117_cover : Padded117.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded118_c0 :
@@ -2778,28 +1538,7 @@ theorem Padded118_c1 :
     ((Padded118.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded118_c2 :
-    ((Padded118.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded118_c3 :
-    ((Padded118.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded118_c4 :
-    ((Padded118.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded118_c5 :
-    ((Padded118.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded118_c6 :
-    ((Padded118.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded118_c7 :
-    ((Padded118.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded118_cover : Padded118.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded119_c0 :
@@ -2810,28 +1549,7 @@ theorem Padded119_c1 :
     ((Padded119.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded119_c2 :
-    ((Padded119.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded119_c3 :
-    ((Padded119.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded119_c4 :
-    ((Padded119.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded119_c5 :
-    ((Padded119.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded119_c6 :
-    ((Padded119.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded119_c7 :
-    ((Padded119.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded119_cover : Padded119.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded120_c0 :
@@ -2846,24 +1564,7 @@ theorem Padded120_c2 :
     ((Padded120.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded120_c3 :
-    ((Padded120.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded120_c4 :
-    ((Padded120.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded120_c5 :
-    ((Padded120.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded120_c6 :
-    ((Padded120.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded120_c7 :
-    ((Padded120.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded120_cover : Padded120.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded121_c0 :
@@ -2886,16 +1587,7 @@ theorem Padded121_c4 :
     ((Padded121.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded121_c5 :
-    ((Padded121.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded121_c6 :
-    ((Padded121.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded121_c7 :
-    ((Padded121.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded121_cover : Padded121.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded122_c0 :
@@ -2906,28 +1598,7 @@ theorem Padded122_c1 :
     ((Padded122.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded122_c2 :
-    ((Padded122.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded122_c3 :
-    ((Padded122.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded122_c4 :
-    ((Padded122.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded122_c5 :
-    ((Padded122.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded122_c6 :
-    ((Padded122.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded122_c7 :
-    ((Padded122.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded122_cover : Padded122.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded123_c0 :
@@ -2938,28 +1609,7 @@ theorem Padded123_c1 :
     ((Padded123.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded123_c2 :
-    ((Padded123.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded123_c3 :
-    ((Padded123.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded123_c4 :
-    ((Padded123.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded123_c5 :
-    ((Padded123.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded123_c6 :
-    ((Padded123.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded123_c7 :
-    ((Padded123.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded123_cover : Padded123.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded124_c0 :
@@ -2970,28 +1620,7 @@ theorem Padded124_c1 :
     ((Padded124.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded124_c2 :
-    ((Padded124.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded124_c3 :
-    ((Padded124.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded124_c4 :
-    ((Padded124.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded124_c5 :
-    ((Padded124.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded124_c6 :
-    ((Padded124.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded124_c7 :
-    ((Padded124.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded124_cover : Padded124.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded125_c0 :
@@ -3002,28 +1631,7 @@ theorem Padded125_c1 :
     ((Padded125.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded125_c2 :
-    ((Padded125.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded125_c3 :
-    ((Padded125.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded125_c4 :
-    ((Padded125.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded125_c5 :
-    ((Padded125.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded125_c6 :
-    ((Padded125.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded125_c7 :
-    ((Padded125.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded125_cover : Padded125.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded126_c0 :
@@ -3034,28 +1642,7 @@ theorem Padded126_c1 :
     ((Padded126.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded126_c2 :
-    ((Padded126.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded126_c3 :
-    ((Padded126.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded126_c4 :
-    ((Padded126.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded126_c5 :
-    ((Padded126.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded126_c6 :
-    ((Padded126.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded126_c7 :
-    ((Padded126.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded126_cover : Padded126.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded127_c0 :
@@ -3074,20 +1661,7 @@ theorem Padded127_c3 :
     ((Padded127.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded127_c4 :
-    ((Padded127.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded127_c5 :
-    ((Padded127.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded127_c6 :
-    ((Padded127.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded127_c7 :
-    ((Padded127.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded127_cover : Padded127.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded128_c0 :
@@ -3098,28 +1672,7 @@ theorem Padded128_c1 :
     ((Padded128.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded128_c2 :
-    ((Padded128.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded128_c3 :
-    ((Padded128.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded128_c4 :
-    ((Padded128.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded128_c5 :
-    ((Padded128.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded128_c6 :
-    ((Padded128.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded128_c7 :
-    ((Padded128.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded128_cover : Padded128.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded129_c0 :
@@ -3134,24 +1687,7 @@ theorem Padded129_c2 :
     ((Padded129.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded129_c3 :
-    ((Padded129.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded129_c4 :
-    ((Padded129.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded129_c5 :
-    ((Padded129.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded129_c6 :
-    ((Padded129.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded129_c7 :
-    ((Padded129.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded129_cover : Padded129.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded130_c0 :
@@ -3162,28 +1698,7 @@ theorem Padded130_c1 :
     ((Padded130.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded130_c2 :
-    ((Padded130.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded130_c3 :
-    ((Padded130.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded130_c4 :
-    ((Padded130.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded130_c5 :
-    ((Padded130.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded130_c6 :
-    ((Padded130.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded130_c7 :
-    ((Padded130.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded130_cover : Padded130.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded131_c0 :
@@ -3194,28 +1709,7 @@ theorem Padded131_c1 :
     ((Padded131.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded131_c2 :
-    ((Padded131.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded131_c3 :
-    ((Padded131.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded131_c4 :
-    ((Padded131.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded131_c5 :
-    ((Padded131.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded131_c6 :
-    ((Padded131.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded131_c7 :
-    ((Padded131.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded131_cover : Padded131.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded132_c0 :
@@ -3226,28 +1720,7 @@ theorem Padded132_c1 :
     ((Padded132.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded132_c2 :
-    ((Padded132.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded132_c3 :
-    ((Padded132.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded132_c4 :
-    ((Padded132.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded132_c5 :
-    ((Padded132.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded132_c6 :
-    ((Padded132.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded132_c7 :
-    ((Padded132.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded132_cover : Padded132.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded133_c0 :
@@ -3258,28 +1731,7 @@ theorem Padded133_c1 :
     ((Padded133.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded133_c2 :
-    ((Padded133.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded133_c3 :
-    ((Padded133.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded133_c4 :
-    ((Padded133.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded133_c5 :
-    ((Padded133.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded133_c6 :
-    ((Padded133.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded133_c7 :
-    ((Padded133.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded133_cover : Padded133.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded134_c0 :
@@ -3290,28 +1742,7 @@ theorem Padded134_c1 :
     ((Padded134.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded134_c2 :
-    ((Padded134.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded134_c3 :
-    ((Padded134.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded134_c4 :
-    ((Padded134.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded134_c5 :
-    ((Padded134.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded134_c6 :
-    ((Padded134.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded134_c7 :
-    ((Padded134.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded134_cover : Padded134.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded135_c0 :
@@ -3322,28 +1753,7 @@ theorem Padded135_c1 :
     ((Padded135.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded135_c2 :
-    ((Padded135.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded135_c3 :
-    ((Padded135.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded135_c4 :
-    ((Padded135.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded135_c5 :
-    ((Padded135.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded135_c6 :
-    ((Padded135.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded135_c7 :
-    ((Padded135.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded135_cover : Padded135.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded136_c0 :
@@ -3358,24 +1768,7 @@ theorem Padded136_c2 :
     ((Padded136.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded136_c3 :
-    ((Padded136.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded136_c4 :
-    ((Padded136.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded136_c5 :
-    ((Padded136.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded136_c6 :
-    ((Padded136.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded136_c7 :
-    ((Padded136.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded136_cover : Padded136.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded137_c0 :
@@ -3386,28 +1779,7 @@ theorem Padded137_c1 :
     ((Padded137.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded137_c2 :
-    ((Padded137.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded137_c3 :
-    ((Padded137.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded137_c4 :
-    ((Padded137.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded137_c5 :
-    ((Padded137.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded137_c6 :
-    ((Padded137.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded137_c7 :
-    ((Padded137.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded137_cover : Padded137.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded138_c0 :
@@ -3418,28 +1790,7 @@ theorem Padded138_c1 :
     ((Padded138.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded138_c2 :
-    ((Padded138.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded138_c3 :
-    ((Padded138.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded138_c4 :
-    ((Padded138.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded138_c5 :
-    ((Padded138.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded138_c6 :
-    ((Padded138.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded138_c7 :
-    ((Padded138.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded138_cover : Padded138.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded139_c0 :
@@ -3450,28 +1801,7 @@ theorem Padded139_c1 :
     ((Padded139.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded139_c2 :
-    ((Padded139.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded139_c3 :
-    ((Padded139.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded139_c4 :
-    ((Padded139.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded139_c5 :
-    ((Padded139.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded139_c6 :
-    ((Padded139.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded139_c7 :
-    ((Padded139.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded139_cover : Padded139.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded140_c0 :
@@ -3486,24 +1816,7 @@ theorem Padded140_c2 :
     ((Padded140.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded140_c3 :
-    ((Padded140.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded140_c4 :
-    ((Padded140.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded140_c5 :
-    ((Padded140.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded140_c6 :
-    ((Padded140.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded140_c7 :
-    ((Padded140.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded140_cover : Padded140.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded141_c0 :
@@ -3514,28 +1827,7 @@ theorem Padded141_c1 :
     ((Padded141.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded141_c2 :
-    ((Padded141.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded141_c3 :
-    ((Padded141.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded141_c4 :
-    ((Padded141.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded141_c5 :
-    ((Padded141.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded141_c6 :
-    ((Padded141.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded141_c7 :
-    ((Padded141.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded141_cover : Padded141.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded142_c0 :
@@ -3546,28 +1838,7 @@ theorem Padded142_c1 :
     ((Padded142.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded142_c2 :
-    ((Padded142.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded142_c3 :
-    ((Padded142.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded142_c4 :
-    ((Padded142.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded142_c5 :
-    ((Padded142.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded142_c6 :
-    ((Padded142.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded142_c7 :
-    ((Padded142.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded142_cover : Padded142.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded143_c0 :
@@ -3578,28 +1849,7 @@ theorem Padded143_c1 :
     ((Padded143.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded143_c2 :
-    ((Padded143.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded143_c3 :
-    ((Padded143.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded143_c4 :
-    ((Padded143.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded143_c5 :
-    ((Padded143.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded143_c6 :
-    ((Padded143.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded143_c7 :
-    ((Padded143.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded143_cover : Padded143.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded144_c0 :
@@ -3610,28 +1860,7 @@ theorem Padded144_c1 :
     ((Padded144.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded144_c2 :
-    ((Padded144.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded144_c3 :
-    ((Padded144.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded144_c4 :
-    ((Padded144.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded144_c5 :
-    ((Padded144.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded144_c6 :
-    ((Padded144.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded144_c7 :
-    ((Padded144.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded144_cover : Padded144.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded145_c0 :
@@ -3642,28 +1871,7 @@ theorem Padded145_c1 :
     ((Padded145.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded145_c2 :
-    ((Padded145.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded145_c3 :
-    ((Padded145.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded145_c4 :
-    ((Padded145.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded145_c5 :
-    ((Padded145.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded145_c6 :
-    ((Padded145.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded145_c7 :
-    ((Padded145.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded145_cover : Padded145.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded146_c0 :
@@ -3674,28 +1882,7 @@ theorem Padded146_c1 :
     ((Padded146.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded146_c2 :
-    ((Padded146.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded146_c3 :
-    ((Padded146.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded146_c4 :
-    ((Padded146.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded146_c5 :
-    ((Padded146.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded146_c6 :
-    ((Padded146.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded146_c7 :
-    ((Padded146.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded146_cover : Padded146.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded147_c0 :
@@ -3710,24 +1897,7 @@ theorem Padded147_c2 :
     ((Padded147.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded147_c3 :
-    ((Padded147.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded147_c4 :
-    ((Padded147.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded147_c5 :
-    ((Padded147.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded147_c6 :
-    ((Padded147.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded147_c7 :
-    ((Padded147.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded147_cover : Padded147.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded148_c0 :
@@ -3738,28 +1908,7 @@ theorem Padded148_c1 :
     ((Padded148.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded148_c2 :
-    ((Padded148.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded148_c3 :
-    ((Padded148.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded148_c4 :
-    ((Padded148.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded148_c5 :
-    ((Padded148.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded148_c6 :
-    ((Padded148.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded148_c7 :
-    ((Padded148.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded148_cover : Padded148.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded149_c0 :
@@ -3770,28 +1919,7 @@ theorem Padded149_c1 :
     ((Padded149.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded149_c2 :
-    ((Padded149.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded149_c3 :
-    ((Padded149.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded149_c4 :
-    ((Padded149.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded149_c5 :
-    ((Padded149.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded149_c6 :
-    ((Padded149.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded149_c7 :
-    ((Padded149.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded149_cover : Padded149.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded150_c0 :
@@ -3802,28 +1930,7 @@ theorem Padded150_c1 :
     ((Padded150.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded150_c2 :
-    ((Padded150.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded150_c3 :
-    ((Padded150.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded150_c4 :
-    ((Padded150.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded150_c5 :
-    ((Padded150.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded150_c6 :
-    ((Padded150.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded150_c7 :
-    ((Padded150.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded150_cover : Padded150.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded151_c0 :
@@ -3834,28 +1941,7 @@ theorem Padded151_c1 :
     ((Padded151.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded151_c2 :
-    ((Padded151.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded151_c3 :
-    ((Padded151.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded151_c4 :
-    ((Padded151.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded151_c5 :
-    ((Padded151.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded151_c6 :
-    ((Padded151.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded151_c7 :
-    ((Padded151.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded151_cover : Padded151.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded152_c0 :
@@ -3866,28 +1952,7 @@ theorem Padded152_c1 :
     ((Padded152.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded152_c2 :
-    ((Padded152.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded152_c3 :
-    ((Padded152.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded152_c4 :
-    ((Padded152.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded152_c5 :
-    ((Padded152.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded152_c6 :
-    ((Padded152.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded152_c7 :
-    ((Padded152.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded152_cover : Padded152.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded153_c0 :
@@ -3902,24 +1967,7 @@ theorem Padded153_c2 :
     ((Padded153.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded153_c3 :
-    ((Padded153.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded153_c4 :
-    ((Padded153.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded153_c5 :
-    ((Padded153.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded153_c6 :
-    ((Padded153.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded153_c7 :
-    ((Padded153.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded153_cover : Padded153.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded154_c0 :
@@ -3934,24 +1982,7 @@ theorem Padded154_c2 :
     ((Padded154.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded154_c3 :
-    ((Padded154.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded154_c4 :
-    ((Padded154.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded154_c5 :
-    ((Padded154.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded154_c6 :
-    ((Padded154.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded154_c7 :
-    ((Padded154.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded154_cover : Padded154.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded155_c0 :
@@ -3962,28 +1993,7 @@ theorem Padded155_c1 :
     ((Padded155.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded155_c2 :
-    ((Padded155.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded155_c3 :
-    ((Padded155.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded155_c4 :
-    ((Padded155.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded155_c5 :
-    ((Padded155.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded155_c6 :
-    ((Padded155.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded155_c7 :
-    ((Padded155.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded155_cover : Padded155.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded156_c0 :
@@ -3994,28 +2004,7 @@ theorem Padded156_c1 :
     ((Padded156.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded156_c2 :
-    ((Padded156.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded156_c3 :
-    ((Padded156.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded156_c4 :
-    ((Padded156.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded156_c5 :
-    ((Padded156.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded156_c6 :
-    ((Padded156.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded156_c7 :
-    ((Padded156.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded156_cover : Padded156.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded157_c0 :
@@ -4026,28 +2015,7 @@ theorem Padded157_c1 :
     ((Padded157.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded157_c2 :
-    ((Padded157.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded157_c3 :
-    ((Padded157.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded157_c4 :
-    ((Padded157.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded157_c5 :
-    ((Padded157.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded157_c6 :
-    ((Padded157.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded157_c7 :
-    ((Padded157.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded157_cover : Padded157.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded158_c0 :
@@ -4062,24 +2030,7 @@ theorem Padded158_c2 :
     ((Padded158.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded158_c3 :
-    ((Padded158.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded158_c4 :
-    ((Padded158.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded158_c5 :
-    ((Padded158.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded158_c6 :
-    ((Padded158.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded158_c7 :
-    ((Padded158.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded158_cover : Padded158.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded159_c0 :
@@ -4090,28 +2041,7 @@ theorem Padded159_c1 :
     ((Padded159.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded159_c2 :
-    ((Padded159.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded159_c3 :
-    ((Padded159.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded159_c4 :
-    ((Padded159.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded159_c5 :
-    ((Padded159.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded159_c6 :
-    ((Padded159.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded159_c7 :
-    ((Padded159.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded159_cover : Padded159.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded160_c0 :
@@ -4122,28 +2052,7 @@ theorem Padded160_c1 :
     ((Padded160.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded160_c2 :
-    ((Padded160.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded160_c3 :
-    ((Padded160.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded160_c4 :
-    ((Padded160.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded160_c5 :
-    ((Padded160.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded160_c6 :
-    ((Padded160.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded160_c7 :
-    ((Padded160.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded160_cover : Padded160.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded161_c0 :
@@ -4162,20 +2071,7 @@ theorem Padded161_c3 :
     ((Padded161.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded161_c4 :
-    ((Padded161.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded161_c5 :
-    ((Padded161.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded161_c6 :
-    ((Padded161.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded161_c7 :
-    ((Padded161.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded161_cover : Padded161.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded162_c0 :
@@ -4186,28 +2082,7 @@ theorem Padded162_c1 :
     ((Padded162.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded162_c2 :
-    ((Padded162.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded162_c3 :
-    ((Padded162.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded162_c4 :
-    ((Padded162.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded162_c5 :
-    ((Padded162.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded162_c6 :
-    ((Padded162.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded162_c7 :
-    ((Padded162.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded162_cover : Padded162.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded163_c0 :
@@ -4226,20 +2101,7 @@ theorem Padded163_c3 :
     ((Padded163.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded163_c4 :
-    ((Padded163.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded163_c5 :
-    ((Padded163.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded163_c6 :
-    ((Padded163.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded163_c7 :
-    ((Padded163.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded163_cover : Padded163.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded164_c0 :
@@ -4250,28 +2112,7 @@ theorem Padded164_c1 :
     ((Padded164.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded164_c2 :
-    ((Padded164.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded164_c3 :
-    ((Padded164.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded164_c4 :
-    ((Padded164.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded164_c5 :
-    ((Padded164.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded164_c6 :
-    ((Padded164.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded164_c7 :
-    ((Padded164.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded164_cover : Padded164.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded165_c0 :
@@ -4282,28 +2123,7 @@ theorem Padded165_c1 :
     ((Padded165.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded165_c2 :
-    ((Padded165.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded165_c3 :
-    ((Padded165.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded165_c4 :
-    ((Padded165.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded165_c5 :
-    ((Padded165.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded165_c6 :
-    ((Padded165.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded165_c7 :
-    ((Padded165.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded165_cover : Padded165.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded166_c0 :
@@ -4314,28 +2134,7 @@ theorem Padded166_c1 :
     ((Padded166.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded166_c2 :
-    ((Padded166.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded166_c3 :
-    ((Padded166.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded166_c4 :
-    ((Padded166.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded166_c5 :
-    ((Padded166.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded166_c6 :
-    ((Padded166.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded166_c7 :
-    ((Padded166.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded166_cover : Padded166.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded167_c0 :
@@ -4346,28 +2145,7 @@ theorem Padded167_c1 :
     ((Padded167.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded167_c2 :
-    ((Padded167.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded167_c3 :
-    ((Padded167.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded167_c4 :
-    ((Padded167.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded167_c5 :
-    ((Padded167.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded167_c6 :
-    ((Padded167.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded167_c7 :
-    ((Padded167.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded167_cover : Padded167.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded168_c0 :
@@ -4378,28 +2156,7 @@ theorem Padded168_c1 :
     ((Padded168.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded168_c2 :
-    ((Padded168.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded168_c3 :
-    ((Padded168.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded168_c4 :
-    ((Padded168.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded168_c5 :
-    ((Padded168.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded168_c6 :
-    ((Padded168.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded168_c7 :
-    ((Padded168.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded168_cover : Padded168.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded169_c0 :
@@ -4410,28 +2167,7 @@ theorem Padded169_c1 :
     ((Padded169.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded169_c2 :
-    ((Padded169.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded169_c3 :
-    ((Padded169.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded169_c4 :
-    ((Padded169.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded169_c5 :
-    ((Padded169.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded169_c6 :
-    ((Padded169.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded169_c7 :
-    ((Padded169.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded169_cover : Padded169.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded170_c0 :
@@ -4442,28 +2178,7 @@ theorem Padded170_c1 :
     ((Padded170.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded170_c2 :
-    ((Padded170.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded170_c3 :
-    ((Padded170.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded170_c4 :
-    ((Padded170.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded170_c5 :
-    ((Padded170.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded170_c6 :
-    ((Padded170.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded170_c7 :
-    ((Padded170.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded170_cover : Padded170.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded171_c0 :
@@ -4474,28 +2189,7 @@ theorem Padded171_c1 :
     ((Padded171.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded171_c2 :
-    ((Padded171.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded171_c3 :
-    ((Padded171.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded171_c4 :
-    ((Padded171.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded171_c5 :
-    ((Padded171.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded171_c6 :
-    ((Padded171.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded171_c7 :
-    ((Padded171.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded171_cover : Padded171.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded172_c0 :
@@ -4506,28 +2200,7 @@ theorem Padded172_c1 :
     ((Padded172.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded172_c2 :
-    ((Padded172.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded172_c3 :
-    ((Padded172.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded172_c4 :
-    ((Padded172.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded172_c5 :
-    ((Padded172.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded172_c6 :
-    ((Padded172.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded172_c7 :
-    ((Padded172.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded172_cover : Padded172.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded173_c0 :
@@ -4538,28 +2211,7 @@ theorem Padded173_c1 :
     ((Padded173.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded173_c2 :
-    ((Padded173.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded173_c3 :
-    ((Padded173.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded173_c4 :
-    ((Padded173.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded173_c5 :
-    ((Padded173.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded173_c6 :
-    ((Padded173.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded173_c7 :
-    ((Padded173.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded173_cover : Padded173.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded174_c0 :
@@ -4570,28 +2222,7 @@ theorem Padded174_c1 :
     ((Padded174.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded174_c2 :
-    ((Padded174.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded174_c3 :
-    ((Padded174.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded174_c4 :
-    ((Padded174.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded174_c5 :
-    ((Padded174.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded174_c6 :
-    ((Padded174.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded174_c7 :
-    ((Padded174.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded174_cover : Padded174.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded175_c0 :
@@ -4602,28 +2233,7 @@ theorem Padded175_c1 :
     ((Padded175.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded175_c2 :
-    ((Padded175.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded175_c3 :
-    ((Padded175.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded175_c4 :
-    ((Padded175.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded175_c5 :
-    ((Padded175.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded175_c6 :
-    ((Padded175.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded175_c7 :
-    ((Padded175.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded175_cover : Padded175.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded176_c0 :
@@ -4634,28 +2244,7 @@ theorem Padded176_c1 :
     ((Padded176.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded176_c2 :
-    ((Padded176.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded176_c3 :
-    ((Padded176.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded176_c4 :
-    ((Padded176.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded176_c5 :
-    ((Padded176.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded176_c6 :
-    ((Padded176.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded176_c7 :
-    ((Padded176.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded176_cover : Padded176.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded177_c0 :
@@ -4666,28 +2255,7 @@ theorem Padded177_c1 :
     ((Padded177.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded177_c2 :
-    ((Padded177.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded177_c3 :
-    ((Padded177.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded177_c4 :
-    ((Padded177.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded177_c5 :
-    ((Padded177.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded177_c6 :
-    ((Padded177.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded177_c7 :
-    ((Padded177.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded177_cover : Padded177.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded178_c0 :
@@ -4698,28 +2266,7 @@ theorem Padded178_c1 :
     ((Padded178.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded178_c2 :
-    ((Padded178.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded178_c3 :
-    ((Padded178.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded178_c4 :
-    ((Padded178.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded178_c5 :
-    ((Padded178.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded178_c6 :
-    ((Padded178.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded178_c7 :
-    ((Padded178.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded178_cover : Padded178.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded179_c0 :
@@ -4730,28 +2277,7 @@ theorem Padded179_c1 :
     ((Padded179.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded179_c2 :
-    ((Padded179.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded179_c3 :
-    ((Padded179.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded179_c4 :
-    ((Padded179.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded179_c5 :
-    ((Padded179.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded179_c6 :
-    ((Padded179.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded179_c7 :
-    ((Padded179.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded179_cover : Padded179.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded180_c0 :
@@ -4762,28 +2288,7 @@ theorem Padded180_c1 :
     ((Padded180.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded180_c2 :
-    ((Padded180.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded180_c3 :
-    ((Padded180.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded180_c4 :
-    ((Padded180.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded180_c5 :
-    ((Padded180.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded180_c6 :
-    ((Padded180.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded180_c7 :
-    ((Padded180.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded180_cover : Padded180.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded181_c0 :
@@ -4794,28 +2299,7 @@ theorem Padded181_c1 :
     ((Padded181.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded181_c2 :
-    ((Padded181.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded181_c3 :
-    ((Padded181.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded181_c4 :
-    ((Padded181.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded181_c5 :
-    ((Padded181.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded181_c6 :
-    ((Padded181.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded181_c7 :
-    ((Padded181.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded181_cover : Padded181.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded182_c0 :
@@ -4830,24 +2314,7 @@ theorem Padded182_c2 :
     ((Padded182.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded182_c3 :
-    ((Padded182.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded182_c4 :
-    ((Padded182.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded182_c5 :
-    ((Padded182.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded182_c6 :
-    ((Padded182.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded182_c7 :
-    ((Padded182.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded182_cover : Padded182.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded183_c0 :
@@ -4862,24 +2329,7 @@ theorem Padded183_c2 :
     ((Padded183.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded183_c3 :
-    ((Padded183.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded183_c4 :
-    ((Padded183.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded183_c5 :
-    ((Padded183.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded183_c6 :
-    ((Padded183.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded183_c7 :
-    ((Padded183.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded183_cover : Padded183.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded184_c0 :
@@ -4898,20 +2348,7 @@ theorem Padded184_c3 :
     ((Padded184.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded184_c4 :
-    ((Padded184.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded184_c5 :
-    ((Padded184.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded184_c6 :
-    ((Padded184.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded184_c7 :
-    ((Padded184.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded184_cover : Padded184.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded185_c0 :
@@ -4922,28 +2359,7 @@ theorem Padded185_c1 :
     ((Padded185.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded185_c2 :
-    ((Padded185.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded185_c3 :
-    ((Padded185.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded185_c4 :
-    ((Padded185.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded185_c5 :
-    ((Padded185.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded185_c6 :
-    ((Padded185.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded185_c7 :
-    ((Padded185.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded185_cover : Padded185.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded186_c0 :
@@ -4954,28 +2370,7 @@ theorem Padded186_c1 :
     ((Padded186.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded186_c2 :
-    ((Padded186.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded186_c3 :
-    ((Padded186.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded186_c4 :
-    ((Padded186.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded186_c5 :
-    ((Padded186.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded186_c6 :
-    ((Padded186.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded186_c7 :
-    ((Padded186.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded186_cover : Padded186.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded187_c0 :
@@ -4986,28 +2381,7 @@ theorem Padded187_c1 :
     ((Padded187.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded187_c2 :
-    ((Padded187.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded187_c3 :
-    ((Padded187.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded187_c4 :
-    ((Padded187.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded187_c5 :
-    ((Padded187.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded187_c6 :
-    ((Padded187.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded187_c7 :
-    ((Padded187.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded187_cover : Padded187.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded188_c0 :
@@ -5018,28 +2392,7 @@ theorem Padded188_c1 :
     ((Padded188.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded188_c2 :
-    ((Padded188.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded188_c3 :
-    ((Padded188.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded188_c4 :
-    ((Padded188.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded188_c5 :
-    ((Padded188.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded188_c6 :
-    ((Padded188.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded188_c7 :
-    ((Padded188.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded188_cover : Padded188.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded189_c0 :
@@ -5054,24 +2407,7 @@ theorem Padded189_c2 :
     ((Padded189.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded189_c3 :
-    ((Padded189.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded189_c4 :
-    ((Padded189.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded189_c5 :
-    ((Padded189.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded189_c6 :
-    ((Padded189.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded189_c7 :
-    ((Padded189.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded189_cover : Padded189.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded190_c0 :
@@ -5082,28 +2418,7 @@ theorem Padded190_c1 :
     ((Padded190.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded190_c2 :
-    ((Padded190.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded190_c3 :
-    ((Padded190.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded190_c4 :
-    ((Padded190.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded190_c5 :
-    ((Padded190.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded190_c6 :
-    ((Padded190.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded190_c7 :
-    ((Padded190.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded190_cover : Padded190.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded191_c0 :
@@ -5118,24 +2433,7 @@ theorem Padded191_c2 :
     ((Padded191.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded191_c3 :
-    ((Padded191.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded191_c4 :
-    ((Padded191.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded191_c5 :
-    ((Padded191.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded191_c6 :
-    ((Padded191.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded191_c7 :
-    ((Padded191.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded191_cover : Padded191.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded192_c0 :
@@ -5146,28 +2444,7 @@ theorem Padded192_c1 :
     ((Padded192.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded192_c2 :
-    ((Padded192.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded192_c3 :
-    ((Padded192.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded192_c4 :
-    ((Padded192.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded192_c5 :
-    ((Padded192.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded192_c6 :
-    ((Padded192.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded192_c7 :
-    ((Padded192.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded192_cover : Padded192.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded193_c0 :
@@ -5178,28 +2455,7 @@ theorem Padded193_c1 :
     ((Padded193.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded193_c2 :
-    ((Padded193.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded193_c3 :
-    ((Padded193.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded193_c4 :
-    ((Padded193.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded193_c5 :
-    ((Padded193.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded193_c6 :
-    ((Padded193.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded193_c7 :
-    ((Padded193.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded193_cover : Padded193.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded194_c0 :
@@ -5210,28 +2466,7 @@ theorem Padded194_c1 :
     ((Padded194.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded194_c2 :
-    ((Padded194.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded194_c3 :
-    ((Padded194.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded194_c4 :
-    ((Padded194.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded194_c5 :
-    ((Padded194.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded194_c6 :
-    ((Padded194.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded194_c7 :
-    ((Padded194.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded194_cover : Padded194.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded195_c0 :
@@ -5242,28 +2477,7 @@ theorem Padded195_c1 :
     ((Padded195.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded195_c2 :
-    ((Padded195.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded195_c3 :
-    ((Padded195.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded195_c4 :
-    ((Padded195.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded195_c5 :
-    ((Padded195.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded195_c6 :
-    ((Padded195.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded195_c7 :
-    ((Padded195.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded195_cover : Padded195.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded196_c0 :
@@ -5274,28 +2488,7 @@ theorem Padded196_c1 :
     ((Padded196.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded196_c2 :
-    ((Padded196.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded196_c3 :
-    ((Padded196.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded196_c4 :
-    ((Padded196.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded196_c5 :
-    ((Padded196.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded196_c6 :
-    ((Padded196.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded196_c7 :
-    ((Padded196.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded196_cover : Padded196.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded197_c0 :
@@ -5306,28 +2499,7 @@ theorem Padded197_c1 :
     ((Padded197.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded197_c2 :
-    ((Padded197.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded197_c3 :
-    ((Padded197.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded197_c4 :
-    ((Padded197.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded197_c5 :
-    ((Padded197.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded197_c6 :
-    ((Padded197.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded197_c7 :
-    ((Padded197.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded197_cover : Padded197.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded198_c0 :
@@ -5342,24 +2514,7 @@ theorem Padded198_c2 :
     ((Padded198.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded198_c3 :
-    ((Padded198.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded198_c4 :
-    ((Padded198.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded198_c5 :
-    ((Padded198.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded198_c6 :
-    ((Padded198.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded198_c7 :
-    ((Padded198.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded198_cover : Padded198.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded199_c0 :
@@ -5374,24 +2529,7 @@ theorem Padded199_c2 :
     ((Padded199.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded199_c3 :
-    ((Padded199.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded199_c4 :
-    ((Padded199.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded199_c5 :
-    ((Padded199.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded199_c6 :
-    ((Padded199.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded199_c7 :
-    ((Padded199.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded199_cover : Padded199.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded200_c0 :
@@ -5402,28 +2540,7 @@ theorem Padded200_c1 :
     ((Padded200.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded200_c2 :
-    ((Padded200.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded200_c3 :
-    ((Padded200.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded200_c4 :
-    ((Padded200.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded200_c5 :
-    ((Padded200.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded200_c6 :
-    ((Padded200.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded200_c7 :
-    ((Padded200.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded200_cover : Padded200.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded201_c0 :
@@ -5434,28 +2551,7 @@ theorem Padded201_c1 :
     ((Padded201.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded201_c2 :
-    ((Padded201.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded201_c3 :
-    ((Padded201.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded201_c4 :
-    ((Padded201.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded201_c5 :
-    ((Padded201.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded201_c6 :
-    ((Padded201.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded201_c7 :
-    ((Padded201.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded201_cover : Padded201.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded202_c0 :
@@ -5466,28 +2562,7 @@ theorem Padded202_c1 :
     ((Padded202.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded202_c2 :
-    ((Padded202.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded202_c3 :
-    ((Padded202.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded202_c4 :
-    ((Padded202.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded202_c5 :
-    ((Padded202.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded202_c6 :
-    ((Padded202.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded202_c7 :
-    ((Padded202.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded202_cover : Padded202.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded203_c0 :
@@ -5498,28 +2573,7 @@ theorem Padded203_c1 :
     ((Padded203.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded203_c2 :
-    ((Padded203.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded203_c3 :
-    ((Padded203.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded203_c4 :
-    ((Padded203.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded203_c5 :
-    ((Padded203.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded203_c6 :
-    ((Padded203.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded203_c7 :
-    ((Padded203.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded203_cover : Padded203.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded204_c0 :
@@ -5530,28 +2584,7 @@ theorem Padded204_c1 :
     ((Padded204.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded204_c2 :
-    ((Padded204.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded204_c3 :
-    ((Padded204.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded204_c4 :
-    ((Padded204.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded204_c5 :
-    ((Padded204.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded204_c6 :
-    ((Padded204.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded204_c7 :
-    ((Padded204.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded204_cover : Padded204.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded205_c0 :
@@ -5562,28 +2595,7 @@ theorem Padded205_c1 :
     ((Padded205.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded205_c2 :
-    ((Padded205.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded205_c3 :
-    ((Padded205.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded205_c4 :
-    ((Padded205.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded205_c5 :
-    ((Padded205.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded205_c6 :
-    ((Padded205.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded205_c7 :
-    ((Padded205.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded205_cover : Padded205.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded206_c0 :
@@ -5594,28 +2606,7 @@ theorem Padded206_c1 :
     ((Padded206.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded206_c2 :
-    ((Padded206.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded206_c3 :
-    ((Padded206.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded206_c4 :
-    ((Padded206.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded206_c5 :
-    ((Padded206.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded206_c6 :
-    ((Padded206.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded206_c7 :
-    ((Padded206.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded206_cover : Padded206.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded207_c0 :
@@ -5626,28 +2617,7 @@ theorem Padded207_c1 :
     ((Padded207.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded207_c2 :
-    ((Padded207.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded207_c3 :
-    ((Padded207.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded207_c4 :
-    ((Padded207.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded207_c5 :
-    ((Padded207.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded207_c6 :
-    ((Padded207.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded207_c7 :
-    ((Padded207.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded207_cover : Padded207.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded208_c0 :
@@ -5658,28 +2628,7 @@ theorem Padded208_c1 :
     ((Padded208.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded208_c2 :
-    ((Padded208.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded208_c3 :
-    ((Padded208.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded208_c4 :
-    ((Padded208.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded208_c5 :
-    ((Padded208.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded208_c6 :
-    ((Padded208.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded208_c7 :
-    ((Padded208.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded208_cover : Padded208.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded209_c0 :
@@ -5690,28 +2639,7 @@ theorem Padded209_c1 :
     ((Padded209.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded209_c2 :
-    ((Padded209.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded209_c3 :
-    ((Padded209.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded209_c4 :
-    ((Padded209.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded209_c5 :
-    ((Padded209.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded209_c6 :
-    ((Padded209.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded209_c7 :
-    ((Padded209.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded209_cover : Padded209.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded210_c0 :
@@ -5722,28 +2650,7 @@ theorem Padded210_c1 :
     ((Padded210.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded210_c2 :
-    ((Padded210.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded210_c3 :
-    ((Padded210.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded210_c4 :
-    ((Padded210.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded210_c5 :
-    ((Padded210.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded210_c6 :
-    ((Padded210.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded210_c7 :
-    ((Padded210.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded210_cover : Padded210.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded211_c0 :
@@ -5762,20 +2669,7 @@ theorem Padded211_c3 :
     ((Padded211.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded211_c4 :
-    ((Padded211.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded211_c5 :
-    ((Padded211.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded211_c6 :
-    ((Padded211.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded211_c7 :
-    ((Padded211.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded211_cover : Padded211.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded212_c0 :
@@ -5790,24 +2684,7 @@ theorem Padded212_c2 :
     ((Padded212.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded212_c3 :
-    ((Padded212.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded212_c4 :
-    ((Padded212.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded212_c5 :
-    ((Padded212.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded212_c6 :
-    ((Padded212.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded212_c7 :
-    ((Padded212.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded212_cover : Padded212.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded213_c0 :
@@ -5818,28 +2695,7 @@ theorem Padded213_c1 :
     ((Padded213.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded213_c2 :
-    ((Padded213.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded213_c3 :
-    ((Padded213.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded213_c4 :
-    ((Padded213.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded213_c5 :
-    ((Padded213.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded213_c6 :
-    ((Padded213.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded213_c7 :
-    ((Padded213.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded213_cover : Padded213.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded214_c0 :
@@ -5862,16 +2718,7 @@ theorem Padded214_c4 :
     ((Padded214.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded214_c5 :
-    ((Padded214.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded214_c6 :
-    ((Padded214.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded214_c7 :
-    ((Padded214.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded214_cover : Padded214.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded215_c0 :
@@ -5882,28 +2729,7 @@ theorem Padded215_c1 :
     ((Padded215.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded215_c2 :
-    ((Padded215.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded215_c3 :
-    ((Padded215.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded215_c4 :
-    ((Padded215.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded215_c5 :
-    ((Padded215.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded215_c6 :
-    ((Padded215.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded215_c7 :
-    ((Padded215.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded215_cover : Padded215.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded216_c0 :
@@ -5914,28 +2740,7 @@ theorem Padded216_c1 :
     ((Padded216.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded216_c2 :
-    ((Padded216.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded216_c3 :
-    ((Padded216.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded216_c4 :
-    ((Padded216.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded216_c5 :
-    ((Padded216.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded216_c6 :
-    ((Padded216.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded216_c7 :
-    ((Padded216.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded216_cover : Padded216.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded217_c0 :
@@ -5946,28 +2751,7 @@ theorem Padded217_c1 :
     ((Padded217.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded217_c2 :
-    ((Padded217.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded217_c3 :
-    ((Padded217.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded217_c4 :
-    ((Padded217.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded217_c5 :
-    ((Padded217.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded217_c6 :
-    ((Padded217.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded217_c7 :
-    ((Padded217.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded217_cover : Padded217.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded218_c0 :
@@ -5978,28 +2762,7 @@ theorem Padded218_c1 :
     ((Padded218.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded218_c2 :
-    ((Padded218.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded218_c3 :
-    ((Padded218.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded218_c4 :
-    ((Padded218.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded218_c5 :
-    ((Padded218.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded218_c6 :
-    ((Padded218.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded218_c7 :
-    ((Padded218.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded218_cover : Padded218.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded219_c0 :
@@ -6010,28 +2773,7 @@ theorem Padded219_c1 :
     ((Padded219.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded219_c2 :
-    ((Padded219.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded219_c3 :
-    ((Padded219.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded219_c4 :
-    ((Padded219.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded219_c5 :
-    ((Padded219.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded219_c6 :
-    ((Padded219.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded219_c7 :
-    ((Padded219.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded219_cover : Padded219.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded220_c0 :
@@ -6042,28 +2784,7 @@ theorem Padded220_c1 :
     ((Padded220.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded220_c2 :
-    ((Padded220.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded220_c3 :
-    ((Padded220.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded220_c4 :
-    ((Padded220.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded220_c5 :
-    ((Padded220.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded220_c6 :
-    ((Padded220.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded220_c7 :
-    ((Padded220.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded220_cover : Padded220.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded221_c0 :
@@ -6082,20 +2803,7 @@ theorem Padded221_c3 :
     ((Padded221.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded221_c4 :
-    ((Padded221.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded221_c5 :
-    ((Padded221.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded221_c6 :
-    ((Padded221.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded221_c7 :
-    ((Padded221.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded221_cover : Padded221.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded222_c0 :
@@ -6110,24 +2818,7 @@ theorem Padded222_c2 :
     ((Padded222.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded222_c3 :
-    ((Padded222.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded222_c4 :
-    ((Padded222.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded222_c5 :
-    ((Padded222.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded222_c6 :
-    ((Padded222.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded222_c7 :
-    ((Padded222.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded222_cover : Padded222.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded223_c0 :
@@ -6138,28 +2829,7 @@ theorem Padded223_c1 :
     ((Padded223.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded223_c2 :
-    ((Padded223.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded223_c3 :
-    ((Padded223.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded223_c4 :
-    ((Padded223.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded223_c5 :
-    ((Padded223.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded223_c6 :
-    ((Padded223.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded223_c7 :
-    ((Padded223.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded223_cover : Padded223.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded224_c0 :
@@ -6170,28 +2840,7 @@ theorem Padded224_c1 :
     ((Padded224.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded224_c2 :
-    ((Padded224.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded224_c3 :
-    ((Padded224.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded224_c4 :
-    ((Padded224.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded224_c5 :
-    ((Padded224.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded224_c6 :
-    ((Padded224.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded224_c7 :
-    ((Padded224.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded224_cover : Padded224.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded225_c0 :
@@ -6202,28 +2851,7 @@ theorem Padded225_c1 :
     ((Padded225.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded225_c2 :
-    ((Padded225.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded225_c3 :
-    ((Padded225.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded225_c4 :
-    ((Padded225.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded225_c5 :
-    ((Padded225.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded225_c6 :
-    ((Padded225.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded225_c7 :
-    ((Padded225.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded225_cover : Padded225.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded226_c0 :
@@ -6234,28 +2862,7 @@ theorem Padded226_c1 :
     ((Padded226.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded226_c2 :
-    ((Padded226.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded226_c3 :
-    ((Padded226.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded226_c4 :
-    ((Padded226.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded226_c5 :
-    ((Padded226.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded226_c6 :
-    ((Padded226.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded226_c7 :
-    ((Padded226.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded226_cover : Padded226.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded227_c0 :
@@ -6266,28 +2873,7 @@ theorem Padded227_c1 :
     ((Padded227.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded227_c2 :
-    ((Padded227.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded227_c3 :
-    ((Padded227.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded227_c4 :
-    ((Padded227.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded227_c5 :
-    ((Padded227.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded227_c6 :
-    ((Padded227.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded227_c7 :
-    ((Padded227.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded227_cover : Padded227.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded228_c0 :
@@ -6302,24 +2888,7 @@ theorem Padded228_c2 :
     ((Padded228.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded228_c3 :
-    ((Padded228.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded228_c4 :
-    ((Padded228.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded228_c5 :
-    ((Padded228.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded228_c6 :
-    ((Padded228.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded228_c7 :
-    ((Padded228.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded228_cover : Padded228.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded229_c0 :
@@ -6330,28 +2899,7 @@ theorem Padded229_c1 :
     ((Padded229.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded229_c2 :
-    ((Padded229.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded229_c3 :
-    ((Padded229.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded229_c4 :
-    ((Padded229.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded229_c5 :
-    ((Padded229.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded229_c6 :
-    ((Padded229.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded229_c7 :
-    ((Padded229.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded229_cover : Padded229.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded230_c0 :
@@ -6370,20 +2918,7 @@ theorem Padded230_c3 :
     ((Padded230.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded230_c4 :
-    ((Padded230.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded230_c5 :
-    ((Padded230.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded230_c6 :
-    ((Padded230.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded230_c7 :
-    ((Padded230.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded230_cover : Padded230.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded231_c0 :
@@ -6418,6 +2953,13 @@ theorem Padded231_c7 :
     ((Padded231.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded231_c8 :
+    ((Padded231.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded231_cover : Padded231.lines.length ≤ 2304 := by
+  decide_cbv
+
 theorem Padded232_c0 :
     ((Padded232.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -6430,24 +2972,7 @@ theorem Padded232_c2 :
     ((Padded232.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded232_c3 :
-    ((Padded232.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded232_c4 :
-    ((Padded232.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded232_c5 :
-    ((Padded232.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded232_c6 :
-    ((Padded232.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded232_c7 :
-    ((Padded232.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded232_cover : Padded232.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded233_c0 :
@@ -6482,6 +3007,21 @@ theorem Padded233_c7 :
     ((Padded233.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded233_c8 :
+    ((Padded233.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded233_c9 :
+    ((Padded233.lines.drop 2304).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded233_c10 :
+    ((Padded233.lines.drop 2560).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded233_cover : Padded233.lines.length ≤ 2816 := by
+  decide_cbv
+
 theorem Padded234_c0 :
     ((Padded234.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -6494,24 +3034,7 @@ theorem Padded234_c2 :
     ((Padded234.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded234_c3 :
-    ((Padded234.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded234_c4 :
-    ((Padded234.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded234_c5 :
-    ((Padded234.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded234_c6 :
-    ((Padded234.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded234_c7 :
-    ((Padded234.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded234_cover : Padded234.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded235_c0 :
@@ -6522,28 +3045,7 @@ theorem Padded235_c1 :
     ((Padded235.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded235_c2 :
-    ((Padded235.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded235_c3 :
-    ((Padded235.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded235_c4 :
-    ((Padded235.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded235_c5 :
-    ((Padded235.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded235_c6 :
-    ((Padded235.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded235_c7 :
-    ((Padded235.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded235_cover : Padded235.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded236_c0 :
@@ -6558,24 +3060,7 @@ theorem Padded236_c2 :
     ((Padded236.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded236_c3 :
-    ((Padded236.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded236_c4 :
-    ((Padded236.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded236_c5 :
-    ((Padded236.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded236_c6 :
-    ((Padded236.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded236_c7 :
-    ((Padded236.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded236_cover : Padded236.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded237_c0 :
@@ -6602,12 +3087,7 @@ theorem Padded237_c5 :
     ((Padded237.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded237_c6 :
-    ((Padded237.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded237_c7 :
-    ((Padded237.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded237_cover : Padded237.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded238_c0 :
@@ -6618,28 +3098,7 @@ theorem Padded238_c1 :
     ((Padded238.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded238_c2 :
-    ((Padded238.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded238_c3 :
-    ((Padded238.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded238_c4 :
-    ((Padded238.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded238_c5 :
-    ((Padded238.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded238_c6 :
-    ((Padded238.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded238_c7 :
-    ((Padded238.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded238_cover : Padded238.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded239_c0 :
@@ -6650,28 +3109,7 @@ theorem Padded239_c1 :
     ((Padded239.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded239_c2 :
-    ((Padded239.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded239_c3 :
-    ((Padded239.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded239_c4 :
-    ((Padded239.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded239_c5 :
-    ((Padded239.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded239_c6 :
-    ((Padded239.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded239_c7 :
-    ((Padded239.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded239_cover : Padded239.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded240_c0 :
@@ -6698,12 +3136,7 @@ theorem Padded240_c5 :
     ((Padded240.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded240_c6 :
-    ((Padded240.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded240_c7 :
-    ((Padded240.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded240_cover : Padded240.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded241_c0 :
@@ -6722,20 +3155,7 @@ theorem Padded241_c3 :
     ((Padded241.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded241_c4 :
-    ((Padded241.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded241_c5 :
-    ((Padded241.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded241_c6 :
-    ((Padded241.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded241_c7 :
-    ((Padded241.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded241_cover : Padded241.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded242_c0 :
@@ -6746,28 +3166,7 @@ theorem Padded242_c1 :
     ((Padded242.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded242_c2 :
-    ((Padded242.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded242_c3 :
-    ((Padded242.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded242_c4 :
-    ((Padded242.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded242_c5 :
-    ((Padded242.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded242_c6 :
-    ((Padded242.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded242_c7 :
-    ((Padded242.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded242_cover : Padded242.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded243_c0 :
@@ -6782,24 +3181,7 @@ theorem Padded243_c2 :
     ((Padded243.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded243_c3 :
-    ((Padded243.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded243_c4 :
-    ((Padded243.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded243_c5 :
-    ((Padded243.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded243_c6 :
-    ((Padded243.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded243_c7 :
-    ((Padded243.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded243_cover : Padded243.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded244_c0 :
@@ -6810,28 +3192,7 @@ theorem Padded244_c1 :
     ((Padded244.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded244_c2 :
-    ((Padded244.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded244_c3 :
-    ((Padded244.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded244_c4 :
-    ((Padded244.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded244_c5 :
-    ((Padded244.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded244_c6 :
-    ((Padded244.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded244_c7 :
-    ((Padded244.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded244_cover : Padded244.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded245_c0 :
@@ -6842,28 +3203,7 @@ theorem Padded245_c1 :
     ((Padded245.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded245_c2 :
-    ((Padded245.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded245_c3 :
-    ((Padded245.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded245_c4 :
-    ((Padded245.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded245_c5 :
-    ((Padded245.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded245_c6 :
-    ((Padded245.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded245_c7 :
-    ((Padded245.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded245_cover : Padded245.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded246_c0 :
@@ -6874,28 +3214,7 @@ theorem Padded246_c1 :
     ((Padded246.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded246_c2 :
-    ((Padded246.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded246_c3 :
-    ((Padded246.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded246_c4 :
-    ((Padded246.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded246_c5 :
-    ((Padded246.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded246_c6 :
-    ((Padded246.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded246_c7 :
-    ((Padded246.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded246_cover : Padded246.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded247_c0 :
@@ -6906,28 +3225,7 @@ theorem Padded247_c1 :
     ((Padded247.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded247_c2 :
-    ((Padded247.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded247_c3 :
-    ((Padded247.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded247_c4 :
-    ((Padded247.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded247_c5 :
-    ((Padded247.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded247_c6 :
-    ((Padded247.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded247_c7 :
-    ((Padded247.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded247_cover : Padded247.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded248_c0 :
@@ -6938,28 +3236,7 @@ theorem Padded248_c1 :
     ((Padded248.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded248_c2 :
-    ((Padded248.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded248_c3 :
-    ((Padded248.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded248_c4 :
-    ((Padded248.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded248_c5 :
-    ((Padded248.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded248_c6 :
-    ((Padded248.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded248_c7 :
-    ((Padded248.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded248_cover : Padded248.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded249_c0 :
@@ -6970,28 +3247,7 @@ theorem Padded249_c1 :
     ((Padded249.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded249_c2 :
-    ((Padded249.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded249_c3 :
-    ((Padded249.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded249_c4 :
-    ((Padded249.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded249_c5 :
-    ((Padded249.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded249_c6 :
-    ((Padded249.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded249_c7 :
-    ((Padded249.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded249_cover : Padded249.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded250_c0 :
@@ -7002,28 +3258,7 @@ theorem Padded250_c1 :
     ((Padded250.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded250_c2 :
-    ((Padded250.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded250_c3 :
-    ((Padded250.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded250_c4 :
-    ((Padded250.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded250_c5 :
-    ((Padded250.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded250_c6 :
-    ((Padded250.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded250_c7 :
-    ((Padded250.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded250_cover : Padded250.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded251_c0 :
@@ -7034,28 +3269,7 @@ theorem Padded251_c1 :
     ((Padded251.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded251_c2 :
-    ((Padded251.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded251_c3 :
-    ((Padded251.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded251_c4 :
-    ((Padded251.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded251_c5 :
-    ((Padded251.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded251_c6 :
-    ((Padded251.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded251_c7 :
-    ((Padded251.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded251_cover : Padded251.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded252_c0 :
@@ -7066,28 +3280,7 @@ theorem Padded252_c1 :
     ((Padded252.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded252_c2 :
-    ((Padded252.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded252_c3 :
-    ((Padded252.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded252_c4 :
-    ((Padded252.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded252_c5 :
-    ((Padded252.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded252_c6 :
-    ((Padded252.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded252_c7 :
-    ((Padded252.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded252_cover : Padded252.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded253_c0 :
@@ -7102,24 +3295,7 @@ theorem Padded253_c2 :
     ((Padded253.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded253_c3 :
-    ((Padded253.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded253_c4 :
-    ((Padded253.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded253_c5 :
-    ((Padded253.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded253_c6 :
-    ((Padded253.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded253_c7 :
-    ((Padded253.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded253_cover : Padded253.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded254_c0 :
@@ -7130,28 +3306,7 @@ theorem Padded254_c1 :
     ((Padded254.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded254_c2 :
-    ((Padded254.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded254_c3 :
-    ((Padded254.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded254_c4 :
-    ((Padded254.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded254_c5 :
-    ((Padded254.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded254_c6 :
-    ((Padded254.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded254_c7 :
-    ((Padded254.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded254_cover : Padded254.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded255_c0 :
@@ -7170,20 +3325,7 @@ theorem Padded255_c3 :
     ((Padded255.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded255_c4 :
-    ((Padded255.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded255_c5 :
-    ((Padded255.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded255_c6 :
-    ((Padded255.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded255_c7 :
-    ((Padded255.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded255_cover : Padded255.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded256_c0 :
@@ -7198,24 +3340,7 @@ theorem Padded256_c2 :
     ((Padded256.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded256_c3 :
-    ((Padded256.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded256_c4 :
-    ((Padded256.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded256_c5 :
-    ((Padded256.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded256_c6 :
-    ((Padded256.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded256_c7 :
-    ((Padded256.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded256_cover : Padded256.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded257_c0 :
@@ -7226,28 +3351,7 @@ theorem Padded257_c1 :
     ((Padded257.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded257_c2 :
-    ((Padded257.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded257_c3 :
-    ((Padded257.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded257_c4 :
-    ((Padded257.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded257_c5 :
-    ((Padded257.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded257_c6 :
-    ((Padded257.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded257_c7 :
-    ((Padded257.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded257_cover : Padded257.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded258_c0 :
@@ -7270,16 +3374,7 @@ theorem Padded258_c4 :
     ((Padded258.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded258_c5 :
-    ((Padded258.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded258_c6 :
-    ((Padded258.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded258_c7 :
-    ((Padded258.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded258_cover : Padded258.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded259_c0 :
@@ -7294,24 +3389,7 @@ theorem Padded259_c2 :
     ((Padded259.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded259_c3 :
-    ((Padded259.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded259_c4 :
-    ((Padded259.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded259_c5 :
-    ((Padded259.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded259_c6 :
-    ((Padded259.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded259_c7 :
-    ((Padded259.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded259_cover : Padded259.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded260_c0 :
@@ -7322,28 +3400,7 @@ theorem Padded260_c1 :
     ((Padded260.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded260_c2 :
-    ((Padded260.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded260_c3 :
-    ((Padded260.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded260_c4 :
-    ((Padded260.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded260_c5 :
-    ((Padded260.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded260_c6 :
-    ((Padded260.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded260_c7 :
-    ((Padded260.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded260_cover : Padded260.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded261_c0 :
@@ -7370,12 +3427,7 @@ theorem Padded261_c5 :
     ((Padded261.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded261_c6 :
-    ((Padded261.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded261_c7 :
-    ((Padded261.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded261_cover : Padded261.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded262_c0 :
@@ -7390,24 +3442,7 @@ theorem Padded262_c2 :
     ((Padded262.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded262_c3 :
-    ((Padded262.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded262_c4 :
-    ((Padded262.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded262_c5 :
-    ((Padded262.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded262_c6 :
-    ((Padded262.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded262_c7 :
-    ((Padded262.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded262_cover : Padded262.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded263_c0 :
@@ -7418,28 +3453,7 @@ theorem Padded263_c1 :
     ((Padded263.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded263_c2 :
-    ((Padded263.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded263_c3 :
-    ((Padded263.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded263_c4 :
-    ((Padded263.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded263_c5 :
-    ((Padded263.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded263_c6 :
-    ((Padded263.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded263_c7 :
-    ((Padded263.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded263_cover : Padded263.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded264_c0 :
@@ -7450,28 +3464,7 @@ theorem Padded264_c1 :
     ((Padded264.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded264_c2 :
-    ((Padded264.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded264_c3 :
-    ((Padded264.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded264_c4 :
-    ((Padded264.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded264_c5 :
-    ((Padded264.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded264_c6 :
-    ((Padded264.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded264_c7 :
-    ((Padded264.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded264_cover : Padded264.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded265_c0 :
@@ -7486,24 +3479,7 @@ theorem Padded265_c2 :
     ((Padded265.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded265_c3 :
-    ((Padded265.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded265_c4 :
-    ((Padded265.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded265_c5 :
-    ((Padded265.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded265_c6 :
-    ((Padded265.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded265_c7 :
-    ((Padded265.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded265_cover : Padded265.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded266_c0 :
@@ -7514,28 +3490,7 @@ theorem Padded266_c1 :
     ((Padded266.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded266_c2 :
-    ((Padded266.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded266_c3 :
-    ((Padded266.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded266_c4 :
-    ((Padded266.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded266_c5 :
-    ((Padded266.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded266_c6 :
-    ((Padded266.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded266_c7 :
-    ((Padded266.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded266_cover : Padded266.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded267_c0 :
@@ -7550,24 +3505,7 @@ theorem Padded267_c2 :
     ((Padded267.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded267_c3 :
-    ((Padded267.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded267_c4 :
-    ((Padded267.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded267_c5 :
-    ((Padded267.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded267_c6 :
-    ((Padded267.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded267_c7 :
-    ((Padded267.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded267_cover : Padded267.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded268_c0 :
@@ -7582,24 +3520,7 @@ theorem Padded268_c2 :
     ((Padded268.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded268_c3 :
-    ((Padded268.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded268_c4 :
-    ((Padded268.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded268_c5 :
-    ((Padded268.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded268_c6 :
-    ((Padded268.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded268_c7 :
-    ((Padded268.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded268_cover : Padded268.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded269_c0 :
@@ -7614,24 +3535,7 @@ theorem Padded269_c2 :
     ((Padded269.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded269_c3 :
-    ((Padded269.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded269_c4 :
-    ((Padded269.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded269_c5 :
-    ((Padded269.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded269_c6 :
-    ((Padded269.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded269_c7 :
-    ((Padded269.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded269_cover : Padded269.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded270_c0 :
@@ -7642,28 +3546,7 @@ theorem Padded270_c1 :
     ((Padded270.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded270_c2 :
-    ((Padded270.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded270_c3 :
-    ((Padded270.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded270_c4 :
-    ((Padded270.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded270_c5 :
-    ((Padded270.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded270_c6 :
-    ((Padded270.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded270_c7 :
-    ((Padded270.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded270_cover : Padded270.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded271_c0 :
@@ -7674,28 +3557,7 @@ theorem Padded271_c1 :
     ((Padded271.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded271_c2 :
-    ((Padded271.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded271_c3 :
-    ((Padded271.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded271_c4 :
-    ((Padded271.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded271_c5 :
-    ((Padded271.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded271_c6 :
-    ((Padded271.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded271_c7 :
-    ((Padded271.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded271_cover : Padded271.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded272_c0 :
@@ -7706,28 +3568,7 @@ theorem Padded272_c1 :
     ((Padded272.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded272_c2 :
-    ((Padded272.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded272_c3 :
-    ((Padded272.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded272_c4 :
-    ((Padded272.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded272_c5 :
-    ((Padded272.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded272_c6 :
-    ((Padded272.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded272_c7 :
-    ((Padded272.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded272_cover : Padded272.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded273_c0 :
@@ -7738,28 +3579,7 @@ theorem Padded273_c1 :
     ((Padded273.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded273_c2 :
-    ((Padded273.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded273_c3 :
-    ((Padded273.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded273_c4 :
-    ((Padded273.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded273_c5 :
-    ((Padded273.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded273_c6 :
-    ((Padded273.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded273_c7 :
-    ((Padded273.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded273_cover : Padded273.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded274_c0 :
@@ -7770,28 +3590,7 @@ theorem Padded274_c1 :
     ((Padded274.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded274_c2 :
-    ((Padded274.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded274_c3 :
-    ((Padded274.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded274_c4 :
-    ((Padded274.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded274_c5 :
-    ((Padded274.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded274_c6 :
-    ((Padded274.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded274_c7 :
-    ((Padded274.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded274_cover : Padded274.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded275_c0 :
@@ -7802,28 +3601,7 @@ theorem Padded275_c1 :
     ((Padded275.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded275_c2 :
-    ((Padded275.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded275_c3 :
-    ((Padded275.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded275_c4 :
-    ((Padded275.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded275_c5 :
-    ((Padded275.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded275_c6 :
-    ((Padded275.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded275_c7 :
-    ((Padded275.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded275_cover : Padded275.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded276_c0 :
@@ -7850,12 +3628,7 @@ theorem Padded276_c5 :
     ((Padded276.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded276_c6 :
-    ((Padded276.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded276_c7 :
-    ((Padded276.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded276_cover : Padded276.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded277_c0 :
@@ -7866,28 +3639,7 @@ theorem Padded277_c1 :
     ((Padded277.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded277_c2 :
-    ((Padded277.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded277_c3 :
-    ((Padded277.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded277_c4 :
-    ((Padded277.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded277_c5 :
-    ((Padded277.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded277_c6 :
-    ((Padded277.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded277_c7 :
-    ((Padded277.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded277_cover : Padded277.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded278_c0 :
@@ -7910,16 +3662,7 @@ theorem Padded278_c4 :
     ((Padded278.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded278_c5 :
-    ((Padded278.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded278_c6 :
-    ((Padded278.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded278_c7 :
-    ((Padded278.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded278_cover : Padded278.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded279_c0 :
@@ -7930,28 +3673,7 @@ theorem Padded279_c1 :
     ((Padded279.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded279_c2 :
-    ((Padded279.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded279_c3 :
-    ((Padded279.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded279_c4 :
-    ((Padded279.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded279_c5 :
-    ((Padded279.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded279_c6 :
-    ((Padded279.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded279_c7 :
-    ((Padded279.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded279_cover : Padded279.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded280_c0 :
@@ -7966,24 +3688,7 @@ theorem Padded280_c2 :
     ((Padded280.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded280_c3 :
-    ((Padded280.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded280_c4 :
-    ((Padded280.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded280_c5 :
-    ((Padded280.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded280_c6 :
-    ((Padded280.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded280_c7 :
-    ((Padded280.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded280_cover : Padded280.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded281_c0 :
@@ -8002,20 +3707,7 @@ theorem Padded281_c3 :
     ((Padded281.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded281_c4 :
-    ((Padded281.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded281_c5 :
-    ((Padded281.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded281_c6 :
-    ((Padded281.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded281_c7 :
-    ((Padded281.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded281_cover : Padded281.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded282_c0 :
@@ -8026,28 +3718,7 @@ theorem Padded282_c1 :
     ((Padded282.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded282_c2 :
-    ((Padded282.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded282_c3 :
-    ((Padded282.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded282_c4 :
-    ((Padded282.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded282_c5 :
-    ((Padded282.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded282_c6 :
-    ((Padded282.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded282_c7 :
-    ((Padded282.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded282_cover : Padded282.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded283_c0 :
@@ -8062,24 +3733,7 @@ theorem Padded283_c2 :
     ((Padded283.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded283_c3 :
-    ((Padded283.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded283_c4 :
-    ((Padded283.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded283_c5 :
-    ((Padded283.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded283_c6 :
-    ((Padded283.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded283_c7 :
-    ((Padded283.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded283_cover : Padded283.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded284_c0 :
@@ -8090,28 +3744,7 @@ theorem Padded284_c1 :
     ((Padded284.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded284_c2 :
-    ((Padded284.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded284_c3 :
-    ((Padded284.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded284_c4 :
-    ((Padded284.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded284_c5 :
-    ((Padded284.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded284_c6 :
-    ((Padded284.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded284_c7 :
-    ((Padded284.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded284_cover : Padded284.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded285_c0 :
@@ -8130,20 +3763,7 @@ theorem Padded285_c3 :
     ((Padded285.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded285_c4 :
-    ((Padded285.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded285_c5 :
-    ((Padded285.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded285_c6 :
-    ((Padded285.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded285_c7 :
-    ((Padded285.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded285_cover : Padded285.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded286_c0 :
@@ -8154,28 +3774,7 @@ theorem Padded286_c1 :
     ((Padded286.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded286_c2 :
-    ((Padded286.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded286_c3 :
-    ((Padded286.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded286_c4 :
-    ((Padded286.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded286_c5 :
-    ((Padded286.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded286_c6 :
-    ((Padded286.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded286_c7 :
-    ((Padded286.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded286_cover : Padded286.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded287_c0 :
@@ -8194,20 +3793,7 @@ theorem Padded287_c3 :
     ((Padded287.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded287_c4 :
-    ((Padded287.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded287_c5 :
-    ((Padded287.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded287_c6 :
-    ((Padded287.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded287_c7 :
-    ((Padded287.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded287_cover : Padded287.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded288_c0 :
@@ -8218,28 +3804,7 @@ theorem Padded288_c1 :
     ((Padded288.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded288_c2 :
-    ((Padded288.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded288_c3 :
-    ((Padded288.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded288_c4 :
-    ((Padded288.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded288_c5 :
-    ((Padded288.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded288_c6 :
-    ((Padded288.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded288_c7 :
-    ((Padded288.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded288_cover : Padded288.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded289_c0 :
@@ -8250,28 +3815,7 @@ theorem Padded289_c1 :
     ((Padded289.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded289_c2 :
-    ((Padded289.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded289_c3 :
-    ((Padded289.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded289_c4 :
-    ((Padded289.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded289_c5 :
-    ((Padded289.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded289_c6 :
-    ((Padded289.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded289_c7 :
-    ((Padded289.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded289_cover : Padded289.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded290_c0 :
@@ -8282,28 +3826,7 @@ theorem Padded290_c1 :
     ((Padded290.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded290_c2 :
-    ((Padded290.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded290_c3 :
-    ((Padded290.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded290_c4 :
-    ((Padded290.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded290_c5 :
-    ((Padded290.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded290_c6 :
-    ((Padded290.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded290_c7 :
-    ((Padded290.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded290_cover : Padded290.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded291_c0 :
@@ -8314,28 +3837,7 @@ theorem Padded291_c1 :
     ((Padded291.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded291_c2 :
-    ((Padded291.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded291_c3 :
-    ((Padded291.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded291_c4 :
-    ((Padded291.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded291_c5 :
-    ((Padded291.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded291_c6 :
-    ((Padded291.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded291_c7 :
-    ((Padded291.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded291_cover : Padded291.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded292_c0 :
@@ -8346,28 +3848,7 @@ theorem Padded292_c1 :
     ((Padded292.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded292_c2 :
-    ((Padded292.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded292_c3 :
-    ((Padded292.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded292_c4 :
-    ((Padded292.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded292_c5 :
-    ((Padded292.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded292_c6 :
-    ((Padded292.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded292_c7 :
-    ((Padded292.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded292_cover : Padded292.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded293_c0 :
@@ -8378,28 +3859,7 @@ theorem Padded293_c1 :
     ((Padded293.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded293_c2 :
-    ((Padded293.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded293_c3 :
-    ((Padded293.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded293_c4 :
-    ((Padded293.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded293_c5 :
-    ((Padded293.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded293_c6 :
-    ((Padded293.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded293_c7 :
-    ((Padded293.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded293_cover : Padded293.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded294_c0 :
@@ -8410,28 +3870,7 @@ theorem Padded294_c1 :
     ((Padded294.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded294_c2 :
-    ((Padded294.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded294_c3 :
-    ((Padded294.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded294_c4 :
-    ((Padded294.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded294_c5 :
-    ((Padded294.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded294_c6 :
-    ((Padded294.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded294_c7 :
-    ((Padded294.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded294_cover : Padded294.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded295_c0 :
@@ -8442,28 +3881,7 @@ theorem Padded295_c1 :
     ((Padded295.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded295_c2 :
-    ((Padded295.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded295_c3 :
-    ((Padded295.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded295_c4 :
-    ((Padded295.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded295_c5 :
-    ((Padded295.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded295_c6 :
-    ((Padded295.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded295_c7 :
-    ((Padded295.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded295_cover : Padded295.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded296_c0 :
@@ -8474,28 +3892,7 @@ theorem Padded296_c1 :
     ((Padded296.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded296_c2 :
-    ((Padded296.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded296_c3 :
-    ((Padded296.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded296_c4 :
-    ((Padded296.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded296_c5 :
-    ((Padded296.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded296_c6 :
-    ((Padded296.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded296_c7 :
-    ((Padded296.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded296_cover : Padded296.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded297_c0 :
@@ -8506,28 +3903,7 @@ theorem Padded297_c1 :
     ((Padded297.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded297_c2 :
-    ((Padded297.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded297_c3 :
-    ((Padded297.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded297_c4 :
-    ((Padded297.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded297_c5 :
-    ((Padded297.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded297_c6 :
-    ((Padded297.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded297_c7 :
-    ((Padded297.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded297_cover : Padded297.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded298_c0 :
@@ -8538,28 +3914,7 @@ theorem Padded298_c1 :
     ((Padded298.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded298_c2 :
-    ((Padded298.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded298_c3 :
-    ((Padded298.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded298_c4 :
-    ((Padded298.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded298_c5 :
-    ((Padded298.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded298_c6 :
-    ((Padded298.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded298_c7 :
-    ((Padded298.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded298_cover : Padded298.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded299_c0 :
@@ -8570,28 +3925,7 @@ theorem Padded299_c1 :
     ((Padded299.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded299_c2 :
-    ((Padded299.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded299_c3 :
-    ((Padded299.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded299_c4 :
-    ((Padded299.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded299_c5 :
-    ((Padded299.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded299_c6 :
-    ((Padded299.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded299_c7 :
-    ((Padded299.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded299_cover : Padded299.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded300_c0 :
@@ -8602,28 +3936,7 @@ theorem Padded300_c1 :
     ((Padded300.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded300_c2 :
-    ((Padded300.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded300_c3 :
-    ((Padded300.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded300_c4 :
-    ((Padded300.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded300_c5 :
-    ((Padded300.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded300_c6 :
-    ((Padded300.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded300_c7 :
-    ((Padded300.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded300_cover : Padded300.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded301_c0 :
@@ -8634,28 +3947,7 @@ theorem Padded301_c1 :
     ((Padded301.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded301_c2 :
-    ((Padded301.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded301_c3 :
-    ((Padded301.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded301_c4 :
-    ((Padded301.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded301_c5 :
-    ((Padded301.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded301_c6 :
-    ((Padded301.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded301_c7 :
-    ((Padded301.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded301_cover : Padded301.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded302_c0 :
@@ -8666,28 +3958,7 @@ theorem Padded302_c1 :
     ((Padded302.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded302_c2 :
-    ((Padded302.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded302_c3 :
-    ((Padded302.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded302_c4 :
-    ((Padded302.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded302_c5 :
-    ((Padded302.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded302_c6 :
-    ((Padded302.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded302_c7 :
-    ((Padded302.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded302_cover : Padded302.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded303_c0 :
@@ -8706,20 +3977,7 @@ theorem Padded303_c3 :
     ((Padded303.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded303_c4 :
-    ((Padded303.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded303_c5 :
-    ((Padded303.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded303_c6 :
-    ((Padded303.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded303_c7 :
-    ((Padded303.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded303_cover : Padded303.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded304_c0 :
@@ -8738,20 +3996,7 @@ theorem Padded304_c3 :
     ((Padded304.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded304_c4 :
-    ((Padded304.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded304_c5 :
-    ((Padded304.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded304_c6 :
-    ((Padded304.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded304_c7 :
-    ((Padded304.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded304_cover : Padded304.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded305_c0 :
@@ -8762,28 +4007,7 @@ theorem Padded305_c1 :
     ((Padded305.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded305_c2 :
-    ((Padded305.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded305_c3 :
-    ((Padded305.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded305_c4 :
-    ((Padded305.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded305_c5 :
-    ((Padded305.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded305_c6 :
-    ((Padded305.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded305_c7 :
-    ((Padded305.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded305_cover : Padded305.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded306_c0 :
@@ -8794,28 +4018,7 @@ theorem Padded306_c1 :
     ((Padded306.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded306_c2 :
-    ((Padded306.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded306_c3 :
-    ((Padded306.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded306_c4 :
-    ((Padded306.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded306_c5 :
-    ((Padded306.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded306_c6 :
-    ((Padded306.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded306_c7 :
-    ((Padded306.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded306_cover : Padded306.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded307_c0 :
@@ -8826,28 +4029,7 @@ theorem Padded307_c1 :
     ((Padded307.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded307_c2 :
-    ((Padded307.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded307_c3 :
-    ((Padded307.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded307_c4 :
-    ((Padded307.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded307_c5 :
-    ((Padded307.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded307_c6 :
-    ((Padded307.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded307_c7 :
-    ((Padded307.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded307_cover : Padded307.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded308_c0 :
@@ -8858,28 +4040,7 @@ theorem Padded308_c1 :
     ((Padded308.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded308_c2 :
-    ((Padded308.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded308_c3 :
-    ((Padded308.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded308_c4 :
-    ((Padded308.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded308_c5 :
-    ((Padded308.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded308_c6 :
-    ((Padded308.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded308_c7 :
-    ((Padded308.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded308_cover : Padded308.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded309_c0 :
@@ -8890,28 +4051,7 @@ theorem Padded309_c1 :
     ((Padded309.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded309_c2 :
-    ((Padded309.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded309_c3 :
-    ((Padded309.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded309_c4 :
-    ((Padded309.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded309_c5 :
-    ((Padded309.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded309_c6 :
-    ((Padded309.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded309_c7 :
-    ((Padded309.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded309_cover : Padded309.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded310_c0 :
@@ -8922,28 +4062,7 @@ theorem Padded310_c1 :
     ((Padded310.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded310_c2 :
-    ((Padded310.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded310_c3 :
-    ((Padded310.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded310_c4 :
-    ((Padded310.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded310_c5 :
-    ((Padded310.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded310_c6 :
-    ((Padded310.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded310_c7 :
-    ((Padded310.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded310_cover : Padded310.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded311_c0 :
@@ -8954,28 +4073,7 @@ theorem Padded311_c1 :
     ((Padded311.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded311_c2 :
-    ((Padded311.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded311_c3 :
-    ((Padded311.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded311_c4 :
-    ((Padded311.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded311_c5 :
-    ((Padded311.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded311_c6 :
-    ((Padded311.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded311_c7 :
-    ((Padded311.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded311_cover : Padded311.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded312_c0 :
@@ -8986,28 +4084,7 @@ theorem Padded312_c1 :
     ((Padded312.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded312_c2 :
-    ((Padded312.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded312_c3 :
-    ((Padded312.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded312_c4 :
-    ((Padded312.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded312_c5 :
-    ((Padded312.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded312_c6 :
-    ((Padded312.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded312_c7 :
-    ((Padded312.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded312_cover : Padded312.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded313_c0 :
@@ -9018,28 +4095,7 @@ theorem Padded313_c1 :
     ((Padded313.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded313_c2 :
-    ((Padded313.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded313_c3 :
-    ((Padded313.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded313_c4 :
-    ((Padded313.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded313_c5 :
-    ((Padded313.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded313_c6 :
-    ((Padded313.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded313_c7 :
-    ((Padded313.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded313_cover : Padded313.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded314_c0 :
@@ -9050,28 +4106,7 @@ theorem Padded314_c1 :
     ((Padded314.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded314_c2 :
-    ((Padded314.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded314_c3 :
-    ((Padded314.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded314_c4 :
-    ((Padded314.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded314_c5 :
-    ((Padded314.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded314_c6 :
-    ((Padded314.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded314_c7 :
-    ((Padded314.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded314_cover : Padded314.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded315_c0 :
@@ -9082,28 +4117,7 @@ theorem Padded315_c1 :
     ((Padded315.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded315_c2 :
-    ((Padded315.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded315_c3 :
-    ((Padded315.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded315_c4 :
-    ((Padded315.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded315_c5 :
-    ((Padded315.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded315_c6 :
-    ((Padded315.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded315_c7 :
-    ((Padded315.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded315_cover : Padded315.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded316_c0 :
@@ -9118,24 +4132,7 @@ theorem Padded316_c2 :
     ((Padded316.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded316_c3 :
-    ((Padded316.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded316_c4 :
-    ((Padded316.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded316_c5 :
-    ((Padded316.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded316_c6 :
-    ((Padded316.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded316_c7 :
-    ((Padded316.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded316_cover : Padded316.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded317_c0 :
@@ -9154,20 +4151,7 @@ theorem Padded317_c3 :
     ((Padded317.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded317_c4 :
-    ((Padded317.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded317_c5 :
-    ((Padded317.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded317_c6 :
-    ((Padded317.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded317_c7 :
-    ((Padded317.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded317_cover : Padded317.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded318_c0 :
@@ -9178,28 +4162,7 @@ theorem Padded318_c1 :
     ((Padded318.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded318_c2 :
-    ((Padded318.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded318_c3 :
-    ((Padded318.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded318_c4 :
-    ((Padded318.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded318_c5 :
-    ((Padded318.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded318_c6 :
-    ((Padded318.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded318_c7 :
-    ((Padded318.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded318_cover : Padded318.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded319_c0 :
@@ -9210,28 +4173,7 @@ theorem Padded319_c1 :
     ((Padded319.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded319_c2 :
-    ((Padded319.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded319_c3 :
-    ((Padded319.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded319_c4 :
-    ((Padded319.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded319_c5 :
-    ((Padded319.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded319_c6 :
-    ((Padded319.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded319_c7 :
-    ((Padded319.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded319_cover : Padded319.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded320_c0 :
@@ -9250,20 +4192,7 @@ theorem Padded320_c3 :
     ((Padded320.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded320_c4 :
-    ((Padded320.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded320_c5 :
-    ((Padded320.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded320_c6 :
-    ((Padded320.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded320_c7 :
-    ((Padded320.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded320_cover : Padded320.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded321_c0 :
@@ -9274,28 +4203,7 @@ theorem Padded321_c1 :
     ((Padded321.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded321_c2 :
-    ((Padded321.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded321_c3 :
-    ((Padded321.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded321_c4 :
-    ((Padded321.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded321_c5 :
-    ((Padded321.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded321_c6 :
-    ((Padded321.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded321_c7 :
-    ((Padded321.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded321_cover : Padded321.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded322_c0 :
@@ -9306,28 +4214,7 @@ theorem Padded322_c1 :
     ((Padded322.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded322_c2 :
-    ((Padded322.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded322_c3 :
-    ((Padded322.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded322_c4 :
-    ((Padded322.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded322_c5 :
-    ((Padded322.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded322_c6 :
-    ((Padded322.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded322_c7 :
-    ((Padded322.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded322_cover : Padded322.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded323_c0 :
@@ -9338,28 +4225,7 @@ theorem Padded323_c1 :
     ((Padded323.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded323_c2 :
-    ((Padded323.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded323_c3 :
-    ((Padded323.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded323_c4 :
-    ((Padded323.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded323_c5 :
-    ((Padded323.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded323_c6 :
-    ((Padded323.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded323_c7 :
-    ((Padded323.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded323_cover : Padded323.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded324_c0 :
@@ -9378,20 +4244,7 @@ theorem Padded324_c3 :
     ((Padded324.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded324_c4 :
-    ((Padded324.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded324_c5 :
-    ((Padded324.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded324_c6 :
-    ((Padded324.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded324_c7 :
-    ((Padded324.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded324_cover : Padded324.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded325_c0 :
@@ -9402,28 +4255,7 @@ theorem Padded325_c1 :
     ((Padded325.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded325_c2 :
-    ((Padded325.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded325_c3 :
-    ((Padded325.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded325_c4 :
-    ((Padded325.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded325_c5 :
-    ((Padded325.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded325_c6 :
-    ((Padded325.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded325_c7 :
-    ((Padded325.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded325_cover : Padded325.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded326_c0 :
@@ -9438,24 +4270,7 @@ theorem Padded326_c2 :
     ((Padded326.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded326_c3 :
-    ((Padded326.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded326_c4 :
-    ((Padded326.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded326_c5 :
-    ((Padded326.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded326_c6 :
-    ((Padded326.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded326_c7 :
-    ((Padded326.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded326_cover : Padded326.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded327_c0 :
@@ -9466,28 +4281,7 @@ theorem Padded327_c1 :
     ((Padded327.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded327_c2 :
-    ((Padded327.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded327_c3 :
-    ((Padded327.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded327_c4 :
-    ((Padded327.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded327_c5 :
-    ((Padded327.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded327_c6 :
-    ((Padded327.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded327_c7 :
-    ((Padded327.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded327_cover : Padded327.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded328_c0 :
@@ -9498,28 +4292,7 @@ theorem Padded328_c1 :
     ((Padded328.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded328_c2 :
-    ((Padded328.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded328_c3 :
-    ((Padded328.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded328_c4 :
-    ((Padded328.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded328_c5 :
-    ((Padded328.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded328_c6 :
-    ((Padded328.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded328_c7 :
-    ((Padded328.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded328_cover : Padded328.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded329_c0 :
@@ -9530,28 +4303,7 @@ theorem Padded329_c1 :
     ((Padded329.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded329_c2 :
-    ((Padded329.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded329_c3 :
-    ((Padded329.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded329_c4 :
-    ((Padded329.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded329_c5 :
-    ((Padded329.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded329_c6 :
-    ((Padded329.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded329_c7 :
-    ((Padded329.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded329_cover : Padded329.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded330_c0 :
@@ -9562,28 +4314,7 @@ theorem Padded330_c1 :
     ((Padded330.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded330_c2 :
-    ((Padded330.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded330_c3 :
-    ((Padded330.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded330_c4 :
-    ((Padded330.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded330_c5 :
-    ((Padded330.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded330_c6 :
-    ((Padded330.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded330_c7 :
-    ((Padded330.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded330_cover : Padded330.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded331_c0 :
@@ -9594,28 +4325,7 @@ theorem Padded331_c1 :
     ((Padded331.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded331_c2 :
-    ((Padded331.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded331_c3 :
-    ((Padded331.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded331_c4 :
-    ((Padded331.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded331_c5 :
-    ((Padded331.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded331_c6 :
-    ((Padded331.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded331_c7 :
-    ((Padded331.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded331_cover : Padded331.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded332_c0 :
@@ -9626,28 +4336,7 @@ theorem Padded332_c1 :
     ((Padded332.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded332_c2 :
-    ((Padded332.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded332_c3 :
-    ((Padded332.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded332_c4 :
-    ((Padded332.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded332_c5 :
-    ((Padded332.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded332_c6 :
-    ((Padded332.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded332_c7 :
-    ((Padded332.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded332_cover : Padded332.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded333_c0 :
@@ -9658,28 +4347,7 @@ theorem Padded333_c1 :
     ((Padded333.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded333_c2 :
-    ((Padded333.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded333_c3 :
-    ((Padded333.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded333_c4 :
-    ((Padded333.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded333_c5 :
-    ((Padded333.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded333_c6 :
-    ((Padded333.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded333_c7 :
-    ((Padded333.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded333_cover : Padded333.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded334_c0 :
@@ -9694,24 +4362,7 @@ theorem Padded334_c2 :
     ((Padded334.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded334_c3 :
-    ((Padded334.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded334_c4 :
-    ((Padded334.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded334_c5 :
-    ((Padded334.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded334_c6 :
-    ((Padded334.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded334_c7 :
-    ((Padded334.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded334_cover : Padded334.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded335_c0 :
@@ -9734,16 +4385,7 @@ theorem Padded335_c4 :
     ((Padded335.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded335_c5 :
-    ((Padded335.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded335_c6 :
-    ((Padded335.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded335_c7 :
-    ((Padded335.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded335_cover : Padded335.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded336_c0 :
@@ -9758,24 +4400,7 @@ theorem Padded336_c2 :
     ((Padded336.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded336_c3 :
-    ((Padded336.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded336_c4 :
-    ((Padded336.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded336_c5 :
-    ((Padded336.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded336_c6 :
-    ((Padded336.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded336_c7 :
-    ((Padded336.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded336_cover : Padded336.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded337_c0 :
@@ -9786,28 +4411,7 @@ theorem Padded337_c1 :
     ((Padded337.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded337_c2 :
-    ((Padded337.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded337_c3 :
-    ((Padded337.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded337_c4 :
-    ((Padded337.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded337_c5 :
-    ((Padded337.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded337_c6 :
-    ((Padded337.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded337_c7 :
-    ((Padded337.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded337_cover : Padded337.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded338_c0 :
@@ -9818,28 +4422,7 @@ theorem Padded338_c1 :
     ((Padded338.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded338_c2 :
-    ((Padded338.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded338_c3 :
-    ((Padded338.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded338_c4 :
-    ((Padded338.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded338_c5 :
-    ((Padded338.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded338_c6 :
-    ((Padded338.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded338_c7 :
-    ((Padded338.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded338_cover : Padded338.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded339_c0 :
@@ -9850,28 +4433,7 @@ theorem Padded339_c1 :
     ((Padded339.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded339_c2 :
-    ((Padded339.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded339_c3 :
-    ((Padded339.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded339_c4 :
-    ((Padded339.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded339_c5 :
-    ((Padded339.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded339_c6 :
-    ((Padded339.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded339_c7 :
-    ((Padded339.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded339_cover : Padded339.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded340_c0 :
@@ -9882,28 +4444,7 @@ theorem Padded340_c1 :
     ((Padded340.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded340_c2 :
-    ((Padded340.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded340_c3 :
-    ((Padded340.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded340_c4 :
-    ((Padded340.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded340_c5 :
-    ((Padded340.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded340_c6 :
-    ((Padded340.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded340_c7 :
-    ((Padded340.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded340_cover : Padded340.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded341_c0 :
@@ -9914,28 +4455,7 @@ theorem Padded341_c1 :
     ((Padded341.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded341_c2 :
-    ((Padded341.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded341_c3 :
-    ((Padded341.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded341_c4 :
-    ((Padded341.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded341_c5 :
-    ((Padded341.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded341_c6 :
-    ((Padded341.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded341_c7 :
-    ((Padded341.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded341_cover : Padded341.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded342_c0 :
@@ -9946,28 +4466,7 @@ theorem Padded342_c1 :
     ((Padded342.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded342_c2 :
-    ((Padded342.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded342_c3 :
-    ((Padded342.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded342_c4 :
-    ((Padded342.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded342_c5 :
-    ((Padded342.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded342_c6 :
-    ((Padded342.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded342_c7 :
-    ((Padded342.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded342_cover : Padded342.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded343_c0 :
@@ -9978,28 +4477,7 @@ theorem Padded343_c1 :
     ((Padded343.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded343_c2 :
-    ((Padded343.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded343_c3 :
-    ((Padded343.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded343_c4 :
-    ((Padded343.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded343_c5 :
-    ((Padded343.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded343_c6 :
-    ((Padded343.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded343_c7 :
-    ((Padded343.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded343_cover : Padded343.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded344_c0 :
@@ -10018,20 +4496,7 @@ theorem Padded344_c3 :
     ((Padded344.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded344_c4 :
-    ((Padded344.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded344_c5 :
-    ((Padded344.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded344_c6 :
-    ((Padded344.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded344_c7 :
-    ((Padded344.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded344_cover : Padded344.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded345_c0 :
@@ -10042,28 +4507,7 @@ theorem Padded345_c1 :
     ((Padded345.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded345_c2 :
-    ((Padded345.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded345_c3 :
-    ((Padded345.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded345_c4 :
-    ((Padded345.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded345_c5 :
-    ((Padded345.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded345_c6 :
-    ((Padded345.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded345_c7 :
-    ((Padded345.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded345_cover : Padded345.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded346_c0 :
@@ -10078,24 +4522,7 @@ theorem Padded346_c2 :
     ((Padded346.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded346_c3 :
-    ((Padded346.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded346_c4 :
-    ((Padded346.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded346_c5 :
-    ((Padded346.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded346_c6 :
-    ((Padded346.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded346_c7 :
-    ((Padded346.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded346_cover : Padded346.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded347_c0 :
@@ -10122,12 +4549,7 @@ theorem Padded347_c5 :
     ((Padded347.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded347_c6 :
-    ((Padded347.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded347_c7 :
-    ((Padded347.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded347_cover : Padded347.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded348_c0 :
@@ -10138,28 +4560,7 @@ theorem Padded348_c1 :
     ((Padded348.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded348_c2 :
-    ((Padded348.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded348_c3 :
-    ((Padded348.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded348_c4 :
-    ((Padded348.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded348_c5 :
-    ((Padded348.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded348_c6 :
-    ((Padded348.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded348_c7 :
-    ((Padded348.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded348_cover : Padded348.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded349_c0 :
@@ -10170,28 +4571,7 @@ theorem Padded349_c1 :
     ((Padded349.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded349_c2 :
-    ((Padded349.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded349_c3 :
-    ((Padded349.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded349_c4 :
-    ((Padded349.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded349_c5 :
-    ((Padded349.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded349_c6 :
-    ((Padded349.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded349_c7 :
-    ((Padded349.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded349_cover : Padded349.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded350_c0 :
@@ -10202,28 +4582,7 @@ theorem Padded350_c1 :
     ((Padded350.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded350_c2 :
-    ((Padded350.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded350_c3 :
-    ((Padded350.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded350_c4 :
-    ((Padded350.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded350_c5 :
-    ((Padded350.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded350_c6 :
-    ((Padded350.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded350_c7 :
-    ((Padded350.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded350_cover : Padded350.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded351_c0 :
@@ -10234,28 +4593,7 @@ theorem Padded351_c1 :
     ((Padded351.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded351_c2 :
-    ((Padded351.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded351_c3 :
-    ((Padded351.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded351_c4 :
-    ((Padded351.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded351_c5 :
-    ((Padded351.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded351_c6 :
-    ((Padded351.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded351_c7 :
-    ((Padded351.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded351_cover : Padded351.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded352_c0 :
@@ -10266,28 +4604,7 @@ theorem Padded352_c1 :
     ((Padded352.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded352_c2 :
-    ((Padded352.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded352_c3 :
-    ((Padded352.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded352_c4 :
-    ((Padded352.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded352_c5 :
-    ((Padded352.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded352_c6 :
-    ((Padded352.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded352_c7 :
-    ((Padded352.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded352_cover : Padded352.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded353_c0 :
@@ -10298,28 +4615,7 @@ theorem Padded353_c1 :
     ((Padded353.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded353_c2 :
-    ((Padded353.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded353_c3 :
-    ((Padded353.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded353_c4 :
-    ((Padded353.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded353_c5 :
-    ((Padded353.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded353_c6 :
-    ((Padded353.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded353_c7 :
-    ((Padded353.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded353_cover : Padded353.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded354_c0 :
@@ -10330,28 +4626,7 @@ theorem Padded354_c1 :
     ((Padded354.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded354_c2 :
-    ((Padded354.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded354_c3 :
-    ((Padded354.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded354_c4 :
-    ((Padded354.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded354_c5 :
-    ((Padded354.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded354_c6 :
-    ((Padded354.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded354_c7 :
-    ((Padded354.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded354_cover : Padded354.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded355_c0 :
@@ -10362,28 +4637,7 @@ theorem Padded355_c1 :
     ((Padded355.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded355_c2 :
-    ((Padded355.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded355_c3 :
-    ((Padded355.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded355_c4 :
-    ((Padded355.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded355_c5 :
-    ((Padded355.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded355_c6 :
-    ((Padded355.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded355_c7 :
-    ((Padded355.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded355_cover : Padded355.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded356_c0 :
@@ -10394,28 +4648,7 @@ theorem Padded356_c1 :
     ((Padded356.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded356_c2 :
-    ((Padded356.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded356_c3 :
-    ((Padded356.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded356_c4 :
-    ((Padded356.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded356_c5 :
-    ((Padded356.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded356_c6 :
-    ((Padded356.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded356_c7 :
-    ((Padded356.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded356_cover : Padded356.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded357_c0 :
@@ -10426,28 +4659,7 @@ theorem Padded357_c1 :
     ((Padded357.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded357_c2 :
-    ((Padded357.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded357_c3 :
-    ((Padded357.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded357_c4 :
-    ((Padded357.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded357_c5 :
-    ((Padded357.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded357_c6 :
-    ((Padded357.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded357_c7 :
-    ((Padded357.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded357_cover : Padded357.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded358_c0 :
@@ -10458,28 +4670,7 @@ theorem Padded358_c1 :
     ((Padded358.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded358_c2 :
-    ((Padded358.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded358_c3 :
-    ((Padded358.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded358_c4 :
-    ((Padded358.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded358_c5 :
-    ((Padded358.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded358_c6 :
-    ((Padded358.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded358_c7 :
-    ((Padded358.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded358_cover : Padded358.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded359_c0 :
@@ -10490,28 +4681,7 @@ theorem Padded359_c1 :
     ((Padded359.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded359_c2 :
-    ((Padded359.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded359_c3 :
-    ((Padded359.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded359_c4 :
-    ((Padded359.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded359_c5 :
-    ((Padded359.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded359_c6 :
-    ((Padded359.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded359_c7 :
-    ((Padded359.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded359_cover : Padded359.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded360_c0 :
@@ -10522,28 +4692,7 @@ theorem Padded360_c1 :
     ((Padded360.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded360_c2 :
-    ((Padded360.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded360_c3 :
-    ((Padded360.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded360_c4 :
-    ((Padded360.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded360_c5 :
-    ((Padded360.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded360_c6 :
-    ((Padded360.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded360_c7 :
-    ((Padded360.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded360_cover : Padded360.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded361_c0 :
@@ -10554,28 +4703,7 @@ theorem Padded361_c1 :
     ((Padded361.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded361_c2 :
-    ((Padded361.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded361_c3 :
-    ((Padded361.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded361_c4 :
-    ((Padded361.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded361_c5 :
-    ((Padded361.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded361_c6 :
-    ((Padded361.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded361_c7 :
-    ((Padded361.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded361_cover : Padded361.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded362_c0 :
@@ -10586,28 +4714,7 @@ theorem Padded362_c1 :
     ((Padded362.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded362_c2 :
-    ((Padded362.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded362_c3 :
-    ((Padded362.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded362_c4 :
-    ((Padded362.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded362_c5 :
-    ((Padded362.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded362_c6 :
-    ((Padded362.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded362_c7 :
-    ((Padded362.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded362_cover : Padded362.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded363_c0 :
@@ -10622,24 +4729,7 @@ theorem Padded363_c2 :
     ((Padded363.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded363_c3 :
-    ((Padded363.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded363_c4 :
-    ((Padded363.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded363_c5 :
-    ((Padded363.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded363_c6 :
-    ((Padded363.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded363_c7 :
-    ((Padded363.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded363_cover : Padded363.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded364_c0 :
@@ -10650,28 +4740,7 @@ theorem Padded364_c1 :
     ((Padded364.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded364_c2 :
-    ((Padded364.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded364_c3 :
-    ((Padded364.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded364_c4 :
-    ((Padded364.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded364_c5 :
-    ((Padded364.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded364_c6 :
-    ((Padded364.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded364_c7 :
-    ((Padded364.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded364_cover : Padded364.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded365_c0 :
@@ -10682,28 +4751,7 @@ theorem Padded365_c1 :
     ((Padded365.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded365_c2 :
-    ((Padded365.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded365_c3 :
-    ((Padded365.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded365_c4 :
-    ((Padded365.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded365_c5 :
-    ((Padded365.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded365_c6 :
-    ((Padded365.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded365_c7 :
-    ((Padded365.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded365_cover : Padded365.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded366_c0 :
@@ -10714,28 +4762,7 @@ theorem Padded366_c1 :
     ((Padded366.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded366_c2 :
-    ((Padded366.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded366_c3 :
-    ((Padded366.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded366_c4 :
-    ((Padded366.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded366_c5 :
-    ((Padded366.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded366_c6 :
-    ((Padded366.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded366_c7 :
-    ((Padded366.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded366_cover : Padded366.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded367_c0 :
@@ -10750,24 +4777,7 @@ theorem Padded367_c2 :
     ((Padded367.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded367_c3 :
-    ((Padded367.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded367_c4 :
-    ((Padded367.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded367_c5 :
-    ((Padded367.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded367_c6 :
-    ((Padded367.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded367_c7 :
-    ((Padded367.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded367_cover : Padded367.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded368_c0 :
@@ -10778,28 +4788,7 @@ theorem Padded368_c1 :
     ((Padded368.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded368_c2 :
-    ((Padded368.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded368_c3 :
-    ((Padded368.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded368_c4 :
-    ((Padded368.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded368_c5 :
-    ((Padded368.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded368_c6 :
-    ((Padded368.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded368_c7 :
-    ((Padded368.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded368_cover : Padded368.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded369_c0 :
@@ -10822,16 +4811,7 @@ theorem Padded369_c4 :
     ((Padded369.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded369_c5 :
-    ((Padded369.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded369_c6 :
-    ((Padded369.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded369_c7 :
-    ((Padded369.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded369_cover : Padded369.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded370_c0 :
@@ -10842,28 +4822,7 @@ theorem Padded370_c1 :
     ((Padded370.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded370_c2 :
-    ((Padded370.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded370_c3 :
-    ((Padded370.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded370_c4 :
-    ((Padded370.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded370_c5 :
-    ((Padded370.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded370_c6 :
-    ((Padded370.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded370_c7 :
-    ((Padded370.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded370_cover : Padded370.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded371_c0 :
@@ -10874,28 +4833,7 @@ theorem Padded371_c1 :
     ((Padded371.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded371_c2 :
-    ((Padded371.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded371_c3 :
-    ((Padded371.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded371_c4 :
-    ((Padded371.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded371_c5 :
-    ((Padded371.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded371_c6 :
-    ((Padded371.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded371_c7 :
-    ((Padded371.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded371_cover : Padded371.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded372_c0 :
@@ -10906,28 +4844,7 @@ theorem Padded372_c1 :
     ((Padded372.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded372_c2 :
-    ((Padded372.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded372_c3 :
-    ((Padded372.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded372_c4 :
-    ((Padded372.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded372_c5 :
-    ((Padded372.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded372_c6 :
-    ((Padded372.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded372_c7 :
-    ((Padded372.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded372_cover : Padded372.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded373_c0 :
@@ -10938,28 +4855,7 @@ theorem Padded373_c1 :
     ((Padded373.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded373_c2 :
-    ((Padded373.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded373_c3 :
-    ((Padded373.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded373_c4 :
-    ((Padded373.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded373_c5 :
-    ((Padded373.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded373_c6 :
-    ((Padded373.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded373_c7 :
-    ((Padded373.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded373_cover : Padded373.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded374_c0 :
@@ -10970,28 +4866,7 @@ theorem Padded374_c1 :
     ((Padded374.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded374_c2 :
-    ((Padded374.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded374_c3 :
-    ((Padded374.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded374_c4 :
-    ((Padded374.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded374_c5 :
-    ((Padded374.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded374_c6 :
-    ((Padded374.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded374_c7 :
-    ((Padded374.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded374_cover : Padded374.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded375_c0 :
@@ -11002,28 +4877,7 @@ theorem Padded375_c1 :
     ((Padded375.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded375_c2 :
-    ((Padded375.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded375_c3 :
-    ((Padded375.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded375_c4 :
-    ((Padded375.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded375_c5 :
-    ((Padded375.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded375_c6 :
-    ((Padded375.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded375_c7 :
-    ((Padded375.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded375_cover : Padded375.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded376_c0 :
@@ -11034,28 +4888,7 @@ theorem Padded376_c1 :
     ((Padded376.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded376_c2 :
-    ((Padded376.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded376_c3 :
-    ((Padded376.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded376_c4 :
-    ((Padded376.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded376_c5 :
-    ((Padded376.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded376_c6 :
-    ((Padded376.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded376_c7 :
-    ((Padded376.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded376_cover : Padded376.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded377_c0 :
@@ -11066,28 +4899,7 @@ theorem Padded377_c1 :
     ((Padded377.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded377_c2 :
-    ((Padded377.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded377_c3 :
-    ((Padded377.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded377_c4 :
-    ((Padded377.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded377_c5 :
-    ((Padded377.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded377_c6 :
-    ((Padded377.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded377_c7 :
-    ((Padded377.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded377_cover : Padded377.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded378_c0 :
@@ -11098,28 +4910,7 @@ theorem Padded378_c1 :
     ((Padded378.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded378_c2 :
-    ((Padded378.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded378_c3 :
-    ((Padded378.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded378_c4 :
-    ((Padded378.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded378_c5 :
-    ((Padded378.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded378_c6 :
-    ((Padded378.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded378_c7 :
-    ((Padded378.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded378_cover : Padded378.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded379_c0 :
@@ -11130,28 +4921,7 @@ theorem Padded379_c1 :
     ((Padded379.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded379_c2 :
-    ((Padded379.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded379_c3 :
-    ((Padded379.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded379_c4 :
-    ((Padded379.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded379_c5 :
-    ((Padded379.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded379_c6 :
-    ((Padded379.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded379_c7 :
-    ((Padded379.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded379_cover : Padded379.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded380_c0 :
@@ -11174,16 +4944,7 @@ theorem Padded380_c4 :
     ((Padded380.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded380_c5 :
-    ((Padded380.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded380_c6 :
-    ((Padded380.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded380_c7 :
-    ((Padded380.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded380_cover : Padded380.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded381_c0 :
@@ -11194,28 +4955,7 @@ theorem Padded381_c1 :
     ((Padded381.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded381_c2 :
-    ((Padded381.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded381_c3 :
-    ((Padded381.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded381_c4 :
-    ((Padded381.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded381_c5 :
-    ((Padded381.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded381_c6 :
-    ((Padded381.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded381_c7 :
-    ((Padded381.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded381_cover : Padded381.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded382_c0 :
@@ -11226,28 +4966,7 @@ theorem Padded382_c1 :
     ((Padded382.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded382_c2 :
-    ((Padded382.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded382_c3 :
-    ((Padded382.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded382_c4 :
-    ((Padded382.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded382_c5 :
-    ((Padded382.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded382_c6 :
-    ((Padded382.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded382_c7 :
-    ((Padded382.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded382_cover : Padded382.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded383_c0 :
@@ -11258,28 +4977,7 @@ theorem Padded383_c1 :
     ((Padded383.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded383_c2 :
-    ((Padded383.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded383_c3 :
-    ((Padded383.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded383_c4 :
-    ((Padded383.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded383_c5 :
-    ((Padded383.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded383_c6 :
-    ((Padded383.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded383_c7 :
-    ((Padded383.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded383_cover : Padded383.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded384_c0 :
@@ -11290,28 +4988,7 @@ theorem Padded384_c1 :
     ((Padded384.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded384_c2 :
-    ((Padded384.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded384_c3 :
-    ((Padded384.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded384_c4 :
-    ((Padded384.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded384_c5 :
-    ((Padded384.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded384_c6 :
-    ((Padded384.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded384_c7 :
-    ((Padded384.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded384_cover : Padded384.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded385_c0 :
@@ -11322,28 +4999,7 @@ theorem Padded385_c1 :
     ((Padded385.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded385_c2 :
-    ((Padded385.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded385_c3 :
-    ((Padded385.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded385_c4 :
-    ((Padded385.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded385_c5 :
-    ((Padded385.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded385_c6 :
-    ((Padded385.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded385_c7 :
-    ((Padded385.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded385_cover : Padded385.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded386_c0 :
@@ -11358,24 +5014,7 @@ theorem Padded386_c2 :
     ((Padded386.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded386_c3 :
-    ((Padded386.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded386_c4 :
-    ((Padded386.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded386_c5 :
-    ((Padded386.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded386_c6 :
-    ((Padded386.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded386_c7 :
-    ((Padded386.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded386_cover : Padded386.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded387_c0 :
@@ -11386,28 +5025,7 @@ theorem Padded387_c1 :
     ((Padded387.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded387_c2 :
-    ((Padded387.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded387_c3 :
-    ((Padded387.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded387_c4 :
-    ((Padded387.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded387_c5 :
-    ((Padded387.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded387_c6 :
-    ((Padded387.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded387_c7 :
-    ((Padded387.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded387_cover : Padded387.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded388_c0 :
@@ -11422,24 +5040,7 @@ theorem Padded388_c2 :
     ((Padded388.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded388_c3 :
-    ((Padded388.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded388_c4 :
-    ((Padded388.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded388_c5 :
-    ((Padded388.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded388_c6 :
-    ((Padded388.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded388_c7 :
-    ((Padded388.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded388_cover : Padded388.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded389_c0 :
@@ -11454,24 +5055,7 @@ theorem Padded389_c2 :
     ((Padded389.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded389_c3 :
-    ((Padded389.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded389_c4 :
-    ((Padded389.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded389_c5 :
-    ((Padded389.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded389_c6 :
-    ((Padded389.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded389_c7 :
-    ((Padded389.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded389_cover : Padded389.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded390_c0 :
@@ -11482,28 +5066,7 @@ theorem Padded390_c1 :
     ((Padded390.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded390_c2 :
-    ((Padded390.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded390_c3 :
-    ((Padded390.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded390_c4 :
-    ((Padded390.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded390_c5 :
-    ((Padded390.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded390_c6 :
-    ((Padded390.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded390_c7 :
-    ((Padded390.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded390_cover : Padded390.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded391_c0 :
@@ -11514,28 +5077,7 @@ theorem Padded391_c1 :
     ((Padded391.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded391_c2 :
-    ((Padded391.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded391_c3 :
-    ((Padded391.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded391_c4 :
-    ((Padded391.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded391_c5 :
-    ((Padded391.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded391_c6 :
-    ((Padded391.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded391_c7 :
-    ((Padded391.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded391_cover : Padded391.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded392_c0 :
@@ -11546,28 +5088,7 @@ theorem Padded392_c1 :
     ((Padded392.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded392_c2 :
-    ((Padded392.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded392_c3 :
-    ((Padded392.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded392_c4 :
-    ((Padded392.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded392_c5 :
-    ((Padded392.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded392_c6 :
-    ((Padded392.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded392_c7 :
-    ((Padded392.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded392_cover : Padded392.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded393_c0 :
@@ -11578,28 +5099,7 @@ theorem Padded393_c1 :
     ((Padded393.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded393_c2 :
-    ((Padded393.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded393_c3 :
-    ((Padded393.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded393_c4 :
-    ((Padded393.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded393_c5 :
-    ((Padded393.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded393_c6 :
-    ((Padded393.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded393_c7 :
-    ((Padded393.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded393_cover : Padded393.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded394_c0 :
@@ -11610,28 +5110,7 @@ theorem Padded394_c1 :
     ((Padded394.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded394_c2 :
-    ((Padded394.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded394_c3 :
-    ((Padded394.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded394_c4 :
-    ((Padded394.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded394_c5 :
-    ((Padded394.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded394_c6 :
-    ((Padded394.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded394_c7 :
-    ((Padded394.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded394_cover : Padded394.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded395_c0 :
@@ -11642,28 +5121,7 @@ theorem Padded395_c1 :
     ((Padded395.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded395_c2 :
-    ((Padded395.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded395_c3 :
-    ((Padded395.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded395_c4 :
-    ((Padded395.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded395_c5 :
-    ((Padded395.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded395_c6 :
-    ((Padded395.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded395_c7 :
-    ((Padded395.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded395_cover : Padded395.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded396_c0 :
@@ -11674,28 +5132,7 @@ theorem Padded396_c1 :
     ((Padded396.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded396_c2 :
-    ((Padded396.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded396_c3 :
-    ((Padded396.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded396_c4 :
-    ((Padded396.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded396_c5 :
-    ((Padded396.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded396_c6 :
-    ((Padded396.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded396_c7 :
-    ((Padded396.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded396_cover : Padded396.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded397_c0 :
@@ -11706,28 +5143,7 @@ theorem Padded397_c1 :
     ((Padded397.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded397_c2 :
-    ((Padded397.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded397_c3 :
-    ((Padded397.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded397_c4 :
-    ((Padded397.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded397_c5 :
-    ((Padded397.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded397_c6 :
-    ((Padded397.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded397_c7 :
-    ((Padded397.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded397_cover : Padded397.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded398_c0 :
@@ -11738,28 +5154,7 @@ theorem Padded398_c1 :
     ((Padded398.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded398_c2 :
-    ((Padded398.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded398_c3 :
-    ((Padded398.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded398_c4 :
-    ((Padded398.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded398_c5 :
-    ((Padded398.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded398_c6 :
-    ((Padded398.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded398_c7 :
-    ((Padded398.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded398_cover : Padded398.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded399_c0 :
@@ -11770,28 +5165,7 @@ theorem Padded399_c1 :
     ((Padded399.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded399_c2 :
-    ((Padded399.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded399_c3 :
-    ((Padded399.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded399_c4 :
-    ((Padded399.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded399_c5 :
-    ((Padded399.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded399_c6 :
-    ((Padded399.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded399_c7 :
-    ((Padded399.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded399_cover : Padded399.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded400_c0 :
@@ -11802,28 +5176,7 @@ theorem Padded400_c1 :
     ((Padded400.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded400_c2 :
-    ((Padded400.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded400_c3 :
-    ((Padded400.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded400_c4 :
-    ((Padded400.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded400_c5 :
-    ((Padded400.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded400_c6 :
-    ((Padded400.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded400_c7 :
-    ((Padded400.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded400_cover : Padded400.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded401_c0 :
@@ -11834,28 +5187,7 @@ theorem Padded401_c1 :
     ((Padded401.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded401_c2 :
-    ((Padded401.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded401_c3 :
-    ((Padded401.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded401_c4 :
-    ((Padded401.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded401_c5 :
-    ((Padded401.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded401_c6 :
-    ((Padded401.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded401_c7 :
-    ((Padded401.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded401_cover : Padded401.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded402_c0 :
@@ -11866,28 +5198,7 @@ theorem Padded402_c1 :
     ((Padded402.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded402_c2 :
-    ((Padded402.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded402_c3 :
-    ((Padded402.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded402_c4 :
-    ((Padded402.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded402_c5 :
-    ((Padded402.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded402_c6 :
-    ((Padded402.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded402_c7 :
-    ((Padded402.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded402_cover : Padded402.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded403_c0 :
@@ -11902,24 +5213,7 @@ theorem Padded403_c2 :
     ((Padded403.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded403_c3 :
-    ((Padded403.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded403_c4 :
-    ((Padded403.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded403_c5 :
-    ((Padded403.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded403_c6 :
-    ((Padded403.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded403_c7 :
-    ((Padded403.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded403_cover : Padded403.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded404_c0 :
@@ -11930,28 +5224,7 @@ theorem Padded404_c1 :
     ((Padded404.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded404_c2 :
-    ((Padded404.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded404_c3 :
-    ((Padded404.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded404_c4 :
-    ((Padded404.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded404_c5 :
-    ((Padded404.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded404_c6 :
-    ((Padded404.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded404_c7 :
-    ((Padded404.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded404_cover : Padded404.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded405_c0 :
@@ -11962,28 +5235,7 @@ theorem Padded405_c1 :
     ((Padded405.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded405_c2 :
-    ((Padded405.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded405_c3 :
-    ((Padded405.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded405_c4 :
-    ((Padded405.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded405_c5 :
-    ((Padded405.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded405_c6 :
-    ((Padded405.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded405_c7 :
-    ((Padded405.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded405_cover : Padded405.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded406_c0 :
@@ -11994,28 +5246,7 @@ theorem Padded406_c1 :
     ((Padded406.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded406_c2 :
-    ((Padded406.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded406_c3 :
-    ((Padded406.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded406_c4 :
-    ((Padded406.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded406_c5 :
-    ((Padded406.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded406_c6 :
-    ((Padded406.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded406_c7 :
-    ((Padded406.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded406_cover : Padded406.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded407_c0 :
@@ -12026,28 +5257,7 @@ theorem Padded407_c1 :
     ((Padded407.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded407_c2 :
-    ((Padded407.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded407_c3 :
-    ((Padded407.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded407_c4 :
-    ((Padded407.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded407_c5 :
-    ((Padded407.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded407_c6 :
-    ((Padded407.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded407_c7 :
-    ((Padded407.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded407_cover : Padded407.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded408_c0 :
@@ -12058,28 +5268,7 @@ theorem Padded408_c1 :
     ((Padded408.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded408_c2 :
-    ((Padded408.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded408_c3 :
-    ((Padded408.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded408_c4 :
-    ((Padded408.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded408_c5 :
-    ((Padded408.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded408_c6 :
-    ((Padded408.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded408_c7 :
-    ((Padded408.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded408_cover : Padded408.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded409_c0 :
@@ -12090,28 +5279,7 @@ theorem Padded409_c1 :
     ((Padded409.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded409_c2 :
-    ((Padded409.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded409_c3 :
-    ((Padded409.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded409_c4 :
-    ((Padded409.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded409_c5 :
-    ((Padded409.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded409_c6 :
-    ((Padded409.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded409_c7 :
-    ((Padded409.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded409_cover : Padded409.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded410_c0 :
@@ -12122,28 +5290,7 @@ theorem Padded410_c1 :
     ((Padded410.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded410_c2 :
-    ((Padded410.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded410_c3 :
-    ((Padded410.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded410_c4 :
-    ((Padded410.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded410_c5 :
-    ((Padded410.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded410_c6 :
-    ((Padded410.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded410_c7 :
-    ((Padded410.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded410_cover : Padded410.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded411_c0 :
@@ -12154,28 +5301,7 @@ theorem Padded411_c1 :
     ((Padded411.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded411_c2 :
-    ((Padded411.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded411_c3 :
-    ((Padded411.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded411_c4 :
-    ((Padded411.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded411_c5 :
-    ((Padded411.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded411_c6 :
-    ((Padded411.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded411_c7 :
-    ((Padded411.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded411_cover : Padded411.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded412_c0 :
@@ -12186,28 +5312,7 @@ theorem Padded412_c1 :
     ((Padded412.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded412_c2 :
-    ((Padded412.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded412_c3 :
-    ((Padded412.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded412_c4 :
-    ((Padded412.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded412_c5 :
-    ((Padded412.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded412_c6 :
-    ((Padded412.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded412_c7 :
-    ((Padded412.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded412_cover : Padded412.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded413_c0 :
@@ -12218,28 +5323,7 @@ theorem Padded413_c1 :
     ((Padded413.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded413_c2 :
-    ((Padded413.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded413_c3 :
-    ((Padded413.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded413_c4 :
-    ((Padded413.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded413_c5 :
-    ((Padded413.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded413_c6 :
-    ((Padded413.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded413_c7 :
-    ((Padded413.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded413_cover : Padded413.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded414_c0 :
@@ -12250,28 +5334,7 @@ theorem Padded414_c1 :
     ((Padded414.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded414_c2 :
-    ((Padded414.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded414_c3 :
-    ((Padded414.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded414_c4 :
-    ((Padded414.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded414_c5 :
-    ((Padded414.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded414_c6 :
-    ((Padded414.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded414_c7 :
-    ((Padded414.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded414_cover : Padded414.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded415_c0 :
@@ -12282,28 +5345,7 @@ theorem Padded415_c1 :
     ((Padded415.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded415_c2 :
-    ((Padded415.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded415_c3 :
-    ((Padded415.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded415_c4 :
-    ((Padded415.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded415_c5 :
-    ((Padded415.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded415_c6 :
-    ((Padded415.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded415_c7 :
-    ((Padded415.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded415_cover : Padded415.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded416_c0 :
@@ -12314,28 +5356,7 @@ theorem Padded416_c1 :
     ((Padded416.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded416_c2 :
-    ((Padded416.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded416_c3 :
-    ((Padded416.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded416_c4 :
-    ((Padded416.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded416_c5 :
-    ((Padded416.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded416_c6 :
-    ((Padded416.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded416_c7 :
-    ((Padded416.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded416_cover : Padded416.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded417_c0 :
@@ -12346,28 +5367,7 @@ theorem Padded417_c1 :
     ((Padded417.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded417_c2 :
-    ((Padded417.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded417_c3 :
-    ((Padded417.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded417_c4 :
-    ((Padded417.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded417_c5 :
-    ((Padded417.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded417_c6 :
-    ((Padded417.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded417_c7 :
-    ((Padded417.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded417_cover : Padded417.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded418_c0 :
@@ -12378,28 +5378,7 @@ theorem Padded418_c1 :
     ((Padded418.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded418_c2 :
-    ((Padded418.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded418_c3 :
-    ((Padded418.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded418_c4 :
-    ((Padded418.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded418_c5 :
-    ((Padded418.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded418_c6 :
-    ((Padded418.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded418_c7 :
-    ((Padded418.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded418_cover : Padded418.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded419_c0 :
@@ -12410,28 +5389,7 @@ theorem Padded419_c1 :
     ((Padded419.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded419_c2 :
-    ((Padded419.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded419_c3 :
-    ((Padded419.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded419_c4 :
-    ((Padded419.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded419_c5 :
-    ((Padded419.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded419_c6 :
-    ((Padded419.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded419_c7 :
-    ((Padded419.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded419_cover : Padded419.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded420_c0 :
@@ -12442,28 +5400,7 @@ theorem Padded420_c1 :
     ((Padded420.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded420_c2 :
-    ((Padded420.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded420_c3 :
-    ((Padded420.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded420_c4 :
-    ((Padded420.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded420_c5 :
-    ((Padded420.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded420_c6 :
-    ((Padded420.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded420_c7 :
-    ((Padded420.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded420_cover : Padded420.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded421_c0 :
@@ -12474,28 +5411,7 @@ theorem Padded421_c1 :
     ((Padded421.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded421_c2 :
-    ((Padded421.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded421_c3 :
-    ((Padded421.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded421_c4 :
-    ((Padded421.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded421_c5 :
-    ((Padded421.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded421_c6 :
-    ((Padded421.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded421_c7 :
-    ((Padded421.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded421_cover : Padded421.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded422_c0 :
@@ -12506,28 +5422,7 @@ theorem Padded422_c1 :
     ((Padded422.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded422_c2 :
-    ((Padded422.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded422_c3 :
-    ((Padded422.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded422_c4 :
-    ((Padded422.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded422_c5 :
-    ((Padded422.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded422_c6 :
-    ((Padded422.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded422_c7 :
-    ((Padded422.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded422_cover : Padded422.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded423_c0 :
@@ -12538,28 +5433,7 @@ theorem Padded423_c1 :
     ((Padded423.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded423_c2 :
-    ((Padded423.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded423_c3 :
-    ((Padded423.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded423_c4 :
-    ((Padded423.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded423_c5 :
-    ((Padded423.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded423_c6 :
-    ((Padded423.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded423_c7 :
-    ((Padded423.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded423_cover : Padded423.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded424_c0 :
@@ -12570,28 +5444,7 @@ theorem Padded424_c1 :
     ((Padded424.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded424_c2 :
-    ((Padded424.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded424_c3 :
-    ((Padded424.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded424_c4 :
-    ((Padded424.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded424_c5 :
-    ((Padded424.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded424_c6 :
-    ((Padded424.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded424_c7 :
-    ((Padded424.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded424_cover : Padded424.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded425_c0 :
@@ -12602,28 +5455,7 @@ theorem Padded425_c1 :
     ((Padded425.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded425_c2 :
-    ((Padded425.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded425_c3 :
-    ((Padded425.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded425_c4 :
-    ((Padded425.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded425_c5 :
-    ((Padded425.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded425_c6 :
-    ((Padded425.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded425_c7 :
-    ((Padded425.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded425_cover : Padded425.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded426_c0 :
@@ -12634,28 +5466,7 @@ theorem Padded426_c1 :
     ((Padded426.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded426_c2 :
-    ((Padded426.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded426_c3 :
-    ((Padded426.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded426_c4 :
-    ((Padded426.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded426_c5 :
-    ((Padded426.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded426_c6 :
-    ((Padded426.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded426_c7 :
-    ((Padded426.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded426_cover : Padded426.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded427_c0 :
@@ -12666,28 +5477,7 @@ theorem Padded427_c1 :
     ((Padded427.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded427_c2 :
-    ((Padded427.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded427_c3 :
-    ((Padded427.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded427_c4 :
-    ((Padded427.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded427_c5 :
-    ((Padded427.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded427_c6 :
-    ((Padded427.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded427_c7 :
-    ((Padded427.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded427_cover : Padded427.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded428_c0 :
@@ -12698,28 +5488,7 @@ theorem Padded428_c1 :
     ((Padded428.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded428_c2 :
-    ((Padded428.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded428_c3 :
-    ((Padded428.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded428_c4 :
-    ((Padded428.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded428_c5 :
-    ((Padded428.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded428_c6 :
-    ((Padded428.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded428_c7 :
-    ((Padded428.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded428_cover : Padded428.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded429_c0 :
@@ -12734,24 +5503,7 @@ theorem Padded429_c2 :
     ((Padded429.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded429_c3 :
-    ((Padded429.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded429_c4 :
-    ((Padded429.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded429_c5 :
-    ((Padded429.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded429_c6 :
-    ((Padded429.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded429_c7 :
-    ((Padded429.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded429_cover : Padded429.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded430_c0 :
@@ -12762,28 +5514,7 @@ theorem Padded430_c1 :
     ((Padded430.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded430_c2 :
-    ((Padded430.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded430_c3 :
-    ((Padded430.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded430_c4 :
-    ((Padded430.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded430_c5 :
-    ((Padded430.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded430_c6 :
-    ((Padded430.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded430_c7 :
-    ((Padded430.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded430_cover : Padded430.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded431_c0 :
@@ -12794,28 +5525,7 @@ theorem Padded431_c1 :
     ((Padded431.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded431_c2 :
-    ((Padded431.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded431_c3 :
-    ((Padded431.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded431_c4 :
-    ((Padded431.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded431_c5 :
-    ((Padded431.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded431_c6 :
-    ((Padded431.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded431_c7 :
-    ((Padded431.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded431_cover : Padded431.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded432_c0 :
@@ -12826,28 +5536,7 @@ theorem Padded432_c1 :
     ((Padded432.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded432_c2 :
-    ((Padded432.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded432_c3 :
-    ((Padded432.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded432_c4 :
-    ((Padded432.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded432_c5 :
-    ((Padded432.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded432_c6 :
-    ((Padded432.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded432_c7 :
-    ((Padded432.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded432_cover : Padded432.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded433_c0 :
@@ -12862,24 +5551,7 @@ theorem Padded433_c2 :
     ((Padded433.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded433_c3 :
-    ((Padded433.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded433_c4 :
-    ((Padded433.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded433_c5 :
-    ((Padded433.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded433_c6 :
-    ((Padded433.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded433_c7 :
-    ((Padded433.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded433_cover : Padded433.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded434_c0 :
@@ -12890,28 +5562,7 @@ theorem Padded434_c1 :
     ((Padded434.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded434_c2 :
-    ((Padded434.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded434_c3 :
-    ((Padded434.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded434_c4 :
-    ((Padded434.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded434_c5 :
-    ((Padded434.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded434_c6 :
-    ((Padded434.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded434_c7 :
-    ((Padded434.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded434_cover : Padded434.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded435_c0 :
@@ -12926,24 +5577,7 @@ theorem Padded435_c2 :
     ((Padded435.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded435_c3 :
-    ((Padded435.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded435_c4 :
-    ((Padded435.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded435_c5 :
-    ((Padded435.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded435_c6 :
-    ((Padded435.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded435_c7 :
-    ((Padded435.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded435_cover : Padded435.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded436_c0 :
@@ -12954,28 +5588,7 @@ theorem Padded436_c1 :
     ((Padded436.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded436_c2 :
-    ((Padded436.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded436_c3 :
-    ((Padded436.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded436_c4 :
-    ((Padded436.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded436_c5 :
-    ((Padded436.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded436_c6 :
-    ((Padded436.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded436_c7 :
-    ((Padded436.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded436_cover : Padded436.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded437_c0 :
@@ -12986,28 +5599,7 @@ theorem Padded437_c1 :
     ((Padded437.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded437_c2 :
-    ((Padded437.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded437_c3 :
-    ((Padded437.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded437_c4 :
-    ((Padded437.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded437_c5 :
-    ((Padded437.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded437_c6 :
-    ((Padded437.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded437_c7 :
-    ((Padded437.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded437_cover : Padded437.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded438_c0 :
@@ -13018,28 +5610,7 @@ theorem Padded438_c1 :
     ((Padded438.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded438_c2 :
-    ((Padded438.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded438_c3 :
-    ((Padded438.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded438_c4 :
-    ((Padded438.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded438_c5 :
-    ((Padded438.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded438_c6 :
-    ((Padded438.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded438_c7 :
-    ((Padded438.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded438_cover : Padded438.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded439_c0 :
@@ -13050,28 +5621,7 @@ theorem Padded439_c1 :
     ((Padded439.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded439_c2 :
-    ((Padded439.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded439_c3 :
-    ((Padded439.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded439_c4 :
-    ((Padded439.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded439_c5 :
-    ((Padded439.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded439_c6 :
-    ((Padded439.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded439_c7 :
-    ((Padded439.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded439_cover : Padded439.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded440_c0 :
@@ -13082,28 +5632,7 @@ theorem Padded440_c1 :
     ((Padded440.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded440_c2 :
-    ((Padded440.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded440_c3 :
-    ((Padded440.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded440_c4 :
-    ((Padded440.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded440_c5 :
-    ((Padded440.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded440_c6 :
-    ((Padded440.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded440_c7 :
-    ((Padded440.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded440_cover : Padded440.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded441_c0 :
@@ -13118,24 +5647,7 @@ theorem Padded441_c2 :
     ((Padded441.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded441_c3 :
-    ((Padded441.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded441_c4 :
-    ((Padded441.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded441_c5 :
-    ((Padded441.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded441_c6 :
-    ((Padded441.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded441_c7 :
-    ((Padded441.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded441_cover : Padded441.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded442_c0 :
@@ -13146,28 +5658,7 @@ theorem Padded442_c1 :
     ((Padded442.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded442_c2 :
-    ((Padded442.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded442_c3 :
-    ((Padded442.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded442_c4 :
-    ((Padded442.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded442_c5 :
-    ((Padded442.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded442_c6 :
-    ((Padded442.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded442_c7 :
-    ((Padded442.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded442_cover : Padded442.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded443_c0 :
@@ -13178,28 +5669,7 @@ theorem Padded443_c1 :
     ((Padded443.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded443_c2 :
-    ((Padded443.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded443_c3 :
-    ((Padded443.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded443_c4 :
-    ((Padded443.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded443_c5 :
-    ((Padded443.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded443_c6 :
-    ((Padded443.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded443_c7 :
-    ((Padded443.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded443_cover : Padded443.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded444_c0 :
@@ -13210,28 +5680,7 @@ theorem Padded444_c1 :
     ((Padded444.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded444_c2 :
-    ((Padded444.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded444_c3 :
-    ((Padded444.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded444_c4 :
-    ((Padded444.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded444_c5 :
-    ((Padded444.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded444_c6 :
-    ((Padded444.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded444_c7 :
-    ((Padded444.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded444_cover : Padded444.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded445_c0 :
@@ -13242,28 +5691,7 @@ theorem Padded445_c1 :
     ((Padded445.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded445_c2 :
-    ((Padded445.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded445_c3 :
-    ((Padded445.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded445_c4 :
-    ((Padded445.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded445_c5 :
-    ((Padded445.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded445_c6 :
-    ((Padded445.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded445_c7 :
-    ((Padded445.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded445_cover : Padded445.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded446_c0 :
@@ -13274,28 +5702,7 @@ theorem Padded446_c1 :
     ((Padded446.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded446_c2 :
-    ((Padded446.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded446_c3 :
-    ((Padded446.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded446_c4 :
-    ((Padded446.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded446_c5 :
-    ((Padded446.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded446_c6 :
-    ((Padded446.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded446_c7 :
-    ((Padded446.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded446_cover : Padded446.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded447_c0 :
@@ -13306,28 +5713,7 @@ theorem Padded447_c1 :
     ((Padded447.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded447_c2 :
-    ((Padded447.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded447_c3 :
-    ((Padded447.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded447_c4 :
-    ((Padded447.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded447_c5 :
-    ((Padded447.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded447_c6 :
-    ((Padded447.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded447_c7 :
-    ((Padded447.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded447_cover : Padded447.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded448_c0 :
@@ -13338,28 +5724,7 @@ theorem Padded448_c1 :
     ((Padded448.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded448_c2 :
-    ((Padded448.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded448_c3 :
-    ((Padded448.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded448_c4 :
-    ((Padded448.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded448_c5 :
-    ((Padded448.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded448_c6 :
-    ((Padded448.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded448_c7 :
-    ((Padded448.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded448_cover : Padded448.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded449_c0 :
@@ -13370,28 +5735,7 @@ theorem Padded449_c1 :
     ((Padded449.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded449_c2 :
-    ((Padded449.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded449_c3 :
-    ((Padded449.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded449_c4 :
-    ((Padded449.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded449_c5 :
-    ((Padded449.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded449_c6 :
-    ((Padded449.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded449_c7 :
-    ((Padded449.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded449_cover : Padded449.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded450_c0 :
@@ -13402,28 +5746,7 @@ theorem Padded450_c1 :
     ((Padded450.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded450_c2 :
-    ((Padded450.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded450_c3 :
-    ((Padded450.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded450_c4 :
-    ((Padded450.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded450_c5 :
-    ((Padded450.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded450_c6 :
-    ((Padded450.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded450_c7 :
-    ((Padded450.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded450_cover : Padded450.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded451_c0 :
@@ -13438,24 +5761,7 @@ theorem Padded451_c2 :
     ((Padded451.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded451_c3 :
-    ((Padded451.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded451_c4 :
-    ((Padded451.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded451_c5 :
-    ((Padded451.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded451_c6 :
-    ((Padded451.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded451_c7 :
-    ((Padded451.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded451_cover : Padded451.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded452_c0 :
@@ -13470,24 +5776,7 @@ theorem Padded452_c2 :
     ((Padded452.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded452_c3 :
-    ((Padded452.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded452_c4 :
-    ((Padded452.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded452_c5 :
-    ((Padded452.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded452_c6 :
-    ((Padded452.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded452_c7 :
-    ((Padded452.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded452_cover : Padded452.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded453_c0 :
@@ -13498,28 +5787,7 @@ theorem Padded453_c1 :
     ((Padded453.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded453_c2 :
-    ((Padded453.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded453_c3 :
-    ((Padded453.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded453_c4 :
-    ((Padded453.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded453_c5 :
-    ((Padded453.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded453_c6 :
-    ((Padded453.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded453_c7 :
-    ((Padded453.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded453_cover : Padded453.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded454_c0 :
@@ -13530,28 +5798,7 @@ theorem Padded454_c1 :
     ((Padded454.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded454_c2 :
-    ((Padded454.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded454_c3 :
-    ((Padded454.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded454_c4 :
-    ((Padded454.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded454_c5 :
-    ((Padded454.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded454_c6 :
-    ((Padded454.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded454_c7 :
-    ((Padded454.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded454_cover : Padded454.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded455_c0 :
@@ -13562,28 +5809,7 @@ theorem Padded455_c1 :
     ((Padded455.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded455_c2 :
-    ((Padded455.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded455_c3 :
-    ((Padded455.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded455_c4 :
-    ((Padded455.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded455_c5 :
-    ((Padded455.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded455_c6 :
-    ((Padded455.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded455_c7 :
-    ((Padded455.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded455_cover : Padded455.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded456_c0 :
@@ -13606,16 +5832,7 @@ theorem Padded456_c4 :
     ((Padded456.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded456_c5 :
-    ((Padded456.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded456_c6 :
-    ((Padded456.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded456_c7 :
-    ((Padded456.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded456_cover : Padded456.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded457_c0 :
@@ -13626,28 +5843,7 @@ theorem Padded457_c1 :
     ((Padded457.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded457_c2 :
-    ((Padded457.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded457_c3 :
-    ((Padded457.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded457_c4 :
-    ((Padded457.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded457_c5 :
-    ((Padded457.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded457_c6 :
-    ((Padded457.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded457_c7 :
-    ((Padded457.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded457_cover : Padded457.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded458_c0 :
@@ -13658,28 +5854,7 @@ theorem Padded458_c1 :
     ((Padded458.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded458_c2 :
-    ((Padded458.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded458_c3 :
-    ((Padded458.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded458_c4 :
-    ((Padded458.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded458_c5 :
-    ((Padded458.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded458_c6 :
-    ((Padded458.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded458_c7 :
-    ((Padded458.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded458_cover : Padded458.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded459_c0 :
@@ -13702,16 +5877,7 @@ theorem Padded459_c4 :
     ((Padded459.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded459_c5 :
-    ((Padded459.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded459_c6 :
-    ((Padded459.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded459_c7 :
-    ((Padded459.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded459_cover : Padded459.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded460_c0 :
@@ -13722,28 +5888,7 @@ theorem Padded460_c1 :
     ((Padded460.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded460_c2 :
-    ((Padded460.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded460_c3 :
-    ((Padded460.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded460_c4 :
-    ((Padded460.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded460_c5 :
-    ((Padded460.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded460_c6 :
-    ((Padded460.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded460_c7 :
-    ((Padded460.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded460_cover : Padded460.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded461_c0 :
@@ -13778,6 +5923,29 @@ theorem Padded461_c7 :
     ((Padded461.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded461_c8 :
+    ((Padded461.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded461_c9 :
+    ((Padded461.lines.drop 2304).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded461_c10 :
+    ((Padded461.lines.drop 2560).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded461_c11 :
+    ((Padded461.lines.drop 2816).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded461_c12 :
+    ((Padded461.lines.drop 3072).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded461_cover : Padded461.lines.length ≤ 3328 := by
+  decide_cbv
+
 theorem Padded462_c0 :
     ((Padded462.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -13798,16 +5966,7 @@ theorem Padded462_c4 :
     ((Padded462.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded462_c5 :
-    ((Padded462.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded462_c6 :
-    ((Padded462.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded462_c7 :
-    ((Padded462.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded462_cover : Padded462.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded463_c0 :
@@ -13822,24 +5981,7 @@ theorem Padded463_c2 :
     ((Padded463.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded463_c3 :
-    ((Padded463.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded463_c4 :
-    ((Padded463.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded463_c5 :
-    ((Padded463.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded463_c6 :
-    ((Padded463.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded463_c7 :
-    ((Padded463.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded463_cover : Padded463.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded464_c0 :
@@ -13850,28 +5992,7 @@ theorem Padded464_c1 :
     ((Padded464.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded464_c2 :
-    ((Padded464.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded464_c3 :
-    ((Padded464.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded464_c4 :
-    ((Padded464.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded464_c5 :
-    ((Padded464.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded464_c6 :
-    ((Padded464.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded464_c7 :
-    ((Padded464.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded464_cover : Padded464.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded465_c0 :
@@ -13882,28 +6003,7 @@ theorem Padded465_c1 :
     ((Padded465.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded465_c2 :
-    ((Padded465.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded465_c3 :
-    ((Padded465.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded465_c4 :
-    ((Padded465.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded465_c5 :
-    ((Padded465.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded465_c6 :
-    ((Padded465.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded465_c7 :
-    ((Padded465.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded465_cover : Padded465.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded466_c0 :
@@ -13914,28 +6014,7 @@ theorem Padded466_c1 :
     ((Padded466.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded466_c2 :
-    ((Padded466.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded466_c3 :
-    ((Padded466.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded466_c4 :
-    ((Padded466.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded466_c5 :
-    ((Padded466.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded466_c6 :
-    ((Padded466.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded466_c7 :
-    ((Padded466.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded466_cover : Padded466.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded467_c0 :
@@ -13946,28 +6025,7 @@ theorem Padded467_c1 :
     ((Padded467.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded467_c2 :
-    ((Padded467.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded467_c3 :
-    ((Padded467.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded467_c4 :
-    ((Padded467.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded467_c5 :
-    ((Padded467.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded467_c6 :
-    ((Padded467.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded467_c7 :
-    ((Padded467.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded467_cover : Padded467.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded468_c0 :
@@ -13978,28 +6036,7 @@ theorem Padded468_c1 :
     ((Padded468.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded468_c2 :
-    ((Padded468.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded468_c3 :
-    ((Padded468.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded468_c4 :
-    ((Padded468.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded468_c5 :
-    ((Padded468.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded468_c6 :
-    ((Padded468.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded468_c7 :
-    ((Padded468.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded468_cover : Padded468.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded469_c0 :
@@ -14010,28 +6047,7 @@ theorem Padded469_c1 :
     ((Padded469.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded469_c2 :
-    ((Padded469.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded469_c3 :
-    ((Padded469.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded469_c4 :
-    ((Padded469.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded469_c5 :
-    ((Padded469.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded469_c6 :
-    ((Padded469.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded469_c7 :
-    ((Padded469.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded469_cover : Padded469.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded470_c0 :
@@ -14042,28 +6058,7 @@ theorem Padded470_c1 :
     ((Padded470.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded470_c2 :
-    ((Padded470.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded470_c3 :
-    ((Padded470.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded470_c4 :
-    ((Padded470.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded470_c5 :
-    ((Padded470.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded470_c6 :
-    ((Padded470.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded470_c7 :
-    ((Padded470.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded470_cover : Padded470.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded471_c0 :
@@ -14074,28 +6069,7 @@ theorem Padded471_c1 :
     ((Padded471.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded471_c2 :
-    ((Padded471.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded471_c3 :
-    ((Padded471.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded471_c4 :
-    ((Padded471.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded471_c5 :
-    ((Padded471.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded471_c6 :
-    ((Padded471.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded471_c7 :
-    ((Padded471.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded471_cover : Padded471.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded472_c0 :
@@ -14106,28 +6080,7 @@ theorem Padded472_c1 :
     ((Padded472.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded472_c2 :
-    ((Padded472.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded472_c3 :
-    ((Padded472.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded472_c4 :
-    ((Padded472.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded472_c5 :
-    ((Padded472.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded472_c6 :
-    ((Padded472.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded472_c7 :
-    ((Padded472.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded472_cover : Padded472.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded473_c0 :
@@ -14138,28 +6091,7 @@ theorem Padded473_c1 :
     ((Padded473.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded473_c2 :
-    ((Padded473.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded473_c3 :
-    ((Padded473.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded473_c4 :
-    ((Padded473.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded473_c5 :
-    ((Padded473.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded473_c6 :
-    ((Padded473.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded473_c7 :
-    ((Padded473.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded473_cover : Padded473.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded474_c0 :
@@ -14170,28 +6102,7 @@ theorem Padded474_c1 :
     ((Padded474.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded474_c2 :
-    ((Padded474.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded474_c3 :
-    ((Padded474.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded474_c4 :
-    ((Padded474.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded474_c5 :
-    ((Padded474.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded474_c6 :
-    ((Padded474.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded474_c7 :
-    ((Padded474.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded474_cover : Padded474.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded475_c0 :
@@ -14202,28 +6113,7 @@ theorem Padded475_c1 :
     ((Padded475.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded475_c2 :
-    ((Padded475.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded475_c3 :
-    ((Padded475.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded475_c4 :
-    ((Padded475.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded475_c5 :
-    ((Padded475.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded475_c6 :
-    ((Padded475.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded475_c7 :
-    ((Padded475.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded475_cover : Padded475.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded476_c0 :
@@ -14234,28 +6124,7 @@ theorem Padded476_c1 :
     ((Padded476.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded476_c2 :
-    ((Padded476.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded476_c3 :
-    ((Padded476.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded476_c4 :
-    ((Padded476.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded476_c5 :
-    ((Padded476.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded476_c6 :
-    ((Padded476.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded476_c7 :
-    ((Padded476.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded476_cover : Padded476.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded477_c0 :
@@ -14266,28 +6135,7 @@ theorem Padded477_c1 :
     ((Padded477.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded477_c2 :
-    ((Padded477.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded477_c3 :
-    ((Padded477.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded477_c4 :
-    ((Padded477.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded477_c5 :
-    ((Padded477.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded477_c6 :
-    ((Padded477.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded477_c7 :
-    ((Padded477.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded477_cover : Padded477.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded478_c0 :
@@ -14298,28 +6146,7 @@ theorem Padded478_c1 :
     ((Padded478.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded478_c2 :
-    ((Padded478.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded478_c3 :
-    ((Padded478.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded478_c4 :
-    ((Padded478.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded478_c5 :
-    ((Padded478.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded478_c6 :
-    ((Padded478.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded478_c7 :
-    ((Padded478.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded478_cover : Padded478.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded479_c0 :
@@ -14330,28 +6157,7 @@ theorem Padded479_c1 :
     ((Padded479.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded479_c2 :
-    ((Padded479.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded479_c3 :
-    ((Padded479.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded479_c4 :
-    ((Padded479.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded479_c5 :
-    ((Padded479.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded479_c6 :
-    ((Padded479.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded479_c7 :
-    ((Padded479.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded479_cover : Padded479.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded480_c0 :
@@ -14362,28 +6168,7 @@ theorem Padded480_c1 :
     ((Padded480.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded480_c2 :
-    ((Padded480.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded480_c3 :
-    ((Padded480.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded480_c4 :
-    ((Padded480.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded480_c5 :
-    ((Padded480.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded480_c6 :
-    ((Padded480.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded480_c7 :
-    ((Padded480.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded480_cover : Padded480.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded481_c0 :
@@ -14394,28 +6179,7 @@ theorem Padded481_c1 :
     ((Padded481.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded481_c2 :
-    ((Padded481.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded481_c3 :
-    ((Padded481.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded481_c4 :
-    ((Padded481.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded481_c5 :
-    ((Padded481.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded481_c6 :
-    ((Padded481.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded481_c7 :
-    ((Padded481.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded481_cover : Padded481.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded482_c0 :
@@ -14430,24 +6194,7 @@ theorem Padded482_c2 :
     ((Padded482.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded482_c3 :
-    ((Padded482.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded482_c4 :
-    ((Padded482.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded482_c5 :
-    ((Padded482.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded482_c6 :
-    ((Padded482.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded482_c7 :
-    ((Padded482.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded482_cover : Padded482.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded483_c0 :
@@ -14458,28 +6205,7 @@ theorem Padded483_c1 :
     ((Padded483.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded483_c2 :
-    ((Padded483.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded483_c3 :
-    ((Padded483.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded483_c4 :
-    ((Padded483.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded483_c5 :
-    ((Padded483.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded483_c6 :
-    ((Padded483.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded483_c7 :
-    ((Padded483.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded483_cover : Padded483.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded484_c0 :
@@ -14490,28 +6216,7 @@ theorem Padded484_c1 :
     ((Padded484.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded484_c2 :
-    ((Padded484.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded484_c3 :
-    ((Padded484.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded484_c4 :
-    ((Padded484.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded484_c5 :
-    ((Padded484.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded484_c6 :
-    ((Padded484.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded484_c7 :
-    ((Padded484.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded484_cover : Padded484.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded485_c0 :
@@ -14522,28 +6227,7 @@ theorem Padded485_c1 :
     ((Padded485.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded485_c2 :
-    ((Padded485.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded485_c3 :
-    ((Padded485.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded485_c4 :
-    ((Padded485.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded485_c5 :
-    ((Padded485.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded485_c6 :
-    ((Padded485.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded485_c7 :
-    ((Padded485.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded485_cover : Padded485.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded486_c0 :
@@ -14554,28 +6238,7 @@ theorem Padded486_c1 :
     ((Padded486.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded486_c2 :
-    ((Padded486.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded486_c3 :
-    ((Padded486.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded486_c4 :
-    ((Padded486.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded486_c5 :
-    ((Padded486.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded486_c6 :
-    ((Padded486.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded486_c7 :
-    ((Padded486.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded486_cover : Padded486.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded487_c0 :
@@ -14586,28 +6249,7 @@ theorem Padded487_c1 :
     ((Padded487.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded487_c2 :
-    ((Padded487.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded487_c3 :
-    ((Padded487.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded487_c4 :
-    ((Padded487.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded487_c5 :
-    ((Padded487.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded487_c6 :
-    ((Padded487.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded487_c7 :
-    ((Padded487.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded487_cover : Padded487.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded488_c0 :
@@ -14618,28 +6260,7 @@ theorem Padded488_c1 :
     ((Padded488.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded488_c2 :
-    ((Padded488.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded488_c3 :
-    ((Padded488.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded488_c4 :
-    ((Padded488.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded488_c5 :
-    ((Padded488.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded488_c6 :
-    ((Padded488.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded488_c7 :
-    ((Padded488.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded488_cover : Padded488.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded489_c0 :
@@ -14650,28 +6271,7 @@ theorem Padded489_c1 :
     ((Padded489.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded489_c2 :
-    ((Padded489.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded489_c3 :
-    ((Padded489.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded489_c4 :
-    ((Padded489.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded489_c5 :
-    ((Padded489.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded489_c6 :
-    ((Padded489.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded489_c7 :
-    ((Padded489.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded489_cover : Padded489.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded490_c0 :
@@ -14682,28 +6282,7 @@ theorem Padded490_c1 :
     ((Padded490.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded490_c2 :
-    ((Padded490.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded490_c3 :
-    ((Padded490.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded490_c4 :
-    ((Padded490.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded490_c5 :
-    ((Padded490.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded490_c6 :
-    ((Padded490.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded490_c7 :
-    ((Padded490.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded490_cover : Padded490.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded491_c0 :
@@ -14718,24 +6297,7 @@ theorem Padded491_c2 :
     ((Padded491.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded491_c3 :
-    ((Padded491.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded491_c4 :
-    ((Padded491.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded491_c5 :
-    ((Padded491.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded491_c6 :
-    ((Padded491.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded491_c7 :
-    ((Padded491.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded491_cover : Padded491.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded492_c0 :
@@ -14746,28 +6308,7 @@ theorem Padded492_c1 :
     ((Padded492.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded492_c2 :
-    ((Padded492.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded492_c3 :
-    ((Padded492.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded492_c4 :
-    ((Padded492.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded492_c5 :
-    ((Padded492.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded492_c6 :
-    ((Padded492.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded492_c7 :
-    ((Padded492.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded492_cover : Padded492.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded493_c0 :
@@ -14778,28 +6319,7 @@ theorem Padded493_c1 :
     ((Padded493.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded493_c2 :
-    ((Padded493.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded493_c3 :
-    ((Padded493.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded493_c4 :
-    ((Padded493.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded493_c5 :
-    ((Padded493.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded493_c6 :
-    ((Padded493.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded493_c7 :
-    ((Padded493.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded493_cover : Padded493.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded494_c0 :
@@ -14810,28 +6330,7 @@ theorem Padded494_c1 :
     ((Padded494.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded494_c2 :
-    ((Padded494.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded494_c3 :
-    ((Padded494.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded494_c4 :
-    ((Padded494.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded494_c5 :
-    ((Padded494.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded494_c6 :
-    ((Padded494.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded494_c7 :
-    ((Padded494.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded494_cover : Padded494.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded495_c0 :
@@ -14842,28 +6341,7 @@ theorem Padded495_c1 :
     ((Padded495.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded495_c2 :
-    ((Padded495.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded495_c3 :
-    ((Padded495.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded495_c4 :
-    ((Padded495.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded495_c5 :
-    ((Padded495.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded495_c6 :
-    ((Padded495.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded495_c7 :
-    ((Padded495.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded495_cover : Padded495.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded496_c0 :
@@ -14874,28 +6352,7 @@ theorem Padded496_c1 :
     ((Padded496.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded496_c2 :
-    ((Padded496.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded496_c3 :
-    ((Padded496.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded496_c4 :
-    ((Padded496.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded496_c5 :
-    ((Padded496.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded496_c6 :
-    ((Padded496.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded496_c7 :
-    ((Padded496.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded496_cover : Padded496.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded497_c0 :
@@ -14906,28 +6363,7 @@ theorem Padded497_c1 :
     ((Padded497.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded497_c2 :
-    ((Padded497.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded497_c3 :
-    ((Padded497.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded497_c4 :
-    ((Padded497.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded497_c5 :
-    ((Padded497.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded497_c6 :
-    ((Padded497.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded497_c7 :
-    ((Padded497.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded497_cover : Padded497.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded498_c0 :
@@ -14938,28 +6374,7 @@ theorem Padded498_c1 :
     ((Padded498.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded498_c2 :
-    ((Padded498.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded498_c3 :
-    ((Padded498.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded498_c4 :
-    ((Padded498.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded498_c5 :
-    ((Padded498.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded498_c6 :
-    ((Padded498.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded498_c7 :
-    ((Padded498.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded498_cover : Padded498.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded499_c0 :
@@ -14970,28 +6385,7 @@ theorem Padded499_c1 :
     ((Padded499.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded499_c2 :
-    ((Padded499.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded499_c3 :
-    ((Padded499.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded499_c4 :
-    ((Padded499.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded499_c5 :
-    ((Padded499.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded499_c6 :
-    ((Padded499.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded499_c7 :
-    ((Padded499.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded499_cover : Padded499.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded500_c0 :
@@ -15002,28 +6396,7 @@ theorem Padded500_c1 :
     ((Padded500.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded500_c2 :
-    ((Padded500.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded500_c3 :
-    ((Padded500.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded500_c4 :
-    ((Padded500.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded500_c5 :
-    ((Padded500.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded500_c6 :
-    ((Padded500.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded500_c7 :
-    ((Padded500.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded500_cover : Padded500.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded501_c0 :
@@ -15034,28 +6407,7 @@ theorem Padded501_c1 :
     ((Padded501.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded501_c2 :
-    ((Padded501.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded501_c3 :
-    ((Padded501.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded501_c4 :
-    ((Padded501.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded501_c5 :
-    ((Padded501.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded501_c6 :
-    ((Padded501.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded501_c7 :
-    ((Padded501.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded501_cover : Padded501.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded502_c0 :
@@ -15066,28 +6418,7 @@ theorem Padded502_c1 :
     ((Padded502.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded502_c2 :
-    ((Padded502.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded502_c3 :
-    ((Padded502.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded502_c4 :
-    ((Padded502.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded502_c5 :
-    ((Padded502.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded502_c6 :
-    ((Padded502.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded502_c7 :
-    ((Padded502.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded502_cover : Padded502.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded503_c0 :
@@ -15098,28 +6429,7 @@ theorem Padded503_c1 :
     ((Padded503.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded503_c2 :
-    ((Padded503.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded503_c3 :
-    ((Padded503.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded503_c4 :
-    ((Padded503.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded503_c5 :
-    ((Padded503.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded503_c6 :
-    ((Padded503.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded503_c7 :
-    ((Padded503.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded503_cover : Padded503.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded504_c0 :
@@ -15130,28 +6440,7 @@ theorem Padded504_c1 :
     ((Padded504.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded504_c2 :
-    ((Padded504.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded504_c3 :
-    ((Padded504.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded504_c4 :
-    ((Padded504.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded504_c5 :
-    ((Padded504.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded504_c6 :
-    ((Padded504.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded504_c7 :
-    ((Padded504.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded504_cover : Padded504.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded505_c0 :
@@ -15162,28 +6451,7 @@ theorem Padded505_c1 :
     ((Padded505.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded505_c2 :
-    ((Padded505.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded505_c3 :
-    ((Padded505.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded505_c4 :
-    ((Padded505.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded505_c5 :
-    ((Padded505.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded505_c6 :
-    ((Padded505.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded505_c7 :
-    ((Padded505.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded505_cover : Padded505.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded506_c0 :
@@ -15194,28 +6462,7 @@ theorem Padded506_c1 :
     ((Padded506.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded506_c2 :
-    ((Padded506.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded506_c3 :
-    ((Padded506.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded506_c4 :
-    ((Padded506.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded506_c5 :
-    ((Padded506.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded506_c6 :
-    ((Padded506.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded506_c7 :
-    ((Padded506.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded506_cover : Padded506.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded507_c0 :
@@ -15226,28 +6473,7 @@ theorem Padded507_c1 :
     ((Padded507.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded507_c2 :
-    ((Padded507.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded507_c3 :
-    ((Padded507.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded507_c4 :
-    ((Padded507.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded507_c5 :
-    ((Padded507.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded507_c6 :
-    ((Padded507.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded507_c7 :
-    ((Padded507.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded507_cover : Padded507.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded508_c0 :
@@ -15258,28 +6484,7 @@ theorem Padded508_c1 :
     ((Padded508.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded508_c2 :
-    ((Padded508.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded508_c3 :
-    ((Padded508.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded508_c4 :
-    ((Padded508.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded508_c5 :
-    ((Padded508.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded508_c6 :
-    ((Padded508.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded508_c7 :
-    ((Padded508.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded508_cover : Padded508.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded509_c0 :
@@ -15290,28 +6495,7 @@ theorem Padded509_c1 :
     ((Padded509.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded509_c2 :
-    ((Padded509.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded509_c3 :
-    ((Padded509.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded509_c4 :
-    ((Padded509.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded509_c5 :
-    ((Padded509.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded509_c6 :
-    ((Padded509.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded509_c7 :
-    ((Padded509.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded509_cover : Padded509.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded510_c0 :
@@ -15322,28 +6506,7 @@ theorem Padded510_c1 :
     ((Padded510.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded510_c2 :
-    ((Padded510.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded510_c3 :
-    ((Padded510.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded510_c4 :
-    ((Padded510.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded510_c5 :
-    ((Padded510.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded510_c6 :
-    ((Padded510.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded510_c7 :
-    ((Padded510.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded510_cover : Padded510.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded511_c0 :
@@ -15354,28 +6517,7 @@ theorem Padded511_c1 :
     ((Padded511.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded511_c2 :
-    ((Padded511.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded511_c3 :
-    ((Padded511.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded511_c4 :
-    ((Padded511.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded511_c5 :
-    ((Padded511.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded511_c6 :
-    ((Padded511.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded511_c7 :
-    ((Padded511.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded511_cover : Padded511.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded512_c0 :
@@ -15386,28 +6528,7 @@ theorem Padded512_c1 :
     ((Padded512.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded512_c2 :
-    ((Padded512.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded512_c3 :
-    ((Padded512.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded512_c4 :
-    ((Padded512.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded512_c5 :
-    ((Padded512.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded512_c6 :
-    ((Padded512.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded512_c7 :
-    ((Padded512.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded512_cover : Padded512.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded513_c0 :
@@ -15418,28 +6539,7 @@ theorem Padded513_c1 :
     ((Padded513.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded513_c2 :
-    ((Padded513.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded513_c3 :
-    ((Padded513.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded513_c4 :
-    ((Padded513.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded513_c5 :
-    ((Padded513.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded513_c6 :
-    ((Padded513.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded513_c7 :
-    ((Padded513.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded513_cover : Padded513.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded514_c0 :
@@ -15450,28 +6550,7 @@ theorem Padded514_c1 :
     ((Padded514.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded514_c2 :
-    ((Padded514.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded514_c3 :
-    ((Padded514.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded514_c4 :
-    ((Padded514.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded514_c5 :
-    ((Padded514.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded514_c6 :
-    ((Padded514.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded514_c7 :
-    ((Padded514.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded514_cover : Padded514.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded515_c0 :
@@ -15482,28 +6561,7 @@ theorem Padded515_c1 :
     ((Padded515.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded515_c2 :
-    ((Padded515.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded515_c3 :
-    ((Padded515.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded515_c4 :
-    ((Padded515.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded515_c5 :
-    ((Padded515.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded515_c6 :
-    ((Padded515.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded515_c7 :
-    ((Padded515.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded515_cover : Padded515.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded516_c0 :
@@ -15514,28 +6572,7 @@ theorem Padded516_c1 :
     ((Padded516.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded516_c2 :
-    ((Padded516.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded516_c3 :
-    ((Padded516.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded516_c4 :
-    ((Padded516.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded516_c5 :
-    ((Padded516.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded516_c6 :
-    ((Padded516.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded516_c7 :
-    ((Padded516.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded516_cover : Padded516.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded517_c0 :
@@ -15546,28 +6583,7 @@ theorem Padded517_c1 :
     ((Padded517.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded517_c2 :
-    ((Padded517.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded517_c3 :
-    ((Padded517.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded517_c4 :
-    ((Padded517.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded517_c5 :
-    ((Padded517.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded517_c6 :
-    ((Padded517.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded517_c7 :
-    ((Padded517.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded517_cover : Padded517.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded518_c0 :
@@ -15578,28 +6594,7 @@ theorem Padded518_c1 :
     ((Padded518.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded518_c2 :
-    ((Padded518.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded518_c3 :
-    ((Padded518.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded518_c4 :
-    ((Padded518.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded518_c5 :
-    ((Padded518.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded518_c6 :
-    ((Padded518.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded518_c7 :
-    ((Padded518.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded518_cover : Padded518.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded519_c0 :
@@ -15610,28 +6605,7 @@ theorem Padded519_c1 :
     ((Padded519.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded519_c2 :
-    ((Padded519.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded519_c3 :
-    ((Padded519.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded519_c4 :
-    ((Padded519.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded519_c5 :
-    ((Padded519.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded519_c6 :
-    ((Padded519.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded519_c7 :
-    ((Padded519.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded519_cover : Padded519.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded520_c0 :
@@ -15642,28 +6616,7 @@ theorem Padded520_c1 :
     ((Padded520.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded520_c2 :
-    ((Padded520.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded520_c3 :
-    ((Padded520.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded520_c4 :
-    ((Padded520.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded520_c5 :
-    ((Padded520.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded520_c6 :
-    ((Padded520.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded520_c7 :
-    ((Padded520.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded520_cover : Padded520.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded521_c0 :
@@ -15674,28 +6627,7 @@ theorem Padded521_c1 :
     ((Padded521.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded521_c2 :
-    ((Padded521.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded521_c3 :
-    ((Padded521.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded521_c4 :
-    ((Padded521.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded521_c5 :
-    ((Padded521.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded521_c6 :
-    ((Padded521.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded521_c7 :
-    ((Padded521.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded521_cover : Padded521.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded522_c0 :
@@ -15706,28 +6638,7 @@ theorem Padded522_c1 :
     ((Padded522.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded522_c2 :
-    ((Padded522.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded522_c3 :
-    ((Padded522.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded522_c4 :
-    ((Padded522.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded522_c5 :
-    ((Padded522.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded522_c6 :
-    ((Padded522.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded522_c7 :
-    ((Padded522.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded522_cover : Padded522.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded523_c0 :
@@ -15738,28 +6649,7 @@ theorem Padded523_c1 :
     ((Padded523.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded523_c2 :
-    ((Padded523.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded523_c3 :
-    ((Padded523.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded523_c4 :
-    ((Padded523.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded523_c5 :
-    ((Padded523.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded523_c6 :
-    ((Padded523.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded523_c7 :
-    ((Padded523.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded523_cover : Padded523.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded524_c0 :
@@ -15770,28 +6660,7 @@ theorem Padded524_c1 :
     ((Padded524.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded524_c2 :
-    ((Padded524.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded524_c3 :
-    ((Padded524.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded524_c4 :
-    ((Padded524.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded524_c5 :
-    ((Padded524.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded524_c6 :
-    ((Padded524.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded524_c7 :
-    ((Padded524.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded524_cover : Padded524.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded525_c0 :
@@ -15810,20 +6679,7 @@ theorem Padded525_c3 :
     ((Padded525.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded525_c4 :
-    ((Padded525.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded525_c5 :
-    ((Padded525.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded525_c6 :
-    ((Padded525.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded525_c7 :
-    ((Padded525.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded525_cover : Padded525.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded526_c0 :
@@ -15834,28 +6690,7 @@ theorem Padded526_c1 :
     ((Padded526.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded526_c2 :
-    ((Padded526.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded526_c3 :
-    ((Padded526.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded526_c4 :
-    ((Padded526.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded526_c5 :
-    ((Padded526.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded526_c6 :
-    ((Padded526.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded526_c7 :
-    ((Padded526.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded526_cover : Padded526.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded527_c0 :
@@ -15866,28 +6701,7 @@ theorem Padded527_c1 :
     ((Padded527.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded527_c2 :
-    ((Padded527.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded527_c3 :
-    ((Padded527.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded527_c4 :
-    ((Padded527.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded527_c5 :
-    ((Padded527.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded527_c6 :
-    ((Padded527.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded527_c7 :
-    ((Padded527.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded527_cover : Padded527.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded528_c0 :
@@ -15898,28 +6712,7 @@ theorem Padded528_c1 :
     ((Padded528.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded528_c2 :
-    ((Padded528.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded528_c3 :
-    ((Padded528.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded528_c4 :
-    ((Padded528.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded528_c5 :
-    ((Padded528.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded528_c6 :
-    ((Padded528.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded528_c7 :
-    ((Padded528.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded528_cover : Padded528.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded529_c0 :
@@ -15930,28 +6723,7 @@ theorem Padded529_c1 :
     ((Padded529.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded529_c2 :
-    ((Padded529.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded529_c3 :
-    ((Padded529.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded529_c4 :
-    ((Padded529.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded529_c5 :
-    ((Padded529.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded529_c6 :
-    ((Padded529.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded529_c7 :
-    ((Padded529.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded529_cover : Padded529.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded530_c0 :
@@ -15962,28 +6734,7 @@ theorem Padded530_c1 :
     ((Padded530.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded530_c2 :
-    ((Padded530.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded530_c3 :
-    ((Padded530.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded530_c4 :
-    ((Padded530.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded530_c5 :
-    ((Padded530.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded530_c6 :
-    ((Padded530.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded530_c7 :
-    ((Padded530.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded530_cover : Padded530.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded531_c0 :
@@ -15994,28 +6745,7 @@ theorem Padded531_c1 :
     ((Padded531.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded531_c2 :
-    ((Padded531.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded531_c3 :
-    ((Padded531.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded531_c4 :
-    ((Padded531.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded531_c5 :
-    ((Padded531.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded531_c6 :
-    ((Padded531.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded531_c7 :
-    ((Padded531.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded531_cover : Padded531.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded532_c0 :
@@ -16026,28 +6756,7 @@ theorem Padded532_c1 :
     ((Padded532.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded532_c2 :
-    ((Padded532.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded532_c3 :
-    ((Padded532.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded532_c4 :
-    ((Padded532.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded532_c5 :
-    ((Padded532.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded532_c6 :
-    ((Padded532.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded532_c7 :
-    ((Padded532.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded532_cover : Padded532.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded533_c0 :
@@ -16058,28 +6767,7 @@ theorem Padded533_c1 :
     ((Padded533.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded533_c2 :
-    ((Padded533.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded533_c3 :
-    ((Padded533.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded533_c4 :
-    ((Padded533.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded533_c5 :
-    ((Padded533.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded533_c6 :
-    ((Padded533.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded533_c7 :
-    ((Padded533.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded533_cover : Padded533.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded534_c0 :
@@ -16090,28 +6778,7 @@ theorem Padded534_c1 :
     ((Padded534.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded534_c2 :
-    ((Padded534.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded534_c3 :
-    ((Padded534.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded534_c4 :
-    ((Padded534.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded534_c5 :
-    ((Padded534.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded534_c6 :
-    ((Padded534.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded534_c7 :
-    ((Padded534.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded534_cover : Padded534.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded535_c0 :
@@ -16122,28 +6789,7 @@ theorem Padded535_c1 :
     ((Padded535.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded535_c2 :
-    ((Padded535.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded535_c3 :
-    ((Padded535.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded535_c4 :
-    ((Padded535.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded535_c5 :
-    ((Padded535.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded535_c6 :
-    ((Padded535.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded535_c7 :
-    ((Padded535.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded535_cover : Padded535.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded536_c0 :
@@ -16162,20 +6808,7 @@ theorem Padded536_c3 :
     ((Padded536.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded536_c4 :
-    ((Padded536.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded536_c5 :
-    ((Padded536.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded536_c6 :
-    ((Padded536.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded536_c7 :
-    ((Padded536.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded536_cover : Padded536.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded537_c0 :
@@ -16186,28 +6819,7 @@ theorem Padded537_c1 :
     ((Padded537.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded537_c2 :
-    ((Padded537.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded537_c3 :
-    ((Padded537.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded537_c4 :
-    ((Padded537.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded537_c5 :
-    ((Padded537.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded537_c6 :
-    ((Padded537.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded537_c7 :
-    ((Padded537.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded537_cover : Padded537.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded538_c0 :
@@ -16222,24 +6834,7 @@ theorem Padded538_c2 :
     ((Padded538.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded538_c3 :
-    ((Padded538.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded538_c4 :
-    ((Padded538.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded538_c5 :
-    ((Padded538.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded538_c6 :
-    ((Padded538.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded538_c7 :
-    ((Padded538.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded538_cover : Padded538.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded539_c0 :
@@ -16250,28 +6845,7 @@ theorem Padded539_c1 :
     ((Padded539.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded539_c2 :
-    ((Padded539.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded539_c3 :
-    ((Padded539.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded539_c4 :
-    ((Padded539.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded539_c5 :
-    ((Padded539.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded539_c6 :
-    ((Padded539.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded539_c7 :
-    ((Padded539.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded539_cover : Padded539.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded540_c0 :
@@ -16282,28 +6856,7 @@ theorem Padded540_c1 :
     ((Padded540.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded540_c2 :
-    ((Padded540.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded540_c3 :
-    ((Padded540.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded540_c4 :
-    ((Padded540.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded540_c5 :
-    ((Padded540.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded540_c6 :
-    ((Padded540.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded540_c7 :
-    ((Padded540.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded540_cover : Padded540.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded541_c0 :
@@ -16314,28 +6867,7 @@ theorem Padded541_c1 :
     ((Padded541.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded541_c2 :
-    ((Padded541.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded541_c3 :
-    ((Padded541.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded541_c4 :
-    ((Padded541.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded541_c5 :
-    ((Padded541.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded541_c6 :
-    ((Padded541.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded541_c7 :
-    ((Padded541.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded541_cover : Padded541.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded542_c0 :
@@ -16346,28 +6878,7 @@ theorem Padded542_c1 :
     ((Padded542.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded542_c2 :
-    ((Padded542.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded542_c3 :
-    ((Padded542.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded542_c4 :
-    ((Padded542.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded542_c5 :
-    ((Padded542.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded542_c6 :
-    ((Padded542.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded542_c7 :
-    ((Padded542.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded542_cover : Padded542.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded543_c0 :
@@ -16378,28 +6889,7 @@ theorem Padded543_c1 :
     ((Padded543.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded543_c2 :
-    ((Padded543.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded543_c3 :
-    ((Padded543.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded543_c4 :
-    ((Padded543.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded543_c5 :
-    ((Padded543.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded543_c6 :
-    ((Padded543.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded543_c7 :
-    ((Padded543.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded543_cover : Padded543.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded544_c0 :
@@ -16410,28 +6900,7 @@ theorem Padded544_c1 :
     ((Padded544.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded544_c2 :
-    ((Padded544.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded544_c3 :
-    ((Padded544.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded544_c4 :
-    ((Padded544.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded544_c5 :
-    ((Padded544.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded544_c6 :
-    ((Padded544.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded544_c7 :
-    ((Padded544.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded544_cover : Padded544.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded545_c0 :
@@ -16442,28 +6911,7 @@ theorem Padded545_c1 :
     ((Padded545.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded545_c2 :
-    ((Padded545.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded545_c3 :
-    ((Padded545.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded545_c4 :
-    ((Padded545.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded545_c5 :
-    ((Padded545.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded545_c6 :
-    ((Padded545.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded545_c7 :
-    ((Padded545.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded545_cover : Padded545.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded546_c0 :
@@ -16474,28 +6922,7 @@ theorem Padded546_c1 :
     ((Padded546.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded546_c2 :
-    ((Padded546.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded546_c3 :
-    ((Padded546.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded546_c4 :
-    ((Padded546.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded546_c5 :
-    ((Padded546.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded546_c6 :
-    ((Padded546.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded546_c7 :
-    ((Padded546.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded546_cover : Padded546.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded547_c0 :
@@ -16506,28 +6933,7 @@ theorem Padded547_c1 :
     ((Padded547.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded547_c2 :
-    ((Padded547.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded547_c3 :
-    ((Padded547.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded547_c4 :
-    ((Padded547.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded547_c5 :
-    ((Padded547.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded547_c6 :
-    ((Padded547.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded547_c7 :
-    ((Padded547.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded547_cover : Padded547.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded548_c0 :
@@ -16550,16 +6956,7 @@ theorem Padded548_c4 :
     ((Padded548.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded548_c5 :
-    ((Padded548.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded548_c6 :
-    ((Padded548.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded548_c7 :
-    ((Padded548.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded548_cover : Padded548.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded549_c0 :
@@ -16570,28 +6967,7 @@ theorem Padded549_c1 :
     ((Padded549.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded549_c2 :
-    ((Padded549.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded549_c3 :
-    ((Padded549.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded549_c4 :
-    ((Padded549.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded549_c5 :
-    ((Padded549.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded549_c6 :
-    ((Padded549.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded549_c7 :
-    ((Padded549.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded549_cover : Padded549.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded550_c0 :
@@ -16602,28 +6978,7 @@ theorem Padded550_c1 :
     ((Padded550.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded550_c2 :
-    ((Padded550.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded550_c3 :
-    ((Padded550.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded550_c4 :
-    ((Padded550.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded550_c5 :
-    ((Padded550.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded550_c6 :
-    ((Padded550.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded550_c7 :
-    ((Padded550.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded550_cover : Padded550.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded551_c0 :
@@ -16638,24 +6993,7 @@ theorem Padded551_c2 :
     ((Padded551.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded551_c3 :
-    ((Padded551.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded551_c4 :
-    ((Padded551.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded551_c5 :
-    ((Padded551.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded551_c6 :
-    ((Padded551.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded551_c7 :
-    ((Padded551.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded551_cover : Padded551.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded552_c0 :
@@ -16682,12 +7020,7 @@ theorem Padded552_c5 :
     ((Padded552.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded552_c6 :
-    ((Padded552.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded552_c7 :
-    ((Padded552.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded552_cover : Padded552.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded553_c0 :
@@ -16698,28 +7031,7 @@ theorem Padded553_c1 :
     ((Padded553.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded553_c2 :
-    ((Padded553.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded553_c3 :
-    ((Padded553.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded553_c4 :
-    ((Padded553.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded553_c5 :
-    ((Padded553.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded553_c6 :
-    ((Padded553.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded553_c7 :
-    ((Padded553.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded553_cover : Padded553.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded554_c0 :
@@ -16730,28 +7042,7 @@ theorem Padded554_c1 :
     ((Padded554.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded554_c2 :
-    ((Padded554.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded554_c3 :
-    ((Padded554.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded554_c4 :
-    ((Padded554.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded554_c5 :
-    ((Padded554.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded554_c6 :
-    ((Padded554.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded554_c7 :
-    ((Padded554.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded554_cover : Padded554.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded555_c0 :
@@ -16762,28 +7053,7 @@ theorem Padded555_c1 :
     ((Padded555.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded555_c2 :
-    ((Padded555.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded555_c3 :
-    ((Padded555.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded555_c4 :
-    ((Padded555.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded555_c5 :
-    ((Padded555.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded555_c6 :
-    ((Padded555.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded555_c7 :
-    ((Padded555.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded555_cover : Padded555.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded556_c0 :
@@ -16794,28 +7064,7 @@ theorem Padded556_c1 :
     ((Padded556.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded556_c2 :
-    ((Padded556.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded556_c3 :
-    ((Padded556.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded556_c4 :
-    ((Padded556.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded556_c5 :
-    ((Padded556.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded556_c6 :
-    ((Padded556.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded556_c7 :
-    ((Padded556.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded556_cover : Padded556.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded557_c0 :
@@ -16826,28 +7075,7 @@ theorem Padded557_c1 :
     ((Padded557.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded557_c2 :
-    ((Padded557.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded557_c3 :
-    ((Padded557.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded557_c4 :
-    ((Padded557.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded557_c5 :
-    ((Padded557.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded557_c6 :
-    ((Padded557.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded557_c7 :
-    ((Padded557.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded557_cover : Padded557.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded558_c0 :
@@ -16858,28 +7086,7 @@ theorem Padded558_c1 :
     ((Padded558.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded558_c2 :
-    ((Padded558.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded558_c3 :
-    ((Padded558.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded558_c4 :
-    ((Padded558.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded558_c5 :
-    ((Padded558.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded558_c6 :
-    ((Padded558.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded558_c7 :
-    ((Padded558.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded558_cover : Padded558.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded559_c0 :
@@ -16890,28 +7097,7 @@ theorem Padded559_c1 :
     ((Padded559.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded559_c2 :
-    ((Padded559.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded559_c3 :
-    ((Padded559.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded559_c4 :
-    ((Padded559.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded559_c5 :
-    ((Padded559.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded559_c6 :
-    ((Padded559.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded559_c7 :
-    ((Padded559.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded559_cover : Padded559.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded560_c0 :
@@ -16926,24 +7112,7 @@ theorem Padded560_c2 :
     ((Padded560.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded560_c3 :
-    ((Padded560.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded560_c4 :
-    ((Padded560.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded560_c5 :
-    ((Padded560.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded560_c6 :
-    ((Padded560.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded560_c7 :
-    ((Padded560.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded560_cover : Padded560.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded561_c0 :
@@ -16954,28 +7123,7 @@ theorem Padded561_c1 :
     ((Padded561.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded561_c2 :
-    ((Padded561.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded561_c3 :
-    ((Padded561.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded561_c4 :
-    ((Padded561.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded561_c5 :
-    ((Padded561.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded561_c6 :
-    ((Padded561.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded561_c7 :
-    ((Padded561.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded561_cover : Padded561.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded562_c0 :
@@ -16994,20 +7142,7 @@ theorem Padded562_c3 :
     ((Padded562.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded562_c4 :
-    ((Padded562.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded562_c5 :
-    ((Padded562.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded562_c6 :
-    ((Padded562.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded562_c7 :
-    ((Padded562.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded562_cover : Padded562.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded563_c0 :
@@ -17018,28 +7153,7 @@ theorem Padded563_c1 :
     ((Padded563.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded563_c2 :
-    ((Padded563.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded563_c3 :
-    ((Padded563.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded563_c4 :
-    ((Padded563.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded563_c5 :
-    ((Padded563.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded563_c6 :
-    ((Padded563.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded563_c7 :
-    ((Padded563.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded563_cover : Padded563.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded564_c0 :
@@ -17050,28 +7164,7 @@ theorem Padded564_c1 :
     ((Padded564.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded564_c2 :
-    ((Padded564.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded564_c3 :
-    ((Padded564.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded564_c4 :
-    ((Padded564.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded564_c5 :
-    ((Padded564.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded564_c6 :
-    ((Padded564.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded564_c7 :
-    ((Padded564.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded564_cover : Padded564.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded565_c0 :
@@ -17082,28 +7175,7 @@ theorem Padded565_c1 :
     ((Padded565.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded565_c2 :
-    ((Padded565.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded565_c3 :
-    ((Padded565.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded565_c4 :
-    ((Padded565.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded565_c5 :
-    ((Padded565.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded565_c6 :
-    ((Padded565.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded565_c7 :
-    ((Padded565.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded565_cover : Padded565.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded566_c0 :
@@ -17114,28 +7186,7 @@ theorem Padded566_c1 :
     ((Padded566.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded566_c2 :
-    ((Padded566.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded566_c3 :
-    ((Padded566.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded566_c4 :
-    ((Padded566.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded566_c5 :
-    ((Padded566.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded566_c6 :
-    ((Padded566.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded566_c7 :
-    ((Padded566.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded566_cover : Padded566.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded567_c0 :
@@ -17146,28 +7197,7 @@ theorem Padded567_c1 :
     ((Padded567.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded567_c2 :
-    ((Padded567.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded567_c3 :
-    ((Padded567.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded567_c4 :
-    ((Padded567.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded567_c5 :
-    ((Padded567.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded567_c6 :
-    ((Padded567.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded567_c7 :
-    ((Padded567.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded567_cover : Padded567.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded568_c0 :
@@ -17178,28 +7208,7 @@ theorem Padded568_c1 :
     ((Padded568.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded568_c2 :
-    ((Padded568.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded568_c3 :
-    ((Padded568.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded568_c4 :
-    ((Padded568.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded568_c5 :
-    ((Padded568.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded568_c6 :
-    ((Padded568.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded568_c7 :
-    ((Padded568.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded568_cover : Padded568.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded569_c0 :
@@ -17218,20 +7227,7 @@ theorem Padded569_c3 :
     ((Padded569.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded569_c4 :
-    ((Padded569.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded569_c5 :
-    ((Padded569.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded569_c6 :
-    ((Padded569.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded569_c7 :
-    ((Padded569.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded569_cover : Padded569.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded570_c0 :
@@ -17242,28 +7238,7 @@ theorem Padded570_c1 :
     ((Padded570.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded570_c2 :
-    ((Padded570.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded570_c3 :
-    ((Padded570.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded570_c4 :
-    ((Padded570.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded570_c5 :
-    ((Padded570.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded570_c6 :
-    ((Padded570.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded570_c7 :
-    ((Padded570.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded570_cover : Padded570.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded571_c0 :
@@ -17282,20 +7257,7 @@ theorem Padded571_c3 :
     ((Padded571.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded571_c4 :
-    ((Padded571.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded571_c5 :
-    ((Padded571.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded571_c6 :
-    ((Padded571.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded571_c7 :
-    ((Padded571.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded571_cover : Padded571.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded572_c0 :
@@ -17310,24 +7272,7 @@ theorem Padded572_c2 :
     ((Padded572.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded572_c3 :
-    ((Padded572.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded572_c4 :
-    ((Padded572.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded572_c5 :
-    ((Padded572.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded572_c6 :
-    ((Padded572.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded572_c7 :
-    ((Padded572.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded572_cover : Padded572.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded573_c0 :
@@ -17338,28 +7283,7 @@ theorem Padded573_c1 :
     ((Padded573.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded573_c2 :
-    ((Padded573.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded573_c3 :
-    ((Padded573.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded573_c4 :
-    ((Padded573.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded573_c5 :
-    ((Padded573.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded573_c6 :
-    ((Padded573.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded573_c7 :
-    ((Padded573.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded573_cover : Padded573.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded574_c0 :
@@ -17370,28 +7294,7 @@ theorem Padded574_c1 :
     ((Padded574.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded574_c2 :
-    ((Padded574.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded574_c3 :
-    ((Padded574.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded574_c4 :
-    ((Padded574.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded574_c5 :
-    ((Padded574.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded574_c6 :
-    ((Padded574.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded574_c7 :
-    ((Padded574.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded574_cover : Padded574.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded575_c0 :
@@ -17402,28 +7305,7 @@ theorem Padded575_c1 :
     ((Padded575.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded575_c2 :
-    ((Padded575.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded575_c3 :
-    ((Padded575.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded575_c4 :
-    ((Padded575.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded575_c5 :
-    ((Padded575.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded575_c6 :
-    ((Padded575.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded575_c7 :
-    ((Padded575.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded575_cover : Padded575.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded576_c0 :
@@ -17434,28 +7316,7 @@ theorem Padded576_c1 :
     ((Padded576.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded576_c2 :
-    ((Padded576.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded576_c3 :
-    ((Padded576.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded576_c4 :
-    ((Padded576.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded576_c5 :
-    ((Padded576.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded576_c6 :
-    ((Padded576.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded576_c7 :
-    ((Padded576.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded576_cover : Padded576.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded577_c0 :
@@ -17466,28 +7327,7 @@ theorem Padded577_c1 :
     ((Padded577.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded577_c2 :
-    ((Padded577.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded577_c3 :
-    ((Padded577.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded577_c4 :
-    ((Padded577.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded577_c5 :
-    ((Padded577.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded577_c6 :
-    ((Padded577.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded577_c7 :
-    ((Padded577.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded577_cover : Padded577.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded578_c0 :
@@ -17502,24 +7342,7 @@ theorem Padded578_c2 :
     ((Padded578.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded578_c3 :
-    ((Padded578.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded578_c4 :
-    ((Padded578.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded578_c5 :
-    ((Padded578.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded578_c6 :
-    ((Padded578.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded578_c7 :
-    ((Padded578.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded578_cover : Padded578.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded579_c0 :
@@ -17530,28 +7353,7 @@ theorem Padded579_c1 :
     ((Padded579.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded579_c2 :
-    ((Padded579.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded579_c3 :
-    ((Padded579.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded579_c4 :
-    ((Padded579.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded579_c5 :
-    ((Padded579.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded579_c6 :
-    ((Padded579.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded579_c7 :
-    ((Padded579.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded579_cover : Padded579.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded580_c0 :
@@ -17562,28 +7364,7 @@ theorem Padded580_c1 :
     ((Padded580.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded580_c2 :
-    ((Padded580.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded580_c3 :
-    ((Padded580.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded580_c4 :
-    ((Padded580.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded580_c5 :
-    ((Padded580.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded580_c6 :
-    ((Padded580.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded580_c7 :
-    ((Padded580.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded580_cover : Padded580.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded581_c0 :
@@ -17594,28 +7375,7 @@ theorem Padded581_c1 :
     ((Padded581.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded581_c2 :
-    ((Padded581.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded581_c3 :
-    ((Padded581.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded581_c4 :
-    ((Padded581.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded581_c5 :
-    ((Padded581.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded581_c6 :
-    ((Padded581.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded581_c7 :
-    ((Padded581.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded581_cover : Padded581.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded582_c0 :
@@ -17626,28 +7386,7 @@ theorem Padded582_c1 :
     ((Padded582.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded582_c2 :
-    ((Padded582.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded582_c3 :
-    ((Padded582.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded582_c4 :
-    ((Padded582.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded582_c5 :
-    ((Padded582.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded582_c6 :
-    ((Padded582.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded582_c7 :
-    ((Padded582.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded582_cover : Padded582.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded583_c0 :
@@ -17658,28 +7397,7 @@ theorem Padded583_c1 :
     ((Padded583.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded583_c2 :
-    ((Padded583.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded583_c3 :
-    ((Padded583.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded583_c4 :
-    ((Padded583.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded583_c5 :
-    ((Padded583.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded583_c6 :
-    ((Padded583.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded583_c7 :
-    ((Padded583.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded583_cover : Padded583.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded584_c0 :
@@ -17690,28 +7408,7 @@ theorem Padded584_c1 :
     ((Padded584.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded584_c2 :
-    ((Padded584.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded584_c3 :
-    ((Padded584.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded584_c4 :
-    ((Padded584.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded584_c5 :
-    ((Padded584.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded584_c6 :
-    ((Padded584.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded584_c7 :
-    ((Padded584.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded584_cover : Padded584.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded585_c0 :
@@ -17722,28 +7419,7 @@ theorem Padded585_c1 :
     ((Padded585.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded585_c2 :
-    ((Padded585.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded585_c3 :
-    ((Padded585.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded585_c4 :
-    ((Padded585.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded585_c5 :
-    ((Padded585.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded585_c6 :
-    ((Padded585.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded585_c7 :
-    ((Padded585.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded585_cover : Padded585.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded586_c0 :
@@ -17762,20 +7438,7 @@ theorem Padded586_c3 :
     ((Padded586.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded586_c4 :
-    ((Padded586.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded586_c5 :
-    ((Padded586.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded586_c6 :
-    ((Padded586.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded586_c7 :
-    ((Padded586.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded586_cover : Padded586.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded587_c0 :
@@ -17790,24 +7453,7 @@ theorem Padded587_c2 :
     ((Padded587.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded587_c3 :
-    ((Padded587.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded587_c4 :
-    ((Padded587.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded587_c5 :
-    ((Padded587.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded587_c6 :
-    ((Padded587.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded587_c7 :
-    ((Padded587.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded587_cover : Padded587.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded588_c0 :
@@ -17822,24 +7468,7 @@ theorem Padded588_c2 :
     ((Padded588.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded588_c3 :
-    ((Padded588.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded588_c4 :
-    ((Padded588.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded588_c5 :
-    ((Padded588.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded588_c6 :
-    ((Padded588.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded588_c7 :
-    ((Padded588.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded588_cover : Padded588.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded589_c0 :
@@ -17854,24 +7483,7 @@ theorem Padded589_c2 :
     ((Padded589.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded589_c3 :
-    ((Padded589.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded589_c4 :
-    ((Padded589.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded589_c5 :
-    ((Padded589.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded589_c6 :
-    ((Padded589.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded589_c7 :
-    ((Padded589.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded589_cover : Padded589.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded590_c0 :
@@ -17890,20 +7502,7 @@ theorem Padded590_c3 :
     ((Padded590.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded590_c4 :
-    ((Padded590.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded590_c5 :
-    ((Padded590.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded590_c6 :
-    ((Padded590.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded590_c7 :
-    ((Padded590.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded590_cover : Padded590.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded591_c0 :
@@ -17914,28 +7513,7 @@ theorem Padded591_c1 :
     ((Padded591.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded591_c2 :
-    ((Padded591.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded591_c3 :
-    ((Padded591.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded591_c4 :
-    ((Padded591.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded591_c5 :
-    ((Padded591.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded591_c6 :
-    ((Padded591.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded591_c7 :
-    ((Padded591.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded591_cover : Padded591.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded592_c0 :
@@ -17958,16 +7536,7 @@ theorem Padded592_c4 :
     ((Padded592.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded592_c5 :
-    ((Padded592.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded592_c6 :
-    ((Padded592.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded592_c7 :
-    ((Padded592.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded592_cover : Padded592.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded593_c0 :
@@ -17978,28 +7547,7 @@ theorem Padded593_c1 :
     ((Padded593.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded593_c2 :
-    ((Padded593.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded593_c3 :
-    ((Padded593.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded593_c4 :
-    ((Padded593.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded593_c5 :
-    ((Padded593.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded593_c6 :
-    ((Padded593.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded593_c7 :
-    ((Padded593.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded593_cover : Padded593.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded594_c0 :
@@ -18010,28 +7558,7 @@ theorem Padded594_c1 :
     ((Padded594.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded594_c2 :
-    ((Padded594.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded594_c3 :
-    ((Padded594.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded594_c4 :
-    ((Padded594.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded594_c5 :
-    ((Padded594.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded594_c6 :
-    ((Padded594.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded594_c7 :
-    ((Padded594.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded594_cover : Padded594.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded595_c0 :
@@ -18062,8 +7589,7 @@ theorem Padded595_c6 :
     ((Padded595.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded595_c7 :
-    ((Padded595.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded595_cover : Padded595.lines.length ≤ 1792 := by
   decide_cbv
 
 theorem Padded596_c0 :
@@ -18082,20 +7608,7 @@ theorem Padded596_c3 :
     ((Padded596.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded596_c4 :
-    ((Padded596.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded596_c5 :
-    ((Padded596.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded596_c6 :
-    ((Padded596.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded596_c7 :
-    ((Padded596.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded596_cover : Padded596.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded597_c0 :
@@ -18130,6 +7643,33 @@ theorem Padded597_c7 :
     ((Padded597.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded597_c8 :
+    ((Padded597.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded597_c9 :
+    ((Padded597.lines.drop 2304).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded597_c10 :
+    ((Padded597.lines.drop 2560).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded597_c11 :
+    ((Padded597.lines.drop 2816).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded597_c12 :
+    ((Padded597.lines.drop 3072).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded597_c13 :
+    ((Padded597.lines.drop 3328).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded597_cover : Padded597.lines.length ≤ 3584 := by
+  decide_cbv
+
 theorem Padded598_c0 :
     ((Padded598.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -18138,28 +7678,7 @@ theorem Padded598_c1 :
     ((Padded598.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded598_c2 :
-    ((Padded598.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded598_c3 :
-    ((Padded598.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded598_c4 :
-    ((Padded598.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded598_c5 :
-    ((Padded598.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded598_c6 :
-    ((Padded598.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded598_c7 :
-    ((Padded598.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded598_cover : Padded598.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded599_c0 :
@@ -18170,28 +7689,7 @@ theorem Padded599_c1 :
     ((Padded599.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded599_c2 :
-    ((Padded599.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded599_c3 :
-    ((Padded599.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded599_c4 :
-    ((Padded599.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded599_c5 :
-    ((Padded599.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded599_c6 :
-    ((Padded599.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded599_c7 :
-    ((Padded599.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded599_cover : Padded599.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded600_c0 :
@@ -18206,24 +7704,7 @@ theorem Padded600_c2 :
     ((Padded600.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded600_c3 :
-    ((Padded600.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded600_c4 :
-    ((Padded600.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded600_c5 :
-    ((Padded600.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded600_c6 :
-    ((Padded600.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded600_c7 :
-    ((Padded600.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded600_cover : Padded600.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded601_c0 :
@@ -18234,28 +7715,7 @@ theorem Padded601_c1 :
     ((Padded601.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded601_c2 :
-    ((Padded601.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded601_c3 :
-    ((Padded601.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded601_c4 :
-    ((Padded601.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded601_c5 :
-    ((Padded601.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded601_c6 :
-    ((Padded601.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded601_c7 :
-    ((Padded601.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded601_cover : Padded601.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded602_c0 :
@@ -18266,28 +7726,7 @@ theorem Padded602_c1 :
     ((Padded602.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded602_c2 :
-    ((Padded602.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded602_c3 :
-    ((Padded602.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded602_c4 :
-    ((Padded602.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded602_c5 :
-    ((Padded602.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded602_c6 :
-    ((Padded602.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded602_c7 :
-    ((Padded602.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded602_cover : Padded602.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded603_c0 :
@@ -18314,12 +7753,7 @@ theorem Padded603_c5 :
     ((Padded603.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded603_c6 :
-    ((Padded603.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded603_c7 :
-    ((Padded603.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded603_cover : Padded603.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded604_c0 :
@@ -18330,28 +7764,7 @@ theorem Padded604_c1 :
     ((Padded604.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded604_c2 :
-    ((Padded604.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded604_c3 :
-    ((Padded604.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded604_c4 :
-    ((Padded604.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded604_c5 :
-    ((Padded604.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded604_c6 :
-    ((Padded604.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded604_c7 :
-    ((Padded604.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded604_cover : Padded604.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded605_c0 :
@@ -18366,24 +7779,7 @@ theorem Padded605_c2 :
     ((Padded605.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded605_c3 :
-    ((Padded605.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded605_c4 :
-    ((Padded605.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded605_c5 :
-    ((Padded605.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded605_c6 :
-    ((Padded605.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded605_c7 :
-    ((Padded605.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded605_cover : Padded605.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded606_c0 :
@@ -18394,28 +7790,7 @@ theorem Padded606_c1 :
     ((Padded606.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded606_c2 :
-    ((Padded606.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded606_c3 :
-    ((Padded606.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded606_c4 :
-    ((Padded606.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded606_c5 :
-    ((Padded606.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded606_c6 :
-    ((Padded606.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded606_c7 :
-    ((Padded606.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded606_cover : Padded606.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded607_c0 :
@@ -18426,28 +7801,7 @@ theorem Padded607_c1 :
     ((Padded607.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded607_c2 :
-    ((Padded607.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded607_c3 :
-    ((Padded607.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded607_c4 :
-    ((Padded607.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded607_c5 :
-    ((Padded607.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded607_c6 :
-    ((Padded607.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded607_c7 :
-    ((Padded607.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded607_cover : Padded607.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded608_c0 :
@@ -18462,24 +7816,7 @@ theorem Padded608_c2 :
     ((Padded608.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded608_c3 :
-    ((Padded608.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded608_c4 :
-    ((Padded608.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded608_c5 :
-    ((Padded608.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded608_c6 :
-    ((Padded608.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded608_c7 :
-    ((Padded608.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded608_cover : Padded608.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded609_c0 :
@@ -18490,28 +7827,7 @@ theorem Padded609_c1 :
     ((Padded609.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded609_c2 :
-    ((Padded609.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded609_c3 :
-    ((Padded609.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded609_c4 :
-    ((Padded609.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded609_c5 :
-    ((Padded609.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded609_c6 :
-    ((Padded609.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded609_c7 :
-    ((Padded609.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded609_cover : Padded609.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded610_c0 :
@@ -18526,24 +7842,7 @@ theorem Padded610_c2 :
     ((Padded610.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded610_c3 :
-    ((Padded610.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded610_c4 :
-    ((Padded610.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded610_c5 :
-    ((Padded610.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded610_c6 :
-    ((Padded610.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded610_c7 :
-    ((Padded610.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded610_cover : Padded610.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded611_c0 :
@@ -18554,28 +7853,7 @@ theorem Padded611_c1 :
     ((Padded611.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded611_c2 :
-    ((Padded611.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded611_c3 :
-    ((Padded611.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded611_c4 :
-    ((Padded611.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded611_c5 :
-    ((Padded611.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded611_c6 :
-    ((Padded611.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded611_c7 :
-    ((Padded611.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded611_cover : Padded611.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded612_c0 :
@@ -18586,28 +7864,7 @@ theorem Padded612_c1 :
     ((Padded612.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded612_c2 :
-    ((Padded612.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded612_c3 :
-    ((Padded612.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded612_c4 :
-    ((Padded612.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded612_c5 :
-    ((Padded612.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded612_c6 :
-    ((Padded612.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded612_c7 :
-    ((Padded612.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded612_cover : Padded612.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded613_c0 :
@@ -18618,28 +7875,7 @@ theorem Padded613_c1 :
     ((Padded613.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded613_c2 :
-    ((Padded613.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded613_c3 :
-    ((Padded613.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded613_c4 :
-    ((Padded613.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded613_c5 :
-    ((Padded613.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded613_c6 :
-    ((Padded613.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded613_c7 :
-    ((Padded613.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded613_cover : Padded613.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded614_c0 :
@@ -18650,28 +7886,7 @@ theorem Padded614_c1 :
     ((Padded614.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded614_c2 :
-    ((Padded614.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded614_c3 :
-    ((Padded614.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded614_c4 :
-    ((Padded614.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded614_c5 :
-    ((Padded614.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded614_c6 :
-    ((Padded614.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded614_c7 :
-    ((Padded614.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded614_cover : Padded614.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded615_c0 :
@@ -18682,28 +7897,7 @@ theorem Padded615_c1 :
     ((Padded615.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded615_c2 :
-    ((Padded615.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded615_c3 :
-    ((Padded615.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded615_c4 :
-    ((Padded615.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded615_c5 :
-    ((Padded615.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded615_c6 :
-    ((Padded615.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded615_c7 :
-    ((Padded615.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded615_cover : Padded615.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded616_c0 :
@@ -18718,24 +7912,7 @@ theorem Padded616_c2 :
     ((Padded616.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded616_c3 :
-    ((Padded616.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded616_c4 :
-    ((Padded616.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded616_c5 :
-    ((Padded616.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded616_c6 :
-    ((Padded616.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded616_c7 :
-    ((Padded616.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded616_cover : Padded616.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded617_c0 :
@@ -18750,24 +7927,7 @@ theorem Padded617_c2 :
     ((Padded617.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded617_c3 :
-    ((Padded617.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded617_c4 :
-    ((Padded617.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded617_c5 :
-    ((Padded617.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded617_c6 :
-    ((Padded617.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded617_c7 :
-    ((Padded617.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded617_cover : Padded617.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded618_c0 :
@@ -18786,20 +7946,7 @@ theorem Padded618_c3 :
     ((Padded618.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded618_c4 :
-    ((Padded618.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded618_c5 :
-    ((Padded618.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded618_c6 :
-    ((Padded618.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded618_c7 :
-    ((Padded618.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded618_cover : Padded618.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded619_c0 :
@@ -18818,20 +7965,7 @@ theorem Padded619_c3 :
     ((Padded619.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded619_c4 :
-    ((Padded619.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded619_c5 :
-    ((Padded619.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded619_c6 :
-    ((Padded619.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded619_c7 :
-    ((Padded619.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded619_cover : Padded619.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded620_c0 :
@@ -18854,16 +7988,7 @@ theorem Padded620_c4 :
     ((Padded620.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded620_c5 :
-    ((Padded620.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded620_c6 :
-    ((Padded620.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded620_c7 :
-    ((Padded620.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded620_cover : Padded620.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded621_c0 :
@@ -18878,24 +8003,7 @@ theorem Padded621_c2 :
     ((Padded621.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded621_c3 :
-    ((Padded621.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded621_c4 :
-    ((Padded621.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded621_c5 :
-    ((Padded621.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded621_c6 :
-    ((Padded621.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded621_c7 :
-    ((Padded621.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded621_cover : Padded621.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded622_c0 :
@@ -18906,28 +8014,7 @@ theorem Padded622_c1 :
     ((Padded622.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded622_c2 :
-    ((Padded622.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded622_c3 :
-    ((Padded622.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded622_c4 :
-    ((Padded622.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded622_c5 :
-    ((Padded622.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded622_c6 :
-    ((Padded622.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded622_c7 :
-    ((Padded622.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded622_cover : Padded622.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded623_c0 :
@@ -18962,6 +8049,13 @@ theorem Padded623_c7 :
     ((Padded623.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded623_c8 :
+    ((Padded623.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded623_cover : Padded623.lines.length ≤ 2304 := by
+  decide_cbv
+
 theorem Padded624_c0 :
     ((Padded624.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -18994,6 +8088,9 @@ theorem Padded624_c7 :
     ((Padded624.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded624_cover : Padded624.lines.length ≤ 2048 := by
+  decide_cbv
+
 theorem Padded625_c0 :
     ((Padded625.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -19022,8 +8119,7 @@ theorem Padded625_c6 :
     ((Padded625.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded625_c7 :
-    ((Padded625.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded625_cover : Padded625.lines.length ≤ 1792 := by
   decide_cbv
 
 theorem Padded626_c0 :
@@ -19054,8 +8150,7 @@ theorem Padded626_c6 :
     ((Padded626.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded626_c7 :
-    ((Padded626.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded626_cover : Padded626.lines.length ≤ 1792 := by
   decide_cbv
 
 theorem Padded627_c0 :
@@ -19070,24 +8165,7 @@ theorem Padded627_c2 :
     ((Padded627.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded627_c3 :
-    ((Padded627.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded627_c4 :
-    ((Padded627.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded627_c5 :
-    ((Padded627.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded627_c6 :
-    ((Padded627.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded627_c7 :
-    ((Padded627.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded627_cover : Padded627.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded628_c0 :
@@ -19098,28 +8176,7 @@ theorem Padded628_c1 :
     ((Padded628.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded628_c2 :
-    ((Padded628.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded628_c3 :
-    ((Padded628.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded628_c4 :
-    ((Padded628.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded628_c5 :
-    ((Padded628.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded628_c6 :
-    ((Padded628.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded628_c7 :
-    ((Padded628.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded628_cover : Padded628.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded629_c0 :
@@ -19130,28 +8187,7 @@ theorem Padded629_c1 :
     ((Padded629.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded629_c2 :
-    ((Padded629.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded629_c3 :
-    ((Padded629.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded629_c4 :
-    ((Padded629.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded629_c5 :
-    ((Padded629.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded629_c6 :
-    ((Padded629.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded629_c7 :
-    ((Padded629.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded629_cover : Padded629.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded630_c0 :
@@ -19162,28 +8198,7 @@ theorem Padded630_c1 :
     ((Padded630.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded630_c2 :
-    ((Padded630.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded630_c3 :
-    ((Padded630.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded630_c4 :
-    ((Padded630.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded630_c5 :
-    ((Padded630.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded630_c6 :
-    ((Padded630.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded630_c7 :
-    ((Padded630.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded630_cover : Padded630.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded631_c0 :
@@ -19194,28 +8209,7 @@ theorem Padded631_c1 :
     ((Padded631.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded631_c2 :
-    ((Padded631.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded631_c3 :
-    ((Padded631.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded631_c4 :
-    ((Padded631.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded631_c5 :
-    ((Padded631.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded631_c6 :
-    ((Padded631.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded631_c7 :
-    ((Padded631.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded631_cover : Padded631.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded632_c0 :
@@ -19230,24 +8224,7 @@ theorem Padded632_c2 :
     ((Padded632.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded632_c3 :
-    ((Padded632.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded632_c4 :
-    ((Padded632.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded632_c5 :
-    ((Padded632.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded632_c6 :
-    ((Padded632.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded632_c7 :
-    ((Padded632.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded632_cover : Padded632.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded633_c0 :
@@ -19262,24 +8239,7 @@ theorem Padded633_c2 :
     ((Padded633.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded633_c3 :
-    ((Padded633.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded633_c4 :
-    ((Padded633.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded633_c5 :
-    ((Padded633.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded633_c6 :
-    ((Padded633.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded633_c7 :
-    ((Padded633.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded633_cover : Padded633.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded634_c0 :
@@ -19290,28 +8250,7 @@ theorem Padded634_c1 :
     ((Padded634.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded634_c2 :
-    ((Padded634.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded634_c3 :
-    ((Padded634.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded634_c4 :
-    ((Padded634.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded634_c5 :
-    ((Padded634.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded634_c6 :
-    ((Padded634.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded634_c7 :
-    ((Padded634.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded634_cover : Padded634.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded635_c0 :
@@ -19326,24 +8265,7 @@ theorem Padded635_c2 :
     ((Padded635.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded635_c3 :
-    ((Padded635.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded635_c4 :
-    ((Padded635.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded635_c5 :
-    ((Padded635.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded635_c6 :
-    ((Padded635.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded635_c7 :
-    ((Padded635.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded635_cover : Padded635.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded636_c0 :
@@ -19354,28 +8276,7 @@ theorem Padded636_c1 :
     ((Padded636.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded636_c2 :
-    ((Padded636.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded636_c3 :
-    ((Padded636.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded636_c4 :
-    ((Padded636.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded636_c5 :
-    ((Padded636.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded636_c6 :
-    ((Padded636.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded636_c7 :
-    ((Padded636.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded636_cover : Padded636.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded637_c0 :
@@ -19386,28 +8287,7 @@ theorem Padded637_c1 :
     ((Padded637.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded637_c2 :
-    ((Padded637.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded637_c3 :
-    ((Padded637.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded637_c4 :
-    ((Padded637.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded637_c5 :
-    ((Padded637.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded637_c6 :
-    ((Padded637.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded637_c7 :
-    ((Padded637.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded637_cover : Padded637.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded638_c0 :
@@ -19418,28 +8298,7 @@ theorem Padded638_c1 :
     ((Padded638.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded638_c2 :
-    ((Padded638.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded638_c3 :
-    ((Padded638.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded638_c4 :
-    ((Padded638.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded638_c5 :
-    ((Padded638.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded638_c6 :
-    ((Padded638.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded638_c7 :
-    ((Padded638.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded638_cover : Padded638.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded639_c0 :
@@ -19458,20 +8317,7 @@ theorem Padded639_c3 :
     ((Padded639.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded639_c4 :
-    ((Padded639.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded639_c5 :
-    ((Padded639.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded639_c6 :
-    ((Padded639.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded639_c7 :
-    ((Padded639.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded639_cover : Padded639.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded640_c0 :
@@ -19482,28 +8328,7 @@ theorem Padded640_c1 :
     ((Padded640.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded640_c2 :
-    ((Padded640.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded640_c3 :
-    ((Padded640.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded640_c4 :
-    ((Padded640.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded640_c5 :
-    ((Padded640.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded640_c6 :
-    ((Padded640.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded640_c7 :
-    ((Padded640.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded640_cover : Padded640.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded641_c0 :
@@ -19514,28 +8339,7 @@ theorem Padded641_c1 :
     ((Padded641.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded641_c2 :
-    ((Padded641.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded641_c3 :
-    ((Padded641.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded641_c4 :
-    ((Padded641.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded641_c5 :
-    ((Padded641.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded641_c6 :
-    ((Padded641.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded641_c7 :
-    ((Padded641.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded641_cover : Padded641.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded642_c0 :
@@ -19562,12 +8366,7 @@ theorem Padded642_c5 :
     ((Padded642.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded642_c6 :
-    ((Padded642.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded642_c7 :
-    ((Padded642.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded642_cover : Padded642.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded643_c0 :
@@ -19578,28 +8377,7 @@ theorem Padded643_c1 :
     ((Padded643.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded643_c2 :
-    ((Padded643.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded643_c3 :
-    ((Padded643.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded643_c4 :
-    ((Padded643.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded643_c5 :
-    ((Padded643.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded643_c6 :
-    ((Padded643.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded643_c7 :
-    ((Padded643.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded643_cover : Padded643.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded644_c0 :
@@ -19610,28 +8388,7 @@ theorem Padded644_c1 :
     ((Padded644.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded644_c2 :
-    ((Padded644.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded644_c3 :
-    ((Padded644.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded644_c4 :
-    ((Padded644.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded644_c5 :
-    ((Padded644.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded644_c6 :
-    ((Padded644.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded644_c7 :
-    ((Padded644.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded644_cover : Padded644.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded645_c0 :
@@ -19642,28 +8399,7 @@ theorem Padded645_c1 :
     ((Padded645.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded645_c2 :
-    ((Padded645.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded645_c3 :
-    ((Padded645.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded645_c4 :
-    ((Padded645.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded645_c5 :
-    ((Padded645.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded645_c6 :
-    ((Padded645.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded645_c7 :
-    ((Padded645.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded645_cover : Padded645.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded646_c0 :
@@ -19690,12 +8426,7 @@ theorem Padded646_c5 :
     ((Padded646.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded646_c6 :
-    ((Padded646.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded646_c7 :
-    ((Padded646.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded646_cover : Padded646.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded647_c0 :
@@ -19718,16 +8449,7 @@ theorem Padded647_c4 :
     ((Padded647.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded647_c5 :
-    ((Padded647.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded647_c6 :
-    ((Padded647.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded647_c7 :
-    ((Padded647.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded647_cover : Padded647.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded648_c0 :
@@ -19738,28 +8460,7 @@ theorem Padded648_c1 :
     ((Padded648.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded648_c2 :
-    ((Padded648.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded648_c3 :
-    ((Padded648.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded648_c4 :
-    ((Padded648.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded648_c5 :
-    ((Padded648.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded648_c6 :
-    ((Padded648.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded648_c7 :
-    ((Padded648.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded648_cover : Padded648.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded649_c0 :
@@ -19770,28 +8471,7 @@ theorem Padded649_c1 :
     ((Padded649.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded649_c2 :
-    ((Padded649.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded649_c3 :
-    ((Padded649.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded649_c4 :
-    ((Padded649.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded649_c5 :
-    ((Padded649.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded649_c6 :
-    ((Padded649.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded649_c7 :
-    ((Padded649.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded649_cover : Padded649.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded650_c0 :
@@ -19802,28 +8482,7 @@ theorem Padded650_c1 :
     ((Padded650.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded650_c2 :
-    ((Padded650.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded650_c3 :
-    ((Padded650.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded650_c4 :
-    ((Padded650.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded650_c5 :
-    ((Padded650.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded650_c6 :
-    ((Padded650.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded650_c7 :
-    ((Padded650.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded650_cover : Padded650.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded651_c0 :
@@ -19854,8 +8513,7 @@ theorem Padded651_c6 :
     ((Padded651.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded651_c7 :
-    ((Padded651.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded651_cover : Padded651.lines.length ≤ 1792 := by
   decide_cbv
 
 theorem Padded652_c0 :
@@ -19890,6 +8548,9 @@ theorem Padded652_c7 :
     ((Padded652.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded652_cover : Padded652.lines.length ≤ 2048 := by
+  decide_cbv
+
 theorem Padded653_c0 :
     ((Padded653.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -19906,20 +8567,7 @@ theorem Padded653_c3 :
     ((Padded653.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded653_c4 :
-    ((Padded653.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded653_c5 :
-    ((Padded653.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded653_c6 :
-    ((Padded653.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded653_c7 :
-    ((Padded653.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded653_cover : Padded653.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded654_c0 :
@@ -19934,24 +8582,7 @@ theorem Padded654_c2 :
     ((Padded654.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded654_c3 :
-    ((Padded654.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded654_c4 :
-    ((Padded654.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded654_c5 :
-    ((Padded654.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded654_c6 :
-    ((Padded654.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded654_c7 :
-    ((Padded654.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded654_cover : Padded654.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded655_c0 :
@@ -19966,24 +8597,7 @@ theorem Padded655_c2 :
     ((Padded655.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded655_c3 :
-    ((Padded655.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded655_c4 :
-    ((Padded655.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded655_c5 :
-    ((Padded655.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded655_c6 :
-    ((Padded655.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded655_c7 :
-    ((Padded655.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded655_cover : Padded655.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded656_c0 :
@@ -20014,8 +8628,7 @@ theorem Padded656_c6 :
     ((Padded656.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded656_c7 :
-    ((Padded656.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded656_cover : Padded656.lines.length ≤ 1792 := by
   decide_cbv
 
 theorem Padded657_c0 :
@@ -20030,24 +8643,7 @@ theorem Padded657_c2 :
     ((Padded657.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded657_c3 :
-    ((Padded657.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded657_c4 :
-    ((Padded657.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded657_c5 :
-    ((Padded657.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded657_c6 :
-    ((Padded657.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded657_c7 :
-    ((Padded657.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded657_cover : Padded657.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded658_c0 :
@@ -20058,28 +8654,7 @@ theorem Padded658_c1 :
     ((Padded658.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded658_c2 :
-    ((Padded658.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded658_c3 :
-    ((Padded658.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded658_c4 :
-    ((Padded658.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded658_c5 :
-    ((Padded658.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded658_c6 :
-    ((Padded658.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded658_c7 :
-    ((Padded658.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded658_cover : Padded658.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded659_c0 :
@@ -20090,28 +8665,7 @@ theorem Padded659_c1 :
     ((Padded659.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded659_c2 :
-    ((Padded659.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded659_c3 :
-    ((Padded659.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded659_c4 :
-    ((Padded659.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded659_c5 :
-    ((Padded659.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded659_c6 :
-    ((Padded659.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded659_c7 :
-    ((Padded659.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded659_cover : Padded659.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded660_c0 :
@@ -20122,28 +8676,7 @@ theorem Padded660_c1 :
     ((Padded660.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded660_c2 :
-    ((Padded660.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded660_c3 :
-    ((Padded660.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded660_c4 :
-    ((Padded660.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded660_c5 :
-    ((Padded660.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded660_c6 :
-    ((Padded660.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded660_c7 :
-    ((Padded660.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded660_cover : Padded660.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded661_c0 :
@@ -20154,28 +8687,7 @@ theorem Padded661_c1 :
     ((Padded661.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded661_c2 :
-    ((Padded661.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded661_c3 :
-    ((Padded661.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded661_c4 :
-    ((Padded661.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded661_c5 :
-    ((Padded661.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded661_c6 :
-    ((Padded661.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded661_c7 :
-    ((Padded661.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded661_cover : Padded661.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded662_c0 :
@@ -20186,28 +8698,7 @@ theorem Padded662_c1 :
     ((Padded662.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded662_c2 :
-    ((Padded662.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded662_c3 :
-    ((Padded662.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded662_c4 :
-    ((Padded662.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded662_c5 :
-    ((Padded662.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded662_c6 :
-    ((Padded662.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded662_c7 :
-    ((Padded662.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded662_cover : Padded662.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded663_c0 :
@@ -20222,24 +8713,7 @@ theorem Padded663_c2 :
     ((Padded663.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded663_c3 :
-    ((Padded663.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded663_c4 :
-    ((Padded663.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded663_c5 :
-    ((Padded663.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded663_c6 :
-    ((Padded663.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded663_c7 :
-    ((Padded663.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded663_cover : Padded663.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded664_c0 :
@@ -20258,20 +8732,7 @@ theorem Padded664_c3 :
     ((Padded664.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded664_c4 :
-    ((Padded664.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded664_c5 :
-    ((Padded664.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded664_c6 :
-    ((Padded664.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded664_c7 :
-    ((Padded664.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded664_cover : Padded664.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded665_c0 :
@@ -20282,28 +8743,7 @@ theorem Padded665_c1 :
     ((Padded665.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded665_c2 :
-    ((Padded665.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded665_c3 :
-    ((Padded665.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded665_c4 :
-    ((Padded665.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded665_c5 :
-    ((Padded665.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded665_c6 :
-    ((Padded665.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded665_c7 :
-    ((Padded665.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded665_cover : Padded665.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded666_c0 :
@@ -20314,28 +8754,7 @@ theorem Padded666_c1 :
     ((Padded666.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded666_c2 :
-    ((Padded666.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded666_c3 :
-    ((Padded666.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded666_c4 :
-    ((Padded666.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded666_c5 :
-    ((Padded666.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded666_c6 :
-    ((Padded666.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded666_c7 :
-    ((Padded666.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded666_cover : Padded666.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded667_c0 :
@@ -20346,28 +8765,7 @@ theorem Padded667_c1 :
     ((Padded667.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded667_c2 :
-    ((Padded667.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded667_c3 :
-    ((Padded667.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded667_c4 :
-    ((Padded667.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded667_c5 :
-    ((Padded667.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded667_c6 :
-    ((Padded667.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded667_c7 :
-    ((Padded667.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded667_cover : Padded667.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded668_c0 :
@@ -20378,28 +8776,7 @@ theorem Padded668_c1 :
     ((Padded668.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded668_c2 :
-    ((Padded668.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded668_c3 :
-    ((Padded668.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded668_c4 :
-    ((Padded668.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded668_c5 :
-    ((Padded668.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded668_c6 :
-    ((Padded668.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded668_c7 :
-    ((Padded668.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded668_cover : Padded668.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded669_c0 :
@@ -20410,28 +8787,7 @@ theorem Padded669_c1 :
     ((Padded669.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded669_c2 :
-    ((Padded669.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded669_c3 :
-    ((Padded669.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded669_c4 :
-    ((Padded669.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded669_c5 :
-    ((Padded669.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded669_c6 :
-    ((Padded669.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded669_c7 :
-    ((Padded669.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded669_cover : Padded669.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded670_c0 :
@@ -20442,28 +8798,7 @@ theorem Padded670_c1 :
     ((Padded670.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded670_c2 :
-    ((Padded670.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded670_c3 :
-    ((Padded670.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded670_c4 :
-    ((Padded670.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded670_c5 :
-    ((Padded670.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded670_c6 :
-    ((Padded670.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded670_c7 :
-    ((Padded670.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded670_cover : Padded670.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded671_c0 :
@@ -20474,28 +8809,7 @@ theorem Padded671_c1 :
     ((Padded671.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded671_c2 :
-    ((Padded671.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded671_c3 :
-    ((Padded671.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded671_c4 :
-    ((Padded671.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded671_c5 :
-    ((Padded671.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded671_c6 :
-    ((Padded671.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded671_c7 :
-    ((Padded671.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded671_cover : Padded671.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded672_c0 :
@@ -20506,28 +8820,7 @@ theorem Padded672_c1 :
     ((Padded672.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded672_c2 :
-    ((Padded672.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded672_c3 :
-    ((Padded672.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded672_c4 :
-    ((Padded672.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded672_c5 :
-    ((Padded672.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded672_c6 :
-    ((Padded672.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded672_c7 :
-    ((Padded672.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded672_cover : Padded672.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded673_c0 :
@@ -20538,28 +8831,7 @@ theorem Padded673_c1 :
     ((Padded673.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded673_c2 :
-    ((Padded673.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded673_c3 :
-    ((Padded673.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded673_c4 :
-    ((Padded673.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded673_c5 :
-    ((Padded673.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded673_c6 :
-    ((Padded673.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded673_c7 :
-    ((Padded673.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded673_cover : Padded673.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded674_c0 :
@@ -20570,28 +8842,7 @@ theorem Padded674_c1 :
     ((Padded674.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded674_c2 :
-    ((Padded674.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded674_c3 :
-    ((Padded674.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded674_c4 :
-    ((Padded674.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded674_c5 :
-    ((Padded674.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded674_c6 :
-    ((Padded674.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded674_c7 :
-    ((Padded674.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded674_cover : Padded674.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded675_c0 :
@@ -20606,24 +8857,7 @@ theorem Padded675_c2 :
     ((Padded675.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded675_c3 :
-    ((Padded675.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded675_c4 :
-    ((Padded675.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded675_c5 :
-    ((Padded675.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded675_c6 :
-    ((Padded675.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded675_c7 :
-    ((Padded675.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded675_cover : Padded675.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded676_c0 :
@@ -20638,24 +8872,7 @@ theorem Padded676_c2 :
     ((Padded676.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded676_c3 :
-    ((Padded676.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded676_c4 :
-    ((Padded676.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded676_c5 :
-    ((Padded676.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded676_c6 :
-    ((Padded676.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded676_c7 :
-    ((Padded676.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded676_cover : Padded676.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded677_c0 :
@@ -20666,28 +8883,7 @@ theorem Padded677_c1 :
     ((Padded677.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded677_c2 :
-    ((Padded677.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded677_c3 :
-    ((Padded677.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded677_c4 :
-    ((Padded677.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded677_c5 :
-    ((Padded677.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded677_c6 :
-    ((Padded677.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded677_c7 :
-    ((Padded677.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded677_cover : Padded677.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded678_c0 :
@@ -20698,28 +8894,7 @@ theorem Padded678_c1 :
     ((Padded678.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded678_c2 :
-    ((Padded678.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded678_c3 :
-    ((Padded678.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded678_c4 :
-    ((Padded678.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded678_c5 :
-    ((Padded678.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded678_c6 :
-    ((Padded678.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded678_c7 :
-    ((Padded678.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded678_cover : Padded678.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded679_c0 :
@@ -20730,28 +8905,7 @@ theorem Padded679_c1 :
     ((Padded679.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded679_c2 :
-    ((Padded679.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded679_c3 :
-    ((Padded679.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded679_c4 :
-    ((Padded679.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded679_c5 :
-    ((Padded679.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded679_c6 :
-    ((Padded679.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded679_c7 :
-    ((Padded679.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded679_cover : Padded679.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded680_c0 :
@@ -20762,28 +8916,7 @@ theorem Padded680_c1 :
     ((Padded680.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded680_c2 :
-    ((Padded680.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded680_c3 :
-    ((Padded680.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded680_c4 :
-    ((Padded680.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded680_c5 :
-    ((Padded680.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded680_c6 :
-    ((Padded680.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded680_c7 :
-    ((Padded680.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded680_cover : Padded680.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded681_c0 :
@@ -20794,28 +8927,7 @@ theorem Padded681_c1 :
     ((Padded681.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded681_c2 :
-    ((Padded681.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded681_c3 :
-    ((Padded681.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded681_c4 :
-    ((Padded681.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded681_c5 :
-    ((Padded681.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded681_c6 :
-    ((Padded681.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded681_c7 :
-    ((Padded681.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded681_cover : Padded681.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded682_c0 :
@@ -20826,28 +8938,7 @@ theorem Padded682_c1 :
     ((Padded682.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded682_c2 :
-    ((Padded682.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded682_c3 :
-    ((Padded682.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded682_c4 :
-    ((Padded682.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded682_c5 :
-    ((Padded682.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded682_c6 :
-    ((Padded682.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded682_c7 :
-    ((Padded682.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded682_cover : Padded682.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded683_c0 :
@@ -20858,28 +8949,7 @@ theorem Padded683_c1 :
     ((Padded683.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded683_c2 :
-    ((Padded683.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded683_c3 :
-    ((Padded683.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded683_c4 :
-    ((Padded683.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded683_c5 :
-    ((Padded683.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded683_c6 :
-    ((Padded683.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded683_c7 :
-    ((Padded683.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded683_cover : Padded683.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded684_c0 :
@@ -20890,28 +8960,7 @@ theorem Padded684_c1 :
     ((Padded684.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded684_c2 :
-    ((Padded684.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded684_c3 :
-    ((Padded684.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded684_c4 :
-    ((Padded684.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded684_c5 :
-    ((Padded684.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded684_c6 :
-    ((Padded684.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded684_c7 :
-    ((Padded684.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded684_cover : Padded684.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded685_c0 :
@@ -20922,28 +8971,7 @@ theorem Padded685_c1 :
     ((Padded685.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded685_c2 :
-    ((Padded685.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded685_c3 :
-    ((Padded685.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded685_c4 :
-    ((Padded685.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded685_c5 :
-    ((Padded685.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded685_c6 :
-    ((Padded685.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded685_c7 :
-    ((Padded685.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded685_cover : Padded685.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded686_c0 :
@@ -20954,28 +8982,7 @@ theorem Padded686_c1 :
     ((Padded686.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded686_c2 :
-    ((Padded686.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded686_c3 :
-    ((Padded686.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded686_c4 :
-    ((Padded686.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded686_c5 :
-    ((Padded686.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded686_c6 :
-    ((Padded686.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded686_c7 :
-    ((Padded686.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded686_cover : Padded686.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded687_c0 :
@@ -20986,28 +8993,7 @@ theorem Padded687_c1 :
     ((Padded687.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded687_c2 :
-    ((Padded687.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded687_c3 :
-    ((Padded687.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded687_c4 :
-    ((Padded687.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded687_c5 :
-    ((Padded687.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded687_c6 :
-    ((Padded687.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded687_c7 :
-    ((Padded687.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded687_cover : Padded687.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded688_c0 :
@@ -21018,28 +9004,7 @@ theorem Padded688_c1 :
     ((Padded688.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded688_c2 :
-    ((Padded688.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded688_c3 :
-    ((Padded688.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded688_c4 :
-    ((Padded688.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded688_c5 :
-    ((Padded688.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded688_c6 :
-    ((Padded688.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded688_c7 :
-    ((Padded688.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded688_cover : Padded688.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded689_c0 :
@@ -21050,28 +9015,7 @@ theorem Padded689_c1 :
     ((Padded689.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded689_c2 :
-    ((Padded689.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded689_c3 :
-    ((Padded689.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded689_c4 :
-    ((Padded689.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded689_c5 :
-    ((Padded689.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded689_c6 :
-    ((Padded689.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded689_c7 :
-    ((Padded689.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded689_cover : Padded689.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded690_c0 :
@@ -21082,28 +9026,7 @@ theorem Padded690_c1 :
     ((Padded690.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded690_c2 :
-    ((Padded690.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded690_c3 :
-    ((Padded690.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded690_c4 :
-    ((Padded690.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded690_c5 :
-    ((Padded690.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded690_c6 :
-    ((Padded690.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded690_c7 :
-    ((Padded690.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded690_cover : Padded690.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded691_c0 :
@@ -21138,6 +9061,9 @@ theorem Padded691_c7 :
     ((Padded691.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded691_cover : Padded691.lines.length ≤ 2048 := by
+  decide_cbv
+
 theorem Padded692_c0 :
     ((Padded692.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -21170,6 +9096,33 @@ theorem Padded692_c7 :
     ((Padded692.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded692_c8 :
+    ((Padded692.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded692_c9 :
+    ((Padded692.lines.drop 2304).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded692_c10 :
+    ((Padded692.lines.drop 2560).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded692_c11 :
+    ((Padded692.lines.drop 2816).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded692_c12 :
+    ((Padded692.lines.drop 3072).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded692_c13 :
+    ((Padded692.lines.drop 3328).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded692_cover : Padded692.lines.length ≤ 3584 := by
+  decide_cbv
+
 theorem Padded693_c0 :
     ((Padded693.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -21186,20 +9139,7 @@ theorem Padded693_c3 :
     ((Padded693.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded693_c4 :
-    ((Padded693.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded693_c5 :
-    ((Padded693.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded693_c6 :
-    ((Padded693.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded693_c7 :
-    ((Padded693.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded693_cover : Padded693.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded694_c0 :
@@ -21234,6 +9174,9 @@ theorem Padded694_c7 :
     ((Padded694.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded694_cover : Padded694.lines.length ≤ 2048 := by
+  decide_cbv
+
 theorem Padded695_c0 :
     ((Padded695.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -21242,28 +9185,7 @@ theorem Padded695_c1 :
     ((Padded695.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded695_c2 :
-    ((Padded695.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded695_c3 :
-    ((Padded695.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded695_c4 :
-    ((Padded695.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded695_c5 :
-    ((Padded695.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded695_c6 :
-    ((Padded695.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded695_c7 :
-    ((Padded695.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded695_cover : Padded695.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded696_c0 :
@@ -21274,28 +9196,7 @@ theorem Padded696_c1 :
     ((Padded696.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded696_c2 :
-    ((Padded696.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded696_c3 :
-    ((Padded696.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded696_c4 :
-    ((Padded696.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded696_c5 :
-    ((Padded696.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded696_c6 :
-    ((Padded696.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded696_c7 :
-    ((Padded696.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded696_cover : Padded696.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded697_c0 :
@@ -21314,20 +9215,7 @@ theorem Padded697_c3 :
     ((Padded697.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded697_c4 :
-    ((Padded697.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded697_c5 :
-    ((Padded697.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded697_c6 :
-    ((Padded697.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded697_c7 :
-    ((Padded697.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded697_cover : Padded697.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded698_c0 :
@@ -21338,28 +9226,7 @@ theorem Padded698_c1 :
     ((Padded698.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded698_c2 :
-    ((Padded698.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded698_c3 :
-    ((Padded698.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded698_c4 :
-    ((Padded698.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded698_c5 :
-    ((Padded698.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded698_c6 :
-    ((Padded698.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded698_c7 :
-    ((Padded698.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded698_cover : Padded698.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded699_c0 :
@@ -21370,28 +9237,7 @@ theorem Padded699_c1 :
     ((Padded699.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded699_c2 :
-    ((Padded699.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded699_c3 :
-    ((Padded699.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded699_c4 :
-    ((Padded699.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded699_c5 :
-    ((Padded699.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded699_c6 :
-    ((Padded699.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded699_c7 :
-    ((Padded699.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded699_cover : Padded699.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded700_c0 :
@@ -21426,6 +9272,9 @@ theorem Padded700_c7 :
     ((Padded700.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded700_cover : Padded700.lines.length ≤ 2048 := by
+  decide_cbv
+
 theorem Padded701_c0 :
     ((Padded701.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -21434,28 +9283,7 @@ theorem Padded701_c1 :
     ((Padded701.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded701_c2 :
-    ((Padded701.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded701_c3 :
-    ((Padded701.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded701_c4 :
-    ((Padded701.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded701_c5 :
-    ((Padded701.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded701_c6 :
-    ((Padded701.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded701_c7 :
-    ((Padded701.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded701_cover : Padded701.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded702_c0 :
@@ -21490,6 +9318,9 @@ theorem Padded702_c7 :
     ((Padded702.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded702_cover : Padded702.lines.length ≤ 2048 := by
+  decide_cbv
+
 theorem Padded703_c0 :
     ((Padded703.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -21506,20 +9337,7 @@ theorem Padded703_c3 :
     ((Padded703.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded703_c4 :
-    ((Padded703.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded703_c5 :
-    ((Padded703.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded703_c6 :
-    ((Padded703.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded703_c7 :
-    ((Padded703.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded703_cover : Padded703.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded704_c0 :
@@ -21538,20 +9356,7 @@ theorem Padded704_c3 :
     ((Padded704.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded704_c4 :
-    ((Padded704.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded704_c5 :
-    ((Padded704.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded704_c6 :
-    ((Padded704.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded704_c7 :
-    ((Padded704.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded704_cover : Padded704.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded705_c0 :
@@ -21578,12 +9383,7 @@ theorem Padded705_c5 :
     ((Padded705.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded705_c6 :
-    ((Padded705.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded705_c7 :
-    ((Padded705.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded705_cover : Padded705.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded706_c0 :
@@ -21598,24 +9398,7 @@ theorem Padded706_c2 :
     ((Padded706.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded706_c3 :
-    ((Padded706.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded706_c4 :
-    ((Padded706.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded706_c5 :
-    ((Padded706.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded706_c6 :
-    ((Padded706.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded706_c7 :
-    ((Padded706.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded706_cover : Padded706.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded707_c0 :
@@ -21630,24 +9413,7 @@ theorem Padded707_c2 :
     ((Padded707.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded707_c3 :
-    ((Padded707.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded707_c4 :
-    ((Padded707.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded707_c5 :
-    ((Padded707.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded707_c6 :
-    ((Padded707.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded707_c7 :
-    ((Padded707.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded707_cover : Padded707.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded708_c0 :
@@ -21662,24 +9428,7 @@ theorem Padded708_c2 :
     ((Padded708.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded708_c3 :
-    ((Padded708.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded708_c4 :
-    ((Padded708.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded708_c5 :
-    ((Padded708.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded708_c6 :
-    ((Padded708.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded708_c7 :
-    ((Padded708.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded708_cover : Padded708.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded709_c0 :
@@ -21710,8 +9459,7 @@ theorem Padded709_c6 :
     ((Padded709.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded709_c7 :
-    ((Padded709.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded709_cover : Padded709.lines.length ≤ 1792 := by
   decide_cbv
 
 theorem Padded710_c0 :
@@ -21722,28 +9470,7 @@ theorem Padded710_c1 :
     ((Padded710.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded710_c2 :
-    ((Padded710.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded710_c3 :
-    ((Padded710.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded710_c4 :
-    ((Padded710.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded710_c5 :
-    ((Padded710.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded710_c6 :
-    ((Padded710.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded710_c7 :
-    ((Padded710.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded710_cover : Padded710.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded711_c0 :
@@ -21754,28 +9481,7 @@ theorem Padded711_c1 :
     ((Padded711.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded711_c2 :
-    ((Padded711.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded711_c3 :
-    ((Padded711.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded711_c4 :
-    ((Padded711.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded711_c5 :
-    ((Padded711.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded711_c6 :
-    ((Padded711.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded711_c7 :
-    ((Padded711.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded711_cover : Padded711.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded712_c0 :
@@ -21786,28 +9492,7 @@ theorem Padded712_c1 :
     ((Padded712.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded712_c2 :
-    ((Padded712.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded712_c3 :
-    ((Padded712.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded712_c4 :
-    ((Padded712.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded712_c5 :
-    ((Padded712.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded712_c6 :
-    ((Padded712.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded712_c7 :
-    ((Padded712.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded712_cover : Padded712.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded713_c0 :
@@ -21842,6 +9527,49 @@ theorem Padded713_c7 :
     ((Padded713.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded713_c8 :
+    ((Padded713.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_c9 :
+    ((Padded713.lines.drop 2304).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_c10 :
+    ((Padded713.lines.drop 2560).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_c11 :
+    ((Padded713.lines.drop 2816).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_c12 :
+    ((Padded713.lines.drop 3072).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_c13 :
+    ((Padded713.lines.drop 3328).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_c14 :
+    ((Padded713.lines.drop 3584).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_c15 :
+    ((Padded713.lines.drop 3840).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_c16 :
+    ((Padded713.lines.drop 4096).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_c17 :
+    ((Padded713.lines.drop 4352).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded713_cover : Padded713.lines.length ≤ 4608 := by
+  decide_cbv
+
 theorem Padded714_c0 :
     ((Padded714.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -21850,28 +9578,7 @@ theorem Padded714_c1 :
     ((Padded714.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded714_c2 :
-    ((Padded714.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded714_c3 :
-    ((Padded714.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded714_c4 :
-    ((Padded714.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded714_c5 :
-    ((Padded714.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded714_c6 :
-    ((Padded714.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded714_c7 :
-    ((Padded714.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded714_cover : Padded714.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded715_c0 :
@@ -21882,28 +9589,7 @@ theorem Padded715_c1 :
     ((Padded715.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded715_c2 :
-    ((Padded715.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded715_c3 :
-    ((Padded715.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded715_c4 :
-    ((Padded715.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded715_c5 :
-    ((Padded715.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded715_c6 :
-    ((Padded715.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded715_c7 :
-    ((Padded715.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded715_cover : Padded715.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded716_c0 :
@@ -21914,28 +9600,7 @@ theorem Padded716_c1 :
     ((Padded716.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded716_c2 :
-    ((Padded716.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded716_c3 :
-    ((Padded716.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded716_c4 :
-    ((Padded716.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded716_c5 :
-    ((Padded716.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded716_c6 :
-    ((Padded716.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded716_c7 :
-    ((Padded716.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded716_cover : Padded716.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded717_c0 :
@@ -21946,28 +9611,7 @@ theorem Padded717_c1 :
     ((Padded717.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded717_c2 :
-    ((Padded717.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded717_c3 :
-    ((Padded717.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded717_c4 :
-    ((Padded717.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded717_c5 :
-    ((Padded717.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded717_c6 :
-    ((Padded717.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded717_c7 :
-    ((Padded717.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded717_cover : Padded717.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded718_c0 :
@@ -21978,28 +9622,7 @@ theorem Padded718_c1 :
     ((Padded718.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded718_c2 :
-    ((Padded718.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded718_c3 :
-    ((Padded718.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded718_c4 :
-    ((Padded718.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded718_c5 :
-    ((Padded718.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded718_c6 :
-    ((Padded718.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded718_c7 :
-    ((Padded718.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded718_cover : Padded718.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded719_c0 :
@@ -22010,28 +9633,7 @@ theorem Padded719_c1 :
     ((Padded719.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded719_c2 :
-    ((Padded719.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded719_c3 :
-    ((Padded719.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded719_c4 :
-    ((Padded719.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded719_c5 :
-    ((Padded719.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded719_c6 :
-    ((Padded719.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded719_c7 :
-    ((Padded719.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded719_cover : Padded719.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded720_c0 :
@@ -22042,28 +9644,7 @@ theorem Padded720_c1 :
     ((Padded720.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded720_c2 :
-    ((Padded720.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded720_c3 :
-    ((Padded720.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded720_c4 :
-    ((Padded720.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded720_c5 :
-    ((Padded720.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded720_c6 :
-    ((Padded720.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded720_c7 :
-    ((Padded720.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded720_cover : Padded720.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded721_c0 :
@@ -22074,28 +9655,7 @@ theorem Padded721_c1 :
     ((Padded721.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded721_c2 :
-    ((Padded721.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded721_c3 :
-    ((Padded721.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded721_c4 :
-    ((Padded721.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded721_c5 :
-    ((Padded721.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded721_c6 :
-    ((Padded721.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded721_c7 :
-    ((Padded721.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded721_cover : Padded721.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded722_c0 :
@@ -22106,28 +9666,7 @@ theorem Padded722_c1 :
     ((Padded722.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded722_c2 :
-    ((Padded722.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded722_c3 :
-    ((Padded722.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded722_c4 :
-    ((Padded722.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded722_c5 :
-    ((Padded722.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded722_c6 :
-    ((Padded722.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded722_c7 :
-    ((Padded722.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded722_cover : Padded722.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded723_c0 :
@@ -22138,28 +9677,7 @@ theorem Padded723_c1 :
     ((Padded723.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded723_c2 :
-    ((Padded723.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded723_c3 :
-    ((Padded723.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded723_c4 :
-    ((Padded723.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded723_c5 :
-    ((Padded723.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded723_c6 :
-    ((Padded723.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded723_c7 :
-    ((Padded723.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded723_cover : Padded723.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded724_c0 :
@@ -22170,28 +9688,7 @@ theorem Padded724_c1 :
     ((Padded724.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded724_c2 :
-    ((Padded724.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded724_c3 :
-    ((Padded724.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded724_c4 :
-    ((Padded724.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded724_c5 :
-    ((Padded724.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded724_c6 :
-    ((Padded724.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded724_c7 :
-    ((Padded724.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded724_cover : Padded724.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded725_c0 :
@@ -22202,28 +9699,7 @@ theorem Padded725_c1 :
     ((Padded725.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded725_c2 :
-    ((Padded725.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded725_c3 :
-    ((Padded725.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded725_c4 :
-    ((Padded725.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded725_c5 :
-    ((Padded725.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded725_c6 :
-    ((Padded725.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded725_c7 :
-    ((Padded725.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded725_cover : Padded725.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded726_c0 :
@@ -22234,28 +9710,7 @@ theorem Padded726_c1 :
     ((Padded726.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded726_c2 :
-    ((Padded726.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded726_c3 :
-    ((Padded726.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded726_c4 :
-    ((Padded726.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded726_c5 :
-    ((Padded726.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded726_c6 :
-    ((Padded726.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded726_c7 :
-    ((Padded726.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded726_cover : Padded726.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded727_c0 :
@@ -22266,28 +9721,7 @@ theorem Padded727_c1 :
     ((Padded727.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded727_c2 :
-    ((Padded727.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded727_c3 :
-    ((Padded727.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded727_c4 :
-    ((Padded727.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded727_c5 :
-    ((Padded727.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded727_c6 :
-    ((Padded727.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded727_c7 :
-    ((Padded727.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded727_cover : Padded727.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded728_c0 :
@@ -22298,28 +9732,7 @@ theorem Padded728_c1 :
     ((Padded728.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded728_c2 :
-    ((Padded728.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded728_c3 :
-    ((Padded728.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded728_c4 :
-    ((Padded728.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded728_c5 :
-    ((Padded728.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded728_c6 :
-    ((Padded728.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded728_c7 :
-    ((Padded728.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded728_cover : Padded728.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded729_c0 :
@@ -22330,28 +9743,7 @@ theorem Padded729_c1 :
     ((Padded729.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded729_c2 :
-    ((Padded729.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded729_c3 :
-    ((Padded729.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded729_c4 :
-    ((Padded729.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded729_c5 :
-    ((Padded729.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded729_c6 :
-    ((Padded729.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded729_c7 :
-    ((Padded729.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded729_cover : Padded729.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded730_c0 :
@@ -22378,12 +9770,7 @@ theorem Padded730_c5 :
     ((Padded730.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded730_c6 :
-    ((Padded730.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded730_c7 :
-    ((Padded730.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded730_cover : Padded730.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded731_c0 :
@@ -22394,28 +9781,7 @@ theorem Padded731_c1 :
     ((Padded731.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded731_c2 :
-    ((Padded731.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded731_c3 :
-    ((Padded731.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded731_c4 :
-    ((Padded731.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded731_c5 :
-    ((Padded731.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded731_c6 :
-    ((Padded731.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded731_c7 :
-    ((Padded731.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded731_cover : Padded731.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded732_c0 :
@@ -22426,28 +9792,7 @@ theorem Padded732_c1 :
     ((Padded732.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded732_c2 :
-    ((Padded732.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded732_c3 :
-    ((Padded732.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded732_c4 :
-    ((Padded732.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded732_c5 :
-    ((Padded732.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded732_c6 :
-    ((Padded732.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded732_c7 :
-    ((Padded732.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded732_cover : Padded732.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded733_c0 :
@@ -22458,28 +9803,7 @@ theorem Padded733_c1 :
     ((Padded733.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded733_c2 :
-    ((Padded733.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded733_c3 :
-    ((Padded733.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded733_c4 :
-    ((Padded733.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded733_c5 :
-    ((Padded733.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded733_c6 :
-    ((Padded733.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded733_c7 :
-    ((Padded733.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded733_cover : Padded733.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded734_c0 :
@@ -22490,28 +9814,7 @@ theorem Padded734_c1 :
     ((Padded734.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded734_c2 :
-    ((Padded734.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded734_c3 :
-    ((Padded734.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded734_c4 :
-    ((Padded734.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded734_c5 :
-    ((Padded734.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded734_c6 :
-    ((Padded734.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded734_c7 :
-    ((Padded734.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded734_cover : Padded734.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded735_c0 :
@@ -22522,28 +9825,7 @@ theorem Padded735_c1 :
     ((Padded735.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded735_c2 :
-    ((Padded735.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded735_c3 :
-    ((Padded735.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded735_c4 :
-    ((Padded735.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded735_c5 :
-    ((Padded735.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded735_c6 :
-    ((Padded735.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded735_c7 :
-    ((Padded735.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded735_cover : Padded735.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded736_c0 :
@@ -22554,28 +9836,7 @@ theorem Padded736_c1 :
     ((Padded736.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded736_c2 :
-    ((Padded736.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded736_c3 :
-    ((Padded736.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded736_c4 :
-    ((Padded736.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded736_c5 :
-    ((Padded736.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded736_c6 :
-    ((Padded736.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded736_c7 :
-    ((Padded736.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded736_cover : Padded736.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded737_c0 :
@@ -22586,28 +9847,7 @@ theorem Padded737_c1 :
     ((Padded737.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded737_c2 :
-    ((Padded737.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded737_c3 :
-    ((Padded737.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded737_c4 :
-    ((Padded737.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded737_c5 :
-    ((Padded737.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded737_c6 :
-    ((Padded737.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded737_c7 :
-    ((Padded737.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded737_cover : Padded737.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded738_c0 :
@@ -22618,28 +9858,7 @@ theorem Padded738_c1 :
     ((Padded738.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded738_c2 :
-    ((Padded738.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded738_c3 :
-    ((Padded738.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded738_c4 :
-    ((Padded738.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded738_c5 :
-    ((Padded738.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded738_c6 :
-    ((Padded738.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded738_c7 :
-    ((Padded738.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded738_cover : Padded738.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded739_c0 :
@@ -22650,28 +9869,7 @@ theorem Padded739_c1 :
     ((Padded739.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded739_c2 :
-    ((Padded739.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded739_c3 :
-    ((Padded739.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded739_c4 :
-    ((Padded739.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded739_c5 :
-    ((Padded739.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded739_c6 :
-    ((Padded739.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded739_c7 :
-    ((Padded739.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded739_cover : Padded739.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded740_c0 :
@@ -22682,28 +9880,7 @@ theorem Padded740_c1 :
     ((Padded740.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded740_c2 :
-    ((Padded740.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded740_c3 :
-    ((Padded740.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded740_c4 :
-    ((Padded740.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded740_c5 :
-    ((Padded740.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded740_c6 :
-    ((Padded740.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded740_c7 :
-    ((Padded740.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded740_cover : Padded740.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded741_c0 :
@@ -22714,28 +9891,7 @@ theorem Padded741_c1 :
     ((Padded741.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded741_c2 :
-    ((Padded741.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded741_c3 :
-    ((Padded741.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded741_c4 :
-    ((Padded741.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded741_c5 :
-    ((Padded741.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded741_c6 :
-    ((Padded741.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded741_c7 :
-    ((Padded741.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded741_cover : Padded741.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded742_c0 :
@@ -22746,28 +9902,7 @@ theorem Padded742_c1 :
     ((Padded742.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded742_c2 :
-    ((Padded742.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded742_c3 :
-    ((Padded742.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded742_c4 :
-    ((Padded742.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded742_c5 :
-    ((Padded742.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded742_c6 :
-    ((Padded742.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded742_c7 :
-    ((Padded742.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded742_cover : Padded742.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded743_c0 :
@@ -22778,28 +9913,7 @@ theorem Padded743_c1 :
     ((Padded743.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded743_c2 :
-    ((Padded743.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded743_c3 :
-    ((Padded743.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded743_c4 :
-    ((Padded743.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded743_c5 :
-    ((Padded743.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded743_c6 :
-    ((Padded743.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded743_c7 :
-    ((Padded743.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded743_cover : Padded743.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded744_c0 :
@@ -22810,28 +9924,7 @@ theorem Padded744_c1 :
     ((Padded744.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded744_c2 :
-    ((Padded744.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded744_c3 :
-    ((Padded744.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded744_c4 :
-    ((Padded744.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded744_c5 :
-    ((Padded744.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded744_c6 :
-    ((Padded744.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded744_c7 :
-    ((Padded744.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded744_cover : Padded744.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded745_c0 :
@@ -22842,28 +9935,7 @@ theorem Padded745_c1 :
     ((Padded745.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded745_c2 :
-    ((Padded745.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded745_c3 :
-    ((Padded745.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded745_c4 :
-    ((Padded745.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded745_c5 :
-    ((Padded745.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded745_c6 :
-    ((Padded745.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded745_c7 :
-    ((Padded745.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded745_cover : Padded745.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded746_c0 :
@@ -22874,28 +9946,7 @@ theorem Padded746_c1 :
     ((Padded746.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded746_c2 :
-    ((Padded746.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded746_c3 :
-    ((Padded746.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded746_c4 :
-    ((Padded746.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded746_c5 :
-    ((Padded746.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded746_c6 :
-    ((Padded746.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded746_c7 :
-    ((Padded746.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded746_cover : Padded746.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded747_c0 :
@@ -22906,28 +9957,7 @@ theorem Padded747_c1 :
     ((Padded747.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded747_c2 :
-    ((Padded747.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded747_c3 :
-    ((Padded747.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded747_c4 :
-    ((Padded747.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded747_c5 :
-    ((Padded747.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded747_c6 :
-    ((Padded747.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded747_c7 :
-    ((Padded747.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded747_cover : Padded747.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded748_c0 :
@@ -22938,28 +9968,7 @@ theorem Padded748_c1 :
     ((Padded748.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded748_c2 :
-    ((Padded748.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded748_c3 :
-    ((Padded748.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded748_c4 :
-    ((Padded748.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded748_c5 :
-    ((Padded748.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded748_c6 :
-    ((Padded748.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded748_c7 :
-    ((Padded748.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded748_cover : Padded748.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded749_c0 :
@@ -22970,28 +9979,7 @@ theorem Padded749_c1 :
     ((Padded749.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded749_c2 :
-    ((Padded749.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded749_c3 :
-    ((Padded749.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded749_c4 :
-    ((Padded749.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded749_c5 :
-    ((Padded749.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded749_c6 :
-    ((Padded749.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded749_c7 :
-    ((Padded749.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded749_cover : Padded749.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded750_c0 :
@@ -23002,28 +9990,7 @@ theorem Padded750_c1 :
     ((Padded750.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded750_c2 :
-    ((Padded750.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded750_c3 :
-    ((Padded750.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded750_c4 :
-    ((Padded750.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded750_c5 :
-    ((Padded750.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded750_c6 :
-    ((Padded750.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded750_c7 :
-    ((Padded750.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded750_cover : Padded750.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded751_c0 :
@@ -23038,24 +10005,7 @@ theorem Padded751_c2 :
     ((Padded751.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded751_c3 :
-    ((Padded751.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded751_c4 :
-    ((Padded751.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded751_c5 :
-    ((Padded751.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded751_c6 :
-    ((Padded751.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded751_c7 :
-    ((Padded751.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded751_cover : Padded751.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded752_c0 :
@@ -23066,28 +10016,7 @@ theorem Padded752_c1 :
     ((Padded752.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded752_c2 :
-    ((Padded752.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded752_c3 :
-    ((Padded752.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded752_c4 :
-    ((Padded752.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded752_c5 :
-    ((Padded752.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded752_c6 :
-    ((Padded752.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded752_c7 :
-    ((Padded752.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded752_cover : Padded752.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded753_c0 :
@@ -23098,28 +10027,7 @@ theorem Padded753_c1 :
     ((Padded753.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded753_c2 :
-    ((Padded753.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded753_c3 :
-    ((Padded753.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded753_c4 :
-    ((Padded753.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded753_c5 :
-    ((Padded753.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded753_c6 :
-    ((Padded753.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded753_c7 :
-    ((Padded753.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded753_cover : Padded753.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded754_c0 :
@@ -23134,24 +10042,7 @@ theorem Padded754_c2 :
     ((Padded754.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded754_c3 :
-    ((Padded754.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded754_c4 :
-    ((Padded754.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded754_c5 :
-    ((Padded754.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded754_c6 :
-    ((Padded754.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded754_c7 :
-    ((Padded754.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded754_cover : Padded754.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded755_c0 :
@@ -23166,24 +10057,7 @@ theorem Padded755_c2 :
     ((Padded755.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded755_c3 :
-    ((Padded755.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded755_c4 :
-    ((Padded755.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded755_c5 :
-    ((Padded755.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded755_c6 :
-    ((Padded755.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded755_c7 :
-    ((Padded755.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded755_cover : Padded755.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded756_c0 :
@@ -23194,28 +10068,7 @@ theorem Padded756_c1 :
     ((Padded756.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded756_c2 :
-    ((Padded756.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded756_c3 :
-    ((Padded756.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded756_c4 :
-    ((Padded756.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded756_c5 :
-    ((Padded756.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded756_c6 :
-    ((Padded756.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded756_c7 :
-    ((Padded756.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded756_cover : Padded756.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded757_c0 :
@@ -23226,28 +10079,7 @@ theorem Padded757_c1 :
     ((Padded757.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded757_c2 :
-    ((Padded757.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded757_c3 :
-    ((Padded757.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded757_c4 :
-    ((Padded757.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded757_c5 :
-    ((Padded757.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded757_c6 :
-    ((Padded757.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded757_c7 :
-    ((Padded757.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded757_cover : Padded757.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded758_c0 :
@@ -23258,28 +10090,7 @@ theorem Padded758_c1 :
     ((Padded758.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded758_c2 :
-    ((Padded758.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded758_c3 :
-    ((Padded758.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded758_c4 :
-    ((Padded758.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded758_c5 :
-    ((Padded758.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded758_c6 :
-    ((Padded758.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded758_c7 :
-    ((Padded758.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded758_cover : Padded758.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded759_c0 :
@@ -23290,28 +10101,7 @@ theorem Padded759_c1 :
     ((Padded759.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded759_c2 :
-    ((Padded759.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded759_c3 :
-    ((Padded759.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded759_c4 :
-    ((Padded759.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded759_c5 :
-    ((Padded759.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded759_c6 :
-    ((Padded759.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded759_c7 :
-    ((Padded759.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded759_cover : Padded759.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded760_c0 :
@@ -23322,28 +10112,7 @@ theorem Padded760_c1 :
     ((Padded760.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded760_c2 :
-    ((Padded760.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded760_c3 :
-    ((Padded760.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded760_c4 :
-    ((Padded760.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded760_c5 :
-    ((Padded760.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded760_c6 :
-    ((Padded760.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded760_c7 :
-    ((Padded760.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded760_cover : Padded760.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded761_c0 :
@@ -23354,28 +10123,7 @@ theorem Padded761_c1 :
     ((Padded761.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded761_c2 :
-    ((Padded761.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded761_c3 :
-    ((Padded761.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded761_c4 :
-    ((Padded761.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded761_c5 :
-    ((Padded761.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded761_c6 :
-    ((Padded761.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded761_c7 :
-    ((Padded761.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded761_cover : Padded761.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded762_c0 :
@@ -23386,28 +10134,7 @@ theorem Padded762_c1 :
     ((Padded762.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded762_c2 :
-    ((Padded762.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded762_c3 :
-    ((Padded762.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded762_c4 :
-    ((Padded762.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded762_c5 :
-    ((Padded762.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded762_c6 :
-    ((Padded762.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded762_c7 :
-    ((Padded762.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded762_cover : Padded762.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded763_c0 :
@@ -23426,20 +10153,7 @@ theorem Padded763_c3 :
     ((Padded763.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded763_c4 :
-    ((Padded763.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded763_c5 :
-    ((Padded763.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded763_c6 :
-    ((Padded763.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded763_c7 :
-    ((Padded763.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded763_cover : Padded763.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded764_c0 :
@@ -23450,28 +10164,7 @@ theorem Padded764_c1 :
     ((Padded764.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded764_c2 :
-    ((Padded764.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded764_c3 :
-    ((Padded764.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded764_c4 :
-    ((Padded764.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded764_c5 :
-    ((Padded764.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded764_c6 :
-    ((Padded764.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded764_c7 :
-    ((Padded764.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded764_cover : Padded764.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded765_c0 :
@@ -23494,16 +10187,7 @@ theorem Padded765_c4 :
     ((Padded765.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded765_c5 :
-    ((Padded765.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded765_c6 :
-    ((Padded765.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded765_c7 :
-    ((Padded765.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded765_cover : Padded765.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded766_c0 :
@@ -23514,28 +10198,7 @@ theorem Padded766_c1 :
     ((Padded766.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded766_c2 :
-    ((Padded766.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded766_c3 :
-    ((Padded766.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded766_c4 :
-    ((Padded766.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded766_c5 :
-    ((Padded766.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded766_c6 :
-    ((Padded766.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded766_c7 :
-    ((Padded766.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded766_cover : Padded766.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded767_c0 :
@@ -23546,28 +10209,7 @@ theorem Padded767_c1 :
     ((Padded767.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded767_c2 :
-    ((Padded767.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded767_c3 :
-    ((Padded767.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded767_c4 :
-    ((Padded767.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded767_c5 :
-    ((Padded767.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded767_c6 :
-    ((Padded767.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded767_c7 :
-    ((Padded767.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded767_cover : Padded767.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded768_c0 :
@@ -23578,28 +10220,7 @@ theorem Padded768_c1 :
     ((Padded768.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded768_c2 :
-    ((Padded768.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded768_c3 :
-    ((Padded768.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded768_c4 :
-    ((Padded768.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded768_c5 :
-    ((Padded768.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded768_c6 :
-    ((Padded768.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded768_c7 :
-    ((Padded768.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded768_cover : Padded768.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded769_c0 :
@@ -23614,24 +10235,7 @@ theorem Padded769_c2 :
     ((Padded769.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded769_c3 :
-    ((Padded769.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded769_c4 :
-    ((Padded769.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded769_c5 :
-    ((Padded769.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded769_c6 :
-    ((Padded769.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded769_c7 :
-    ((Padded769.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded769_cover : Padded769.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded770_c0 :
@@ -23642,28 +10246,7 @@ theorem Padded770_c1 :
     ((Padded770.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded770_c2 :
-    ((Padded770.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded770_c3 :
-    ((Padded770.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded770_c4 :
-    ((Padded770.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded770_c5 :
-    ((Padded770.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded770_c6 :
-    ((Padded770.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded770_c7 :
-    ((Padded770.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded770_cover : Padded770.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded771_c0 :
@@ -23674,28 +10257,7 @@ theorem Padded771_c1 :
     ((Padded771.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded771_c2 :
-    ((Padded771.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded771_c3 :
-    ((Padded771.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded771_c4 :
-    ((Padded771.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded771_c5 :
-    ((Padded771.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded771_c6 :
-    ((Padded771.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded771_c7 :
-    ((Padded771.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded771_cover : Padded771.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded772_c0 :
@@ -23710,24 +10272,7 @@ theorem Padded772_c2 :
     ((Padded772.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded772_c3 :
-    ((Padded772.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded772_c4 :
-    ((Padded772.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded772_c5 :
-    ((Padded772.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded772_c6 :
-    ((Padded772.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded772_c7 :
-    ((Padded772.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded772_cover : Padded772.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded773_c0 :
@@ -23742,24 +10287,7 @@ theorem Padded773_c2 :
     ((Padded773.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded773_c3 :
-    ((Padded773.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded773_c4 :
-    ((Padded773.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded773_c5 :
-    ((Padded773.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded773_c6 :
-    ((Padded773.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded773_c7 :
-    ((Padded773.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded773_cover : Padded773.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded774_c0 :
@@ -23774,24 +10302,7 @@ theorem Padded774_c2 :
     ((Padded774.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded774_c3 :
-    ((Padded774.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded774_c4 :
-    ((Padded774.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded774_c5 :
-    ((Padded774.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded774_c6 :
-    ((Padded774.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded774_c7 :
-    ((Padded774.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded774_cover : Padded774.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded775_c0 :
@@ -23802,28 +10313,7 @@ theorem Padded775_c1 :
     ((Padded775.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded775_c2 :
-    ((Padded775.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded775_c3 :
-    ((Padded775.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded775_c4 :
-    ((Padded775.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded775_c5 :
-    ((Padded775.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded775_c6 :
-    ((Padded775.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded775_c7 :
-    ((Padded775.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded775_cover : Padded775.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded776_c0 :
@@ -23846,16 +10336,7 @@ theorem Padded776_c4 :
     ((Padded776.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded776_c5 :
-    ((Padded776.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded776_c6 :
-    ((Padded776.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded776_c7 :
-    ((Padded776.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded776_cover : Padded776.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded777_c0 :
@@ -23866,28 +10347,7 @@ theorem Padded777_c1 :
     ((Padded777.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded777_c2 :
-    ((Padded777.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded777_c3 :
-    ((Padded777.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded777_c4 :
-    ((Padded777.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded777_c5 :
-    ((Padded777.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded777_c6 :
-    ((Padded777.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded777_c7 :
-    ((Padded777.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded777_cover : Padded777.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded778_c0 :
@@ -23898,28 +10358,7 @@ theorem Padded778_c1 :
     ((Padded778.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded778_c2 :
-    ((Padded778.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded778_c3 :
-    ((Padded778.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded778_c4 :
-    ((Padded778.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded778_c5 :
-    ((Padded778.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded778_c6 :
-    ((Padded778.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded778_c7 :
-    ((Padded778.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded778_cover : Padded778.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded779_c0 :
@@ -23930,28 +10369,7 @@ theorem Padded779_c1 :
     ((Padded779.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded779_c2 :
-    ((Padded779.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded779_c3 :
-    ((Padded779.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded779_c4 :
-    ((Padded779.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded779_c5 :
-    ((Padded779.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded779_c6 :
-    ((Padded779.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded779_c7 :
-    ((Padded779.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded779_cover : Padded779.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded780_c0 :
@@ -23962,28 +10380,7 @@ theorem Padded780_c1 :
     ((Padded780.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded780_c2 :
-    ((Padded780.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded780_c3 :
-    ((Padded780.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded780_c4 :
-    ((Padded780.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded780_c5 :
-    ((Padded780.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded780_c6 :
-    ((Padded780.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded780_c7 :
-    ((Padded780.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded780_cover : Padded780.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded781_c0 :
@@ -23994,28 +10391,7 @@ theorem Padded781_c1 :
     ((Padded781.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded781_c2 :
-    ((Padded781.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded781_c3 :
-    ((Padded781.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded781_c4 :
-    ((Padded781.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded781_c5 :
-    ((Padded781.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded781_c6 :
-    ((Padded781.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded781_c7 :
-    ((Padded781.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded781_cover : Padded781.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded782_c0 :
@@ -24050,6 +10426,13 @@ theorem Padded782_c7 :
     ((Padded782.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded782_c8 :
+    ((Padded782.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded782_cover : Padded782.lines.length ≤ 2304 := by
+  decide_cbv
+
 theorem Padded783_c0 :
     ((Padded783.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -24082,6 +10465,33 @@ theorem Padded783_c7 :
     ((Padded783.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded783_c8 :
+    ((Padded783.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded783_c9 :
+    ((Padded783.lines.drop 2304).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded783_c10 :
+    ((Padded783.lines.drop 2560).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded783_c11 :
+    ((Padded783.lines.drop 2816).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded783_c12 :
+    ((Padded783.lines.drop 3072).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded783_c13 :
+    ((Padded783.lines.drop 3328).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded783_cover : Padded783.lines.length ≤ 3584 := by
+  decide_cbv
+
 theorem Padded784_c0 :
     ((Padded784.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -24098,20 +10508,7 @@ theorem Padded784_c3 :
     ((Padded784.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded784_c4 :
-    ((Padded784.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded784_c5 :
-    ((Padded784.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded784_c6 :
-    ((Padded784.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded784_c7 :
-    ((Padded784.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded784_cover : Padded784.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded785_c0 :
@@ -24126,24 +10523,7 @@ theorem Padded785_c2 :
     ((Padded785.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded785_c3 :
-    ((Padded785.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded785_c4 :
-    ((Padded785.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded785_c5 :
-    ((Padded785.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded785_c6 :
-    ((Padded785.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded785_c7 :
-    ((Padded785.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded785_cover : Padded785.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded786_c0 :
@@ -24154,28 +10534,7 @@ theorem Padded786_c1 :
     ((Padded786.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded786_c2 :
-    ((Padded786.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded786_c3 :
-    ((Padded786.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded786_c4 :
-    ((Padded786.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded786_c5 :
-    ((Padded786.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded786_c6 :
-    ((Padded786.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded786_c7 :
-    ((Padded786.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded786_cover : Padded786.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded787_c0 :
@@ -24190,24 +10549,7 @@ theorem Padded787_c2 :
     ((Padded787.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded787_c3 :
-    ((Padded787.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded787_c4 :
-    ((Padded787.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded787_c5 :
-    ((Padded787.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded787_c6 :
-    ((Padded787.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded787_c7 :
-    ((Padded787.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded787_cover : Padded787.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded788_c0 :
@@ -24218,28 +10560,7 @@ theorem Padded788_c1 :
     ((Padded788.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded788_c2 :
-    ((Padded788.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded788_c3 :
-    ((Padded788.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded788_c4 :
-    ((Padded788.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded788_c5 :
-    ((Padded788.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded788_c6 :
-    ((Padded788.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded788_c7 :
-    ((Padded788.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded788_cover : Padded788.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded789_c0 :
@@ -24250,28 +10571,7 @@ theorem Padded789_c1 :
     ((Padded789.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded789_c2 :
-    ((Padded789.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded789_c3 :
-    ((Padded789.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded789_c4 :
-    ((Padded789.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded789_c5 :
-    ((Padded789.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded789_c6 :
-    ((Padded789.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded789_c7 :
-    ((Padded789.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded789_cover : Padded789.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded790_c0 :
@@ -24282,28 +10582,7 @@ theorem Padded790_c1 :
     ((Padded790.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded790_c2 :
-    ((Padded790.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded790_c3 :
-    ((Padded790.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded790_c4 :
-    ((Padded790.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded790_c5 :
-    ((Padded790.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded790_c6 :
-    ((Padded790.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded790_c7 :
-    ((Padded790.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded790_cover : Padded790.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded791_c0 :
@@ -24314,28 +10593,7 @@ theorem Padded791_c1 :
     ((Padded791.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded791_c2 :
-    ((Padded791.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded791_c3 :
-    ((Padded791.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded791_c4 :
-    ((Padded791.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded791_c5 :
-    ((Padded791.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded791_c6 :
-    ((Padded791.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded791_c7 :
-    ((Padded791.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded791_cover : Padded791.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded792_c0 :
@@ -24346,28 +10604,7 @@ theorem Padded792_c1 :
     ((Padded792.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded792_c2 :
-    ((Padded792.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded792_c3 :
-    ((Padded792.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded792_c4 :
-    ((Padded792.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded792_c5 :
-    ((Padded792.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded792_c6 :
-    ((Padded792.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded792_c7 :
-    ((Padded792.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded792_cover : Padded792.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded793_c0 :
@@ -24378,28 +10615,7 @@ theorem Padded793_c1 :
     ((Padded793.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded793_c2 :
-    ((Padded793.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded793_c3 :
-    ((Padded793.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded793_c4 :
-    ((Padded793.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded793_c5 :
-    ((Padded793.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded793_c6 :
-    ((Padded793.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded793_c7 :
-    ((Padded793.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded793_cover : Padded793.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded794_c0 :
@@ -24426,12 +10642,7 @@ theorem Padded794_c5 :
     ((Padded794.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded794_c6 :
-    ((Padded794.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded794_c7 :
-    ((Padded794.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded794_cover : Padded794.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded795_c0 :
@@ -24462,8 +10673,7 @@ theorem Padded795_c6 :
     ((Padded795.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded795_c7 :
-    ((Padded795.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded795_cover : Padded795.lines.length ≤ 1792 := by
   decide_cbv
 
 theorem Padded796_c0 :
@@ -24478,24 +10688,7 @@ theorem Padded796_c2 :
     ((Padded796.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded796_c3 :
-    ((Padded796.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded796_c4 :
-    ((Padded796.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded796_c5 :
-    ((Padded796.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded796_c6 :
-    ((Padded796.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded796_c7 :
-    ((Padded796.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded796_cover : Padded796.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded797_c0 :
@@ -24510,24 +10703,7 @@ theorem Padded797_c2 :
     ((Padded797.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded797_c3 :
-    ((Padded797.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded797_c4 :
-    ((Padded797.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded797_c5 :
-    ((Padded797.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded797_c6 :
-    ((Padded797.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded797_c7 :
-    ((Padded797.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded797_cover : Padded797.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded798_c0 :
@@ -24542,24 +10718,7 @@ theorem Padded798_c2 :
     ((Padded798.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded798_c3 :
-    ((Padded798.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded798_c4 :
-    ((Padded798.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded798_c5 :
-    ((Padded798.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded798_c6 :
-    ((Padded798.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded798_c7 :
-    ((Padded798.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded798_cover : Padded798.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded799_c0 :
@@ -24574,24 +10733,7 @@ theorem Padded799_c2 :
     ((Padded799.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded799_c3 :
-    ((Padded799.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded799_c4 :
-    ((Padded799.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded799_c5 :
-    ((Padded799.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded799_c6 :
-    ((Padded799.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded799_c7 :
-    ((Padded799.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded799_cover : Padded799.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded800_c0 :
@@ -24606,24 +10748,7 @@ theorem Padded800_c2 :
     ((Padded800.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded800_c3 :
-    ((Padded800.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded800_c4 :
-    ((Padded800.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded800_c5 :
-    ((Padded800.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded800_c6 :
-    ((Padded800.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded800_c7 :
-    ((Padded800.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded800_cover : Padded800.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded801_c0 :
@@ -24634,28 +10759,7 @@ theorem Padded801_c1 :
     ((Padded801.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded801_c2 :
-    ((Padded801.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded801_c3 :
-    ((Padded801.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded801_c4 :
-    ((Padded801.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded801_c5 :
-    ((Padded801.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded801_c6 :
-    ((Padded801.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded801_c7 :
-    ((Padded801.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded801_cover : Padded801.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded802_c0 :
@@ -24686,8 +10790,7 @@ theorem Padded802_c6 :
     ((Padded802.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded802_c7 :
-    ((Padded802.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded802_cover : Padded802.lines.length ≤ 1792 := by
   decide_cbv
 
 theorem Padded803_c0 :
@@ -24722,6 +10825,13 @@ theorem Padded803_c7 :
     ((Padded803.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded803_c8 :
+    ((Padded803.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded803_cover : Padded803.lines.length ≤ 2304 := by
+  decide_cbv
+
 theorem Padded804_c0 :
     ((Padded804.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -24734,24 +10844,7 @@ theorem Padded804_c2 :
     ((Padded804.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded804_c3 :
-    ((Padded804.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded804_c4 :
-    ((Padded804.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded804_c5 :
-    ((Padded804.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded804_c6 :
-    ((Padded804.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded804_c7 :
-    ((Padded804.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded804_cover : Padded804.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded805_c0 :
@@ -24770,20 +10863,7 @@ theorem Padded805_c3 :
     ((Padded805.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded805_c4 :
-    ((Padded805.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded805_c5 :
-    ((Padded805.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded805_c6 :
-    ((Padded805.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded805_c7 :
-    ((Padded805.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded805_cover : Padded805.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded806_c0 :
@@ -24798,24 +10878,7 @@ theorem Padded806_c2 :
     ((Padded806.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded806_c3 :
-    ((Padded806.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded806_c4 :
-    ((Padded806.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded806_c5 :
-    ((Padded806.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded806_c6 :
-    ((Padded806.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded806_c7 :
-    ((Padded806.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded806_cover : Padded806.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded807_c0 :
@@ -24830,24 +10893,7 @@ theorem Padded807_c2 :
     ((Padded807.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded807_c3 :
-    ((Padded807.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded807_c4 :
-    ((Padded807.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded807_c5 :
-    ((Padded807.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded807_c6 :
-    ((Padded807.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded807_c7 :
-    ((Padded807.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded807_cover : Padded807.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded808_c0 :
@@ -24882,6 +10928,21 @@ theorem Padded808_c7 :
     ((Padded808.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded808_c8 :
+    ((Padded808.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded808_c9 :
+    ((Padded808.lines.drop 2304).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded808_c10 :
+    ((Padded808.lines.drop 2560).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded808_cover : Padded808.lines.length ≤ 2816 := by
+  decide_cbv
+
 theorem Padded809_c0 :
     ((Padded809.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -24894,24 +10955,7 @@ theorem Padded809_c2 :
     ((Padded809.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded809_c3 :
-    ((Padded809.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded809_c4 :
-    ((Padded809.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded809_c5 :
-    ((Padded809.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded809_c6 :
-    ((Padded809.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded809_c7 :
-    ((Padded809.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded809_cover : Padded809.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded810_c0 :
@@ -24938,12 +10982,7 @@ theorem Padded810_c5 :
     ((Padded810.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded810_c6 :
-    ((Padded810.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded810_c7 :
-    ((Padded810.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded810_cover : Padded810.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded811_c0 :
@@ -24954,28 +10993,7 @@ theorem Padded811_c1 :
     ((Padded811.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded811_c2 :
-    ((Padded811.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded811_c3 :
-    ((Padded811.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded811_c4 :
-    ((Padded811.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded811_c5 :
-    ((Padded811.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded811_c6 :
-    ((Padded811.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded811_c7 :
-    ((Padded811.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded811_cover : Padded811.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded812_c0 :
@@ -24998,16 +11016,7 @@ theorem Padded812_c4 :
     ((Padded812.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded812_c5 :
-    ((Padded812.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded812_c6 :
-    ((Padded812.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded812_c7 :
-    ((Padded812.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded812_cover : Padded812.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded813_c0 :
@@ -25042,6 +11051,13 @@ theorem Padded813_c7 :
     ((Padded813.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded813_c8 :
+    ((Padded813.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded813_cover : Padded813.lines.length ≤ 2304 := by
+  decide_cbv
+
 theorem Padded814_c0 :
     ((Padded814.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -25054,24 +11070,7 @@ theorem Padded814_c2 :
     ((Padded814.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded814_c3 :
-    ((Padded814.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded814_c4 :
-    ((Padded814.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded814_c5 :
-    ((Padded814.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded814_c6 :
-    ((Padded814.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded814_c7 :
-    ((Padded814.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded814_cover : Padded814.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded815_c0 :
@@ -25090,20 +11089,7 @@ theorem Padded815_c3 :
     ((Padded815.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded815_c4 :
-    ((Padded815.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded815_c5 :
-    ((Padded815.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded815_c6 :
-    ((Padded815.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded815_c7 :
-    ((Padded815.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded815_cover : Padded815.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded816_c0 :
@@ -25114,28 +11100,7 @@ theorem Padded816_c1 :
     ((Padded816.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded816_c2 :
-    ((Padded816.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded816_c3 :
-    ((Padded816.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded816_c4 :
-    ((Padded816.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded816_c5 :
-    ((Padded816.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded816_c6 :
-    ((Padded816.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded816_c7 :
-    ((Padded816.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded816_cover : Padded816.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded817_c0 :
@@ -25158,16 +11123,7 @@ theorem Padded817_c4 :
     ((Padded817.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded817_c5 :
-    ((Padded817.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded817_c6 :
-    ((Padded817.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded817_c7 :
-    ((Padded817.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded817_cover : Padded817.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded818_c0 :
@@ -25178,28 +11134,7 @@ theorem Padded818_c1 :
     ((Padded818.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded818_c2 :
-    ((Padded818.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded818_c3 :
-    ((Padded818.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded818_c4 :
-    ((Padded818.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded818_c5 :
-    ((Padded818.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded818_c6 :
-    ((Padded818.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded818_c7 :
-    ((Padded818.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded818_cover : Padded818.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded819_c0 :
@@ -25210,28 +11145,7 @@ theorem Padded819_c1 :
     ((Padded819.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded819_c2 :
-    ((Padded819.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded819_c3 :
-    ((Padded819.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded819_c4 :
-    ((Padded819.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded819_c5 :
-    ((Padded819.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded819_c6 :
-    ((Padded819.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded819_c7 :
-    ((Padded819.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded819_cover : Padded819.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded820_c0 :
@@ -25258,12 +11172,7 @@ theorem Padded820_c5 :
     ((Padded820.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded820_c6 :
-    ((Padded820.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded820_c7 :
-    ((Padded820.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded820_cover : Padded820.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded821_c0 :
@@ -25274,28 +11183,7 @@ theorem Padded821_c1 :
     ((Padded821.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded821_c2 :
-    ((Padded821.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded821_c3 :
-    ((Padded821.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded821_c4 :
-    ((Padded821.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded821_c5 :
-    ((Padded821.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded821_c6 :
-    ((Padded821.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded821_c7 :
-    ((Padded821.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded821_cover : Padded821.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded822_c0 :
@@ -25310,24 +11198,7 @@ theorem Padded822_c2 :
     ((Padded822.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded822_c3 :
-    ((Padded822.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded822_c4 :
-    ((Padded822.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded822_c5 :
-    ((Padded822.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded822_c6 :
-    ((Padded822.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded822_c7 :
-    ((Padded822.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded822_cover : Padded822.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded823_c0 :
@@ -25346,20 +11217,7 @@ theorem Padded823_c3 :
     ((Padded823.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded823_c4 :
-    ((Padded823.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded823_c5 :
-    ((Padded823.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded823_c6 :
-    ((Padded823.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded823_c7 :
-    ((Padded823.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded823_cover : Padded823.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded824_c0 :
@@ -25374,24 +11232,7 @@ theorem Padded824_c2 :
     ((Padded824.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded824_c3 :
-    ((Padded824.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded824_c4 :
-    ((Padded824.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded824_c5 :
-    ((Padded824.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded824_c6 :
-    ((Padded824.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded824_c7 :
-    ((Padded824.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded824_cover : Padded824.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded825_c0 :
@@ -25410,20 +11251,7 @@ theorem Padded825_c3 :
     ((Padded825.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded825_c4 :
-    ((Padded825.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded825_c5 :
-    ((Padded825.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded825_c6 :
-    ((Padded825.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded825_c7 :
-    ((Padded825.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded825_cover : Padded825.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded826_c0 :
@@ -25442,20 +11270,7 @@ theorem Padded826_c3 :
     ((Padded826.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded826_c4 :
-    ((Padded826.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded826_c5 :
-    ((Padded826.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded826_c6 :
-    ((Padded826.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded826_c7 :
-    ((Padded826.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded826_cover : Padded826.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded827_c0 :
@@ -25470,24 +11285,7 @@ theorem Padded827_c2 :
     ((Padded827.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded827_c3 :
-    ((Padded827.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded827_c4 :
-    ((Padded827.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded827_c5 :
-    ((Padded827.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded827_c6 :
-    ((Padded827.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded827_c7 :
-    ((Padded827.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded827_cover : Padded827.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded828_c0 :
@@ -25502,24 +11300,7 @@ theorem Padded828_c2 :
     ((Padded828.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded828_c3 :
-    ((Padded828.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded828_c4 :
-    ((Padded828.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded828_c5 :
-    ((Padded828.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded828_c6 :
-    ((Padded828.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded828_c7 :
-    ((Padded828.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded828_cover : Padded828.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded829_c0 :
@@ -25542,16 +11323,7 @@ theorem Padded829_c4 :
     ((Padded829.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded829_c5 :
-    ((Padded829.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded829_c6 :
-    ((Padded829.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded829_c7 :
-    ((Padded829.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded829_cover : Padded829.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded830_c0 :
@@ -25578,12 +11350,7 @@ theorem Padded830_c5 :
     ((Padded830.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded830_c6 :
-    ((Padded830.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded830_c7 :
-    ((Padded830.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded830_cover : Padded830.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded831_c0 :
@@ -25594,28 +11361,7 @@ theorem Padded831_c1 :
     ((Padded831.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded831_c2 :
-    ((Padded831.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded831_c3 :
-    ((Padded831.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded831_c4 :
-    ((Padded831.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded831_c5 :
-    ((Padded831.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded831_c6 :
-    ((Padded831.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded831_c7 :
-    ((Padded831.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded831_cover : Padded831.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded832_c0 :
@@ -25626,28 +11372,7 @@ theorem Padded832_c1 :
     ((Padded832.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded832_c2 :
-    ((Padded832.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded832_c3 :
-    ((Padded832.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded832_c4 :
-    ((Padded832.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded832_c5 :
-    ((Padded832.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded832_c6 :
-    ((Padded832.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded832_c7 :
-    ((Padded832.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded832_cover : Padded832.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded833_c0 :
@@ -25658,28 +11383,7 @@ theorem Padded833_c1 :
     ((Padded833.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded833_c2 :
-    ((Padded833.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded833_c3 :
-    ((Padded833.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded833_c4 :
-    ((Padded833.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded833_c5 :
-    ((Padded833.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded833_c6 :
-    ((Padded833.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded833_c7 :
-    ((Padded833.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded833_cover : Padded833.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded834_c0 :
@@ -25690,28 +11394,7 @@ theorem Padded834_c1 :
     ((Padded834.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded834_c2 :
-    ((Padded834.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded834_c3 :
-    ((Padded834.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded834_c4 :
-    ((Padded834.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded834_c5 :
-    ((Padded834.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded834_c6 :
-    ((Padded834.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded834_c7 :
-    ((Padded834.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded834_cover : Padded834.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded835_c0 :
@@ -25722,28 +11405,7 @@ theorem Padded835_c1 :
     ((Padded835.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded835_c2 :
-    ((Padded835.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded835_c3 :
-    ((Padded835.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded835_c4 :
-    ((Padded835.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded835_c5 :
-    ((Padded835.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded835_c6 :
-    ((Padded835.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded835_c7 :
-    ((Padded835.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded835_cover : Padded835.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded836_c0 :
@@ -25754,28 +11416,7 @@ theorem Padded836_c1 :
     ((Padded836.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded836_c2 :
-    ((Padded836.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded836_c3 :
-    ((Padded836.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded836_c4 :
-    ((Padded836.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded836_c5 :
-    ((Padded836.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded836_c6 :
-    ((Padded836.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded836_c7 :
-    ((Padded836.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded836_cover : Padded836.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded837_c0 :
@@ -25786,28 +11427,7 @@ theorem Padded837_c1 :
     ((Padded837.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded837_c2 :
-    ((Padded837.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded837_c3 :
-    ((Padded837.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded837_c4 :
-    ((Padded837.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded837_c5 :
-    ((Padded837.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded837_c6 :
-    ((Padded837.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded837_c7 :
-    ((Padded837.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded837_cover : Padded837.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded838_c0 :
@@ -25818,28 +11438,7 @@ theorem Padded838_c1 :
     ((Padded838.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded838_c2 :
-    ((Padded838.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded838_c3 :
-    ((Padded838.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded838_c4 :
-    ((Padded838.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded838_c5 :
-    ((Padded838.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded838_c6 :
-    ((Padded838.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded838_c7 :
-    ((Padded838.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded838_cover : Padded838.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded839_c0 :
@@ -25850,28 +11449,7 @@ theorem Padded839_c1 :
     ((Padded839.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded839_c2 :
-    ((Padded839.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded839_c3 :
-    ((Padded839.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded839_c4 :
-    ((Padded839.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded839_c5 :
-    ((Padded839.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded839_c6 :
-    ((Padded839.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded839_c7 :
-    ((Padded839.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded839_cover : Padded839.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded840_c0 :
@@ -25882,28 +11460,7 @@ theorem Padded840_c1 :
     ((Padded840.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded840_c2 :
-    ((Padded840.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded840_c3 :
-    ((Padded840.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded840_c4 :
-    ((Padded840.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded840_c5 :
-    ((Padded840.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded840_c6 :
-    ((Padded840.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded840_c7 :
-    ((Padded840.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded840_cover : Padded840.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded841_c0 :
@@ -25914,28 +11471,7 @@ theorem Padded841_c1 :
     ((Padded841.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded841_c2 :
-    ((Padded841.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded841_c3 :
-    ((Padded841.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded841_c4 :
-    ((Padded841.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded841_c5 :
-    ((Padded841.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded841_c6 :
-    ((Padded841.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded841_c7 :
-    ((Padded841.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded841_cover : Padded841.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded842_c0 :
@@ -25946,28 +11482,7 @@ theorem Padded842_c1 :
     ((Padded842.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded842_c2 :
-    ((Padded842.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded842_c3 :
-    ((Padded842.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded842_c4 :
-    ((Padded842.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded842_c5 :
-    ((Padded842.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded842_c6 :
-    ((Padded842.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded842_c7 :
-    ((Padded842.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded842_cover : Padded842.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded843_c0 :
@@ -25978,28 +11493,7 @@ theorem Padded843_c1 :
     ((Padded843.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded843_c2 :
-    ((Padded843.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded843_c3 :
-    ((Padded843.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded843_c4 :
-    ((Padded843.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded843_c5 :
-    ((Padded843.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded843_c6 :
-    ((Padded843.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded843_c7 :
-    ((Padded843.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded843_cover : Padded843.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded844_c0 :
@@ -26018,20 +11512,7 @@ theorem Padded844_c3 :
     ((Padded844.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded844_c4 :
-    ((Padded844.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded844_c5 :
-    ((Padded844.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded844_c6 :
-    ((Padded844.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded844_c7 :
-    ((Padded844.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded844_cover : Padded844.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded845_c0 :
@@ -26042,28 +11523,7 @@ theorem Padded845_c1 :
     ((Padded845.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded845_c2 :
-    ((Padded845.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded845_c3 :
-    ((Padded845.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded845_c4 :
-    ((Padded845.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded845_c5 :
-    ((Padded845.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded845_c6 :
-    ((Padded845.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded845_c7 :
-    ((Padded845.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded845_cover : Padded845.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded846_c0 :
@@ -26082,20 +11542,7 @@ theorem Padded846_c3 :
     ((Padded846.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded846_c4 :
-    ((Padded846.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded846_c5 :
-    ((Padded846.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded846_c6 :
-    ((Padded846.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded846_c7 :
-    ((Padded846.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded846_cover : Padded846.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded847_c0 :
@@ -26106,28 +11553,7 @@ theorem Padded847_c1 :
     ((Padded847.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded847_c2 :
-    ((Padded847.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded847_c3 :
-    ((Padded847.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded847_c4 :
-    ((Padded847.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded847_c5 :
-    ((Padded847.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded847_c6 :
-    ((Padded847.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded847_c7 :
-    ((Padded847.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded847_cover : Padded847.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded848_c0 :
@@ -26150,16 +11576,7 @@ theorem Padded848_c4 :
     ((Padded848.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded848_c5 :
-    ((Padded848.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded848_c6 :
-    ((Padded848.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded848_c7 :
-    ((Padded848.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded848_cover : Padded848.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded849_c0 :
@@ -26178,20 +11595,7 @@ theorem Padded849_c3 :
     ((Padded849.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded849_c4 :
-    ((Padded849.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded849_c5 :
-    ((Padded849.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded849_c6 :
-    ((Padded849.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded849_c7 :
-    ((Padded849.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded849_cover : Padded849.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded850_c0 :
@@ -26202,28 +11606,7 @@ theorem Padded850_c1 :
     ((Padded850.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded850_c2 :
-    ((Padded850.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded850_c3 :
-    ((Padded850.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded850_c4 :
-    ((Padded850.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded850_c5 :
-    ((Padded850.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded850_c6 :
-    ((Padded850.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded850_c7 :
-    ((Padded850.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded850_cover : Padded850.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded851_c0 :
@@ -26234,28 +11617,7 @@ theorem Padded851_c1 :
     ((Padded851.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded851_c2 :
-    ((Padded851.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded851_c3 :
-    ((Padded851.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded851_c4 :
-    ((Padded851.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded851_c5 :
-    ((Padded851.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded851_c6 :
-    ((Padded851.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded851_c7 :
-    ((Padded851.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded851_cover : Padded851.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded852_c0 :
@@ -26266,28 +11628,7 @@ theorem Padded852_c1 :
     ((Padded852.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded852_c2 :
-    ((Padded852.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded852_c3 :
-    ((Padded852.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded852_c4 :
-    ((Padded852.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded852_c5 :
-    ((Padded852.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded852_c6 :
-    ((Padded852.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded852_c7 :
-    ((Padded852.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded852_cover : Padded852.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded853_c0 :
@@ -26298,28 +11639,7 @@ theorem Padded853_c1 :
     ((Padded853.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded853_c2 :
-    ((Padded853.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded853_c3 :
-    ((Padded853.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded853_c4 :
-    ((Padded853.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded853_c5 :
-    ((Padded853.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded853_c6 :
-    ((Padded853.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded853_c7 :
-    ((Padded853.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded853_cover : Padded853.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded854_c0 :
@@ -26334,24 +11654,7 @@ theorem Padded854_c2 :
     ((Padded854.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded854_c3 :
-    ((Padded854.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded854_c4 :
-    ((Padded854.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded854_c5 :
-    ((Padded854.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded854_c6 :
-    ((Padded854.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded854_c7 :
-    ((Padded854.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded854_cover : Padded854.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded855_c0 :
@@ -26366,24 +11669,7 @@ theorem Padded855_c2 :
     ((Padded855.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded855_c3 :
-    ((Padded855.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded855_c4 :
-    ((Padded855.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded855_c5 :
-    ((Padded855.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded855_c6 :
-    ((Padded855.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded855_c7 :
-    ((Padded855.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded855_cover : Padded855.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded856_c0 :
@@ -26394,28 +11680,7 @@ theorem Padded856_c1 :
     ((Padded856.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded856_c2 :
-    ((Padded856.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded856_c3 :
-    ((Padded856.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded856_c4 :
-    ((Padded856.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded856_c5 :
-    ((Padded856.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded856_c6 :
-    ((Padded856.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded856_c7 :
-    ((Padded856.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded856_cover : Padded856.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded857_c0 :
@@ -26430,24 +11695,7 @@ theorem Padded857_c2 :
     ((Padded857.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded857_c3 :
-    ((Padded857.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded857_c4 :
-    ((Padded857.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded857_c5 :
-    ((Padded857.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded857_c6 :
-    ((Padded857.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded857_c7 :
-    ((Padded857.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded857_cover : Padded857.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded858_c0 :
@@ -26458,28 +11706,7 @@ theorem Padded858_c1 :
     ((Padded858.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded858_c2 :
-    ((Padded858.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded858_c3 :
-    ((Padded858.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded858_c4 :
-    ((Padded858.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded858_c5 :
-    ((Padded858.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded858_c6 :
-    ((Padded858.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded858_c7 :
-    ((Padded858.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded858_cover : Padded858.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded859_c0 :
@@ -26490,28 +11717,7 @@ theorem Padded859_c1 :
     ((Padded859.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded859_c2 :
-    ((Padded859.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded859_c3 :
-    ((Padded859.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded859_c4 :
-    ((Padded859.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded859_c5 :
-    ((Padded859.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded859_c6 :
-    ((Padded859.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded859_c7 :
-    ((Padded859.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded859_cover : Padded859.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded860_c0 :
@@ -26538,12 +11744,7 @@ theorem Padded860_c5 :
     ((Padded860.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded860_c6 :
-    ((Padded860.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded860_c7 :
-    ((Padded860.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded860_cover : Padded860.lines.length ≤ 1536 := by
   decide_cbv
 
 theorem Padded861_c0 :
@@ -26554,28 +11755,7 @@ theorem Padded861_c1 :
     ((Padded861.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded861_c2 :
-    ((Padded861.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded861_c3 :
-    ((Padded861.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded861_c4 :
-    ((Padded861.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded861_c5 :
-    ((Padded861.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded861_c6 :
-    ((Padded861.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded861_c7 :
-    ((Padded861.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded861_cover : Padded861.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded862_c0 :
@@ -26610,6 +11790,17 @@ theorem Padded862_c7 :
     ((Padded862.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded862_c8 :
+    ((Padded862.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded862_c9 :
+    ((Padded862.lines.drop 2304).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded862_cover : Padded862.lines.length ≤ 2560 := by
+  decide_cbv
+
 theorem Padded863_c0 :
     ((Padded863.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -26618,28 +11809,7 @@ theorem Padded863_c1 :
     ((Padded863.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded863_c2 :
-    ((Padded863.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded863_c3 :
-    ((Padded863.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded863_c4 :
-    ((Padded863.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded863_c5 :
-    ((Padded863.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded863_c6 :
-    ((Padded863.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded863_c7 :
-    ((Padded863.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded863_cover : Padded863.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded864_c0 :
@@ -26662,16 +11832,7 @@ theorem Padded864_c4 :
     ((Padded864.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded864_c5 :
-    ((Padded864.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded864_c6 :
-    ((Padded864.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded864_c7 :
-    ((Padded864.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded864_cover : Padded864.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded865_c0 :
@@ -26686,24 +11847,7 @@ theorem Padded865_c2 :
     ((Padded865.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded865_c3 :
-    ((Padded865.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded865_c4 :
-    ((Padded865.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded865_c5 :
-    ((Padded865.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded865_c6 :
-    ((Padded865.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded865_c7 :
-    ((Padded865.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded865_cover : Padded865.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded866_c0 :
@@ -26726,16 +11870,7 @@ theorem Padded866_c4 :
     ((Padded866.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded866_c5 :
-    ((Padded866.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded866_c6 :
-    ((Padded866.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded866_c7 :
-    ((Padded866.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded866_cover : Padded866.lines.length ≤ 1280 := by
   decide_cbv
 
 theorem Padded867_c0 :
@@ -26746,28 +11881,7 @@ theorem Padded867_c1 :
     ((Padded867.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded867_c2 :
-    ((Padded867.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded867_c3 :
-    ((Padded867.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded867_c4 :
-    ((Padded867.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded867_c5 :
-    ((Padded867.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded867_c6 :
-    ((Padded867.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded867_c7 :
-    ((Padded867.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded867_cover : Padded867.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded868_c0 :
@@ -26778,28 +11892,7 @@ theorem Padded868_c1 :
     ((Padded868.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded868_c2 :
-    ((Padded868.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded868_c3 :
-    ((Padded868.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded868_c4 :
-    ((Padded868.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded868_c5 :
-    ((Padded868.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded868_c6 :
-    ((Padded868.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded868_c7 :
-    ((Padded868.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded868_cover : Padded868.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded869_c0 :
@@ -26810,28 +11903,7 @@ theorem Padded869_c1 :
     ((Padded869.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded869_c2 :
-    ((Padded869.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded869_c3 :
-    ((Padded869.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded869_c4 :
-    ((Padded869.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded869_c5 :
-    ((Padded869.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded869_c6 :
-    ((Padded869.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded869_c7 :
-    ((Padded869.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded869_cover : Padded869.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded870_c0 :
@@ -26846,24 +11918,7 @@ theorem Padded870_c2 :
     ((Padded870.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded870_c3 :
-    ((Padded870.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded870_c4 :
-    ((Padded870.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded870_c5 :
-    ((Padded870.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded870_c6 :
-    ((Padded870.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded870_c7 :
-    ((Padded870.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded870_cover : Padded870.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded871_c0 :
@@ -26874,28 +11929,7 @@ theorem Padded871_c1 :
     ((Padded871.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded871_c2 :
-    ((Padded871.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded871_c3 :
-    ((Padded871.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded871_c4 :
-    ((Padded871.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded871_c5 :
-    ((Padded871.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded871_c6 :
-    ((Padded871.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded871_c7 :
-    ((Padded871.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded871_cover : Padded871.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded872_c0 :
@@ -26910,24 +11944,7 @@ theorem Padded872_c2 :
     ((Padded872.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded872_c3 :
-    ((Padded872.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded872_c4 :
-    ((Padded872.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded872_c5 :
-    ((Padded872.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded872_c6 :
-    ((Padded872.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded872_c7 :
-    ((Padded872.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded872_cover : Padded872.lines.length ≤ 768 := by
   decide_cbv
 
 theorem Padded873_c0 :
@@ -26938,28 +11955,7 @@ theorem Padded873_c1 :
     ((Padded873.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded873_c2 :
-    ((Padded873.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded873_c3 :
-    ((Padded873.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded873_c4 :
-    ((Padded873.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded873_c5 :
-    ((Padded873.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded873_c6 :
-    ((Padded873.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded873_c7 :
-    ((Padded873.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded873_cover : Padded873.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded874_c0 :
@@ -26990,8 +11986,7 @@ theorem Padded874_c6 :
     ((Padded874.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded874_c7 :
-    ((Padded874.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded874_cover : Padded874.lines.length ≤ 1792 := by
   decide_cbv
 
 theorem Padded875_c0 :
@@ -27026,6 +12021,41 @@ theorem Padded875_c7 :
     ((Padded875.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded875_c8 :
+    ((Padded875.lines.drop 2048).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded875_c9 :
+    ((Padded875.lines.drop 2304).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded875_c10 :
+    ((Padded875.lines.drop 2560).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded875_c11 :
+    ((Padded875.lines.drop 2816).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded875_c12 :
+    ((Padded875.lines.drop 3072).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded875_c13 :
+    ((Padded875.lines.drop 3328).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded875_c14 :
+    ((Padded875.lines.drop 3584).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded875_c15 :
+    ((Padded875.lines.drop 3840).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded875_cover : Padded875.lines.length ≤ 4096 := by
+  decide_cbv
+
 theorem Padded876_c0 :
     ((Padded876.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -27034,28 +12064,7 @@ theorem Padded876_c1 :
     ((Padded876.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded876_c2 :
-    ((Padded876.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded876_c3 :
-    ((Padded876.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded876_c4 :
-    ((Padded876.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded876_c5 :
-    ((Padded876.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded876_c6 :
-    ((Padded876.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded876_c7 :
-    ((Padded876.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded876_cover : Padded876.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded877_c0 :
@@ -27066,28 +12075,7 @@ theorem Padded877_c1 :
     ((Padded877.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded877_c2 :
-    ((Padded877.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded877_c3 :
-    ((Padded877.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded877_c4 :
-    ((Padded877.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded877_c5 :
-    ((Padded877.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded877_c6 :
-    ((Padded877.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded877_c7 :
-    ((Padded877.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded877_cover : Padded877.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded878_c0 :
@@ -27098,28 +12086,7 @@ theorem Padded878_c1 :
     ((Padded878.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded878_c2 :
-    ((Padded878.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded878_c3 :
-    ((Padded878.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded878_c4 :
-    ((Padded878.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded878_c5 :
-    ((Padded878.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded878_c6 :
-    ((Padded878.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded878_c7 :
-    ((Padded878.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded878_cover : Padded878.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded879_c0 :
@@ -27138,20 +12105,7 @@ theorem Padded879_c3 :
     ((Padded879.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded879_c4 :
-    ((Padded879.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded879_c5 :
-    ((Padded879.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded879_c6 :
-    ((Padded879.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded879_c7 :
-    ((Padded879.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded879_cover : Padded879.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded880_c0 :
@@ -27186,6 +12140,9 @@ theorem Padded880_c7 :
     ((Padded880.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
+theorem Padded880_cover : Padded880.lines.length ≤ 2048 := by
+  decide_cbv
+
 theorem Padded881_c0 :
     ((Padded881.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -27202,20 +12159,7 @@ theorem Padded881_c3 :
     ((Padded881.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded881_c4 :
-    ((Padded881.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded881_c5 :
-    ((Padded881.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded881_c6 :
-    ((Padded881.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded881_c7 :
-    ((Padded881.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded881_cover : Padded881.lines.length ≤ 1024 := by
   decide_cbv
 
 theorem Padded882_c0 :
@@ -27226,28 +12170,7 @@ theorem Padded882_c1 :
     ((Padded882.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded882_c2 :
-    ((Padded882.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded882_c3 :
-    ((Padded882.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded882_c4 :
-    ((Padded882.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded882_c5 :
-    ((Padded882.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded882_c6 :
-    ((Padded882.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded882_c7 :
-    ((Padded882.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded882_cover : Padded882.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded883_c0 :
@@ -27258,28 +12181,7 @@ theorem Padded883_c1 :
     ((Padded883.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded883_c2 :
-    ((Padded883.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded883_c3 :
-    ((Padded883.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded883_c4 :
-    ((Padded883.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded883_c5 :
-    ((Padded883.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded883_c6 :
-    ((Padded883.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded883_c7 :
-    ((Padded883.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded883_cover : Padded883.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded884_c0 :
@@ -27290,28 +12192,7 @@ theorem Padded884_c1 :
     ((Padded884.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded884_c2 :
-    ((Padded884.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded884_c3 :
-    ((Padded884.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded884_c4 :
-    ((Padded884.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded884_c5 :
-    ((Padded884.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded884_c6 :
-    ((Padded884.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded884_c7 :
-    ((Padded884.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded884_cover : Padded884.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded885_c0 :
@@ -27322,28 +12203,7 @@ theorem Padded885_c1 :
     ((Padded885.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded885_c2 :
-    ((Padded885.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded885_c3 :
-    ((Padded885.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded885_c4 :
-    ((Padded885.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded885_c5 :
-    ((Padded885.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded885_c6 :
-    ((Padded885.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded885_c7 :
-    ((Padded885.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded885_cover : Padded885.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded886_c0 :
@@ -27354,28 +12214,7 @@ theorem Padded886_c1 :
     ((Padded886.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded886_c2 :
-    ((Padded886.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded886_c3 :
-    ((Padded886.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded886_c4 :
-    ((Padded886.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded886_c5 :
-    ((Padded886.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded886_c6 :
-    ((Padded886.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded886_c7 :
-    ((Padded886.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded886_cover : Padded886.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded887_c0 :
@@ -27386,28 +12225,7 @@ theorem Padded887_c1 :
     ((Padded887.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded887_c2 :
-    ((Padded887.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded887_c3 :
-    ((Padded887.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded887_c4 :
-    ((Padded887.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded887_c5 :
-    ((Padded887.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded887_c6 :
-    ((Padded887.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded887_c7 :
-    ((Padded887.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded887_cover : Padded887.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded888_c0 :
@@ -27418,28 +12236,7 @@ theorem Padded888_c1 :
     ((Padded888.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded888_c2 :
-    ((Padded888.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded888_c3 :
-    ((Padded888.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded888_c4 :
-    ((Padded888.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded888_c5 :
-    ((Padded888.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded888_c6 :
-    ((Padded888.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded888_c7 :
-    ((Padded888.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded888_cover : Padded888.lines.length ≤ 512 := by
   decide_cbv
 
 theorem Padded889_c0 :
@@ -27450,28 +12247,7 @@ theorem Padded889_c1 :
     ((Padded889.lines.drop 256).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
-theorem Padded889_c2 :
-    ((Padded889.lines.drop 512).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded889_c3 :
-    ((Padded889.lines.drop 768).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded889_c4 :
-    ((Padded889.lines.drop 1024).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded889_c5 :
-    ((Padded889.lines.drop 1280).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded889_c6 :
-    ((Padded889.lines.drop 1536).take 256).all (padSlackOK (width := 64) 4) = true := by
-  decide_cbv
-
-theorem Padded889_c7 :
-    ((Padded889.lines.drop 1792).take 256).all (padSlackOK (width := 64) 4) = true := by
+theorem Padded889_cover : Padded889.lines.length ≤ 512 := by
   decide_cbv
 
 end InitECandidate.Runtime.NativePadding
