@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.WordCseAtomicCost
+import InitECandidate.Runtime.WordFunctionCostProps
 import Flapjack.Compiler.Backend.Semantics.WordSem.Props.PermuteSwap
 import Flapjack.Compiler.Backend.WordToWord.Proofs.CompileSingleCorrect.Control
 
@@ -10,31 +10,31 @@ set_option maxHeartbeats 4000000
 for a requested final permutation, preserving the actual result, every other
 post-state field and executed cost. It does not assert equality for arbitrary
 independently chosen input permutations. -/
-def PermuteCostGoal {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+def FunctionPermuteCostGoal {C F : Type} (price : Nat → WordLangProgHOL (BitVec 64) → Nat) (function : Nat)
     (program : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F) : Prop :=
   ∀ finalPermutation : Nat → Nat → Nat,
     (evaluate program source).1 ≠ some .error →
     ∃ initialPermutation,
       evaluate program {source with permute := initialPermutation} =
         ((evaluate program source).1, {(evaluate program source).2 with permute := finalPermutation}) ∧
-      wordExecutionCost (fun p _ => price p) program {source with permute := initialPermutation} =
-        wordExecutionCost (fun p _ => price p) program source
+      wordFunctionExecutionCost (fun fn p _ => price fn p) function program {source with permute := initialPermutation} =
+        wordFunctionExecutionCost (fun fn p _ => price fn p) function program source
 
-theorem permute_cost_atomic {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+theorem function_permute_cost_atomic {C F : Type} (price : Nat → WordLangProgHOL (BitVec 64) → Nat) (function : Nat)
     (program : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F)
-    (atomic : wordCostAtomic program = true) : PermuteCostGoal price program source := by
+    (atomic : wordCostAtomic program = true) : FunctionPermuteCostGoal price function program source := by
   intro finalPermutation safe
   obtain ⟨initialPermutation, run⟩ := permute_swap_lemma program source finalPermutation safe
   refine ⟨initialPermutation, run, ?_⟩
-  rw [wordExecutionCost_atomic _ _ _ atomic, wordExecutionCost_atomic _ _ _ atomic]
+  rw [wordFunctionExecutionCost_atomic _ _ _ _ atomic, wordFunctionExecutionCost_atomic _ _ _ _ atomic]
 
 /-- Sequence stitching works backwards: choose the suffix's input
 permutation, then make the actual prefix end with that permutation. -/
-theorem permute_cost_seq {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+theorem function_permute_cost_seq {C F : Type} (price : Nat → WordLangProgHOL (BitVec 64) → Nat) (function : Nat)
     (first second : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F)
-    (one : PermuteCostGoal price first source)
-    (two : ∀ middle, evaluate first source = (none, middle) → PermuteCostGoal price second middle) :
-    PermuteCostGoal price (.seq first second) source := by
+    (one : FunctionPermuteCostGoal price function first source)
+    (two : ∀ middle, evaluate first source = (none, middle) → FunctionPermuteCostGoal price function second middle) :
+    FunctionPermuteCostGoal price function (.seq first second) source := by
   intro finalPermutation safe
   rcases actual : evaluate first source with ⟨result, middle⟩
   have firstSafe : (evaluate first source).1 ≠ some .error := by
@@ -54,7 +54,7 @@ theorem permute_cost_seq {C F : Type} (price : WordLangProgHOL (BitVec 64) → N
     · rw [evaluate, fix_clock_evaluate, firstRun]
       rw [evaluate, fix_clock_evaluate, actual]
       exact secondRun
-    · rw [wordExecutionCost_seq, wordExecutionCost_seq, firstRun, actual]
+    · rw [wordFunctionExecutionCost_seq, wordFunctionExecutionCost_seq, firstRun, actual]
       simp only
       rw [firstCost, secondCost]
   | some result =>
@@ -63,17 +63,17 @@ theorem permute_cost_seq {C F : Type} (price : WordLangProgHOL (BitVec 64) → N
     refine ⟨initialPermutation, ?_, ?_⟩
     · rw [evaluate, fix_clock_evaluate, firstRun]
       rw [evaluate, fix_clock_evaluate, actual]
-    · rw [wordExecutionCost_seq, wordExecutionCost_seq, firstRun, actual]
+    · rw [wordFunctionExecutionCost_seq, wordFunctionExecutionCost_seq, firstRun, actual]
       simp only [Nat.add_zero]
       rw [firstCost]
 
 /-- Only the actual selected arm is stitched; code/locals/operand values are
 unaffected by changing the input permutation. -/
-theorem permute_cost_ite {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+theorem function_permute_cost_ite {C F : Type} (price : Nat → WordLangProgHOL (BitVec 64) → Nat) (function : Nat)
     (cmp : Cmp) (reg : Nat) (operand : WordRegImm (BitVec 64))
     (first second : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F)
-    (left : PermuteCostGoal price first source) (right : PermuteCostGoal price second source) :
-    PermuteCostGoal price (.ite cmp reg operand first second) source := by
+    (left : FunctionPermuteCostGoal price function first source) (right : FunctionPermuteCostGoal price function second source) :
+    FunctionPermuteCostGoal price function (.ite cmp reg operand first second) source := by
   intro finalPermutation safe
   have gv : ∀ q : Nat → Nat → Nat, getVar reg {source with permute := q} = getVar reg source := fun _ => rfl
   have gi : ∀ q : Nat → Nat → Nat, getVarImm operand {source with permute := q} = getVarImm operand source := by
@@ -104,8 +104,8 @@ theorem permute_cost_ite {C F : Type} (price : WordLangProgHOL (BitVec 64) → N
         simp only [hx, hy, comparison]
       rw [sem, original]
       exact run
-    · conv_lhs => rw [wordExecutionCost]
-      conv_rhs => rw [wordExecutionCost]
+    · conv_lhs => rw [wordFunctionExecutionCost]
+      conv_rhs => rw [wordFunctionExecutionCost]
       simp only [gv, gi, hx, hy, comparison]
       rw [cost]
   | true =>
@@ -121,18 +121,18 @@ theorem permute_cost_ite {C F : Type} (price : WordLangProgHOL (BitVec 64) → N
         simp only [hx, hy, comparison]
       rw [sem, original]
       exact run
-    · conv_lhs => rw [wordExecutionCost]
-      conv_rhs => rw [wordExecutionCost]
+    · conv_lhs => rw [wordFunctionExecutionCost]
+      conv_rhs => rw [wordFunctionExecutionCost]
       simp only [gv, gi, hx, hy, comparison]
       rw [cost]
 
 /-- Termination scopes stitch their actual depth-decremented execution and
 then restore the outer clock/depth, preserving the work of that body. -/
-theorem permute_cost_mustTerminate {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+theorem function_permute_cost_mustTerminate {C F : Type} (price : Nat → WordLangProgHOL (BitVec 64) → Nat) (function : Nat)
     (body : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F)
-    (inner : source.termdep ≠ 0 → PermuteCostGoal price body
+    (inner : source.termdep ≠ 0 → FunctionPermuteCostGoal price function body
       {source with clock := wordSemMustTerminateLimit 64, termdep := source.termdep - 1}) :
-    PermuteCostGoal price (.mustTerminate body) source := by
+    FunctionPermuteCostGoal price function (.mustTerminate body) source := by
   intro finalPermutation safe
   by_cases zero : source.termdep = 0
   · rw [evaluate, dif_pos zero] at safe
@@ -162,13 +162,13 @@ theorem permute_cost_mustTerminate {C F : Type} (price : WordLangProgHOL (BitVec
       zero result _ targetRun
     rw [targetEq, sourceEq]
     simp only [if_neg noTimeout]
-  · conv_lhs => rw [wordExecutionCost]
-    conv_rhs => rw [wordExecutionCost]
+  · conv_lhs => rw [wordFunctionExecutionCost]
+    conv_rhs => rw [wordFunctionExecutionCost]
     simp only [dif_neg zero]
     rw [targetEntry, cost]
 
-#print axioms permute_cost_atomic
-#print axioms permute_cost_seq
-#print axioms permute_cost_ite
-#print axioms permute_cost_mustTerminate
+#print axioms function_permute_cost_atomic
+#print axioms function_permute_cost_seq
+#print axioms function_permute_cost_ite
+#print axioms function_permute_cost_mustTerminate
 end InitECandidate.Runtime.FineCost

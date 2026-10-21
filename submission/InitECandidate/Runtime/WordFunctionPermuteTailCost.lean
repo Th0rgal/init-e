@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.WordPermuteLoopCost
+import InitECandidate.Runtime.WordFunctionPermuteLoopCost
 import Flapjack.Compiler.Backend.WordToWord.Proofs.CompileSingleCorrect.Call
 
 namespace InitECandidate.Runtime.FineCost
@@ -7,13 +7,13 @@ set_option maxHeartbeats 4000000
 
 /-- A tail call stitches the actual selected callee without consuming a
 permutation for a saved caller frame. -/
-theorem permute_cost_tail {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+theorem function_permute_cost_tail {C F : Type} (price : Nat → WordLangProgHOL (BitVec 64) → Nat) (function : Nat)
     (destination : Option Nat) (arguments : List Nat) (source : WordSemStateFiniteExact 64 C F)
     (inner : ∀ xs actualArguments body size,
       getVars arguments source = some xs →
       wordSemFindCode destination xs source.code source.stackSize = some (actualArguments, body, size) →
-      source.clock ≠ 0 → PermuteCostGoal price body (callEnv actualArguments size (decClock source))) :
-    PermuteCostGoal price (.call none destination arguments none) source := by
+      source.clock ≠ 0 → FunctionPermuteCostGoal price ((wordCallLabel destination xs).getD 0) body (callEnv actualArguments size (decClock source))) :
+    FunctionPermuteCostGoal price function (.call none destination arguments none) source := by
   intro finalPermutation safe
   rw [WordToWord.evaluate_call_eq] at safe
   rcases get : getVars arguments source with _ | xs
@@ -38,8 +38,8 @@ theorem permute_cost_tail {C F : Type} (price : WordLangProgHOL (BitVec 64) → 
   · refine ⟨finalPermutation, ?_, ?_⟩
     · rw [WordToWord.evaluate_call_eq, WordToWord.evaluate_call_eq, targetGet, get]
       simp [good, wordSemAddRetLoc, found, zero, flushState]
-    · conv_lhs => rw [wordExecutionCost]
-      conv_rhs => rw [wordExecutionCost]
+    · conv_lhs => rw [wordFunctionExecutionCost]
+      conv_rhs => rw [wordFunctionExecutionCost]
       simp only [getVars_withPermute, get]
       simp only [good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found, zero, dite_true]
   simp only [zero, if_false] at safe
@@ -63,10 +63,10 @@ theorem permute_cost_tail {C F : Type} (price : WordLangProgHOL (BitVec 64) → 
     simp only [good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found, zero]
     rw [targetEntry, bodyRun, entryRun]
     split <;> rfl
-  · conv_lhs => rw [wordExecutionCost]
-    conv_rhs => rw [wordExecutionCost]
+  · conv_lhs => rw [wordFunctionExecutionCost]
+    conv_rhs => rw [wordFunctionExecutionCost]
     simp only [getVars_withPermute, get, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found, zero, dite_false]
     rw [targetEntry, bodyCost]
 
-#print axioms permute_cost_tail
+#print axioms function_permute_cost_tail
 end InitECandidate.Runtime.FineCost

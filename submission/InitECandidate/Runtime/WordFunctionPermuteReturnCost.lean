@@ -1,5 +1,5 @@
-import InitECandidate.Runtime.WordPermuteTailCost
-import InitECandidate.Runtime.WordCallExecutionCost
+import InitECandidate.Runtime.WordFunctionPermuteTailCost
+import InitECandidate.Runtime.WordFunctionCallCost
 
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Compiler.Backend Flapjack.WordSemStateFiniteExact
@@ -7,7 +7,7 @@ set_option maxHeartbeats 5000000
 
 /-- Stitch a successful normal return backwards through the restored caller
 and the callee. The saved-frame permutation head is retained exactly. -/
-theorem permute_cost_normal_return {C F : Type} (price : WordLangProgHOL (BitVec 64) → Nat)
+theorem function_permute_cost_normal_return {C F : Type} (price : Nat → WordLangProgHOL (BitVec 64) → Nat) (function : Nat)
     (values : List Nat) (names : WordLangCutsetsHOL)
     (continuation : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
     (destination : Option Nat) (arguments : List Nat)
@@ -25,10 +25,10 @@ theorem permute_cost_normal_return {C F : Type} (price : WordLangProgHOL (BitVec
     (post : WordSemStateFiniteExact 64 C F)
     (actual : evaluate body (callEnv actualArguments size (pushEnv envs handler (decClock source))) =
       (some (.result location returned), post))
-    (inner : PermuteCostGoal price body (callEnv actualArguments size (pushEnv envs handler (decClock source))))
+    (inner : FunctionPermuteCostGoal price ((wordCallLabel destination (.loc l1 l2 :: xs)).getD 0) body (callEnv actualArguments size (pushEnv envs handler (decClock source))))
     (next : ∀ restored, popEnv post = some restored →
-      PermuteCostGoal price continuation (setVars values returned restored)) :
-    PermuteCostGoal price (.call (some (values, names, continuation, l1, l2)) destination arguments handler) source := by
+      FunctionPermuteCostGoal price function continuation (setVars values returned restored)) :
+    FunctionPermuteCostGoal price function (.call (some (values, names, continuation, l1, l2)) destination arguments handler) source := by
   intro finalPermutation safe
   have sourceEq := WordToWord.evaluate_call_eq source
     (some (values, names, continuation, l1, l2)) handler destination arguments
@@ -77,20 +77,20 @@ theorem permute_cost_normal_return {C F : Type} (price : WordLangProgHOL (BitVec
       rw [targetEq, sourceEq]
       simp only [invalid, if_false, mappedPop, popped, domain, if_true]
       exact nextRun
-    · change wordExecutionCost (fun p _ => price p) _ target = _
-      rw [ret_call_cost (fun p _ => price p) values names continuation l1 l2 destination arguments handler
+    · change wordFunctionExecutionCost (fun fn p _ => price fn p) function _ target = _
+      rw [function_ret_call_cost (fun fn p _ => price fn p) function values names continuation l1 l2 destination arguments handler
         target xs targetGet good actualArguments body size targetFound validNames envs targetCut targetNonzero
         (some (.result location returned)) _ targetRun]
-      rw [ret_call_cost (fun p _ => price p) values names continuation l1 l2 destination arguments handler
+      rw [function_ret_call_cost (fun fn p _ => price fn p) function values names continuation l1 l2 destination arguments handler
         source xs get good actualArguments body size found validNames envs cut nonzero
         (some (.result location returned)) post actual]
-      simp only [retCont, invalid, if_false, mappedPop, popped, domain, if_true]
+      simp only [wordFunctionRetCont, invalid, if_false, mappedPop, popped, domain, if_true]
       rw [targetEntry, bodyCost]
-      exact congrArg (fun n => price (.call (some (values, names, continuation, l1, l2)) destination arguments handler) +
-        wordExecutionCost (fun p _ => price p) body
+      exact congrArg (fun n => price function (.call (some (values, names, continuation, l1, l2)) destination arguments handler) +
+        wordFunctionExecutionCost (fun fn p _ => price fn p) ((wordCallLabel destination (.loc l1 l2 :: xs)).getD 0) body
           (callEnv actualArguments size (pushEnv envs handler (decClock source))) + n) nextCost
   · simp only [domain, if_false] at safe
     exact (safe rfl).elim
 
-#print axioms permute_cost_normal_return
+#print axioms function_permute_cost_normal_return
 end InitECandidate.Runtime.FineCost
