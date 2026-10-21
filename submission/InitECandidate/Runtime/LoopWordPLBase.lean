@@ -32,7 +32,7 @@ structure WordDominatesL {C F : Type} (wp : WordLangProgHOL (BitVec 64) → Word
     wp (.call (some (rets, cut, rc, l1, l2)) d args h) s ≤
       U + argW args.length +
         (if wordCallReturned (.call (some (rets, cut, rc, l1, l2)) d args h) s then R * rets.length else 0) +
-          lp.site (l1, l2)
+          lp.site (l1, l2) + lp.retNames rets.length
   iteOk : I + T ≤ lp.base.ite
   iterOk : 2 * T + L ≤ lp.base.iter
   tailOk : U ≤ lp.base.call
