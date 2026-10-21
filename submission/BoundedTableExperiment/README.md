@@ -751,3 +751,23 @@ still open.
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. This ties the abstract
 `getD`/split spec to loads/stores and disjoint footprints; actual PNK
 statement-run cost coupling remains open.
+
+## 30. Path store coupled to the actual `StatementRun`
+
+`PathStatementCoupling.lean` imports the candidate runtime's
+`InitECandidate.Runtime.PanStatementWork` (cached oleans, no source build) and
+proves:
+
+- `storeValue_events`: the actual `StatementRun.storeValue` rule emits
+  `.statement`, then the address/value expression events, then
+  `.memory (flattenHOL value).length` and
+  `.cost (storeOverhead (flattenHOL value).length)`;
+- `path_store_one_word_events`: for a one-word stored value this is a real
+  `StatementRun` whose event list contains exactly one `.memory 1` and the
+  one-word native store cost;
+- `path_store_one_word_units`: those events charge one memory access and
+  `storeOverhead 1` native units.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. This is statement-run
+event coupling for the path store; coupling the loop guard/load executions and
+the full per-operation cost remains open.
