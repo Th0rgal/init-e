@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SSAInstructionExecutedCost
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticInst
 import InitECandidate.Runtime.WordStackValueGlobalCost
 import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticSeq
 
@@ -91,38 +91,6 @@ theorem SSAQuantitativeSimulation.semantic {C F : Type}
       | none => exact locals
       | some value => cases value <;> exact locals
 
-/-- All integer instructions instantiate the quantitative interface. The
-only price premise is a static source-node inequality. The actual emitted
-moves, compiler output and target work bound are proved by the checked
-instruction theorem; they are not supplied by a caller. -/
-theorem ssa_quantitative_instruction {C F : Type}
-    (sourcePrice : WordLangProgHOL (BitVec 64) → Nat)
-    (instruction : WordLangInst (BitVec 64)) (source target : WordSemStateFiniteExact 64 C F)
-    (map : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
-    (premises : Flapjack.WordAlloc.wordStateEqRel source target ∧
-      ssaLocalsRel next map source.locals target.locals ∧ isAllocVar next ∧
-      everyVarHOL (fun x => decide (x < next)) (.inst instruction) = true ∧
-      ssaMapOK next map ∧ ltOK tables)
-    (price : max 24 (WordToStack.refinedNativeInstructionPrice (HolInst.ofWordLangInst instruction)) +
-      ssaInstructionMovePrice instruction ≤ sourcePrice (.inst instruction)) :
-    SSAQuantitativeSimulation sourcePrice (fun p => wordOptimizerLocalPrice p source)
-      (.inst instruction) source target map next tables := by
-  obtain ⟨semantics, work⟩ := ssa_instruction_semantics_and_cost instruction source target map next tables premises
-  obtain ⟨permutation, related⟩ := ssa_semantic_witness (.inst instruction) source target map next tables semantics
-  refine ⟨permutation, ?_⟩
-  rcases related with error | ⟨result, frame, locals⟩
-  · exact Or.inl error
-  · refine Or.inr ⟨result, frame, locals, ?_⟩
-    have prices : (fun (p : WordLangProgHOL (BitVec 64)) (_ : WordSemStateFiniteExact 64 C F) =>
-        wordOptimizerLocalPrice p source) = wordOptimizerLocalPrice := by
-      funext p state
-      exact wordOptimizerLocalPrice_state_independent p source state
-    rw [prices]
-    have bound := work permutation
-    rw [wordExecutionCost_atomic _ (.inst instruction) _ rfl] at bound ⊢
-    exact bound.trans price
-
 #print axioms ssa_semantic_witness
 #print axioms SSAQuantitativeSimulation.semantic
-#print axioms ssa_quantitative_instruction
 end InitECandidate.Runtime.FineCost
