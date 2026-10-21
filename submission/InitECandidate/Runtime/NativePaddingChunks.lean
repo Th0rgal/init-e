@@ -1,3 +1,5 @@
+import InitECandidate.Proofs.BackendStages.Padded0
+import InitECandidate.Proofs.BackendStages.Padded1
 import InitECandidate.Proofs.BackendStages.Padded597
 
 namespace InitECandidate.Runtime.NativePadding
@@ -21,11 +23,20 @@ def padSlackOK {width : Nat} [NeZero width] (b : Nat)
   | .asm _ bytes len => decide (len ≤ bytes.length + b)
   | .labAsm _ _ bytes len => decide (len ≤ bytes.length + b)
 
-/-- One real chunk of the artifact: the first 64 lines of section 597 all have
-recorded span within one four-byte chunk of their bytes. -/
+theorem Padded0_chunk0 :
+    ((Padded0.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
+theorem Padded1_chunk0 :
+    ((Padded1.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
+  decide_cbv
+
 theorem Padded597_chunk0 :
-    (Padded597.lines.take 64).all (padSlackOK (width := 64) 4) = true := by
+    ((Padded597.lines.drop 0).take 256).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
 
 end InitECandidate.Runtime.NativePadding
+
+#print axioms InitECandidate.Runtime.NativePadding.Padded0_chunk0
+#print axioms InitECandidate.Runtime.NativePadding.Padded1_chunk0
 #print axioms InitECandidate.Runtime.NativePadding.Padded597_chunk0
