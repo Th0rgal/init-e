@@ -1654,4 +1654,20 @@ theorem wec_seq_state_independent {C F : Type}
           hf s1 s2, hg m1 m2]
 
 #print axioms wec_seq_state_independent
+/-- The canonical price of a returning `call` (root's fallback clause): the site charge plus the
+spill charges for the arguments and results beyond the 22 registers the calling convention
+keeps free. -/
+theorem refinedWordLocalPrice_call_some {C F : Type}
+    (values : List Nat) (cutsets : WordLangCutsetsHOL)
+    (body : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (target : Option Nat) (arguments : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call (some (values, cutsets, body, l1, l2)) target arguments handler) s =
+      (if handler.isSome then 189 else 63) +
+        39 * (arguments.length + 1 - 22) + 21 * (values.length + 1 - 22) := by
+  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
+    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
+
+#print axioms refinedWordLocalPrice_call_some
 end InitECandidate.Runtime.FineCost
