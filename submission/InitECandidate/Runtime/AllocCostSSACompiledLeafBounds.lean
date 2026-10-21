@@ -1618,4 +1618,10 @@ theorem wec_move_state_independent {C F : Type} (pri : Nat) (moves : List (Nat Ã
       refinedWordLocalPrice_move]
 
 #print axioms wec_move_state_independent
+theorem wec_skip_state_independent {C F : Type} (s1 s2 : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice .skip s1 =
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice .skip s2 := by
+  rw [wec_skip, wec_skip, refinedWordLocalPrice_state_independent]
+
+#print axioms wec_skip_state_independent
 end InitECandidate.Runtime.FineCost
