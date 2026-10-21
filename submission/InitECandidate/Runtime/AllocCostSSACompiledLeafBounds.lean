@@ -1,5 +1,6 @@
 import InitECandidate.Runtime.AllocCostSSAStageCases
 import Flapjack.Compiler.Backend.WordAlloc.SSACcTrans
+import Flapjack.Compiler.Backend.WordUnreach.Proofs
 
 /-!
 # Compile-output bounds for leaf constructors
@@ -18,6 +19,7 @@ on that count, no moves are inserted and the executed cost is unchanged.
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.WordSemStateFiniteExact Flapjack.WordAlloc
 open Flapjack.Compiler.Backend.WordAlloc
+open Flapjack.Compiler.Backend.WordUnreach
 open InitECandidate.Runtime.WordToStack
 
 /-- The native price of a `move` depends only on the number of pairs. -/
@@ -390,6 +392,23 @@ theorem wec_move_seq_charge {C F : Type} (pri : Nat) (moves : List (Nat × Nat))
   rw [wec_seq_none_split (.move pri moves) tail s mid h, wec_move,
     nativeWordPrice_move_eq_certified]
 
+/-- **Move fall-through, derived from the compiler's own `evaluateMove`.**  A
+parallel move succeeds exactly when its destinations are pairwise distinct and all
+sources can be read, and then it falls through to the state whose locals are the
+copied ones - the concrete `mid` at which `wec_move_seq_charge` charges the tail. -/
+theorem evaluate_move_none {C F : Type}
+    (pri : Nat) (moves : List (Nat × Nat)) (s : WordSemStateFiniteExact 64 C F)
+    (hnodup : (moves.map Prod.fst).Nodup)
+    (hget : WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none) :
+    evaluate (.move pri moves) s =
+      (none, { s with locals := copyVars moves s.locals s.locals }) := by
+  rw [Flapjack.Compiler.Backend.WordUnreach.evaluateMove]
+  rw [if_pos hnodup]
+  cases hv : WordSemStateFiniteExact.getVars (moves.map Prod.snd) s with
+  | none => exact absurd hv hget
+  | some v => rfl
+
+#print axioms evaluate_move_none
 #print axioms wec_move_seq_charge
 #print axioms parmove_charge_le
 #print axioms certifiedMoveCharge_le_of_len
