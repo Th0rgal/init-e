@@ -183,3 +183,101 @@ theorem body_counterRank_step {F : Type} {fn : MlS}
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.body_counterRank_step
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- At one-word `i`/`cap`, the `i < cap` guard always evaluates to a word. -/
+theorem guard_value_word {F : Type} {t : PanSemStateFiniteExact 64 F} {a b : BitVec 64}
+    (hi : t.locals.lookup (ofString "i") = some (.val (.word a)))
+    (hc : t.locals.lookup (ofString "cap") = some (.val (.word b))) :
+    ∃ value : BitVec 64,
+      expressionValue t
+        (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap"))) =
+          some (.val (.word value)) := by
+  refine ⟨if decide (a.toNat < b.toNat) = true then 1 else 0, ?_⟩
+  simp only [expressionValue, evalHOLExact, hi, hc,
+    Compiler.Encoders.Asm.wordCmpHOL, BitVec.lt_def]
+
+/-- Sharper capacity-init bound: with a well-formed guard (always a word), the
+loop `while i < cap { st vals + i*8, i+2; i = i+1 }` runs at most `cap`
+iterations. -/
+theorem whileCount_counter_le_cap_strict {F : Type} {fn : MlS}
+    {body : ProgHOL 64} {s post : PanSemStateFiniteExact 64 F}
+    {r : Option (PanSemResultExact 64)} {events : List WorkEvent} {n : Nat}
+    {b : BitVec 64}
+    (count : WhileCount fn
+      (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+      body s r post events n)
+    (hcap : ∀ (t : PanSemStateFiniteExact 64 F),
+      t.locals.lookup (ofString "cap") = some (.val (.word b)))
+    (hword : ∀ (t : PanSemStateFiniteExact 64 F),
+      ∃ a : BitVec 64, t.locals.lookup (ofString "i") = some (.val (.word a)))
+    (hguardWord : ∀ (t : PanSemStateFiniteExact 64 F) (value : Option (ValueHOL 64))
+      (guardEvents : List WorkEvent),
+      CostedExpressionRun t
+        (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+        value guardEvents →
+      ∃ w : BitVec 64, value = some (.val (.word w)))
+    (step : ∀ (t middle : PanSemStateFiniteExact 64 F)
+      (result : Option (PanSemResultExact 64)) (bodyEvents : List WorkEvent),
+      StatementRun fn (decClockHOLFinite t) body result middle bodyEvents →
+        (result = none ∨ result = some .continue) →
+        counterRank middle = counterRank t + 1)
+    (start : counterRank s ≤ b.toNat) :
+    counterRank s + n ≤ b.toNat := by
+  induction count with
+  | stop guard => omega
+  | next guard nonzero clock one rest ih =>
+      obtain ⟨a, ha⟩ := hword _
+      have hlt := guard_lower_word_bit ha (hcap _) guard.sound nonzero
+      have hnat : a.toNat < b.toNat := by simpa [BitVec.lt_def] using hlt
+      have hidx := counterRank_word ha
+      have hinc := step _ _ _ _ one (Or.inl rfl)
+      have hrest := ih (by rw [hinc, hidx]; omega)
+      rw [hinc, hidx] at hrest
+      omega
+  | breakLoop guard nonzero one =>
+      obtain ⟨a, ha⟩ := hword _
+      have hlt := guard_lower_word_bit ha (hcap _) guard.sound nonzero
+      have hnat : a.toNat < b.toNat := by simpa [BitVec.lt_def] using hlt
+      have hidx := counterRank_word ha
+      omega
+  | continueLoop guard nonzero clock one rest ih =>
+      obtain ⟨a, ha⟩ := hword _
+      have hlt := guard_lower_word_bit ha (hcap _) guard.sound nonzero
+      have hnat : a.toNat < b.toNat := by simpa [BitVec.lt_def] using hlt
+      have hidx := counterRank_word ha
+      have hinc := step _ _ _ _ one (Or.inr rfl)
+      have hrest := ih (by rw [hinc, hidx]; omega)
+      rw [hinc, hidx] at hrest
+      omega
+  | timeout guard nonzero clock =>
+      obtain ⟨a, ha⟩ := hword _
+      have hlt := guard_lower_word_bit ha (hcap _) guard.sound nonzero
+      have hnat : a.toNat < b.toNat := by simpa [BitVec.lt_def] using hlt
+      have hidx := counterRank_word ha
+      omega
+  | missingGuard guard =>
+      obtain ⟨w, hw⟩ := hguardWord _ _ _ guard
+      simp at hw
+  | invalidGuard guard notWord =>
+      obtain ⟨w, hw⟩ := hguardWord _ _ _ guard
+      exact absurd hw (notWord w)
+  | propagate guard nonzero clock notBreak notContinue one =>
+      obtain ⟨a, ha⟩ := hword _
+      have hlt := guard_lower_word_bit ha (hcap _) guard.sound nonzero
+      have hnat : a.toNat < b.toNat := by simpa [BitVec.lt_def] using hlt
+      have hidx := counterRank_word ha
+      omega
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.guard_value_word
+#print axioms BoundedTableExperiment.whileCount_counter_le_cap_strict
