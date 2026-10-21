@@ -649,4 +649,50 @@ theorem wec_ite_false {C F : Type}
 
 #print axioms wec_ite_true
 #print axioms wec_ite_false
+
+/-- Closed `ite` transfer, taken branch `true`: only run facts about the two selections
+plus the node-price and branch transfers.  No branch-cost premise, no target budget. -/
+theorem ite_transfer_true {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (xS yS xT yT : WordLocW 64)
+    (hxS : getVar r1 source = some xS) (hyS : getVarImm ri source = some yS)
+    (hcS : wordSemWordCmp cmp xS yS = some true)
+    (hxT : getVar r1 target = some xT) (hyT : getVarImm ri target = some yT)
+    (hcT : wordSemWordCmp cmp xT yT = some true)
+    (extraNode extra1 : Nat)
+    (hnode : nativeWordPrice (.ite cmp r1 ri e2 e3) target <=
+      nativeWordPrice (.ite cmp r1 ri e2 e3) source + extraNode)
+    (hb : wordExecutionCost nativeWordPrice e2 target <=
+      wordExecutionCost nativeWordPrice e2 source + extra1) :
+    wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) target <=
+      wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) source + extraNode + extra1 := by
+  rw [wec_ite_true cmp r1 ri e2 e3 source xS yS hxS hyS hcS,
+      wec_ite_true cmp r1 ri e2 e3 target xT yT hxT hyT hcT]
+  omega
+
+/-- Closed `ite` transfer, taken branch `false`. -/
+theorem ite_transfer_false {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (xS yS xT yT : WordLocW 64)
+    (hxS : getVar r1 source = some xS) (hyS : getVarImm ri source = some yS)
+    (hcS : wordSemWordCmp cmp xS yS = some false)
+    (hxT : getVar r1 target = some xT) (hyT : getVarImm ri target = some yT)
+    (hcT : wordSemWordCmp cmp xT yT = some false)
+    (extraNode extra1 : Nat)
+    (hnode : nativeWordPrice (.ite cmp r1 ri e2 e3) target <=
+      nativeWordPrice (.ite cmp r1 ri e2 e3) source + extraNode)
+    (hb : wordExecutionCost nativeWordPrice e3 target <=
+      wordExecutionCost nativeWordPrice e3 source + extra1) :
+    wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) target <=
+      wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) source + extraNode + extra1 := by
+  rw [wec_ite_false cmp r1 ri e2 e3 source xS yS hxS hyS hcS,
+      wec_ite_false cmp r1 ri e2 e3 target xT yT hxT hyT hcT]
+  omega
+
+#print axioms ite_transfer_true
+#print axioms ite_transfer_false
 end InitECandidate.Runtime.FineCost
