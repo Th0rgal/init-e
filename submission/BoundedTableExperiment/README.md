@@ -715,3 +715,20 @@ proves:
 Axioms are only `propext` and `Quot.sound`. This refines the iterative loop to
 the split specification; tying the specification to the concrete `HT_PATH`
 list via `getD` membership is the remaining glue.
+
+## 28. Concrete path-buffer heap footprint (checked)
+
+`HeapFootprint.lean` defines half-open region containment/disjointness and
+proves:
+
+- `path_store_in_region`: a store at `path + depth*8` lies inside a path buffer
+  of at least `(depth+1)*8` bytes;
+- `path_read_in_region`: a binary-search read at `mid < depth` lies inside the
+  recorded path;
+- `path_store_no_alias`: path stores cannot overlap one other region;
+- `path_store_no_alias_all`: under `PathSafe` (path disjoint from keys, nodes,
+  output, and scratch), the store address is in none of those four regions.
+
+Axioms are only `propext` and `Quot.sound`. These are concrete pointer/offset
+lemmas; allocator liveness and the actual PNK statement-run cost coupling are
+still open.
