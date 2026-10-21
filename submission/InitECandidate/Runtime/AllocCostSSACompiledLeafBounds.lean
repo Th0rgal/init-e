@@ -2326,4 +2326,40 @@ theorem optimizer_move_price_le_nonself {C F : Type} (pri : Nat)
 
 #print axioms optimizer_move_price_le_double_table
 #print axioms optimizer_move_price_le_nonself
+/-! ### The allocator-only leaves are state independent at the optimizer price
+
+These are the per-constructor facts that `allocOnly_cost_independent` consumes.  At the optimizer price the
+move head charges 24 per pair (no state), the instruction head charges max 24 (refined price) (no state),
+and every other allocator-only head is the refined price, which is state independent.  So the same
+suffix certificate is available at the optimizer price - the run half (move_fallthrough, seq_fallthrough)
+is about `evaluate` and therefore already price free. -/
+
+theorem wordOptimizerLocalPrice_inst {C F : Type} (i : WordLangInst (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) :
+    wordOptimizerLocalPrice (.inst i) s = max 24 (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.inst i) s) := rfl
+
+theorem wec_skip_optimizer_state_independent {C F : Type}
+    (s t : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost wordOptimizerLocalPrice (WordLangProgHOL.skip) s =
+      wordExecutionCost wordOptimizerLocalPrice (WordLangProgHOL.skip) t := by
+  rw [wec_skip wordOptimizerLocalPrice, wec_skip wordOptimizerLocalPrice]
+  simp only [wordOptimizerLocalPrice]
+  exact refinedWordLocalPrice_state_independent _ s t
+
+theorem wec_inst_optimizer_state_independent {C F : Type}
+    (i : WordLangInst (BitVec 64)) (s t : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost wordOptimizerLocalPrice (.inst i) s = wordExecutionCost wordOptimizerLocalPrice (.inst i) t := by
+  rw [wec_inst wordOptimizerLocalPrice, wec_inst wordOptimizerLocalPrice]
+  simp only [wordOptimizerLocalPrice]
+  rw [refinedWordLocalPrice_state_independent (WordLangProgHOL.inst i) s t]
+
+theorem wec_move_optimizer_state_independent {C F : Type}
+    (pri : Nat) (moves : List (Nat × Nat)) (s t : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost wordOptimizerLocalPrice (.move pri moves) s =
+      wordExecutionCost wordOptimizerLocalPrice (.move pri moves) t := by
+  rw [wec_move_optimizer, wec_move_optimizer]
+
+#print axioms wec_skip_optimizer_state_independent
+#print axioms wec_inst_optimizer_state_independent
+#print axioms wec_move_optimizer_state_independent
 end InitECandidate.Runtime.FineCost
