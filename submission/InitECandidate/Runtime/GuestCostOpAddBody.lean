@@ -130,6 +130,8 @@ noncomputable def opAddFinalPost (s : PanSemStateFiniteExact 64 Guest.HostMemory
 both popping calls, the `charge_gas` call, the four-limb `u256_add` call, the
 `stack_push` call, the `pc_add` call and `return 0`, each wrapped with the
 actual argument/return/frame/old-binding events recorded by the call rules. -/
+private def opAddFn : MlS := ofString "op_add"
+
 noncomputable def opAddEvents (s : PanSemStateFiniteExact 64 Guest.HostMemory)
     (frame sp cap base pc : BitVec 64) (funding : GasFunding)
     (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64) : List WorkEvent :=
@@ -142,34 +144,34 @@ noncomputable def opAddEvents (s : PanSemStateFiniteExact 64 Guest.HostMemory)
   let sR := opAddREntry s frame sp xv yv funding a0 a1 a2 a3 b0 b1 b2 b3
   let sP := opAddPushState s frame sp cap base xv yv funding a0 a1 a2 a3 b0 b1 b2 b3
   let sPc := opAddPcState s frame sp cap base pc xv yv funding a0 a1 a2 a3 b0 b1 b2 b3
-  decCallEvents s [] [] comb4Shape
-    (stackPopSuccessEvents (callEntryStateHOLFinite s HolFiniteMapExact.empty)
+  decCallEvents (fn := opAddFn) s (ofString "stack_pop") [] [] comb4Shape
+    (stackPopSuccessEvents (fn := ofString "stack_pop") (callEntryStateHOLFinite s HolFiniteMapExact.empty)
       frame sp (base + (sp - 1) * 32) a0 a1 a2 a3)
     xv
-    (decCallEvents sX [] [] comb4Shape
-      (stackPopSuccessEvents (callEntryStateHOLFinite sX HolFiniteMapExact.empty)
+    (decCallEvents (fn := opAddFn) sX (ofString "stack_pop") [] [] comb4Shape
+      (stackPopSuccessEvents (fn := ofString "stack_pop") (callEntryStateHOLFinite sX HolFiniteMapExact.empty)
         frame (sp - 1) (base + (sp - 1 - 1) * 32) b0 b1 b2 b3)
       yv
-      (callEvents sY [.const (3 : BitVec 64)] [.val (.word 3)] .one
+      (callEvents opAddFn sY (ofString "charge_gas") [.const (3 : BitVec 64)] [.val (.word 3)] .one
         (some (.returned (.val (.word 0))))
         (chargeGasBodyEvents (callEntryStateHOLFinite sY (chargeGasCallee 3)) frame
           funding.left funding.used 3) (some (none, none)) ++
-       decCallEvents sZ
+       decCallEvents (fn := opAddFn) sZ (ofString "u256_add")
         [.var VarKind.local (ofString "x"), .var VarKind.local (ofString "y")] [xv, yv]
         comb4Shape
-        (u256AddEvents (callEntryStateHOLFinite sZ (u256AddCallee xv yv))
+        (u256AddEvents (fn := ofString "u256_add") (callEntryStateHOLFinite sZ (u256AddCallee xv yv))
           a0 a1 a2 a3 b0 b1 b2 b3)
         rv
-        (callEvents sR [.var VarKind.local (ofString "r")] [rv] .one
+        (callEvents opAddFn sR (ofString "stack_push") [.var VarKind.local (ofString "r")] [rv] .one
           (some (.returned (.val (.word 0))))
-          (stackPushSuccessEvents (callEntryStateHOLFinite sR (stackPushCallee rv))
+          (stackPushSuccessEvents (fn := ofString "stack_push") (callEntryStateHOLFinite sR (stackPushCallee rv))
             frame (sp - 2) cap base (opAddLimb0 a0 b0) (opAddLimb1 a0 a1 b0 b1)
             (opAddLimb2 a0 a1 a2 b0 b1 b2) (opAddLimb3 a0 a1 a2 a3 b0 b1 b2 b3)) (some (none, none)) ++
-         callEvents sP [.const (1 : BitVec 64)] [.val (.word 1)] .one
+         callEvents opAddFn sP (ofString "pc_add") [.const (1 : BitVec 64)] [.val (.word 1)] .one
           (some (.returned (.val (.word 0))))
-          (pcAddEvents (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc 1) (some (none, none)) ++
+          (pcAddEvents (fn := ofString "pc_add") (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc 1) (some (none, none)) ++
          (.statement :: (expressionEvents sPc (.const (0 : BitVec 64)) ++
-           [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])))
+           [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves opAddFn)])))
         (oldBindingWords sZ (ofString "r")))
       (oldBindingWords sX (ofString "y")))
     (oldBindingWords s (ofString "x"))
@@ -285,7 +287,7 @@ theorem opAdd_body_run
     (pcCell : (opAddPushState s frame sp cap base (fourWordValue a0 a1 a2 a3)
       (fourWordValue b0 b1 b2 b3) funding a0 a1 a2 a3 b0 b1 b2 b3).memory (frame + 0) =
       .word pc) :
-    StatementRun s (sourceFunctionBody Guest.guestFn_op_add)
+    StatementRun opAddFn s (sourceFunctionBody Guest.guestFn_op_add)
       (some (.returned (.val (.word 0))))
       (opAddFinalPost s frame sp cap base pc (fourWordValue a0 a1 a2 a3)
         (fourWordValue b0 b1 b2 b3) funding a0 a1 a2 a3 b0 b1 b2 b3)
@@ -321,11 +323,11 @@ theorem opAdd_body_run
     simp [rv, opAddRValue, fourWordValue, comb4Shape, shapeOfHOLExact, shapeEqHOL,
       shapeEqHOL.shapeEqListHOL]
   -- the outer return 0
-  have retRun : StatementRun sPc (.return (.const 0)) (some (.returned (.val (.word 0))))
+  have retRun : StatementRun opAddFn sPc (.return (.const 0)) (some (.returned (.val (.word 0))))
       (emptyLocalsHOLFinite sPc)
       (.statement :: (expressionEvents sPc (.const 0) ++
-        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
-    StatementRun.returnValue (expression := .const (0 : BitVec 64))
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves opAddFn)])) :=
+    StatementRun.returnValue (fn := opAddFn) (expression := .const (0 : BitVec 64))
       (costedExpression_events sPc _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   -- the pc_add call
@@ -335,11 +337,11 @@ theorem opAdd_body_run
   have pcLookup : lookupCodeHOLFinite sP.code.lookup (ofString "pc_add") [.val (.word 1)] =
       some (sourceFunctionBody Guest.guestFn_pc_add, pcAddCallee 1, .one) := by
     simpa [pcAddCallee] using opAdd_pcAdd_lookup sP.code.lookup installed 1
-  have pcBody : StatementRun (callEntryStateHOLFinite sP (pcAddCallee 1))
+  have pcBody : StatementRun (ofString "pc_add") (callEntryStateHOLFinite sP (pcAddCallee 1))
       (sourceFunctionBody Guest.guestFn_pc_add) (some (.returned (.val (.word 0))))
       (pcAddSuccessPost (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc)
-      (pcAddEvents (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc 1) := by
-    have := pcAdd_run (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc 1
+      (pcAddEvents (fn := ofString "pc_add") (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc 1) := by
+    have := pcAdd_run (fn := ofString "pc_add") (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc 1
       hFrame
       (by simp [callEntryStateHOLFinite, pcAddCallee, HolFiniteMapExact.lookup_update, FUPDATE])
       pcDomain pcCell
@@ -350,8 +352,8 @@ theorem opAdd_body_run
       .done none sPc := by
     rw [callCostPlan_discard_word _ _]
     rfl
-  have pcCall := (call_statement_work (coeff := coeff) pcArgs pcLookup clockP pcBody pcPlan).1
-  have pcSeq := StatementRun.seqNext pcCall retRun
+  have pcCall := (call_statement_work (coeff := coeff) (fn := opAddFn) pcArgs pcLookup clockP pcBody pcPlan).1
+  have pcSeq := StatementRun.seqNext (fn := opAddFn) pcCall retRun
   -- the stack_push call
   have pushArgs : evalListHOLFinite sR (h := fun a => Classical.propDecidable (sR.memaddrs a))
       [.var VarKind.local (ofString "r")] = some [rv] := by
@@ -362,12 +364,12 @@ theorem opAdd_body_run
     simpa [stackPushCallee] using opAdd_stackPush_lookup sR.code.lookup installed rv
       (by simp [rv, opAddRValue, fourWordValue, comb4Shape, shapeOfHOLExact, shapeEqHOL,
         shapeEqHOL.shapeEqListHOL])
-  have pushBody : StatementRun (callEntryStateHOLFinite sR (stackPushCallee rv))
+  have pushBody : StatementRun (ofString "stack_push") (callEntryStateHOLFinite sR (stackPushCallee rv))
       (sourceFunctionBody Guest.guestFn_stack_push) (some (.returned (.val (.word 0))))
       (stackPushPost (callEntryStateHOLFinite sR (stackPushCallee rv)) frame (sp - 2) cap base
         (opAddLimb0 a0 b0) (opAddLimb1 a0 a1 b0 b1) (opAddLimb2 a0 a1 a2 b0 b1 b2)
         (opAddLimb3 a0 a1 a2 a3 b0 b1 b2 b3))
-      (stackPushSuccessEvents (callEntryStateHOLFinite sR (stackPushCallee rv)) frame (sp - 2)
+      (stackPushSuccessEvents (fn := ofString "stack_push") (callEntryStateHOLFinite sR (stackPushCallee rv)) frame (sp - 2)
         cap base (opAddLimb0 a0 b0) (opAddLimb1 a0 a1 b0 b1) (opAddLimb2 a0 a1 a2 b0 b1 b2)
         (opAddLimb3 a0 a1 a2 a3 b0 b1 b2 b3)) := by
     have hV : (callEntryStateHOLFinite sR (stackPushCallee rv)).locals.lookup
@@ -376,7 +378,7 @@ theorem opAdd_body_run
           (opAddLimb3 a0 a1 a2 a3 b0 b1 b2 b3)) := by
       simp [callEntryStateHOLFinite, stackPushCallee, rv, opAddRValue, fourWordValue,
         HolFiniteMapExact.lookup_update, FUPDATE]
-    have := stackPush_success_run (F := Guest.HostMemory)
+    have := stackPush_success_run (fn := ofString "stack_push") (F := Guest.HostMemory)
       (s := callEntryStateHOLFinite sR (stackPushCallee rv))
       frame (sp - 2) cap base (opAddLimb0 a0 b0) (opAddLimb1 a0 a1 b0 b1)
       (opAddLimb2 a0 a1 a2 b0 b1 b2) (opAddLimb3 a0 a1 a2 a3 b0 b1 b2 b3)
@@ -390,9 +392,9 @@ theorem opAdd_body_run
         (opAddLimb3 a0 a1 a2 a3 b0 b1 b2 b3)) = .done none sP := by
     rw [callCostPlan_discard_word _ _]
     rfl
-  have pushCall := (call_statement_work (coeff := coeff) pushArgs pushLookup clockR
+  have pushCall := (call_statement_work (coeff := coeff) (fn := opAddFn) pushArgs pushLookup clockR
     pushBody pushPlan).1
-  have pushSeq := StatementRun.seqNext pushCall pcSeq
+  have pushSeq := StatementRun.seqNext (fn := opAddFn) pushCall pcSeq
   -- the u256_add decCall
   have rArgs : evalListHOLFinite sZ (h := fun a => Classical.propDecidable (sZ.memaddrs a))
       [.var VarKind.local (ofString "x"), .var VarKind.local (ofString "y")] =
@@ -409,11 +411,11 @@ theorem opAdd_body_run
     simpa [u256AddCallee] using opAdd_u256Add_lookup sZ.code.lookup installed xv yv
       (by simpa [xv] using fourWordValue_shape a0 a1 a2 a3)
       (by simpa [yv] using fourWordValue_shape b0 b1 b2 b3)
-  have rBody : StatementRun (callEntryStateHOLFinite sZ (u256AddCallee xv yv))
+  have rBody : StatementRun (ofString "u256_add") (callEntryStateHOLFinite sZ (u256AddCallee xv yv))
       (sourceFunctionBody Guest.guestFn_u256_add) (some (.returned rv))
       (u256AddPost (callEntryStateHOLFinite sZ (u256AddCallee xv yv))
         a0 a1 a2 a3 b0 b1 b2 b3)
-      (u256AddEvents (callEntryStateHOLFinite sZ (u256AddCallee xv yv))
+      (u256AddEvents (fn := ofString "u256_add") (callEntryStateHOLFinite sZ (u256AddCallee xv yv))
         a0 a1 a2 a3 b0 b1 b2 b3) := by
     have hA : (callEntryStateHOLFinite sZ (u256AddCallee xv yv)).locals.lookup
         (ofString "a") = some (fourWordValue a0 a1 a2 a3) := by
@@ -427,11 +429,11 @@ theorem opAdd_body_run
         FUPDATE, yv, fourWordValue,
         show (ofString "b" : MlStringHOL) ≠ ofString "a" by decide,
         show (ofString "a" : MlStringHOL) ≠ ofString "b" by decide]
-    have := u256Add_run (F := Guest.HostMemory)
+    have := u256Add_run (fn := ofString "u256_add") (F := Guest.HostMemory)
       (s := callEntryStateHOLFinite sZ (u256AddCallee xv yv))
       a0 a1 a2 a3 b0 b1 b2 b3 hA hB
     simpa [rv, opAddRValue, opAddLimb0, opAddLimb1, opAddLimb2, opAddLimb3, fourWordValue] using this
-  have rRun := (decCall_statement_work (coeff := coeff) (name := ofString "r")
+  have rRun := (decCall_statement_work (coeff := coeff) (fn := opAddFn) (name := ofString "r")
     (shape := comb4Shape) (function := ofString "u256_add")
     (arguments := [.var VarKind.local (ofString "x"), .var VarKind.local (ofString "y")])
     (continuation := (.seq (.call (some (none, none)) (ofString "stack_push")
@@ -446,7 +448,7 @@ theorem opAdd_body_run
   have gasLookup : lookupCodeHOLFinite sY.code.lookup (ofString "charge_gas") [.val (.word 3)] =
       some (sourceFunctionBody Guest.guestFn_charge_gas, chargeGasCallee 3, .one) := by
     simpa [chargeGasCallee] using opAdd_chargeGas_lookup sY.code.lookup installed 3
-  have gasBody : StatementRun (callEntryStateHOLFinite sY (chargeGasCallee 3))
+  have gasBody : StatementRun (ofString "charge_gas") (callEntryStateHOLFinite sY (chargeGasCallee 3))
       (sourceFunctionBody Guest.guestFn_charge_gas) (some (.returned (.val (.word 0))))
       (chargeGasPost (callEntryStateHOLFinite sY (chargeGasCallee 3)) frame
         funding.left funding.used 3)
@@ -464,27 +466,27 @@ theorem opAdd_body_run
         funding.left funding.used 3) = .done none sZ := by
     rw [callCostPlan_discard_word _ _]
     rfl
-  have gasCall := (call_statement_work (coeff := coeff) gasArgs gasLookup clockY
+  have gasCall := (call_statement_work (coeff := coeff) (fn := opAddFn) gasArgs gasLookup clockY
     gasBody gasPlan).1
-  have gasSeq := StatementRun.seqNext gasCall rRun
+  have gasSeq := StatementRun.seqNext (fn := opAddFn) gasCall rRun
   -- the second pop decCall
   have yArgs : evalListHOLFinite sX (h := fun a => Classical.propDecidable (sX.memaddrs a))
       [] = some [] := evalListHOLFinite_nil sX
   have yLookup : lookupCodeHOLFinite sX.code.lookup (ofString "stack_pop") [] =
       some (sourceFunctionBody Guest.guestFn_stack_pop, HolFiniteMapExact.empty, comb4Shape) :=
     opAdd_stackPop_lookup sX.code.lookup installed
-  have yBody : StatementRun (callEntryStateHOLFinite sX HolFiniteMapExact.empty)
+  have yBody : StatementRun (ofString "stack_pop") (callEntryStateHOLFinite sX HolFiniteMapExact.empty)
       (sourceFunctionBody Guest.guestFn_stack_pop) (some (.returned yv))
       (stackPopSuccessPost (callEntryStateHOLFinite sX HolFiniteMapExact.empty) frame (sp - 1))
-      (stackPopSuccessEvents (callEntryStateHOLFinite sX HolFiniteMapExact.empty)
+      (stackPopSuccessEvents (fn := ofString "stack_pop") (callEntryStateHOLFinite sX HolFiniteMapExact.empty)
         frame (sp - 1) (base + (sp - 1 - 1) * 32) b0 b1 b2 b3) := by
-    have := stackPop_success_run (F := Guest.HostMemory)
+    have := stackPop_success_run (fn := ofString "stack_pop") (F := Guest.HostMemory)
       (state := callEntryStateHOLFinite sX HolFiniteMapExact.empty)
       frame (sp - 1) base b0 b1 b2 b3
       hFrame spYDomain spYCell nonzeroY baseYDomain baseYCell
       yDomain0 yDomain1 yDomain2 yDomain3 yCell0 yCell1 yCell2 yCell3
     simpa [yv, fourWordValue, stackPopSuccessPost] using this
-  have yRun := (decCall_statement_work (coeff := coeff) (name := ofString "y")
+  have yRun := (decCall_statement_work (coeff := coeff) (fn := opAddFn) (name := ofString "y")
     (shape := comb4Shape) (function := ofString "stack_pop") (arguments := [])
     (continuation := (.seq (.call (some (none, none)) (ofString "charge_gas")
         [(.const (3 : BitVec 64))])
@@ -501,17 +503,17 @@ theorem opAdd_body_run
   have xLookup : lookupCodeHOLFinite s.code.lookup (ofString "stack_pop") [] =
       some (sourceFunctionBody Guest.guestFn_stack_pop, HolFiniteMapExact.empty, comb4Shape) :=
     opAdd_stackPop_lookup s.code.lookup installed
-  have xBody : StatementRun (callEntryStateHOLFinite s HolFiniteMapExact.empty)
+  have xBody : StatementRun (ofString "stack_pop") (callEntryStateHOLFinite s HolFiniteMapExact.empty)
       (sourceFunctionBody Guest.guestFn_stack_pop) (some (.returned xv))
       (stackPopSuccessPost (callEntryStateHOLFinite s HolFiniteMapExact.empty) frame sp)
-      (stackPopSuccessEvents (callEntryStateHOLFinite s HolFiniteMapExact.empty)
+      (stackPopSuccessEvents (fn := ofString "stack_pop") (callEntryStateHOLFinite s HolFiniteMapExact.empty)
         frame sp (base + (sp - 1) * 32) a0 a1 a2 a3) := by
-    have := stackPop_success_run (F := Guest.HostMemory)
+    have := stackPop_success_run (fn := ofString "stack_pop") (F := Guest.HostMemory)
       (state := callEntryStateHOLFinite s HolFiniteMapExact.empty) frame sp base a0 a1 a2 a3
       hFrame spDomain spCell nonzero baseDomain baseCell
       xDomain0 xDomain1 xDomain2 xDomain3 xCell0 xCell1 xCell2 xCell3
     simpa [xv, fourWordValue, stackPopSuccessPost] using this
-  have xRun := (decCall_statement_work (coeff := coeff) (name := ofString "x")
+  have xRun := (decCall_statement_work (coeff := coeff) (fn := opAddFn) (name := ofString "x")
     (shape := comb4Shape) (function := ofString "stack_pop") (arguments := [])
     (continuation := (.decCall (ofString "y") comb4Shape (ofString "stack_pop") []
       (.seq (.call (some (none, none)) (ofString "charge_gas") [(.const (3 : BitVec 64))])
