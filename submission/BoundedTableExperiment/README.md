@@ -1068,3 +1068,19 @@ composed.
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. These are actual AST
 equations, not an abstract model. Their `StatementRun`/cost composition is the
 remaining step.
+
+## 49. Actual side-link store traces
+
+`CandidateHtabSetLinkTrace.lean` proves:
+
+- `candidateHtabSetSideStores_trace`: an actual successful run of the
+  side-store block is either the `side != 0` arm (`store nip cur; store
+  (nip+8) new_leaf`) or the zero arm (`store nip new_leaf; store (nip+8)
+  cur`), with the actual `ite` guard events and branch run;
+- `candidateHtabSetSideStorePair_trace`: either two-store arm splits into the
+  actual first and second `StatementRun`s.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+This covers the actual child-link writes at `nip`/`nip+8`; the root/parent
+link block and bsearch/growth composition remain.
