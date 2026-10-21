@@ -7,6 +7,40 @@ variable {price : HolProg 64 → Nat} [caps : ConservativeRemovalPrice price]
 
 /-- A non-return callee outcome propagates without executing a return
 continuation. In particular, exceptions without a handler pay no return copies. -/
+theorem stackCost_returning_call_propagateSelected {F : Type}
+    (callee continuation : HolProg 64) (link l1 l2 : Nat) (dest : Sum Nat Nat)
+    (handler : Option (HolProg 64 × Nat × Nat))
+    (source post : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (result : Option (StackSemResult 64)) (bodyClock bodyBudget : Nat)
+    (nonzero : source.clock ≠ 0)
+    (found : StackSemControl.findCode dest (source.regs.eraseEq link) source.code = some callee)
+    (selectedZero : ∀ returnBudget handlerBudget,
+      selectedContinuationBudget result l1 l2 handler returnBudget handlerBudget = 0)
+    (run : StackSemEvaluate.evaluate
+      (callee, {StackSemStateOps.setVar link (.loc l1 l2) (StackSemStateOps.decClock source) with
+        clock := (StackSemStateOps.decClock source).clock + bodyClock}) = (result, post))
+    (bodyCost : stackExecutionCost (fun p _ => price p)
+      callee {StackSemStateOps.setVar link (.loc l1 l2) (StackSemStateOps.decClock source) with
+        clock := (StackSemStateOps.decClock source).clock + bodyClock} ≤ bodyBudget) :
+    stackExecutionCost (fun p _ => price p)
+      (.call (some (continuation,link,l1,l2)) dest handler)
+      {source with clock := source.clock + bodyClock} ≤ bodyBudget + 12 := by
+  let entry : StackSemStateFiniteExact 64 LabToTarget.Config F :=
+    {StackSemStateOps.setVar link (.loc l1 l2) (StackSemStateOps.decClock source) with
+      clock := (StackSemStateOps.decClock source).clock + bodyClock}
+  have actualEntry : StackSemStateOps.decClock (StackSemStateOps.setVar link (.loc l1 l2)
+      {source with clock := source.clock + bodyClock}) = entry := by
+    simp only [entry, StackSemStateOps.decClock, StackSemStateOps.setVar]
+    congr 1
+    omega
+  have bound := stackCost_returning_call_run (price := price) continuation link l1 l2 dest handler callee
+    {source with clock := source.clock + bodyClock} post result
+    (by simp only; omega) found (by rw [actualEntry]; exact run)
+  rw [actualEntry] at bound
+  simp only [selectedZero, Nat.add_zero] at bound
+  change stackExecutionCost (fun p _ => price p) callee entry ≤ bodyBudget at bodyCost
+  exact bound.trans (Nat.add_le_add_right bodyCost 12)
+
 theorem stackCost_returning_call_propagate {F : Type}
     (callee continuation : HolProg 64) (link l1 l2 : Nat) (dest : Sum Nat Nat)
     (source post : StackSemStateFiniteExact 64 LabToTarget.Config F)
@@ -23,27 +57,13 @@ theorem stackCost_returning_call_propagate {F : Type}
     stackExecutionCost (fun p _ => price p)
       (.call (some (continuation,link,l1,l2)) dest none)
       {source with clock := source.clock + bodyClock} ≤ bodyBudget + 12 := by
-  let entry : StackSemStateFiniteExact 64 LabToTarget.Config F :=
-    {StackSemStateOps.setVar link (.loc l1 l2) (StackSemStateOps.decClock source) with
-      clock := (StackSemStateOps.decClock source).clock + bodyClock}
-  have actualEntry : StackSemStateOps.decClock (StackSemStateOps.setVar link (.loc l1 l2)
-      {source with clock := source.clock + bodyClock}) = entry := by
-    simp only [entry, StackSemStateOps.decClock, StackSemStateOps.setVar]
-    congr 1
-    omega
-  have selectedZero : ∀ returnBudget handlerBudget,
-      selectedContinuationBudget result l1 l2 none returnBudget handlerBudget = 0 := by
-    intro returnBudget handlerBudget
-    cases result with
-    | none => rfl
-    | some outcome => cases outcome <;> simp_all [selectedContinuationBudget]
-  have bound := stackCost_returning_call_run (price := price) continuation link l1 l2 dest none callee
-    {source with clock := source.clock + bodyClock} post result
-    (by simp only; omega) found (by rw [actualEntry]; exact run)
-  rw [actualEntry] at bound
-  simp only [selectedZero, Nat.add_zero] at bound
-  change stackExecutionCost (fun p _ => price p) callee entry ≤ bodyBudget at bodyCost
-  exact bound.trans (Nat.add_le_add_right bodyCost 12)
+  apply stackCost_returning_call_propagateSelected callee continuation link l1 l2 dest none
+    source post result bodyClock bodyBudget nonzero found ?_ run bodyCost
+  intro returnBudget handlerBudget
+  cases result with
+  | none => rfl
+  | some outcome => cases outcome <;> simp_all [selectedContinuationBudget]
 
+#print axioms stackCost_returning_call_propagateSelected
 #print axioms stackCost_returning_call_propagate
 end InitECandidate.Runtime.StackToLab
