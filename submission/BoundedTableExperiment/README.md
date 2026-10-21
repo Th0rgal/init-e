@@ -1100,3 +1100,11 @@ into the root store (`store (t+72) new_int`) or the `pp` scope containing the
 iteration, `whileBreak`, or `whileContinue`, with the actual event prefix
 `.statement :: .cost (whileOverhead + loopMoves fn) :: ...` and the actual
 guard/body/rest runs. Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 52. Actual binary-search iteration declarations
+
+`CandidateHtabSetBsearchStepTrace.lean` splits one actual successful
+binary-search iteration at its `mid` and `mr` declarations. Each split carries
+the actual initializer events, the declaration frame event, and the actual
+body run, with the declaration's local-environment post-state recorded
+explicitly. Axioms are `propext`, `Classical.choice`, `Quot.sound`.
