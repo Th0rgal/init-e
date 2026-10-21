@@ -169,7 +169,7 @@ theorem fperm_run (f g : MlS) (hinv : LabelInvariant f g) {F : Type} {s : PanSem
     have run' := StatementRun.callDone (fn := fpermName f g fn) args' lookup' clock r1
       (simpCode_plan_done C (simp_plan_map_done (fpermHOL f g) plan))
     rw [simpCode_listEvents, simpCode_callGlobal, callGlobalEvents_simpMapInfo] at run'
-    rw [fperm_call]; rw [← callMoves_fperm hinv]; exact run'
+    rw [fperm_call]; rw [← callMoves_fperm hinv, ← callSites_fperm hinv]; exact run'
   | @callHandler fn s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post args lookup clock bodyRun plan
       handlerRun ihBody ihHandler =>
@@ -186,7 +186,7 @@ theorem fperm_run (f g : MlS) (hinv : LabelInvariant f g) {F : Type} {s : PanSem
     have run' := StatementRun.callHandler (fn := fpermName f g fn) args' lookup' clock r1
       (simpCode_plan_handler C (simp_plan_map_handler (fpermHOL f g) plan).1) r2
     rw [simpCode_listEvents] at run'
-    rw [fperm_call]; rw [← callMoves_fperm hinv]; exact run'
+    rw [fperm_call]; rw [← callMoves_fperm hinv, ← callSites_fperm hinv]; exact run'
   | @callTimeout fn s info function arguments values body callee returnShape args lookup clock =>
     intro _ C hC
     have args' := (PanSimp.evalListCodeUpd C s arguments).trans args
@@ -194,7 +194,7 @@ theorem fperm_run (f g : MlS) (hinv : LabelInvariant f g) {F : Type} {s : PanSem
     rw [← hC] at lookup'
     have run' := StatementRun.callTimeout (fn := fpermName f g fn) (info := simpMapInfo (fpermHOL f g) info) args' lookup' clock
     rw [simpCode_listEvents, simpCode_callGlobal, callGlobalEvents_simpMapInfo] at run'
-    rw [fperm_call]; rw [← callMoves_fperm hinv]; exact run'
+    rw [fperm_call]; rw [← callMoves_fperm hinv, ← callSites_fperm hinv]; exact run'
   | @declareCallTimeout fn s name shape function arguments continuation values body callee returnShape
       args lookup clock =>
     intro _ C hC
@@ -204,7 +204,7 @@ theorem fperm_run (f g : MlS) (hinv : LabelInvariant f g) {F : Type} {s : PanSem
     have run' := StatementRun.declareCallTimeout (fn := fpermName f g fn) (name := name) (shape := shape)
       (continuation := fpermHOL f g continuation) args' lookup' clock
     rw [simpCode_listEvents] at run'
-    simp only [fpermHOL]; rw [← callMoves_fperm hinv]; exact run'
+    simp only [fpermHOL]; rw [← callMoves_fperm hinv, ← callSites_fperm hinv]; exact run'
   | @declareCallReturn fn s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents continuationEvents result post args lookup clock bodyRun shapeMatch
       continuationRun ihBody ihContinuation =>
@@ -217,7 +217,7 @@ theorem fperm_run (f g : MlS) (hinv : LabelInvariant f g) {F : Type} {s : PanSem
       (by show C = fpermCodeHOL f g bodyPost.code; rw [bodyRun.code_eq]; exact hC)
     have run' := StatementRun.declareCallReturn (fn := fpermName f g fn) args' lookup' clock r1 shapeMatch r2
     rw [simpCode_listEvents] at run'
-    simp only [fpermHOL]; rw [← callMoves_fperm hinv]; exact run'
+    simp only [fpermHOL]; rw [← callMoves_fperm hinv, ← callSites_fperm hinv]; exact run'
   | @declareCallStopped fn s name shape function arguments continuation values body callee returnShape
       bodyResult bodyPost bodyEvents args lookup clock bodyRun terminal ihBody =>
     intro ok C hC
@@ -230,7 +230,7 @@ theorem fperm_run (f g : MlS) (hinv : LabelInvariant f g) {F : Type} {s : PanSem
     have run' := StatementRun.declareCallStopped (fn := fpermName f g fn) (name := name) (shape := shape)
       (continuation := fpermHOL f g continuation) args' lookup' clock r1 terminal
     rw [simpCode_stopPlan, simpCode_listEvents] at run'
-    simp only [fpermHOL]; rw [← callMoves_fperm hinv]; exact run'
+    simp only [fpermHOL]; rw [← callMoves_fperm hinv, ← callSites_fperm hinv]; exact run'
 
 #print axioms fperm_run
 end InitECandidate.Runtime.FineCost

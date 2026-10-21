@@ -116,7 +116,8 @@ theorem call_none_refn (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 
     {r ev} (run : StatementRun fn s (.call none function []) r post ev) (ok : r ≠ some .error)
     (other : MlS) :
     ∃ ev', StatementRun other s (.call none function []) r post ev' ∧
-      sharpSourceScore B ev' + callMoves fn function = sharpSourceScore B ev + callMoves other function := by
+      sharpSourceScore B ev' + (callMoves fn function + callSites fn function) =
+        sharpSourceScore B ev + (callMoves other function + callSites other function) := by
   cases run with
   | callDone args lookup clock bodyRun plan =>
     refine ⟨_, .callDone args lookup clock bodyRun plan, ?_⟩

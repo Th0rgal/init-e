@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.AllocFunctionTables
+import InitECandidate.Runtime.CallSiteTable
 import InitE.SourceDeclarationsCore
 import Flapjack.Pancake.PanGlobals
 namespace InitECandidate.Runtime.FineCost
@@ -41,6 +42,12 @@ def fnLabel (fn : MlS) : Nat := (functionLabel fn).getD 64
 /-- Moves charged to a call of `callee` from `fn`. -/
 def callMoves (fn callee : MlS) : Nat := (tableOf (fnLabel fn)).call (functionLabel callee)
 
+/-- WordSimp constant re-insert surcharge charged to a call of `callee` from
+`fn`: the certified caller+callee table entry (`CallSiteTable`), in Word price
+units. Kept separate from the allocator moves. -/
+def callSites (fn callee : MlS) : Nat :=
+  24 * (callTabGet (fnLabel fn, functionLabel callee) + callTabGet (fnLabel fn, none))
+
 /-- Branch-merge moves charged to an `if` of `fn`. -/
 def branchMoves (fn : MlS) : Nat := (tableOf (fnLabel fn)).merge
 
@@ -66,6 +73,10 @@ theorem fnLabel_fperm {f g : MlS} (h : LabelInvariant f g) (n : MlS) :
 theorem callMoves_fperm {f g : MlS} (h : LabelInvariant f g) (a b : MlS) :
     callMoves (fpermName f g a) (fpermName f g b) = callMoves a b := by
   simp only [callMoves, fnLabel_fperm h, h b]
+
+theorem callSites_fperm {f g : MlS} (h : LabelInvariant f g) (a b : MlS) :
+    callSites (fpermName f g a) (fpermName f g b) = callSites a b := by
+  simp only [callSites, fnLabel_fperm h, h b]
 
 theorem branchMoves_fperm {f g : MlS} (h : LabelInvariant f g) (a : MlS) :
     branchMoves (fpermName f g a) = branchMoves a := by simp only [branchMoves, fnLabel_fperm h]
@@ -96,5 +107,6 @@ theorem labelInvariant_entry : LabelInvariant entryName freshEntryName := by
 
 #print axioms branchMoves_le_loopMoves
 #print axioms callMoves_fperm
+#print axioms callSites_fperm
 #print axioms labelInvariant_entry
 end InitECandidate.Runtime.FineCost

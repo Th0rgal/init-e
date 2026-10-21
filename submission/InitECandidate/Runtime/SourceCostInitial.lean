@@ -236,7 +236,7 @@ theorem source_loop_initial {F C : Type} (source : PanSemStateFiniteExact 64 F)
           (evaluate loopProgram { loopState with clock := T.clock + 1 + extra }) wl ∧
         wl ≤ sharpScore ev +
           globalsTopInit rshape ((panSimpDeclsHOL code).filter isDeclHOL).length (callPayloadWords r) +
-          callMoves start (newMainNameHOL (panSimpDeclsHOL code)) ∧
+          (callMoves start (newMainNameHOL (panSimpDeclsHOL code)) + callSites start (newMainNameHOL (panSimpDeclsHOL code))) ∧
         LoopRunRel (entryLoopContext arch panCode) .ln
           (evalCrepSemHOLProgExact (crepSimpMapcsHOL { crepState with clock := T.clock + 1 }) program)
           (evaluate loopProgram { loopState with clock := T.clock + 1 + extra }) ∧

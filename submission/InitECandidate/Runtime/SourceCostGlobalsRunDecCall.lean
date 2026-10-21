@@ -14,7 +14,7 @@ theorem globals_callTimeout_global (B : Nat) {F : Type} {s : PanSemStateFiniteEx
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)] ++
+            (callMoves fn function + callSites fn function))] ++
         callGlobalEvents s (some (some (.global, name), none)))) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have values' := globals_list_values rel arguments values args
@@ -90,7 +90,7 @@ theorem globals_declareCallReturn (B : Nat) {F : Type} {s post : PanSemStateFini
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
         [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match
@@ -148,7 +148,7 @@ theorem globals_declareCallTimeout (B : Nat) {F : Type} {s : PanSemStateFiniteEx
       (some .timeOut) (emptyLocalsHOLFinite s) (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)])) := by
+            (callMoves fn function + callSites fn function))])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match
     (StatementRun.declareCallTimeout (name := name) (shape := shape) (continuation := continuation)
@@ -189,7 +189,7 @@ theorem globals_declareCallStopped (B : Nat) {F : Type} {s : PanSemStateFiniteEx
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match
