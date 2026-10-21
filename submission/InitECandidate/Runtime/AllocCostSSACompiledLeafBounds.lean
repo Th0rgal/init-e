@@ -1469,4 +1469,46 @@ theorem wec_ite_true_canonical {C F : Type}
 #print axioms evaluate_ite_true
 #print axioms evaluate_ite_false
 #print axioms wec_ite_true_canonical
+/-- `ite` cost transfer, then-branch: the node price 23 is the same on both sides (it is a
+constant of the program, and `refinedWordLocalPrice` is state independent), so the transfer
+reduces to the selected branch's cost transfer. -/
+theorem ite_transfer_then_canonical {C F : Type}
+    (cmp : Cmp) (r1 r1' : Nat) (ri ri' : WordRegImm (BitVec 64))
+    (c1 c2 c1' c2' : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (xS yS xT yT : WordLocW 64)
+    (hxS : getVar r1 source = some xS) (hyS : getVarImm ri source = some yS)
+    (hcS : wordSemWordCmp cmp xS yS = some true)
+    (hxT : getVar r1' target = some xT) (hyT : getVarImm ri' target = some yT)
+    (hcT : wordSemWordCmp cmp xT yT = some true)
+    (extra : Nat)
+    (hb : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice c1' target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice c1 source + extra) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp r1' ri' c1' c2') target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp r1 ri c1 c2) source + extra := by
+  rw [wec_ite_true_canonical cmp r1' ri' c1' c2' target xT yT hxT hyT hcT,
+      wec_ite_true_canonical cmp r1 ri c1 c2 source xS yS hxS hyS hcS]
+  omega
+
+/-- The same for the else-branch. -/
+theorem ite_transfer_else_canonical {C F : Type}
+    (cmp : Cmp) (r1 r1' : Nat) (ri ri' : WordRegImm (BitVec 64))
+    (c1 c2 c1' c2' : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (xS yS xT yT : WordLocW 64)
+    (hxS : getVar r1 source = some xS) (hyS : getVarImm ri source = some yS)
+    (hcS : wordSemWordCmp cmp xS yS = some false)
+    (hxT : getVar r1' target = some xT) (hyT : getVarImm ri' target = some yT)
+    (hcT : wordSemWordCmp cmp xT yT = some false)
+    (extra : Nat)
+    (hb : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice c2' target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice c2 source + extra) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp r1' ri' c1' c2') target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.ite cmp r1 ri c1 c2) source + extra := by
+  rw [wordExecutionCost, wordExecutionCost]
+  simp only [hxT, hyT, hcT, hxS, hyS, hcS, refinedWordLocalPrice_ite]
+  omega
+
+#print axioms ite_transfer_then_canonical
+#print axioms ite_transfer_else_canonical
 end InitECandidate.Runtime.FineCost
