@@ -273,3 +273,65 @@ end BoundedTableExperiment
 #print axioms BoundedTableExperiment.candidate_order_pos_alloc_eval
 #print axioms BoundedTableExperiment.candidate_nodes_alloc_eval
 #print axioms BoundedTableExperiment.candidate_path_alloc_eval
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- The explicit ready state of a candidate scratch allocation call. -/
+noncomputable def candidateAllocReady {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (argument : ExpHOL 64) : PanSemStateFiniteExact 64 F :=
+  (evaluateHOLFiniteState state
+    (.call (some (none,none)) (ofString "scratch_alloc") [argument])).2
+
+/-- Explicit form of one candidate allocation: the ready state is the actual
+second component of the call evaluation, so allocation results chain
+definitionally. -/
+theorem candidate_alloc_eval_explicit {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (name : MlS) (argument : ExpHOL 64) (size : BitVec 64)
+    (pointer frame : BitVec 64)
+    (arguments : evalListHOLFinite state
+      (h := fun address => Classical.propDecidable (state.memaddrs address))
+      [argument] = some [.val (.word size)])
+    (installed : state.code.lookup (ofString "scratch_alloc") =
+      some ([(ofString "n",.one)],sourceFunctionBody Guest.guestFn_scratch_alloc,.one))
+    (clock : state.clock ≠ 0)
+    (scratchGlobal : state.globals.lookup (ofString "scratch_ptr") =
+      some (.val (.word pointer)))
+    (frameGlobal : state.globals.lookup (ofString "frame_mem_ptr") =
+      some (.val (.word frame)))
+    (request : size ≤ pointer - frame)
+    (finishBound : frame ≤ scratchAllocationEnd pointer size) :
+    (candidateAllocReady state argument).memory = state.memory ∧
+    (candidateAllocReady state argument).globals =
+      (setGlobalHOLFinite (ofString "scratch_ptr")
+        (.val (.word (scratchAllocationEnd pointer size))) state).globals ∧
+    ∀ continuation,
+      evaluateHOLFiniteState state
+          (.decCall name .one (ofString "scratch_alloc") [argument] continuation) =
+        (let output := evaluateHOLFiniteState
+            (setVarHOLFinite name (.val (.word (scratchAllocationEnd pointer size)))
+              (candidateAllocReady state argument))
+            continuation;
+          (output.1,{output.2 with locals := (HolFiniteMapExact.resVarEq output.2.locals
+            (name,state.locals.lookup name))})) := by
+  obtain ⟨ready, call, memory, globals, cont⟩ :=
+    candidate_alloc_eval_general state name argument size pointer frame arguments
+      installed clock scratchGlobal frameGlobal request finishBound
+  have readyEq : candidateAllocReady state argument = ready := by
+    simp [candidateAllocReady, call]
+  refine ⟨?_, ?_, ?_⟩
+  · rw [readyEq]; exact memory
+  · rw [readyEq]; exact globals
+  · intro continuation
+    rw [readyEq]
+    exact cont continuation
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidate_alloc_eval_explicit
