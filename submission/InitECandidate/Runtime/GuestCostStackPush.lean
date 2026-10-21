@@ -1,5 +1,9 @@
 import InitECandidate.Runtime.GuestCostStackPop
+set_option maxRecDepth 10000
+set_option maxHeartbeats 4000000
 namespace InitECandidate.Runtime.FineCost
+
+variable {fn : MlS}
 
 theorem stackPush_score_cost (coeff : Work) (n : Nat) :
     coeff.score (WorkEvent.cost n).units = coeff.nativeCost * n := by
@@ -207,10 +211,10 @@ noncomputable def stackPushSuccessEvents (s : PanSemStateFiniteExact 64 F)
       (.op .add [.var VarKind.local (ofString "sp"), .const (1 : BitVec 64)]) ++
     [.memory (flattenHOL (.val (.word (sp + 1)))).length, .cost (storeOverhead (flattenHOL (.val (.word (sp + 1)))).length)])
   let ret := .statement :: (expressionEvents updated (.const (0 : BitVec 64)) ++
-    [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])
+    [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves fn)])
   let tail := storeV ++ (storeSp ++ ret)
-  let tailEvents := (.statement :: .cost statementUnit :: (fullGuard ++ [.statement])) ++ tail
-  let bodyEvents := (.statement :: .cost statementUnit :: (capGuard ++ [.statement])) ++ tailEvents
+  let tailEvents := (.statement :: .cost (statementUnit + branchMoves fn) :: (fullGuard ++ [.statement])) ++ tail
+  let bodyEvents := (.statement :: .cost (statementUnit + branchMoves fn) :: (capGuard ++ [.statement])) ++ tailEvents
   let capEvents := .statement :: (expressionEvents entrySp (fundingLoad 232) ++
     [.frame 1] ++ bodyEvents)
   .statement :: (expressionEvents s (fundingLoad 16) ++
@@ -236,10 +240,10 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
     (storeDomain1 : s.memaddrs (base + sp * 32 + 8))
     (storeDomain2 : s.memaddrs (base + sp * 32 + 8 + 8))
     (storeDomain3 : s.memaddrs (base + sp * 32 + 8 + 8 + 8)) :
-    StatementRun s (sourceFunctionBody Guest.guestFn_stack_push)
+    StatementRun fn s (sourceFunctionBody Guest.guestFn_stack_push)
       (some (.returned (.val (.word 0))))
       (stackPushPost s frame sp cap base v0 v1 v2 v3)
-      (stackPushSuccessEvents s frame sp cap base v0 v1 v2 v3) := by
+      (stackPushSuccessEvents (fn := fn) s frame sp cap base v0 v1 v2 v3) := by
   classical
   let entrySp := stackPopEntry s sp
   let entryCap := stackPushCapEntry s sp cap
@@ -299,15 +303,15 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
         (.cmp Cmp.notLower (.var VarKind.local (ofString "sp"))
           (.var VarKind.local (ofString "cap")))) :=
     costedExpression_events entryCap _ _ capGuardValue
-  have growthRun : StatementRun entryCap (.ite
+  have growthRun : StatementRun fn entryCap (.ite
       (.cmp Cmp.notLower (.var VarKind.local (ofString "sp"))
         (.var VarKind.local (ofString "cap")))
       stackPushGrowth .skip) none entryCap
-      (.statement :: .cost statementUnit :: (expressionEvents entryCap
+      (.statement :: .cost (statementUnit + branchMoves fn) :: (expressionEvents entryCap
         (.cmp Cmp.notLower (.var VarKind.local (ofString "sp"))
           (.var VarKind.local (ofString "cap"))) ++ [.statement])) :=
-    StatementRun.iteNo (r := none) (post := entryCap) (bodyEvents := [.statement])
-      (yes := stackPushGrowth) (no := .skip) capGuard (StatementRun.skip entryCap)
+    StatementRun.iteNo (fn := fn) (r := none) (post := entryCap) (bodyEvents := [.statement])
+      (yes := stackPushGrowth) (no := .skip) capGuard (StatementRun.skip (fn := fn) entryCap)
   have fullGuardValue : expressionValue entryCap
       (.cmp Cmp.equal (.var VarKind.local (ofString "sp"))
         (.const (1024 : BitVec 64))) = some (.val (.word 0)) :=
@@ -319,16 +323,16 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
         (.cmp Cmp.equal (.var VarKind.local (ofString "sp"))
           (.const (1024 : BitVec 64)))) :=
     costedExpression_events entryCap _ _ fullGuardValue
-  have fullRun : StatementRun entryCap (.ite
+  have fullRun : StatementRun fn entryCap (.ite
       (.cmp Cmp.equal (.var VarKind.local (ofString "sp"))
         (.const (1024 : BitVec 64)))
       (.raise (ofString "EvmErr") (.const (3 : BitVec 64))) .skip) none entryCap
-      (.statement :: .cost statementUnit :: (expressionEvents entryCap
+      (.statement :: .cost (statementUnit + branchMoves fn) :: (expressionEvents entryCap
         (.cmp Cmp.equal (.var VarKind.local (ofString "sp"))
           (.const (1024 : BitVec 64))) ++ [.statement])) :=
-    StatementRun.iteNo (r := none) (post := entryCap) (bodyEvents := [.statement])
+    StatementRun.iteNo (fn := fn) (r := none) (post := entryCap) (bodyEvents := [.statement])
       (yes := .raise (ofString "EvmErr") (.const (3 : BitVec 64))) (no := .skip)
-      fullGuard (StatementRun.skip entryCap)
+      fullGuard (StatementRun.skip (fn := fn) entryCap)
   have addressValue : expressionValue entryCap stackPopValueAddress =
       some (.val (.word address)) := by
     have := eval_stackPopValueAddress entryCap frame base sp
@@ -356,12 +360,12 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
     simpa [payload, stackPushValue, flattenHOL] using
       panMemStoresHOL_four entryCap address v0 v1 v2 v3
         domains.1 domains.2.1 domains.2.2.1 domains.2.2.2
-  have storeVRun : StatementRun entryCap
+  have storeVRun : StatementRun fn entryCap
       (.store stackPopValueAddress (.var VarKind.local (ofString "v"))) none stored
       (.statement :: (expressionEvents entryCap stackPopValueAddress ++
         expressionEvents entryCap (.var VarKind.local (ofString "v")) ++
         [.memory (flattenHOL payload).length, .cost (storeOverhead (flattenHOL payload).length)])) :=
-    StatementRun.storeValue (destination := stackPopValueAddress)
+    StatementRun.storeValue (fn := fn) (destination := stackPopValueAddress)
       (source := .var VarKind.local (ofString "v")) addressExpr valueExpr writeV
   have storedSp : stored.locals.lookup (ofString "sp") = some (.val (.word sp)) := by
     simpa [stored] using hSpCapEntry
@@ -389,33 +393,33 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
     simp only [flattenHOL, panMemStoresHOL, panMemStoreHOL]
     rw [if_pos storedDomain]
     rfl
-  have storeSpRun : StatementRun stored
+  have storeSpRun : StatementRun fn stored
       (.store (fundingAddress 16)
         (.op .add [.var VarKind.local (ofString "sp"), .const (1 : BitVec 64)])) none updated
       (.statement :: (expressionEvents stored (fundingAddress 16) ++
         expressionEvents stored
           (.op .add [.var VarKind.local (ofString "sp"), .const (1 : BitVec 64)]) ++
         [.memory (flattenHOL (.val (.word (sp + 1)))).length, .cost (storeOverhead (flattenHOL (.val (.word (sp + 1)))).length)])) :=
-    StatementRun.storeValue (destination := fundingAddress 16)
+    StatementRun.storeValue (fn := fn) (destination := fundingAddress 16)
       (source := .op .add [.var VarKind.local (ofString "sp"), .const (1 : BitVec 64)])
       addressStoredExpr spValueExpr writeSp
-  have retRun : StatementRun updated (.return (.const (0 : BitVec 64)))
+  have retRun : StatementRun fn updated (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word 0)))) (emptyLocalsHOLFinite updated)
       (.statement :: (expressionEvents updated (.const (0 : BitVec 64)) ++
-        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
-    StatementRun.returnValue (expression := .const (0 : BitVec 64))
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves fn)])) :=
+    StatementRun.returnValue (fn := fn) (expression := .const (0 : BitVec 64))
       (costedExpression_events updated _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
-  have tailRun := StatementRun.seqNext fullRun
-    (StatementRun.seqNext storeVRun (StatementRun.seqNext storeSpRun retRun))
-  have bodyRun := StatementRun.seqNext growthRun tailRun
-  have capRun := StatementRun.declareValue (name := ofString "cap") (shape := .one)
+  have tailRun := StatementRun.seqNext (fn := fn) fullRun
+    (StatementRun.seqNext (fn := fn) storeVRun (StatementRun.seqNext (fn := fn) storeSpRun retRun))
+  have bodyRun := StatementRun.seqNext (fn := fn) growthRun tailRun
+  have capRun := StatementRun.declareValue (fn := fn) (name := ofString "cap") (shape := .one)
     (initializer := fundingLoad 232)
     (body := (.seq (.ite (.cmp Cmp.notLower (.var VarKind.local (ofString "sp"))
         (.var VarKind.local (ofString "cap"))) stackPushGrowth .skip) stackPushTail))
     capInit capShape (by simpa [entryCap, entrySp, stackPushCapEntry, stackPopEntry, stackPushTail] using bodyRun)
   rw [source_stackPush_body]
-  refine StatementRun.declareValue (name := ofString "sp") (shape := .one)
+  refine StatementRun.declareValue (fn := fn) (name := ofString "sp") (shape := .one)
     (initializer := fundingLoad 16)
     (body := (.dec (ofString "cap") .one (fundingLoad 232)
       (.seq (.ite (.cmp Cmp.notLower (.var VarKind.local (ofString "sp"))
@@ -427,10 +431,10 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
     address, payload, entrySp, entryCap] using capRun
 
 /-- Explicit coefficient price of the same successful adequate-capacity push. -/
-theorem stackPushSuccessEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
+theorem stackPushSuccessEvents_score (coeff : Work) {fn : MlS} (s : PanSemStateFiniteExact 64 F)
     (frame sp cap base v0 v1 v2 v3 : BitVec 64) :
     coeff.score (executionWork
-      (stackPushSuccessEvents s frame sp cap base v0 v1 v2 v3)) ≤
+      (stackPushSuccessEvents (fn := fn) s frame sp cap base v0 v1 v2 v3)) ≤
       let entrySp := stackPopEntry s sp
       let entryCap := stackPushCapEntry s sp cap
       let address := base + sp * 32
@@ -466,8 +470,8 @@ theorem stackPushSuccessEvents_score (coeff : Work) (s : PanSemStateFiniteExact 
           (fun previous => (flattenHOL previous).length)).getD 0) +
         coeff.movedWords * (((s.locals.lookup (ofString "sp")).map
           (fun previous => (flattenHOL previous).length)).getD 0) +
-        2 * coeff.score (WorkEvent.cost statementUnit).units +
-        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)).units := by
+        2 * coeff.score (WorkEvent.cost (statementUnit + branchMoves fn)).units +
+        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves fn)).units := by
   unfold stackPushSuccessEvents expressionCost
   dsimp only [stackPopEntry, stackPushCapEntry, stackPushValue]
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
