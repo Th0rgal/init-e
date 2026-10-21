@@ -4901,4 +4901,279 @@ theorem wec_loop_transfer_safe_ren (names liveOut exitNames : WordLangNumSetHOL)
 
 #print axioms wec_loop_transfer_safe_ren
 
+/-! ## The loop's compiled body as a FUNCTION of the entry map
+
+The compiler does not emit a fixed program for the body of `.loop names body exits`: it calls
+`ssaCcTrans` on the body at the map `sptInter refreshed names` the setup produced, with the tables
+`(refreshed, names, exits) :: tables` (`SSACcTrans.lean:192-194`), and appends the back-edge moves
+`ssaReconcile ssa' refreshed names` (`:195-198`).  A loop lemma that quantifies over a FIXED program
+`bodyC` therefore states something the compiler never produces: the body must be *computed* from the
+entry map, the counter and the tables.  That is what `bodyF` / `bodyFinalF` below are, and
+`ssaCcTrans_loop_bodyF_shape` records that at the loop's own `(refreshed, nextRefreshed)` they are
+literally the compiler's `body'` and `bodyFinal`.
+
+`map` below is the *loop's entry map* (the setup's `refreshed`), NOT the body's own input map: the
+compiler intersects it with `names` inside, so `bodyF body names exits map na lt` is
+`ssaCcTrans body (sptInter map names) na ((map, names, exits) :: lt)` - exactly `CcTrans.lean:192-194`
+with the same `map` in the intersect and in the table, which is what makes the back-edge reconcile's
+target (`ssaReconcile ssa' map names`, `:195`) the same object as the body's entry base. -/
+
+/-- The compiler's emission for the body of `.loop names body exits` at the entry map `map`,
+counter `na` and tables `lt` (`SSACcTrans.lean:192-194`). -/
+noncomputable def bodyF (body : WordLangProgHOL (BitVec 64)) (names exits : Spt Unit)
+    (map : Spt Nat) (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)) :
+    WordLangProgHOL (BitVec 64) × Spt Nat × Nat :=
+  ssaCcTrans body (sptInter map names) na ((map, names, exits) :: lt)
+
+/-- `bodyF` with the loop clause's back-edge reconcile appended (`SSACcTrans.lean:195-198`): the
+executed body of the loop, including the moves that restore the entry relation at `map`. -/
+noncomputable def bodyFinalF (body : WordLangProgHOL (BitVec 64)) (names exits : Spt Unit)
+    (map : Spt Nat) (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)) :
+    WordLangProgHOL (BitVec 64) :=
+  let b := bodyF body names exits map na lt
+  match ssaReconcile b.2.1 map names with
+  | .skip => b.1
+  | moves => .seq b.1 moves
+
+/-- **`bodyF` / `bodyFinalF` ARE the compiler's loop body.**  At the loop's own setup output the
+compiled loop is `.seq setup (.loop (renCut refreshed names) (bodyFinalF … refreshed nextRefreshed
+((refreshed,names,exits)::tables)) (renCut refreshed exits))`, which is `CcTrans.lean:199` with the
+body's `body'`/`bodyFinal` computed from `refreshed`/`nextRefreshed` instead of named by hand. -/
+theorem ssaCcTrans_loop_bodyF_shape (names exits : Spt Unit)
+    (body : WordLangProgHOL (BitVec 64)) (ssa : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) :
+    (ssaCcTrans (width := 64) (.loop names body exits) ssa next tables).1 =
+      .seq (loopSetup (width := 64) names exits ssa next).1
+        (.loop (renCut (loopSetup (width := 64) names exits ssa next).2.1 names)
+          (bodyFinalF body names exits (loopSetup (width := 64) names exits ssa next).2.1
+            (loopSetup (width := 64) names exits ssa next).2.2 tables)
+          (renCut (loopSetup (width := 64) names exits ssa next).2.1 exits)) := by
+  simp only [ssaCcTrans, bodyFinalF, bodyF, renCut]
+  generalize h : ssaReconcile (width := 64)
+    (ssaCcTrans body (sptInter (loopSetup (width := 64) names exits ssa next).2.1 names)
+      (loopSetup (width := 64) names exits ssa next).2.2
+      (((loopSetup (width := 64) names exits ssa next).2.1, names, exits) :: tables)).2.1
+    (loopSetup (width := 64) names exits ssa next).2.1 names = moves
+  cases moves <;> rfl
+
+#print axioms ssaCcTrans_loop_bodyF_shape
+
+/-- The pin's body-result locals relation, TRANSCRIBED (`SSALoopIteration.lean:277-290`, where it is
+`private def resultLocalsRel`, so it cannot be imported): with `nextOut`/`mapOut` the body's output
+map and counter and `(map,names,exits) :: lt` the table list the body was compiled under,
+
+* a `none` result gives the FULL SSA relation `ssaLocalsRel nextOut mapOut`;
+* a `break label` gives the strong relation at `tables[label]?`'s EXIT keys;
+* a `continue label` gives the strong relation at `tables[label]?`'s NAME keys - for `label = 0` this
+  is the loop's own entry `(map,names,exits)`, i.e. the relation the NEXT iteration's cut needs;
+* any other result leaves the locals unchanged. -/
+def LoopResultLocalsF (nextOut : Nat) (mapOut : Spt Nat) (map : Spt Nat) (names exits : Spt Unit)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit)) (source target : Spt (WordLocW 64))
+    (result : Option (WordSemResult 64)) : Prop :=
+  match result with
+  | none => ssaLocalsRel nextOut mapOut source target
+  | some (.break label) => match ((map, names, exits) :: lt)[label]? with
+    | none => True
+    | some (entryMap, _, entryExits) =>
+        Flapjack.WordAlloc.strongLocalsRel (optionLookup entryMap) (sptDomain entryExits) source target
+  | some (.continue label) => match ((map, names, exits) :: lt)[label]? with
+    | none => True
+    | some (entryMap, entryNames, _) =>
+        Flapjack.WordAlloc.strongLocalsRel (optionLookup entryMap) (sptDomain entryNames) source target
+  | some _ => source = target
+
+/-- **The loop body's transfer bundle, at the compiler's per-map body.**  The pinned body IH
+(`SSASemanticLoop.lean:27-31`) restricted to the actual source body run: for every entry map `map`,
+counter `na` and table list `lt`, under the six-conjunct SSA invariant prefix and a NON-ERROR source
+body run,
+
+* the compiled body `(bodyF … map na lt).1` runs to completion with the same result,
+* `wordStateEqRel` holds on the reached states,
+* the pin's body-result locals relation `resultLocalsRel` (`Iter.lean:277-290`, transcribed as
+  `LoopResultLocalsF`: full `ssaLocalsRel` at the body's OWN output map/counter on `none`,
+  `strongLocalsRel` at the table entry's keys on `break`/`continue`, locals unchanged otherwise),
+  which is what the back-edge reconcile and the next iteration's cut consume,
+* and the EXECUTED body `bodyFinalF … map na lt` (reconcile included) costs at most the source body
+  plus `B`.
+
+The relation premise is stated at `sptInter map names`, exactly the cut-pair relation the pin feeds
+its body IH (`Iter.lean:230-234`: `ssaSimulation body … (sptInter ssa names) next ((ssa,names,exits)::tables)`
+with `ssaMapOKInter next ssa names valid`); a relation at the un-intersected `map` is NOT derivable at
+a cut pair (the target cut keeps only the renamed names' entries, so `ssaLocalsRel`'s first conjunct
+would demand images of `map`'s other registers), so this is the only satisfiable form.  No fixed
+compiled program appears: every instance reads its own `bodyF … map na lt`. -/
+noncomputable def LoopBodyTransferF {C F : Type} (body : WordLangProgHOL (BitVec 64))
+    (names exits : Spt Unit) (B : Nat) : Prop :=
+  ∀ (map : Spt Nat) (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit))
+    (st ct : WordSemStateFiniteExact 64 C F)
+    (rS : Option (WordSemResult 64)) (sS : WordSemStateFiniteExact 64 C F),
+    Flapjack.WordAlloc.wordStateEqRel st ct ∧
+    ssaLocalsRel na (sptInter map names) st.locals ct.locals ∧
+    isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
+    ssaMapOK na (sptInter map names) ∧ ltOK ((map, names, exits) :: lt) →
+    WordSemStateFiniteExact.evaluate body st = (rS, sS) →
+    rS ≠ some .error →
+    (∃ (rT : Option (WordSemResult 64)) (sT : WordSemStateFiniteExact 64 C F),
+      WordSemStateFiniteExact.evaluate (bodyF body names exits map na lt).1 ct = (rT, sT) ∧
+      rT = rS ∧ Flapjack.WordAlloc.wordStateEqRel sS sT ∧
+      LoopResultLocalsF (bodyF body names exits map na lt).2.2
+        (bodyF body names exits map na lt).2.1 map names exits lt sS.locals sT.locals rS) ∧
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (bodyFinalF body names exits map na lt) ct ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body st + B
+
+
+/-! ### The closed charge of the setup prefix
+
+The setup `.seq fakeProg refreshMov` (`Helpers.lean:62-71`) is a chain of `fakeMove` const nodes
+(`.inst (.const r 0)`, priced `12` by the checked leaf budget) followed by ONE refresh move
+`listNextVarRenameMove` → `.move 0 (newLs.zip curLs)`, whose canonical price is
+`12 * (parmove (physPairs pairs)).length` (`refinedWordLocalPrice_move`).  `loopSetupCharge` below is
+exactly that sum, read off the setup's own lists, and `loopSetup_charge_le` proves that the executed
+setup prefix stays within it. -/
+
+/-- The canonical price of one inserted fake const node `.inst (.const r 0)`: `12`. -/
+theorem fakeMove_price {C F : Type} (r : Nat) (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.inst (.const r 0)) s = 12 := rfl
+
+#print axioms fakeMove_price
+
+/-- The `skip` node executes for nothing. -/
+theorem wec_skip_zero {C F : Type} (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (WordLangProgHOL.skip : WordLangProgHOL (BitVec 64)) s = 0 := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+
+#print axioms wec_skip_zero
+
+/-- A single const node executes for `12`. -/
+theorem wec_inst_const {C F : Type} (r : Nat) (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.inst (.const r 0)) s = 12 := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+
+#print axioms wec_inst_const
+
+/-- One `seq` step, bounded by the two halves' budgets and the node price. -/
+theorem wec_seq_le_add {C F : Type} (first second : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) (cf cg : Nat)
+    (hf : ∀ (s' : WordSemStateFiniteExact 64 C F),
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice first s' ≤ cf)
+    (hg : ∀ (s' : WordSemStateFiniteExact 64 C F),
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice second s' ≤ cg) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq first second) s ≤
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq first second) s + cf + cg := by
+  rw [wordExecutionCost]
+  generalize hfix : s.fixClock (WordSemStateFiniteExact.evaluate first s) = pair
+  obtain ⟨result, middle⟩ := pair
+  cases result with
+  | none =>
+    dsimp only []
+    have h1 := hf s
+    have h2 := hg middle
+    omega
+  | some r =>
+    dsimp only []
+    have h1 := hf s
+    omega
+
+#print axioms wec_seq_le_add
+
+/-- The const chain of the setup costs `12` per node, whatever the state. -/
+theorem wec_fakeChain_le {C F : Type} (ls : List Nat) (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      ((ls.map fun r => (WordLangProgHOL.inst (.const r 0) : WordLangProgHOL (BitVec 64))).foldr
+        WordLangProgHOL.seq WordLangProgHOL.skip) s ≤ 12 * ls.length := by
+  induction ls generalizing s with
+  | nil =>
+    rw [List.map_nil, List.foldr_nil, wec_skip_zero]
+    omega
+  | cons r rest ih =>
+    rw [List.map_cons, List.foldr_cons, List.length_cons]
+    have hstep := wec_seq_le_add (WordLangProgHOL.inst (.const r 0))
+      ((rest.map fun r => (WordLangProgHOL.inst (.const r 0) : WordLangProgHOL (BitVec 64))).foldr
+        WordLangProgHOL.seq WordLangProgHOL.skip) s 12 (12 * rest.length)
+      (fun s' => le_of_eq (wec_inst_const r s')) ih
+    have hzero : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq (WordLangProgHOL.inst (.const r 0))
+          ((rest.map fun r => (WordLangProgHOL.inst (.const r 0) : WordLangProgHOL (BitVec 64))).foldr
+            WordLangProgHOL.seq WordLangProgHOL.skip)) s = 0 :=
+      refinedWordLocalPrice_seq_zero _ _ s
+    rw [hzero] at hstep
+    omega
+
+#print axioms wec_fakeChain_le
+
+/-- A move node executes for exactly its checked leaf price. -/
+theorem wec_move_leafPrice {C F : Type} (pri : Nat) (pairs : List (Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.move pri pairs) s =
+      12 * (Flapjack.Compiler.Backend.Parmove.parmove (physPairs pairs)).length := by
+  rw [wec_move_generic]
+  exact refinedWordLocalPrice_move pri pairs s
+
+#print axioms wec_move_leafPrice
+
+/-- The canonical price of the refresh node `listNextVarRenameMove ssa n ls` = `.move 0 (newLs.zip
+curLs)`: `12 * (parmove (physPairs pairs)).length`, its exact scheduler price. -/
+noncomputable def refreshMovePrice (ssa : Spt Nat) (n : Nat) (ls : List Nat) : Nat :=
+  let curLs := ls.map (optionLookup ssa)
+  let (newLs, _ssa', _n') := listNextVarRename ls ssa n
+  12 * (Flapjack.Compiler.Backend.Parmove.parmove (physPairs (newLs.zip curLs))).length
+
+/-- The refresh node executes for exactly `refreshMovePrice`. -/
+theorem wec_refreshMove {C F : Type} (ssa : Spt Nat) (n : Nat) (ls : List Nat)
+    (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (listNextVarRenameMove (width := 64) ssa n ls).1 s = refreshMovePrice ssa n ls := by
+  unfold listNextVarRenameMove refreshMovePrice
+  dsimp only
+  exact wec_move_leafPrice 0 _ s
+
+#print axioms wec_refreshMove
+
+/-- **The setup prefix's charge, as a closed expression.**  `loopSetup names exits ssa next` emits
+`.seq fakeChain refreshMov` where `fakeChain` is one `fakeMove` const node (price `12`) per name of
+`names ∪ exits` missing from `ssa`, and `refreshMov = .move 0 (newLs.zip curLs)` is charged its exact
+scheduler price.  With `extendLs`/`refreshLs` the two filters of `loopSetup` and
+`curLs = refreshLs.map (optionLookup ssaExt)` the charge is
+
+    setupCharge = 12 * |freshPosLs| + 12 * |parmove (physPairs (newLs.zip curLs))|
+
+a closed arithmetic expression in `|names|, |exits|` (through the union list), `|ssa|` (through the
+two filters) and the move count `|newLs.zip curLs| = |refreshLs|`. -/
+noncomputable def loopSetupCharge (names exits : Spt Unit) (ssa : Spt Nat) (next : Nat) : Nat :=
+  let allVarsLs := (sptToAList (sptUnion names exits)).map Prod.fst
+  let extendLs := allVarsLs.filter fun v => (sptLookup v ssa).isNone
+  let refreshLs := allVarsLs.filter fun v => (sptLookup v ssa).isSome
+  let (freshPosLs, ssaExt, naExt) := listNextVarRename extendLs ssa next
+  12 * freshPosLs.length + refreshMovePrice ssaExt naExt refreshLs
+
+/-- **The setup prefix stays within its closed charge**, for every state. -/
+theorem loopSetup_charge_le {C F : Type} (names exits : Spt Unit) (ssa : Spt Nat) (next : Nat)
+    (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (loopSetup (width := 64) names exits ssa next).1 s ≤
+      loopSetupCharge names exits ssa next := by
+  unfold loopSetup loopSetupCharge
+  dsimp only
+  generalize hall : ((sptToAList (sptUnion names exits)).map Prod.fst) = allVarsLs at *
+  generalize hext : (allVarsLs.filter fun v => (sptLookup v ssa).isNone) = extendLs at *
+  generalize href : (allVarsLs.filter fun v => (sptLookup v ssa).isSome) = refreshLs at *
+  rcases hfresh : listNextVarRename extendLs ssa next with ⟨freshPosLs, ssaExt, naExt⟩
+  dsimp only
+  refine le_trans (wec_seq_le_add _ _ s (12 * freshPosLs.length)
+    (refreshMovePrice ssaExt naExt refreshLs) ?_ ?_) ?_
+  · intro s'
+    simpa only [fakeMove] using wec_fakeChain_le freshPosLs s'
+  · intro s'
+    exact le_of_eq (wec_refreshMove ssaExt naExt refreshLs s')
+  · rw [refinedWordLocalPrice_seq_zero]
+    omega
+
+#print axioms loopSetup_charge_le
+
 end InitECandidate.Runtime.FineCost

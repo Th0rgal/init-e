@@ -1776,3 +1776,88 @@ What is **not** available in the pin and must therefore *not* be assumed or inve
   repo-side, `AllocCostSSAExecuted.lean:145-153`);
 * no statement that the back-edge reconcile leaves the source's *other* entries intact (it rewrites only
   the keys of `names`, `Helpers.lean:50-58`).
+
+## The loop body's transfer bundle and the closed setup charge
+
+This section records what is now PROVED (all in
+`Runtime/AllocCostSSACompiledLeafBounds.lean`, namespace
+`InitECandidate.Runtime.FineCost`; `#print axioms` on every new theorem reports only
+`propext`, `Classical.choice`, `Quot.sound`).
+
+### The compiler's per-map body, as a function
+
+* `bodyF (body names exits : …) (map : Spt Nat) (na : Nat) (lt : …) :=
+  ssaCcTrans body (sptInter map names) na ((map, names, exits) :: lt)`, and `bodyFinalF` = its first
+  component, followed by `.seq (ssaReconcile (bodyF …).2.1 map names)` when that reconcile is not
+  `.skip`.  `bodyF`/`bodyFinalF` are the compiler's own body *at any map/counter*, so the body is no
+  longer universally quantified over SSA maps *as an arbitrary fixed program*: at
+  `(ssaRefreshed, nextRefreshed)` from `loopSetupCorrect` they are, by `rfl`, exactly the emitted body.
+* `ssaCcTrans_loop_bodyF_shape` is the definitional equation, for EVERY `(ssa, next, tables)`:
+  ```
+  (ssaCcTrans (.loop names body exits) ssa next tables).1
+    = .seq (loopSetup names exits ssa next).1
+        (.loop (renCut (loopSetup …).2.1 names)
+               (bodyFinalF body names exits (loopSetup …).2.1 (loopSetup …).2.2 tables)
+               (renCut (loopSetup …).2.1 exits))
+  ```
+  (the `tables` argument is the OUTER table list: `bodyF` prepends the loop's own
+  `(map,names,exits)` entry, so passing a prepended list would double it).
+
+### The entry head bundle and the body-result bundle
+
+* `LoopResultLocalsF` transcribes the pin's `private def resultLocalsRel`
+  (`flapjack/…/SSALoopIteration.lean:277-290`) with file:line: `none` →
+  `ssaLocalsRel nextOut mapOut`; `break label` → `strongLocalsRel (optionLookup m) (sptDomain e)` for
+  `((map,names,exits)::lt)[label]? = some (m,_,e)`; `continue label` → `strongLocalsRel
+  (optionLookup m) (sptDomain n)` for `some (m,n,_)` (this is the label-`0` branch that hands the next
+  iteration its entry relation); any other result → locals unchanged.
+* `LoopBodyTransferF body names exits B` takes the head as the pin's
+  `loopBodyEntry` does (frame `wordStateEqRel` + `ssaLocalsRel na (sptInter map names)` +
+  `isAllocVar na` + `everyVarHOL (· < na) body` + `ssaMapOK na (sptInter map names)` +
+  `ltOK ((map,names,exits)::lt)`) and concludes: the SOURCE body run is NON-ERROR, the target
+  `bodyF` run agrees in result, frame, and `LoopResultLocalsF` at the body's output map/counter, and
+  `wec bodyFinalF ct ≤ wec body st + B` — one budget `B` per EXECUTED iteration, no fuel constant, no
+  clock multiplier, no factor 2, no new price.
+  DEVIATION, recorded deliberately: the entry relation is stated at `sptInter map names`, not at the
+  bare `map`, because that is the instantiation the pin's own body IH is fed (`SSALoopIteration.lean:230-234`,
+  `ssaMapOKInter`); a relation at the full `map` is not derivable at a cut pair, since the target cut
+  keeps only renamed-name entries.
+
+### The setup charge, closed
+
+```
+noncomputable def loopSetupCharge (names exits : Spt Unit) (ssa : Spt Nat) (next : Nat) : Nat :=
+  let allVarsLs := (sptToAList (sptUnion names exits)).map Prod.fst
+  let extendLs := allVarsLs.filter fun v => (sptLookup v ssa).isNone
+  let refreshLs := allVarsLs.filter fun v => (sptLookup v ssa).isSome
+  let (freshPosLs, ssaExt, naExt) := listNextVarRename extendLs ssa next
+  12 * freshPosLs.length + refreshMovePrice ssaExt naExt refreshLs
+```
+
+with `refreshMovePrice ssa n ls = 12 * (parmove (physPairs (newLs.zip curLs))).length` where
+`curLs = ls.map (optionLookup ssa)`, `(newLs,·,·) = listNextVarRename ls ssa n`.  It is a closed
+arithmetic expression in `|names ∪ exits|` (two filters), `|ssa|` (the same filters) and the move
+count `|newLs.zip curLs| = |refreshLs|`; `loopSetup_charge_le` proves, for EVERY state,
+`wec (loopSetup names exits ssa next).1 s ≤ loopSetupCharge names exits ssa next`, built from
+`fakeMove_price := rfl` (a const node is `12` by the checked leaf budget), `wec_fakeChain_le`
+(`12` per chain node, inductively), `wec_refreshMove` (the refresh move executes for exactly its
+checked scheduler price) and `wec_seq_le_add`.  Convention: the arithmetic is the EXECUTED charge
+under `refinedWordLocalPrice`; it is state independent, so it composes with the price-generic stitching
+of `WordPermuteLoopCost.lean` (`permute_cost_loop`, root commit `f07bf2b9`) without a second
+convention.
+
+### What is still open
+
+The loop-level inequality
+`wec (.loop (renCut refreshed names) bodyFinalF (renCut refreshed exits)) target
+   ≤ wec (.loop names body exits) source + loopSetupCharge names exits ssa next + B * loopIterCount …`
+is NOT yet proved.  Its per-iteration step is fully assembled from existing lemmas
+(`wordStateEqRel_cutState_any`, `ssaLocalsRel_cutPair` + `strong_of_ssaLocalsRel` for the entry pair,
+`wordSemContLoop`/`wordSemExitLoop` for the escape, `evaluate_bodyFinalF` to append the back-edge
+reconcile, `wec_loop_stop_transfer_ren` / `wec_loop_cont_done_transfer_ren` /
+`wec_loop_cont_live_transfer_ren`), but the iteration induction still needs the per-iteration entry
+pair at `(refreshed, nextRefreshed)`: the source cut `cutState (names,.ln) st` must be shown to succeed
+at every iteration head (it follows from safety through `cut_exists_of_loop_safe` at the first head),
+and the target cut for iteration `k>0` needs the frame/locals relation at `midT` that
+`LoopResultLocalsF` supplies only *strong* at the label-`0` branch; converting that back into the
+`ssaLocalsRel`-style pair at the refreshed map is the remaining gap.
