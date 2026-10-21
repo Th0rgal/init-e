@@ -704,7 +704,127 @@ theorem section597_fetch_transfer (pc : Nat) (line : NativeLine 64)
     PaddedFetch section597Certificate pc line :=
   padScan_fetch_transfer section597Certificate pc line fetch
 
+/-! ## The numeric identity behind the padding bound -/
+
+/-- The padding an instruction pays is exactly the excess of its emitted
+payload over its opcode bytes.  With the encoder's minimum length this turns a
+recorded length of at most four bytes into a padding of zero. -/
+theorem PadSeg.paddingLen_eq_of_prefix {width : Nat} [NeZero width] (seg : PadSeg width)
+    (h : lineBytes seg.source <+: lineBytes seg.emitted) :
+    seg.paddingLen = (lineBytes seg.emitted).length - (lineBytes seg.source).length := by
+  have hle : (lineBytes seg.source).length ≤ (lineBytes seg.emitted).length :=
+    List.IsPrefix.length_le h
+  simp only [PadSeg.paddingLen, PadSeg.padding, PadSeg.payload, PadSeg.opcode,
+    List.length_drop]
+
+/-- A scanned segment whose emitted bytes exceed its opcode bytes by at most
+`b` pays at most `b` padding bytes. -/
+theorem PadSeg.paddingLen_le_of_length_le {width : Nat} [NeZero width] (seg : PadSeg width)
+    (b : Nat) (h : lineBytes seg.source <+: lineBytes seg.emitted)
+    (hb : (lineBytes seg.emitted).length ≤ (lineBytes seg.source).length + b) :
+    seg.paddingLen ≤ b := by
+  rw [seg.paddingLen_eq_of_prefix h]
+  omega
+
+/-- **A certified numeric padding bound on a real artifact section.**  Every
+instruction the scanner records for section 597 -- one of the artifact sections
+where `padCode` really pads -- carries at most one four-byte nop chunk.  The
+bound is a kernel computation over the artifact's own code (`decide_cbv`). -/
+theorem section597_padding_bound :
+    (scanCode 0 ([FinalReencode597] : List (NativeCode 64)) [Padded597]).all
+      (fun s => decide (s.paddingLen ≤ 4)) = true := by
+  decide_cbv
+
 end Artifact
+
+/-! ## The numeric per-instruction padding bound
+
+`padSection` passes a source line's recorded length `len` straight to `padBytes`,
+so the padding a scanned instruction carries is exactly the *slack* of the line it
+came from: the excess of that line's recorded length over the bytes the line
+actually holds.  These are the numeric facts the certificate above leaves
+implicit -- neither `Padding.lean` nor this scan states the `recordedLen` /
+`lineBytes` relation, so it is proved here. -/
+
+/-- The recorded length field of a line. -/
+def lineRecLen {width : Nat} [NeZero width] : NativeLine width → Nat
+  | .label _ _ l => l
+  | .asm _ _ l => l
+  | .labAsm _ _ _ l => l
+
+/-- A line's byte slack: recorded length minus the bytes it actually carries.
+`padCode` pads an instruction by exactly this slack. -/
+def lineSlack {width : Nat} [NeZero width] (line : NativeLine width) : Nat :=
+  lineRecLen line - (lineBytes line).length
+
+/-- `padBytes` extends a byte list to exactly `max bytes.length len` bytes: it
+neither truncates nor overshoots, for any nonempty nop chunk. -/
+theorem padBytes_length {α : Type} (bytes : List α) (len : Nat) (nop : List α)
+    (hne : nop ≠ []) : (padBytes bytes len nop).length = max bytes.length len := by
+  rw [padBytes]
+  split
+  · rename_i h
+    omega
+  · rename_i h
+    have h1 : 1 ≤ nop.length := by
+      cases nop with
+      | nil => exact absurd rfl hne
+      | cons x xs => simp
+    have hge : ∀ m : Nat, m ≤ (List.replicate m nop).flatten.length := by
+      intro m
+      induction m with
+      | zero => simp
+      | succ k ih =>
+        simp only [List.replicate_succ, List.flatten_cons, List.length_append]
+        omega
+    have hself : len ≤ (bytes ++ (List.replicate len nop).flatten).length := by
+      rw [List.length_append]
+      have := hge len
+      omega
+    have hsplit := List.take_append_drop len (bytes ++ (List.replicate len nop).flatten)
+    have hlen : ((bytes ++ (List.replicate len nop).flatten).take len).length +
+        ((bytes ++ (List.replicate len nop).flatten).drop len).length =
+        (bytes ++ (List.replicate len nop).flatten).length := by
+      rw [← List.length_append, hsplit]
+    rw [List.length_drop] at hlen
+    omega
+
+/-- **The padding of a padded `Asm` instruction is its source line's slack.**
+`padSection` emits `padBytes bytes len nop` with the recorded length unchanged, so
+the bytes it adds are exactly `len - bytes.length` -- zero when the line already
+holds its recorded length -- and the emitted line's own slack is zero. -/
+theorem padSection_asm_padding {width : Nat} [NeZero width] (nop : List (BitVec 8))
+    (hne : nop ≠ []) (a : AsmOrCbw (HolAsm width) HolMemop (HolAddr width))
+    (bytes : List (BitVec 8)) (len : Nat) :
+    (lineBytes (.asm a (padBytes bytes len nop) len)).length - bytes.length =
+        lineSlack (.asm a bytes len) ∧
+      lineSlack (.asm a (padBytes bytes len nop) len) = 0 := by
+  have h := padBytes_length bytes len nop hne
+  constructor
+  · show (padBytes bytes len nop).length - bytes.length = len - bytes.length
+    omega
+  · show len - (padBytes bytes len nop).length = 0
+    omega
+
+/-- The same for a re-encoded `LabAsm` instruction. -/
+theorem padSection_labAsm_padding {width : Nat} [NeZero width] (nop : List (BitVec 8))
+    (hne : nop ≠ []) (a : AsmWithLab HolCmp (HolRegImm width) MlString)
+    (w : BitVec width) (bytes : List (BitVec 8)) (len : Nat) :
+    (lineBytes (.labAsm a w (padBytes bytes len nop) len)).length - bytes.length =
+        lineSlack (.labAsm a w bytes len) ∧
+      lineSlack (.labAsm a w (padBytes bytes len nop) len) = 0 := by
+  have h := padBytes_length bytes len nop hne
+  constructor
+  · show (padBytes bytes len nop).length - bytes.length = len - bytes.length
+    omega
+  · show len - (padBytes bytes len nop).length = 0
+    omega
+
+/-- The emitted padding chunk is one four-byte RISC-V word, so a line with no
+slack is padded by a multiple of four bytes and never by more than that word. -/
+theorem paddingNop_length : paddingNop.length = 4 := by
+  rw [paddingNop_eq]
+  rfl
 
 #print axioms scanInsts_maps
 #print axioms asmFetchAux_eq_insts
@@ -720,8 +840,15 @@ end Artifact
 #print axioms padded0_fetch_transfer
 #print axioms padded0_codeSimilar
 #print axioms paddingNop_eq
+#print axioms paddingNop_length
+#print axioms lineRecLen
+#print axioms lineSlack
+#print axioms padBytes_length
+#print axioms padSection_asm_padding
+#print axioms padSection_labAsm_padding
 #print axioms section597_pad
 #print axioms section597_scan_segments
+#print axioms section597_padding_bound
 #print axioms section597_fetch_transfer
 
 end InitECandidate.Runtime.NativePadding
