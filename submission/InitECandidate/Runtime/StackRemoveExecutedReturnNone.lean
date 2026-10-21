@@ -7,18 +7,19 @@ open Flapjack.StackSemEvaluate Flapjack.StackSemStateOps
 open Flapjack.Compiler.Backend.StackRemove
 open Flapjack.Compiler.Backend.StackRemove.CompCorrect.CallReturnNone
 
-theorem removalCostSimulation_returnNone {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+theorem removalCostSimulation_returnNoneWithPrice {F : Type} (sourcePrice targetPrice : HolProg 64 → Nat)
     (jump : Bool) (bounds : BitVec 64 × BitVec 64) (body : HolProg 64) (link l1 l2 : Nat) (dest : Sum Nat Nat)
-    (localBound : 4 + gap + callJumpWork dest ≤ sourcePrice (.call (some (body, link, l1, l2)) dest none))
+    (callBound : ∀ pointer, targetPrice (.call (some (comp jump bounds pointer body, link, l1, l2)) dest none) ≤ sourcePrice (.call (some (body, link, l1, l2)) dest none))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
     (calleeIH : ∀ program, StackSemControl.findCode dest (source.regs.eraseEq link) source.code = some program →
-      source.clock ≠ 0 → RemovalCostSimulation sourcePrice gap jump bounds program (decClock (setVar link (.loc l1 l2) source)))
+      source.clock ≠ 0 → RemovalCostSimulationFor sourcePrice targetPrice jump bounds program (decClock (setVar link (.loc l1 l2) source)))
     (returnIH : ∀ program middle,
       StackSemControl.findCode dest (source.regs.eraseEq link) source.code = some program → source.clock ≠ 0 →
       evaluate (program, decClock (setVar link (.loc l1 l2) source)) = (some (.result (.loc l1 l2)), middle) →
-      RemovalCostSimulation sourcePrice gap jump bounds body middle) :
-    RemovalCostSimulation sourcePrice gap jump bounds (.call (some (body, link, l1, l2)) dest none) source := by
+      RemovalCostSimulationFor sourcePrice targetPrice jump bounds body middle) :
+    RemovalCostSimulationFor sourcePrice targetPrice jump bounds (.call (some (body, link, l1, l2)) dest none) source := by
   intro postSource target result pointer hypothesis
+  have localBound := callBound pointer
   rcases hypothesis with ⟨sourceRun, notError, relation, bound⟩
   have clocks : target.clock = source.clock := relation.2.2.2.2.2.2.2.2.1
   rw [evaluateCallReturnNoneUnclamped] at sourceRun
@@ -93,20 +94,20 @@ theorem removalCostSimulation_returnNone {F : Type} (sourcePrice : HolProg 64 �
               | none => exact postRelation
               | some r => cases r <;> exact postRelation
             · have totalNonzero : (first + second) + target.clock ≠ 0 := by omega
-              have boostedCost : stackExecutionCost (fun p _ => nativePriceWithGap gap p)
+              have boostedCost : stackExecutionCost (fun p _ => targetPrice p)
                   (comp jump bounds pointer program)
                   (decClock (setVar link (.loc l1 l2) {target with clock := (first + second) + target.clock})) ≤
                   stackExecutionCost (fun p _ => sourcePrice p) program (decClock (setVar link (.loc l1 l2) source)) := by
-                exact (stackExecutionCost_calleeAllowance (nativePriceWithGap gap)
+                exact (stackExecutionCost_calleeAllowance (targetPrice)
                   (comp jump bounds pointer program) target middleTarget link l1 l2 first second _
                   targetNonzero calleeRun (by simp)).le.trans calleeCost
               rw [comp,
-                stackExecutionCost_call_run (fun p _ => nativePriceWithGap gap p)
+                stackExecutionCost_call_run (fun p _ => targetPrice p)
                   (comp jump bounds pointer body) (comp jump bounds pointer program) link l1 l2 dest none {target with clock := (first + second) + target.clock} _ _
                   totalNonzero targetLookup boosted,
                 stackExecutionCost_call_run (fun p _ => sourcePrice p) body program link l1 l2 dest none _ _ _ zero lookup bodyRun]
               simp only [selectedContinuationBudget, ↓reduceIte]
-              change _ + _ + (4 + gap + callJumpWork dest) ≤ _ + _ + sourcePrice (.call (some (body, link, l1, l2)) dest none)
+              change _ + _ + targetPrice (.call (some (comp jump bounds pointer body, link, l1, l2)) dest none) ≤ _ + _ + sourcePrice (.call (some (body, link, l1, l2)) dest none)
               exact Nat.add_le_add (Nat.add_le_add boostedCost returnCost) localBound
         | halt _ | timeOut | finalFFI _ | exception _ =>
           rcases Prod.mk.inj sourceRun with ⟨resultEq, postEq⟩
@@ -126,15 +127,29 @@ theorem removalCostSimulation_returnNone {F : Type} (sourcePrice : HolProg 64 �
             have actualRun := targetRun
             rw [← entryClock target link l1 l2 clock targetNonzero] at actualRun
             rw [comp,
-              stackExecutionCost_call_run (fun p _ => nativePriceWithGap gap p)
+              stackExecutionCost_call_run (fun p _ => targetPrice p)
                 (comp jump bounds pointer body) (comp jump bounds pointer program) link l1 l2 dest none {target with clock := clock + target.clock} _ _
                 nonzero targetLookup actualRun,
               stackExecutionCost_call_run (fun p _ => sourcePrice p) body program link l1 l2 dest none _ _ _ zero lookup bodyRun]
             simp only [selectedContinuationBudget, Nat.add_zero]
             rw [entryClock target link l1 l2 clock targetNonzero]
-            change _ + (4 + gap + callJumpWork dest) ≤ _ + sourcePrice (.call (some (body, link, l1, l2)) dest none)
+            change _ + targetPrice (.call (some (comp jump bounds pointer body, link, l1, l2)) dest none) ≤ _ + sourcePrice (.call (some (body, link, l1, l2)) dest none)
             exact Nat.add_le_add calleeCost localBound
 
 
+theorem removalCostSimulation_returnNone {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (body : HolProg 64) (link l1 l2 : Nat) (dest : Sum Nat Nat)
+    (localBound : 4 + gap + callJumpWork dest ≤ sourcePrice (.call (some (body, link, l1, l2)) dest none))
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (calleeIH : ∀ program, StackSemControl.findCode dest (source.regs.eraseEq link) source.code = some program →
+      source.clock ≠ 0 → RemovalCostSimulation sourcePrice gap jump bounds program (decClock (setVar link (.loc l1 l2) source)))
+    (returnIH : ∀ program middle,
+      StackSemControl.findCode dest (source.regs.eraseEq link) source.code = some program → source.clock ≠ 0 →
+      evaluate (program, decClock (setVar link (.loc l1 l2) source)) = (some (.result (.loc l1 l2)), middle) →
+      RemovalCostSimulation sourcePrice gap jump bounds body middle) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.call (some (body, link, l1, l2)) dest none) source :=
+  removalCostSimulation_returnNoneWithPrice sourcePrice (nativePriceWithGap gap) jump bounds body link l1 l2 dest (fun _ => localBound) source calleeIH returnIH
+
+#print axioms removalCostSimulation_returnNoneWithPrice
 #print axioms removalCostSimulation_returnNone
 end InitECandidate.Runtime.StackToLab

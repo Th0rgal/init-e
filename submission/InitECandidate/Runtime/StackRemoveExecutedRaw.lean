@@ -6,12 +6,12 @@ open Flapjack.Compiler.Encoders.Asm
 open Flapjack.StackSemEvaluate Flapjack.StackSemStateOps
 open Flapjack.Compiler.Backend.StackRemove
 
-theorem removalCostSimulation_raw {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
-    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (label : Nat) (localBound : 2 ≤ sourcePrice (.rawCall label))
+theorem removalCostSimulation_rawWithPrice {F : Type} (sourcePrice targetPrice : HolProg 64 → Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (label : Nat) (localBound : targetPrice (.rawCall label) ≤ sourcePrice (.rawCall label))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
     (calleeIH : ∀ frame body, sptLookup label source.code = some (.seq frame body) →
-      source.clock ≠ 0 → RemovalCostSimulation sourcePrice gap jump bounds body (decClock source)) :
-    RemovalCostSimulation sourcePrice gap jump bounds (.rawCall label) source := by
+      source.clock ≠ 0 → RemovalCostSimulationFor sourcePrice targetPrice jump bounds body (decClock source)) :
+    RemovalCostSimulationFor sourcePrice targetPrice jump bounds (.rawCall label) source := by
   intro postSource target result pointer hypothesis
   rcases hypothesis with ⟨sourceRun, notError, relation, _bound⟩
   have clocks : target.clock = source.clock := relation.2.2.2.2.2.2.2.2.1
@@ -83,8 +83,18 @@ theorem removalCostSimulation_raw {F : Type} (sourcePrice : HolProg 64 → Nat) 
             rw [stackExecutionCost.eq_5, stackExecutionCost.eq_5]
             simp only [nonzero, zero, ↓reduceIte, targetLookup, lookup]
             rw [clockEq]
-            change 2 + _ ≤ sourcePrice (.rawCall label) + _
+            change targetPrice (.rawCall label) + _ ≤ sourcePrice (.rawCall label) + _
             exact Nat.add_le_add localBound calleeCost
 
+theorem removalCostSimulation_raw {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (label : Nat)
+    (localBound : 2 ≤ sourcePrice (.rawCall label))
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (calleeIH : ∀ frame body, sptLookup label source.code = some (.seq frame body) →
+      source.clock ≠ 0 → RemovalCostSimulation sourcePrice gap jump bounds body (decClock source)) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.rawCall label) source :=
+  removalCostSimulation_rawWithPrice sourcePrice (nativePriceWithGap gap) jump bounds label localBound source calleeIH
+
+#print axioms removalCostSimulation_rawWithPrice
 #print axioms removalCostSimulation_raw
 end InitECandidate.Runtime.StackToLab

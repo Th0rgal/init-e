@@ -6,14 +6,14 @@ open Flapjack.Compiler.Encoders.Asm
 open Flapjack.StackSemEvaluate Flapjack.StackSemStateOps
 open Flapjack.Compiler.Backend.StackRemove
 
-theorem removalCostSimulation_tail {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+theorem removalCostSimulation_tailWithPrice {F : Type} (sourcePrice targetPrice : HolProg 64 → Nat)
     (jump : Bool) (bounds : BitVec 64 × BitVec 64) (dest : Sum Nat Nat) (handler : Option (HolProg 64 × Nat × Nat))
-    (localBound : callJumpWork dest ≤ sourcePrice (.call none dest handler))
+    (localBound : targetPrice (.call none dest none) ≤ sourcePrice (.call none dest handler))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
     (calleeIH : ∀ program, StackSemControl.findCode dest source.regs source.code = some program →
       handler = none → source.clock ≠ 0 →
-      RemovalCostSimulation sourcePrice gap jump bounds program (decClock source)) :
-    RemovalCostSimulation sourcePrice gap jump bounds (.call none dest handler) source := by
+      RemovalCostSimulationFor sourcePrice targetPrice jump bounds program (decClock source)) :
+    RemovalCostSimulationFor sourcePrice targetPrice jump bounds (.call none dest handler) source := by
   intro postSource target result pointer hypothesis
   rcases hypothesis with ⟨sourceRun, notError, relation, bound⟩
   have clocks : target.clock = source.clock := relation.2.2.2.2.2.2.2.2.1
@@ -76,8 +76,20 @@ theorem removalCostSimulation_tail {F : Type} (sourcePrice : HolProg 64 → Nat)
             simp only [Option.isSome_none, Bool.false_eq_true, nonzero, zero, ↓reduceIte,
               targetLookup, lookup]
             rw [clockEq]
-            change callJumpWork dest + _ ≤ sourcePrice (.call none dest none) + _
+            change targetPrice (.call none dest none) + _ ≤ sourcePrice (.call none dest none) + _
             exact Nat.add_le_add localBound calleeCost
 
+theorem removalCostSimulation_tail {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (dest : Sum Nat Nat)
+    (handler : Option (HolProg 64 × Nat × Nat))
+    (localBound : callJumpWork dest ≤ sourcePrice (.call none dest handler))
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (calleeIH : ∀ program, StackSemControl.findCode dest source.regs source.code = some program →
+      handler = none → source.clock ≠ 0 →
+      RemovalCostSimulation sourcePrice gap jump bounds program (decClock source)) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.call none dest handler) source :=
+  removalCostSimulation_tailWithPrice sourcePrice (nativePriceWithGap gap) jump bounds dest handler localBound source calleeIH
+
+#print axioms removalCostSimulation_tailWithPrice
 #print axioms removalCostSimulation_tail
 end InitECandidate.Runtime.StackToLab
