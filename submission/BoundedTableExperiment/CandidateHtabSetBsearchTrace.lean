@@ -71,6 +71,22 @@ theorem candidateHtabSetBsearch_run_split {F : Type} {fn : MlS}
   | whileContinue guard nonzero clock one rest =>
       exact Or.inr (Or.inr (Or.inr ⟨_, _, _, _, _, nonzero, rfl, guard, one, rest⟩))
 
+/-- Actual event score of a `whileNext` binary-search trace. -/
+theorem candidateHtabSetBsearchLoopEvents_score {F : Type} (coeff : Work)
+    {fn : MlS} (guardEvents bodyEvents restEvents : List WorkEvent) :
+    coeff.score (executionWork
+      (.statement :: .cost (whileOverhead + loopMoves fn) ::
+        (guardEvents ++ bodyEvents ++ restEvents))) =
+      coeff.statements + coeff.nativeCost * (whileOverhead + loopMoves fn) +
+      coeff.score (executionWork guardEvents) +
+      coeff.score (executionWork bodyEvents) +
+      coeff.score (executionWork restEvents) := by
+  rw [executionWork_score_cons, executionWork_score_cons,
+    executionWork_score_append, executionWork_score_append]
+  simp [executionWork, WorkEvent.units, Work.score]
+  omega
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateHtabSetBsearch_run_split
+#print axioms BoundedTableExperiment.candidateHtabSetBsearchLoopEvents_score

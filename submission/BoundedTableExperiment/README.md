@@ -1165,3 +1165,12 @@ slot, the sequence preserves `PathMemoryInv`. This covers array/table writes
 performed by growth, copy, and truncate without touching the path buffer.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 58. Actual binary-search `whileNext` trace score
+
+`candidateHtabSetBsearchLoopEvents_score` gives the actual event score of a
+binary-search `whileNext` trace:
+
+`statements + nativeCost*(whileOverhead + loopMoves fn) + guard + body + rest`.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
