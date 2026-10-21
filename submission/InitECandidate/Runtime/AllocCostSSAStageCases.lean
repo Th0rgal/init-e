@@ -110,6 +110,52 @@ theorem wec_seq_stage_none {C F : Type}
   try dsimp only
   omega
 
+/-- **`loop` case of the stage producer.**  The whole-loop transfer consumes
+the one-step premise (whose body clause is the induction hypothesis at the
+source cut state) and charges the recursive per-iteration extra at the source
+clock; the loop node's own price is discharged exactly by the native instance. -/
+theorem wec_stage_loop_case {C F : Type}
+    (names targetNames exits targetExits : WordLangNumSetHOL)
+    (body targetBody : WordLangProgHOL (BitVec 64))
+    (bodyBudget backBudget : Nat)
+    (R : WordSemStateFiniteExact 64 C F → WordSemStateFiniteExact 64 C F → Prop)
+    (step : WecLoopStep nativeWordPrice names targetNames body targetBody R bodyBudget)
+    (s t : WordSemStateFiniteExact 64 C F) (rel : R s t) :
+    wordExecutionCost nativeWordPrice (.loop targetNames targetBody targetExits) t ≤
+      wordExecutionCost nativeWordPrice (.loop names body exits) s +
+        wecLoopExtra nativeWordPrice body names bodyBudget backBudget s :=
+  wecLoop_executed_transfer_native names targetNames exits targetExits body targetBody
+    bodyBudget backBudget R step s t rel
+
+/-- **`call` case (returning, result branch) of the stage producer.**  The
+allocated call costs no more than the source call once its three components
+compare; the callee is the same syntax tree on both sides by `stage_findCode`,
+so the body component is the induction hypothesis at the reached entry state and
+the continuation component at the reached popped state. -/
+theorem wec_stage_call_case {C F : Type}
+    (ssa : Spt Nat) (next : Nat)
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s t : WordSemStateFiniteExact 64 C F) (rel : SsaAllocRel ssa next s t)
+    (nodeT nodeS bodyT bodyS contT contS : Nat)
+    (hcallT : wordExecutionCost nativeWordPrice
+      (.call (some (values, names, retCode, l1, l2)) dest args handler) t =
+        nodeT + bodyT + contT)
+    (hcallS : wordExecutionCost nativeWordPrice
+      (.call (some (values, names, retCode, l1, l2)) dest args handler) s =
+        nodeS + bodyS + contS)
+    (hnode : nodeT ≤ nodeS) (hbody : bodyT ≤ bodyS) (hcont : contT ≤ contS) :
+    wordExecutionCost nativeWordPrice
+        (.call (some (values, names, retCode, l1, l2)) dest args handler) t ≤
+      wordExecutionCost nativeWordPrice
+        (.call (some (values, names, retCode, l1, l2)) dest args handler) s :=
+  ssaCall_returning_cost_stage ssa next values names retCode l1 l2 dest args handler
+    s t rel nodeT nodeS bodyT bodyS contT contS hcallT hcallS hnode hbody hcont
+
+#print axioms wec_stage_loop_case
+#print axioms wec_stage_call_case
 #print axioms wec_seq_stage_none
 #print axioms wec_inst
 #print axioms wec_move
