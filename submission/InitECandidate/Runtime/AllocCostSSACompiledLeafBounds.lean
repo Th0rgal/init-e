@@ -1075,4 +1075,33 @@ theorem move_seq_no_differential {C F : Type} (pri : Nat) (pairs : List (Nat × 
   omega
 
 #print axioms move_seq_no_differential
+
+/-- **The scheduler certificate bounds the canonical move price itself.**  With
+`refinedWordLocalPrice_move` the canonical price of a move node IS
+`12 * (parmove (physPairs pairs)).length`, so finite-auth's `goSeq_move` bounds it directly:
+
+  refinedWordLocalPrice (.move pri pairs) s <= allocMovePrice pairs
+
+whenever the table accepts that node.  This is the point where the coalescing table enters
+the transfer: it bounds exactly the quantity the source side is charged for an inserted move,
+in the canonical currency, with no 14/28 and no target budget. -/
+theorem canonical_move_price_le_table {C F : Type} (pri : Nat) (pairs : List (Nat × Nat))
+    (before : Nat) (s : WordSemStateFiniteExact 64 C F)
+    (ok : (goSeq before (.move pri pairs)).1 = true) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.move pri pairs) s <=
+      allocMovePrice pairs := by
+  rw [refinedWordLocalPrice_move]
+  exact goSeq_move ok
+
+/-- And the table price is itself dominated by the calibrated physical count, so the
+canonical price is bounded by a function of `nonselfCount` alone: self moves cost nothing. -/
+theorem canonical_move_price_le_nonself {C F : Type} (pri : Nat) (pairs : List (Nat × Nat))
+    (before : Nat) (s : WordSemStateFiniteExact 64 C F)
+    (ok : (goSeq before (.move pri pairs)).1 = true) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.move pri pairs) s <=
+      28 * nonselfCount pairs := by
+  refine le_trans (canonical_move_price_le_table pri pairs before s ok) (allocMovePrice_le pairs)
+
+#print axioms canonical_move_price_le_table
+#print axioms canonical_move_price_le_nonself
 end InitECandidate.Runtime.FineCost
