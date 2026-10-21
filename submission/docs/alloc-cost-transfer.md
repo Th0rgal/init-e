@@ -366,16 +366,14 @@ axiom, `unsafe`, `native_decide` or `bv_decide`.
      return-handler obligations at the native price, from the actual
      `callEnv`/`pushEnv`/`decClock` entries and `sValEq` stacks.
 
-- `AllocCostSSATransport` starts the `PERM_STACK` work transport needed because
-  the SSA relation picks the source permutation existentially: the executed
-  work must be invariant under replacing the oracle and stack roots by a
-  `PERM_STACK`-related variant.  Proved step lemmas: `mustTerminate` (default
-  node), `.seq`, `.ite`, `.call` without return, and `.call` with a `result`
-  return (body and return-handler transfers as explicit induction
-  hypotheses).  Remaining: the `.loop` step, the exception branch of the
-  returning call, and the termination-measure driver mirroring `swap_aux`.
-  The step lemmas use `swap_aux`-style facts only through their hypotheses, so
-  the driver supplies the actual sub-runs; no evaluation premise is assumed.
+- The `PERM_STACK` work transport needed because the SSA relation picks the
+  source permutation existentially is now **complete** for every constructor:
+  `wordPathWork_permStack_variant` (item 13) covers `mustTerminate`, `.seq`,
+  `.ite`, `.loop` with its cut state and back edge, and both call forms
+  including the exception branch, driven by the actual sub-runs obtained from
+  `swap_aux`.  The step lemmas are consumed only through their hypotheses, so
+  no evaluation premise is assumed anywhere; the native price has the
+  corresponding instance (item 14).
 - `WordSimp`/`instSelect` selection is taken as the root participant's
   `selectionLeaves ≤ 2 * wordExpressionWork` bridge.  This note starts from the
   selected straight-line fragment and does not re-prove that bridge.
