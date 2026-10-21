@@ -8,7 +8,8 @@ import json, math, sys
 
 P = {"find_per_visit": 723, "path_per_visit": 1107, "bsearch_per_step": 592,
      "relocate_per_node": 1203, "grow_per_loop": 1611, "truncate_per_step": 1307,
-     "delete_per_visit": 1614}
+     "delete_per_visit": 1614, "memcpy_per_32b": 2333,
+     "row_bytes": 56}
 
 def entry_cost(depth, bsearch_steps, fresh):
     c = depth * P["path_per_visit"]
@@ -16,6 +17,7 @@ def entry_cost(depth, bsearch_steps, fresh):
         c += bsearch_steps * P["bsearch_per_step"]
         c += 2 * P["relocate_per_node"]          # <=2 relocated internal nodes / leaf
         c += P["grow_per_loop"]                  # one growth-loop body
+        c += P["row_bytes"] * (P["memcpy_per_32b"] / 32)  # amortized array copy
     return c
 
 def max_entries(budget, depth, bsearch_steps, dup_frac):

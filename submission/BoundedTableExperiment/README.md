@@ -664,3 +664,24 @@ and performs no array copy; each removal pays one delete descent plus one
 swap-remove/truncate body. So resize/copy is amortized O(1) per fresh insert in
 capacity units (source price per relocated node is the measured 1203; the
 memcpy-per-byte price remains unpriced).
+
+## 25. memcpy and growth-copy source price
+
+The candidate's `memcpy` (label 76) has a 32-byte loop body priced at
+`preX = 426`, `removeDead optP = 2333`, i.e. about 73 source units per byte.
+`memzero` (77) is 1373 per body; `memeq` (78) is 945 per body; `alloc` (67) is
+1022.
+
+With `capSum_le_final`, total copied array bytes over all growths are at most
+`final_cap * row_bytes`, where `row_bytes = key_stride + 24` (key, value,
+order, and position arrays; 56 for a 32-byte stride). Adding this term to the
+fresh-insert cost lowers the 2e11 break-even counts:
+
+| avg depth | 90% dup | 99% dup |
+|---:|---:|---:|
+| 4 | 36.9M | 44.2M |
+| 8 | 20.2M | 22.3M |
+| 16 | 10.6M | 11.2M |
+
+The duplicate term still dominates the obstruction; fresh inserts additionally
+pay about `row_bytes * 73` source units of amortized array copying.
