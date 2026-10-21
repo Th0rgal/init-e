@@ -376,6 +376,21 @@ theorem parmove_charge_le (L E : List (Nat × Nat)) (auxLen : Nat)
   unfold certifiedMoveCharge
   split <;> omega
 
+/-- **Composed charge for an inserted move prefix.**  Every allocator site that
+prefixes a move node (`.seq (.move pri moves) tail`, e.g. call argument moves,
+raise/return moves, the alloc stack move) costs its `seq` node price plus exactly
+`certifiedMoveCharge moves` plus the tail's cost at the state the move reaches.
+The premise is the run fact, not a cost. -/
+theorem wec_move_seq_charge {C F : Type} (pri : Nat) (moves : List (Nat × Nat))
+    (tail : WordLangProgHOL (BitVec 64)) (s mid : WordSemStateFiniteExact 64 C F)
+    (h : fixClock s (evaluate (.move pri moves) s) = (none, mid)) :
+    wordExecutionCost nativeWordPrice (.seq (.move pri moves) tail) s =
+      nativeWordPrice (.seq (.move pri moves) tail) s + certifiedMoveCharge moves +
+        wordExecutionCost nativeWordPrice tail mid := by
+  rw [wec_seq_none_split (.move pri moves) tail s mid h, wec_move,
+    nativeWordPrice_move_eq_certified]
+
+#print axioms wec_move_seq_charge
 #print axioms parmove_charge_le
 #print axioms certifiedMoveCharge_le_of_len
 #print axioms parmove_emitted_len_le
