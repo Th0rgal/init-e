@@ -5960,3 +5960,24 @@ theorem final0_insts_slack :
     (InitECandidate.Proofs.BackendStages.Final.final0_sections_slack)
 
 end InitECandidate.Runtime.NativePadding
+
+namespace InitECandidate.Runtime.NativePadding
+
+theorem sourceSlackBound_four : SourceSlackBound 4 := by
+  intro line hline
+  have hall : padSlackOK (width := 64) 4 line = true :=
+    (List.all_eq_true.mp final0_insts_slack) line hline
+  cases line with
+  | label a b l => exact absurd hline (label_not_mem_insts a b l _)
+  | asm a bytes len =>
+      simp only [padSlackOK, decide_eq_true_eq] at hall
+      simp only [lineSlack, lineRecLen, Flapjack.Compiler.Backend.LabToTarget.lineBytes]
+      omega
+  | labAsm a w bytes len =>
+      simp only [padSlackOK, decide_eq_true_eq] at hall
+      simp only [lineSlack, lineRecLen, Flapjack.Compiler.Backend.LabToTarget.lineBytes]
+      omega
+
+#print axioms sourceSlackBound_four
+
+end InitECandidate.Runtime.NativePadding
