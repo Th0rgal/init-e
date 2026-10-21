@@ -321,3 +321,42 @@ cutSource (evaluate body cutSource)` split and a `wordSemContLoop` continuation 
 charging only `price p s` (WordExecutionCost.lean:44).  So their quantitative cases need the same
 `prime`-level splits the seq case used, with `cutState`/`fixClock` for the loop and the frame
 lookup for the call; the `41` is the node price, not the total.
+
+## The suffix certificate: what is proved and the one remaining instantiation
+
+PROVED (all green, axioms propext/Classical.choice/Quot.sound):
+
+- `move_fallthrough` : `(moves.map Prod.fst).Nodup` and `getVars (moves.map Prod.snd) s <> none`
+  imply `(fixClock s (evaluate (.move pri moves) s)).1 = none`.  Note WHICH hypotheses: Nodup is a
+  program property, and the getVars side is a state property supplied by `ssaLocalsRel` / `ssaMapOK` /
+  `everyVarHOL`.  The move table is NOT used here: `goSeq_move` bounds the price
+  (`12 * |parmove| <= allocMovePrice`), it says nothing about the run.  So the fall-through half of the
+  certificate comes from the SSA invariants, and only the price half comes from the table.
+- `seq_fallthrough` : fall-through composes over seq.
+- `wec_move_state_independent`, `wec_skip_state_independent`, `wec_seq_state_independent` (the last one
+  takes the fall-through hypothesis of its first half - without it the statement is FALSE, because a
+  move whose sources are missing returns `some .error` and then the second half of a seq is charged on
+  one state and not the other).
+- `suffix_seq_cost_independent` : at the shape `fixInconsistencies` actually returns,
+  `.seq (.move (priority prio true) lmov) lseq` (SSAFixInconsistencies.lean:71), its cost is state
+  independent.
+- `AllocOnly` : the shape of every suffix (skip/move leaves, seq nodes), with
+  `allocOnly_fallthrough` and `allocOnly_cost_independent` proved by induction over it.
+
+REMAINING, and it is purely a term-shape problem, not mathematics: `AllocOnly` of the CONCRETE suffix,
+i.e. `AllocOnly (fixInconsistencies prio ssaL ssaR na).1` and, under it,
+`AllocOnly (fakeMoves prio xs ssaL ssaR na).1` by list induction.  The obstruction is that
+`fakeMoves`'s cons case binds a five-way `let`/`match` on `sptLookup x ssaL'` / `sptLookup x ssaR'`
+BEFORE forming the pair, so after `unfold fakeMoves; dsimp only; split` the goal asks for `AllocOnly`
+of a term that is only propositionally - not definitionally - the recursive call's projection, and the
+induction hypothesis therefore does not apply:
+
+    Application type mismatch: The argument
+      fakeMoves_allocOnly prio xs ?m.134 ?m.135 ?m.136
+    has type AllocOnly (fakeMoves prio xs ?m.134 ?m.135 ?m.136).1 ...
+
+The fix is to pattern-match the recursive result the same way the definition does (as
+SSAFixInconsistencies.lean:69-70 matches `mergeMoves`' output), so the tuple components are the same
+bound variables and the projections reduce definitionally; then apply the induction hypothesis directly.
+Once that lemma exists, `allocOnly_fallthrough` / `allocOnly_cost_independent` give the suffix's run and
+cost facts, and `ite_quantTransfer_then` turns them into the quantitative ite constructor.
