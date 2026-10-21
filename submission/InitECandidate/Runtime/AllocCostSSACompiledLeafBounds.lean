@@ -99,6 +99,17 @@ theorem ssaCcTrans_assign_cost {C F : Type}
   rw [wec_assign, wec_assign]
   exact le_of_eq hprice
 
+/-- **Merge overhead arithmetic.**  Each inserted move is a `.move` node priced
+`(if len ≤ 1 then 14 else 28) * len`, so with `n` live variables at a merge (the
+length of `sptToAList (sptUnion ssaL ssaR)`), `lmov`/`rmov` of at most `n` pairs
+each and at most `n` fake moves the inserted cost is at most `70 * n`.  This is
+the concrete number handed to the source side; it needs no target assumption. -/
+theorem merge_overhead_bound (n lmovLen rmovLen fakeCount : Nat)
+    (h1 : lmovLen ≤ n) (h2 : rmovLen ≤ n) (h3 : fakeCount ≤ n) :
+    28 * lmovLen + 28 * rmovLen + 14 * fakeCount ≤ 70 * n := by
+  omega
+
+#print axioms merge_overhead_bound
 #print axioms ssaCcTrans_inst_shape
 #print axioms ssaCcTrans_assign_shape
 #print axioms ssaCcTrans_assign_cost
