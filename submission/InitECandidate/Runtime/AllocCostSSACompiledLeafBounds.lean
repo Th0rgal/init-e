@@ -1209,137 +1209,29 @@ theorem ssaCcTrans_seq_transfer_compiled {C F : Type}
 #print axioms refinedWordLocalPrice_seq_zero
 #print axioms ssaCcTrans_seq_transfer_compiled
 
-/-! ## Quantitative SSA simulation
+/-! ## Quantitative SSA simulation (plain-state runs)
 
-`ssaSimulation` (SSASemanticControl.lean:12) already carries the source permutation witness, the
-ACTUAL runs, the outcome equality and the full four-branch post match (`none` -> `ssaLocalsRel`,
-`break`/`continue` -> `strongLocalsRel` through `tables`, other -> locals equality).  It binds its
-runs with `let`, which hides them from the transfer, so this predicate EXPOSES the two runs as
-existential variables with their evaluation equations, KEEPS the compiler's simulation verbatim
-(so the post relation is never transcribed), records the outcome equality, and adds the executed
-cost of the actual compiled program at the canonical `refinedWordLocalPrice`. -/
+The runs are exposed at the PLAIN states.  A `permute`-indexed run cannot be composed for
+`seq`: the evaluator mutates the `permute` field during a run (inst_withPermute,
+wordSemEnvToList ... s.permute), so the composite run's final state carries the second body's
+permutation while its initial state can only carry one chosen permutation.  The compiler's
+simulation conjunct keeps the permutation, where it belongs. -/
 noncomputable def quantSsaSimulation {C F : Type}
-    (prog : WordLangProgHOL (BitVec 64))
-    (source target : WordSemStateFiniteExact 64 C F)
-    (ssa : Spt Nat) (next : Nat)
-    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat) : Prop :=
-  ∃ permutation : Nat → Nat → Nat,
-  ∃ rS : Option (WordSemResult 64), ∃ sS : WordSemStateFiniteExact 64 C F,
-  ∃ rT : Option (WordSemResult 64), ∃ sT : WordSemStateFiniteExact 64 C F,
-    (WordSemStateFiniteExact.evaluate prog {source with permute := permutation} = (rS, sS)) ∧
-    (WordSemStateFiniteExact.evaluate (ssaCcTrans prog ssa next tables).1 target = (rT, sT)) ∧
-    ssaSimulation prog source target ssa next tables ∧
-    rS = rT ∧
-    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (ssaCcTrans prog ssa next tables).1 target ≤
-      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog
-        {source with permute := permutation} + extra
+    (prog : WordLangProgHOL (BitVec 64)) (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat) : Prop :=
+  ssaSimulation prog source target ssa next tables ∧
+  (∃ rS : Option (WordSemResult 64), ∃ sS : WordSemStateFiniteExact 64 C F, ∃ rT : Option (WordSemResult 64), ∃ sT : WordSemStateFiniteExact 64 C F,
+    WordSemStateFiniteExact.evaluate prog source = (rS, sS) ∧
+    WordSemStateFiniteExact.evaluate ((ssaCcTrans prog ssa next tables).1) target = (rT, sT) ∧
+    rS = rT) ∧
+  wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice ((ssaCcTrans prog ssa next tables).1) target ≤
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog source + extra
 
-/-- Compiler simulation from the quantitative one. -/
 theorem quantSsaSimulation.toSsaSimulation {C F : Type}
     (prog : WordLangProgHOL (BitVec 64)) (source target : WordSemStateFiniteExact 64 C F)
-    (ssa : Spt Nat) (next : Nat)
-    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat)
-    (h : quantSsaSimulation (C := C) (F := F) prog source target ssa next tables extra) : ssaSimulation prog source target ssa next tables := by
-  obtain ⟨_, _, _, _, _, _, _, hsim, _, _⟩ := h
-  exact hsim
+    (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)) (extra : Nat)
+    (h : quantSsaSimulation (C := C) (F := F) prog source target ssa next tables extra) :
+    ssaSimulation prog source target ssa next tables :=
+  h.1
 
-
-/-- `fixClock` rewrites only the state's clock and termdep; the RESULT component is untouched.
-This is what lets a stage turn a run equation into the `fixClock` form the counter uses. -/
-theorem fixClock_fst {C F : Type}
-    (s : WordSemStateFiniteExact 64 C F)
-    (p : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F) :
-    (fixClock s p).1 = p.1 := by
-  simp only [fixClock]
-
-/-- If a run's result is `none`, so is the `fixClock`ed run's result. -/
-theorem fixClock_fst_none {C F : Type}
-    (s : WordSemStateFiniteExact 64 C F)
-    (p : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F)
-    (h : p.1 = none) : (fixClock s p).1 = none := by
-  rw [fixClock_fst, h]
-
-/-- The reached state of a `fixClock`ed run, as the middle state a continuation is charged at. -/
-def fixClockMid {C F : Type}
-    (s : WordSemStateFiniteExact 64 C F)
-    (p : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F) :
-    WordSemStateFiniteExact 64 C F :=
-  (fixClock s p).2
-
-#print axioms fixClock_fst
-#print axioms fixClock_fst_none
-
-
-/-- `getVar` reads only `state.locals`, so the `permute` field is invisible to it. -/
-theorem getVar_permute {C F : Type} (name : Nat)
-    (s : WordSemStateFiniteExact 64 C F) (perm : Nat → Nat → Nat) :
-    getVar name {s with permute := perm} = getVar name s := rfl
-
-#print axioms getVar_permute
-
-/-! ## Canonical prices of the control constructors
-
-Read off root's fallback clause of `refinedWordLocalPrice` with the pinned constructor
-signatures from Figure `WordLangProgHOL` (Flapjack/Pancake/WordLang.lean:221):
-`.ite (op : Cmp) (condition : Nat) (right : WordRegImm a) (then else)`, 
-`.loop (liveIn : WordLangNumSetHOL) (body) (liveOut : WordLangNumSetHOL)`, and
-`.call (returns : Option (...)) (target : Option Nat) (arguments) (handler : Option (Nat × prog × Nat × Nat))`. -/
-theorem refinedWordLocalPrice_ite {C F : Type} (op : Cmp) (condition : Nat)
-    (right : WordRegImm (BitVec 64))
-    (thenBranch elseBranch : WordLangProgHOL (BitVec 64))
-    (s : WordSemStateFiniteExact 64 C F) :
-    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-      (.ite op condition right thenBranch elseBranch) s = 23 := by
-  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
-    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
-
-theorem refinedWordLocalPrice_loop {C F : Type}
-    (liveIn : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
-    (liveOut : WordLangNumSetHOL) (s : WordSemStateFiniteExact 64 C F) :
-    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop liveIn body liveOut) s = 2 := by
-  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
-    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
-
-theorem refinedWordLocalPrice_call_none {C F : Type}
-    (target : Option Nat) (arguments : List Nat)
-    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
-    (s : WordSemStateFiniteExact 64 C F) :
-    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none target arguments handler) s = 41 := by
-  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
-    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
-
-#print axioms refinedWordLocalPrice_ite
-#print axioms refinedWordLocalPrice_loop
-#print axioms refinedWordLocalPrice_call_none
-
-/-! ## The evaluator's `seq` clause
-
-`evaluate` (Evaluate.lean:165) splits a `seq` exactly as the counter does:
-
-    | .seq c1 c2 =>
-        match _h : fixClock s (evaluate c1 s) with
-        | (res, s1) => match res with | none => evaluate c2 s1 | _ => (res, s1)
-
-so the run of a `seq` is determined by the first half's `fixClock`ed run.  The two lemmas
-below expose that, which is what lets the induction case DERIVE the target run instead of
-assuming it. -/
-theorem evaluate_seq_none {C F : Type}
-    (c1 c2 : WordLangProgHOL (BitVec 64))
-    (s mid : WordSemStateFiniteExact 64 C F)
-    (h : fixClock s (WordSemStateFiniteExact.evaluate c1 s) = (none, mid)) :
-    WordSemStateFiniteExact.evaluate (.seq c1 c2) s =
-      WordSemStateFiniteExact.evaluate c2 mid := by
-  simp only [WordSemStateFiniteExact.evaluate, h]
-
-theorem evaluate_seq_escape {C F : Type}
-    (c1 c2 : WordLangProgHOL (BitVec 64))
-    (s mid : WordSemStateFiniteExact 64 C F)
-    (res : Option (WordSemResult 64))
-    (h : fixClock s (WordSemStateFiniteExact.evaluate c1 s) = (res, mid))
-    (hr : res = none → False) :
-    WordSemStateFiniteExact.evaluate (.seq c1 c2) s = (res, mid) := by
-  simp only [WordSemStateFiniteExact.evaluate, h]
-
-#print axioms evaluate_seq_none
-#print axioms evaluate_seq_escape
 end InitECandidate.Runtime.FineCost
