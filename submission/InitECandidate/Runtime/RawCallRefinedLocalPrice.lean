@@ -154,4 +154,81 @@ theorem optimizedTail_executionCost_le {F : Type} (bounds : BitVec 64 × BitVec 
           stackSpace := source.stackSpace + released - allocated})
 
 #print axioms optimizedTail_executionCost_le
+
+/-- Timeout entries also retain the bound. In the growing-frame branch the
+optimizer times out at its tick, before either allocation or callee entry. -/
+theorem optimizedTail_zero_executionCost_le {F : Type}
+    (bounds : BitVec 64 × BitVec 64) (released allocated dest : Nat)
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (enabled : source.useStack = true) (zero : source.clock = 0)
+    (releaseSafe : source.stackSpace + released ≤ source.stack.length)
+    (positive : 0 < released) (releaseBound : released ≤ 255) :
+    stackExecutionCost (fun p _ => refinedRemovalLocalPrice 6 bounds p)
+      (StackRawCall.SeqCase.optimizedSeq released allocated dest) source ≤
+    stackExecutionCost (fun p _ => refinedRemovalLocalPrice 6 bounds p)
+      (.seq (.stackFree released) (.call none (.inl dest) none)) source := by
+  have releaseRun : Flapjack.StackSemEvaluate.evaluate (.stackFree released, source) =
+      (none, {source with stackSpace := source.stackSpace + released}) := by
+    simp [Flapjack.StackSemEvaluate.evaluate_stackFree, enabled,
+      Nat.not_lt.mpr releaseSafe]
+  have chunks : (released + 254) / 255 = 1 := by omega
+  rw [stackExecutionCost, releaseRun]
+  simp only [Flapjack.StackSemControl.fixClock, Nat.min_self]
+  by_cases equal : allocated = released
+  · simp [StackRawCall.SeqCase.optimizedSeq, equal, stackExecutionCost, zero,
+      refinedRemovalLocalPrice, removalLocalPrice, nativePriceWithGap, callJumpWork,
+      chunks]
+  · by_cases less : allocated < released
+    · have safe : ¬ source.stack.length < source.stackSpace + (released - allocated) := by omega
+      have smallerChunks : (released - allocated + 254) / 255 ≤ 1 := by omega
+      simp [StackRawCall.SeqCase.optimizedSeq, equal, less, stackExecutionCost,
+        zero, Flapjack.StackSemEvaluate.evaluate_stackFree, enabled, safe,
+        Flapjack.StackSemControl.fixClock, refinedRemovalLocalPrice,
+        removalLocalPrice, nativePriceWithGap, callJumpWork, chunks]
+      omega
+    · simp [StackRawCall.SeqCase.optimizedSeq, equal, less, stackExecutionCost,
+        zero, Flapjack.StackSemEvaluate.evaluate_tick, Flapjack.StackSemStateOps.emptyEnv,
+        Flapjack.StackSemControl.fixClock, refinedRemovalLocalPrice,
+        refinedNativePriceWithGap, removalLocalPrice, nativePriceWithGap,
+        callJumpWork, instLocalCost, chunks]
+
+#print axioms optimizedTail_zero_executionCost_le
+
+/-- Allocation failure is priced before the recursive callee body. The
+optimized tick consumes the original call's clock, as in the pinned proof. -/
+theorem optimizedTail_failure_executionCost_le {F : Type}
+    (bounds : BitVec 64 × BitVec 64) (released allocated dest : Nat) (body : HolProg 64)
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (entry : sptLookup dest source.code = some (.seq (.stackAlloc allocated) body))
+    (enabled : source.useStack = true) (nonzero : source.clock ≠ 0)
+    (releaseSafe : source.stackSpace + released ≤ source.stack.length)
+    (failure : source.stackSpace + released < allocated)
+    (positive : 0 < released) (releaseBound : released ≤ 255)
+    (allocationBound : allocated ≤ 255) :
+    stackExecutionCost (fun p _ => refinedRemovalLocalPrice 6 bounds p)
+      (StackRawCall.SeqCase.optimizedSeq released allocated dest) source ≤
+    stackExecutionCost (fun p _ => refinedRemovalLocalPrice 6 bounds p)
+      (.seq (.stackFree released) (.call none (.inl dest) none)) source := by
+  have greater : released < allocated := by omega
+  have fail : source.stackSpace < allocated - released := by omega
+  have releaseRun : Flapjack.StackSemEvaluate.evaluate (.stackFree released, source) =
+      (none, {source with stackSpace := source.stackSpace + released}) := by
+    simp [Flapjack.StackSemEvaluate.evaluate_stackFree, enabled,
+      Nat.not_lt.mpr releaseSafe]
+  have chunks : (released + 254) / 255 = 1 := by omega
+  have allocChunks : (allocated + 254) / 255 = 1 := by omega
+  have diffChunks : (allocated - released + 254) / 255 = 1 := by omega
+  rw [stackExecutionCost, releaseRun]
+  simp only [Flapjack.StackSemControl.fixClock, Nat.min_self]
+  simp [StackRawCall.SeqCase.optimizedSeq, show allocated ≠ released by omega,
+    show ¬ allocated < released by omega, stackExecutionCost, nonzero,
+    Flapjack.StackSemControl.findCode, entry,
+    Flapjack.StackSemEvaluate.evaluate_tick,
+    Flapjack.StackSemEvaluate.evaluate_stackAlloc, enabled, fail, failure,
+    Flapjack.StackSemControl.fixClock, Flapjack.StackSemStateOps.decClock,
+    Flapjack.StackSemStateOps.emptyEnv, refinedRemovalLocalPrice,
+    refinedNativePriceWithGap, removalLocalPrice, nativePriceWithGap,
+    callJumpWork, instLocalCost, chunks, allocChunks, diffChunks]
+
+#print axioms optimizedTail_failure_executionCost_le
 end InitECandidate.Runtime.StackRawCall
