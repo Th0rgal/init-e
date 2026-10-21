@@ -114,7 +114,7 @@ theorem decCall_return_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
         [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents)) := by
   classical
   have localisedAll : everyExpListHOL localisedExpHOL arguments = true ∧
@@ -207,7 +207,7 @@ theorem decCall_timeout_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)])) := by
+            (callMoves fn function + callSites fn function))])) := by
   classical
   have localisedAll : everyExpListHOL localisedExpHOL arguments = true ∧
       localisedProgHOL continuation = true := by
@@ -309,7 +309,7 @@ theorem decCall_stopped_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)])) := by
   classical
   have localisedAll : everyExpListHOL localisedExpHOL arguments = true ∧

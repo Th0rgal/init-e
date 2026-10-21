@@ -238,7 +238,7 @@ inductive StatementRun {F : Type} : MlS → PanSemStateFiniteExact 64 F → Prog
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
           [.cost (callExitOverhead bodyResult)] ++ callGlobalEvents s info))
   | callHandler {fn} {s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post}
@@ -253,7 +253,7 @@ inductive StatementRun {F : Type} : MlS → PanSemStateFiniteExact 64 F → Prog
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
           [.cost (callExitOverhead bodyResult)] ++ handlerEvents))
   | callArgumentsFailure {fn} {s info function arguments}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -275,7 +275,7 @@ inductive StatementRun {F : Type} : MlS → PanSemStateFiniteExact 64 F → Prog
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)] ++ callGlobalEvents s info))
+            (callMoves fn function + callSites fn function))] ++ callGlobalEvents s info))
 
   | declareCallReturn {fn} {s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents continuationEvents result post}
@@ -295,7 +295,7 @@ inductive StatementRun {F : Type} : MlS → PanSemStateFiniteExact 64 F → Prog
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
           [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents))
 
   | declareCallArgumentsFailure {fn} {s name shape function arguments continuation}
@@ -318,7 +318,7 @@ inductive StatementRun {F : Type} : MlS → PanSemStateFiniteExact 64 F → Prog
         (some .timeOut) (emptyLocalsHOLFinite s) (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)]))
+            (callMoves fn function + callSites fn function))]))
   | declareCallRejectedReturn {fn} {s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -333,7 +333,7 @@ inductive StatementRun {F : Type} : MlS → PanSemStateFiniteExact 64 F → Prog
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)] ++ bodyEvents))
+            (callMoves fn function + callSites fn function))] ++ bodyEvents))
   | declareCallStopped {fn} {s name shape function arguments continuation values body callee returnShape
       bodyResult bodyPost bodyEvents}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -347,7 +347,7 @@ inductive StatementRun {F : Type} : MlS → PanSemStateFiniteExact 64 F → Prog
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
           [.cost (callExitOverhead bodyResult)]))
 
   | tickStep {fn} {s} (clock : s.clock ≠ 0) :

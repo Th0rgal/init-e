@@ -210,7 +210,7 @@ theorem call_handler_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)] ++ handlerEvents)) := by
   classical
   obtain ⟨dest, handlerId, handlerVar, rfl⟩ := handler_plan_info_sharp plan

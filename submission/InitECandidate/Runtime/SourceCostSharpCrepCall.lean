@@ -250,7 +250,7 @@ theorem call_done_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)])) := by
   classical
   have bodyOk := call_body_ok_sharp plan resultOk
@@ -376,7 +376,7 @@ theorem call_timeout_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)])) := by
+            (callMoves fn function + callSites fn function))])) := by
   classical
   obtain ⟨vshapes, _hsrc, _, hfuncs, _hlen, htargs, htlookup, _, _, _, _⟩ :=
     pcCompileCorrectCallPrelude s t context function arguments values body callee returnShape

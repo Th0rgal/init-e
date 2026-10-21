@@ -103,7 +103,7 @@ theorem source_loop_top {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
             { u with clock := T.clock + 1 + extra }) wl ∧
         wl ≤ sharpScore ev +
           globalsTopInit rshape ((panSimpDeclsHOL decls).filter isDeclHOL).length (callPayloadWords r) +
-          callMoves start (newMainNameHOL (panSimpDeclsHOL decls)) ∧
+          (callMoves start (newMainNameHOL (panSimpDeclsHOL decls)) + callSites start (newMainNameHOL (panSimpDeclsHOL decls))) ∧
         LoopRunRel (entryLoopContext target (compileTopExactHOL (panSimpDeclsHOL decls) start)) .ln
           (evalCrepSemHOLProgExact (crepSimpMapcsHOL { tc with clock := T.clock + 1 })
             (crepSimpProgHOL (compileProgExactHOLW

@@ -40,6 +40,10 @@ theorem guest_entry_payload {s1 post : PanSemStateFiniteExact 64 Guest.HostMemor
     · have := List.all_eq_true.1 guest_source_exn_shapes _ mem
       simpa using this
 
+/-- The source entry's call carries no WordSimp site surcharge. -/
+theorem guest_entry_sites :
+    callSites (Flapjack.Basis.Pure.MlString.ofString "main") freshEntryName = 0 := by decide +kernel
+
 /-- Guest source → Loop transfer from the authoritative source program. -/
 theorem guest_source_loop (input : Guest.InputBlob) {C : Type}
     (target : WordSemStateFiniteExact 64 C Guest.HostMemory) (arch : AsmArchitecture) (clock : Nat)
@@ -107,6 +111,9 @@ theorem guest_source_loop (input : Guest.InputBlob) {C : Type}
   have entryMoves : callMoves (Flapjack.Basis.Pure.MlString.ofString "main")
       (newMainNameHOL (panSimpDeclsHOL InitE.sourceDeclarations)) = 0 := by
     rw [hfresh]; decide +kernel
+  have entrySites : callSites (Flapjack.Basis.Pure.MlString.ofString "main")
+      (newMainNameHOL (panSimpDeclsHOL InitE.sourceDeclarations)) = 0 := by
+    rw [hfresh]; exact guest_entry_sites
   obtain ⟨T, hT, extra, wl, work, bound, rel, loopOk⟩ := source_loop_initial (sourceInitialState input) target arch
     InitE.sourceDeclarations start guestGlobalsSize clock hmem hnolabels guest_source_struct_context rfl
     hmdomain guest_source_distinct (guest_source_aligned input) (source_globals_allocatable input)
@@ -120,9 +127,12 @@ theorem guest_source_loop (input : Guest.InputBlob) {C : Type}
   rw [count] at bound
   have entryMoves' : callMoves start (newMainNameHOL (panSimpDeclsHOL InitE.sourceDeclarations)) = 0 :=
     entryMoves
+  have entrySites' : callSites start (newMainNameHOL (panSimpDeclsHOL InitE.sourceDeclarations)) = 0 :=
+    entrySites
   simp only [globalsTopInit, hsz] at bound
   omega
 
 #print axioms guest_entry_payload
 #print axioms guest_source_loop
+#print axioms guest_entry_sites
 end InitECandidate.Runtime.FineCost

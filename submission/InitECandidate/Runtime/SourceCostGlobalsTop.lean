@@ -82,7 +82,7 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
       ∃ r' post' ev', StatementRun fn { T with clock := T.clock + 1 } (.call none start []) r' post' ev' ∧
         r' = r ∧ sharpSourceScore B ev' ≤ sharpSourceScore B ev +
           globalsTopInit rshape (code.filter isDeclHOL).length (callPayloadWords r) +
-          callMoves start (newMainNameHOL code) := by
+          (callMoves start (newMainNameHOL code) + callSites start (newMainNameHOL code)) := by
   classical
   obtain ⟨hdistinct, ht, hcode, hglobals, halign, hgood, rfl, rfl, hdisj, hmem,
     htopNot, hbound, hkinds⟩ := h
@@ -407,6 +407,10 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
       have h := callMoves_fperm hinv fn start
       rwa [hfp] at h
     have hgoal : callMoves start (newMainNameHOL code) = callMoves start nm := by rw [hnm]
+    have hcs : callSites (fpermName start nm fn) nm = callSites fn start := by
+      have h := callSites_fperm hinv fn start
+      rwa [hfp] at h
+    have hgoal' : callSites start (newMainNameHOL code) = callSites start nm := by rw [hnm]
     omega
   · obtain ⟨_, _, _, hinfo⟩ := globals_plan_handler_info hplan
     cases hinfo

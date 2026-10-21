@@ -56,7 +56,7 @@ theorem source_top_entry {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
       ∃ r' post' ev', StatementRun fn { T with clock := T.clock + 1 } (.call none start []) r' post' ev' ∧
         r' = r ∧ sharpScore ev' ≤ sharpScore ev +
           globalsTopInit rshape ((panSimpDeclsHOL decls).filter isDeclHOL).length (callPayloadWords r) +
-          callMoves start (newMainNameHOL (panSimpDeclsHOL decls)) := by
+          (callMoves start (newMainNameHOL (panSimpDeclsHOL decls)) + callSites start (newMainNameHOL (panSimpDeclsHOL decls))) := by
   obtain ⟨s1', hs1', post', ev1, run1, le1⟩ :=
     simp_top_entry decls s0 h.2.2.1 hs1 start clock run ok
   have hs1k : @evaluateDeclsHOLFinite 64 F _
@@ -73,7 +73,7 @@ theorem source_top_entry {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
   exact ⟨T, hT, r', post'', ev', run', ok', by
     have : sharpScore ev' ≤ sharpScore ev1 +
         globalsTopInit rshape ((panSimpDeclsHOL decls).filter isDeclHOL).length (callPayloadWords r) +
-          callMoves start (newMainNameHOL (panSimpDeclsHOL decls)) := le'
+          (callMoves start (newMainNameHOL (panSimpDeclsHOL decls)) + callSites start (newMainNameHOL (panSimpDeclsHOL decls))) := le'
     omega⟩
 
 #print axioms source_top_entry

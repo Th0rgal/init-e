@@ -23,7 +23,7 @@ theorem globals_callDone_any (B : Nat) {F : Type} {s post : PanSemStateFiniteExa
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)] ++ callGlobalEvents s info)) := by
   rcases info with _ | ⟨_ | ⟨kind, name⟩, _ | ⟨exception, handlerVar, handler⟩⟩
   all_goals (try cases kind)
@@ -48,7 +48,7 @@ theorem globals_callHandler_any (B : Nat) {F : Type} {s post : PanSemStateFinite
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)] ++ bodyEvents ++
+            (callMoves fn function + callSites fn function))] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)] ++ handlerEvents)) := by
   by_cases plain : globalsPlainInfo info = true
   · exact globals_callHandler_plain B args lookup clock bodyRun plan handlerRun ihBody ihHandler plain
@@ -70,7 +70,7 @@ theorem globals_callTimeout_any (B : Nat) {F : Type} {s : PanSemStateFiniteExact
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
-            callMoves fn function)] ++ callGlobalEvents s info)) := by
+            (callMoves fn function + callSites fn function))] ++ callGlobalEvents s info)) := by
   rcases info with _ | ⟨_ | ⟨kind, name⟩, _ | ⟨exception, handlerVar, handler⟩⟩
   all_goals (try cases kind)
   all_goals first
