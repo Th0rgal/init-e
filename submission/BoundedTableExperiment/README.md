@@ -1186,3 +1186,14 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`.
 The offset-0 store address is the two-argument `add [dst, i]`, higher offsets
 use three-argument `add`. Axioms are `propext`, `Classical.choice`,
 `Quot.sound`.
+
+## 60. Actual 32-byte copy iteration
+
+`CandidateMemcpyTrace.lean` proves:
+- `candidateMemcpyStep32_trace`: an actual successful 32-byte copy iteration
+  splits into the four actual word stores and the `i += 32` bump, with events
+  `e0 ++ (e8 ++ (e16 ++ (e24 ++ bump)))`;
+- `candidateMemcpyStep32_score`: its actual score is additive over those five
+  parts.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
