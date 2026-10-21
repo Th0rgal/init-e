@@ -1303,3 +1303,476 @@ conjunct:
   normalise it.
 * `Nat.mul_add`/`Nat.mul_one` turn `B * (1 + k)` into `B + B * k`, which is the shape
   `wec_loop_cont_live_transfer_ren` consumes.
+
+## The loop case at the compiler's CONCRETE setup / body / back-edge ASTs (HEAD bc9cfb560)
+
+This section transcribes, with no proof obligation of its own, the *exact* compiler-side objects the
+quantitative loop lemma has to talk about, taken from the pinned Flapjack implementation and from what
+the pinned proof actually establishes about them.  It exists because every loop endpoint listed above
+assumes a *single* compiled body `bodyC : prog`, fixed once and quantified over SSA maps.  The compiler
+does not emit such an object: `ssaCcTrans` recurses into the body at a map produced by `loopSetup`, so
+the compiled body is a **function of the map** (`map`), the counter (`na`) and the table list (`lt`).
+The transcription below is the input to stating the loop lemma correctly.
+
+### Paths and notation
+
+Flapjack paths are relative to `.lake/packages/flapjack/`; the driver path is relative to the repo root.
+
+| shorthand | path |
+|---|---|
+| `CcTrans` | `Flapjack/Compiler/Backend/WordAlloc/SSACcTrans.lean` |
+| `Helpers` | `Flapjack/Compiler/Backend/WordAlloc/SSAHelpers.lean` |
+| `SemLoop` | `Flapjack/Compiler/Backend/WordAlloc/Proofs/SSASemanticLoop.lean` |
+| `LoopSetup` | `Flapjack/Compiler/Backend/WordAlloc/Proofs/SSALoopSetup.lean` |
+| `Iter` | `Flapjack/Compiler/Backend/WordAlloc/Proofs/SSALoopIteration.lean` |
+| `Reconcile` | `Flapjack/Compiler/Backend/WordAlloc/Proofs/SSAReconcile.lean` |
+| `SemControl` | `Flapjack/Compiler/Backend/WordAlloc/Proofs/SSASemanticControl.lean` |
+| `Driver` | `submission/InitECandidate/Runtime/AllocCostSSACompiledLeafBounds.lean` |
+
+Types below are abbreviated: `prog := WordLangProgHOL (BitVec width)` (the driver uses `width = 64`),
+`state := WordSemStateFiniteExact width C F`, `L := List (Spt Nat × Spt Unit × Spt Unit)`.
+Primitives: `sptInter : Spt α → Spt β → Spt α` (`Flapjack/Misc/Sptree.lean:1048`),
+`optionLookup : Spt Nat → Nat → Nat` (`SSAFixInconsistencies.lean:21`),
+`applyNummapKey : (Nat → Nat) → Spt α → Spt α` (`KeyMaps.lean:9`),
+`fakeMove v = .inst (.const v 0)` (`SSAFixInconsistencies.lean:36-37`).
+The pin's own statement is `ssaCcTransCorrectLoop` (`SemLoop.lean:23-46`); it has **no cost conjunct**
+(cost is a repo-side predicate: `quantTransfer` / `wordExecutionCost`), so everything below describes the
+*shape* a quantitative version must reproduce, with the budget added.
+
+### 1. SETUP AST — `setupProg = loopSetup names exits ssa next`
+
+Definition, verbatim (`Helpers.lean:62-71`):
+
+```lean
+def loopSetup {width : Nat} [NeZero width] (names exitNames : Spt Unit) (ssa : Spt Nat)
+    (na : Nat) : WordLangProgHOL (BitVec width) × Spt Nat × Nat :=
+  let allVarsLs := (sptToAList (sptUnion names exitNames)).map Prod.fst
+  let extendLs := allVarsLs.filter fun v => (sptLookup v ssa).isNone
+  let refreshLs := allVarsLs.filter fun v => (sptLookup v ssa).isSome
+  let (freshPosLs, ssaExt, naExt) := listNextVarRename extendLs ssa na
+  let fakeProg := (freshPosLs.map fun r => fakeMove r).foldr .seq .skip
+  let (refreshMov, ssaRefreshed, naRefreshed) :=
+    listNextVarRenameMove ssaExt naExt refreshLs
+  (.seq fakeProg refreshMov, ssaRefreshed, naRefreshed)
+```
+
+`listNextVarRenameMove` (`Helpers.lean:22-26`) emits `.move 0 (newLs.zip curLs)`, `curLs = ls.map
+(optionLookup ssa)`.  At the loop clause the setup is called with the **outer** map and counter
+(`CcTrans.lean:189`, `setupProg, ssaRefreshed, naRefreshed := loopSetup names exitNames ssa na`) and with
+`(names, exits) := (names, exitNames)`; the proof re-establishes that equation as `setup`
+(`SemLoop.lean:43`).
+
+`loopSetupCorrect` — signature and conclusion, verbatim (`LoopSetup.lean:148-165`):
+
+```lean
+theorem loopSetupCorrect {width : Nat} [NeZero width] {C F : Type}
+    (source target : WordSemStateFiniteExact width C F)
+    (ssa : Spt Nat) (next : Nat) (names exitNames : Spt Unit)
+    (setupProg : WordLangProgHOL (BitVec width)) (mapOut : Spt Nat) (nextOut : Nat)
+    (h : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ ssaMapOK next ssa ∧
+      isAllocVar next ∧ loopSetup names exitNames ssa next = (setupProg,mapOut,nextOut)) :
+    ∃ after : WordSemStateFiniteExact width C F,
+      WordSemStateFiniteExact.evaluate setupProg target = (none,after) ∧
+      Flapjack.WordAlloc.wordStateEqRel source after ∧
+      ssaLocalsRel nextOut mapOut source.locals after.locals ∧ next ≤ nextOut ∧
+      isAllocVar nextOut ∧ ssaMapOK nextOut mapOut ∧
+      sptDomain mapOut = (fun key => sptDomain ssa key ∨ sptDomain (sptUnion names exitNames) key) ∧
+      (∀ x y, sptDomain names x → sptDomain names y →
+        optionLookup mapOut x = optionLookup mapOut y → x = y) ∧
+      (∀ x y, sptDomain exitNames x → sptDomain exitNames y →
+        optionLookup mapOut x = optionLookup mapOut y → x = y) ∧
+      (∀ key, sptDomain mapOut key → sptDomain after.locals (optionLookup mapOut key)) :=
+```
+
+Argument order is `(source target) (ssa next) (names exitNames) (setupProg mapOut nextOut) (h)` — note
+that the hypothesis bundle order (`wordStateEqRel`, `ssaLocalsRel`, `ssaMapOK`, `isAllocVar`,
+`loopSetup … = …`) differs from the body IH's six-conjunct order, which is why `SemLoop.lean:46-47`
+passes `⟨frame,locals,valid,allocated,setup⟩`.  Renaming to the loop-site names: `mapOut = refreshed`,
+`nextOut = nextRefreshed`, and `setupProg` is the emitted setup program.
+
+The ten facts it returns (the docstring at `LoopSetup.lean:144-146` says "all ten"), by the names the call site uses (`SemLoop.lean:44-45` destructures them as
+`⟨after,setupRun,afterFrame,afterLocals,increase,afterAllocated,afterValid,domain,entryInjection,
+exitInjection,images⟩`):
+
+| name | statement | source |
+|---|---|---|
+| `setupRun` | `evaluate setupProg target = (none, after)` | `LoopSetup.lean:156` |
+| `afterFrame` | `wordStateEqRel source after` | `:157` |
+| `afterLocals` | `ssaLocalsRel nextRefreshed refreshed source.locals after.locals` | `:158` |
+| `increase` | `next ≤ nextRefreshed` | `:158` |
+| `afterAllocated` | `isAllocVar nextRefreshed` | `:159` |
+| `afterValid` | `ssaMapOK nextRefreshed refreshed` | `:159` |
+| `domain` | `sptDomain refreshed = (fun key => sptDomain ssa key ∨ sptDomain (sptUnion names exits) key)` | `:160` |
+| `entryInjection` | `∀ x y, sptDomain names x → sptDomain names y → optionLookup refreshed x = optionLookup refreshed y → x = y` | `:161-162` |
+| `exitInjection` | same with `exits` | `:163-164` |
+| `images` | `∀ key, sptDomain refreshed key → sptDomain after.locals (optionLookup refreshed key)` | `:165` |
+
+Two further facts are *derived at the loop site from `domain`*, not stated by `loopSetupCorrect`:
+
+* `namesMapped : ∀ key, sptDomain names key → sptDomain refreshed key` (`SemLoop.lean:48-51`, via
+  `domain` and `sptDomain_sptUnion = Or.inr ∘ Or.inl`);
+* `exitsMapped : ∀ key, sptDomain exits key → sptDomain refreshed key` (`SemLoop.lean:52-55`, `Or.inr ∘ Or.inr`).
+
+`loopSetupCorrect` does **not** say anything about `everyVarHOL setupProg`, about the cost of `setupProg`,
+or about any injectivity of the *whole* map `refreshed` (only on the `names` and `exits` domains).
+
+### 2. BODY AST — the emitted body, and `bodyFinal`
+
+Verbatim, the loop clause (`CcTrans.lean:188-199`):
+
+```lean
+| .loop names body exitNames, ssa, na, lt =>
+  let (setupProg, ssaRefreshed, naRefreshed) := loopSetup names exitNames ssa na
+  let ssaNames := applyNummapKey (optionLookup ssaRefreshed) names
+  let ssaExit := applyNummapKey (optionLookup ssaRefreshed) exitNames
+  let ssaBody := sptInter ssaRefreshed names
+  let (body', ssa', na') :=
+    ssaCcTrans body ssaBody naRefreshed ((ssaRefreshed, names, exitNames) :: lt)
+  let backMoves : WordLangProgHOL (BitVec width) := ssaReconcile ssa' ssaRefreshed names
+  let bodyFinal := match backMoves with
+    | .skip => body'
+    | _ => .seq body' backMoves
+  (.seq setupProg (.loop ssaNames bodyFinal ssaExit), sptInter ssaRefreshed exitNames, na')
+```
+
+So, concretely:
+
+* the body is compiled by `ssaCcTrans body (sptInter refreshed names) nextRefreshed
+  ((refreshed, names, exits) :: lt)` (`:192-194`) — `map := sptInter refreshed names`, `na :=
+  nextRefreshed`, `table := (refreshed, names, exits) :: lt`; the proof records the value as
+  `compiledBody : ssaCcTrans body (sptInter refreshed names) nextRefreshed ((refreshed,names,exits)::tables)
+  = ⟨output,mapOut,nextOut⟩` (`SemLoop.lean:60-61`);
+* `bodyFinal` is `body'` when `ssaReconcile ssa' refreshed names = .skip`, else `.seq body' backMoves`
+  (`CcTrans.lean:196-198`; the same `match` is spelled `finalBody` at `SemLoop.lean:62-63` and as
+  `loopBody` at `Iter.lean:568-572`, where `evaluateBodyFinalNative`, `Iter.lean:484-493`, bridges this
+  `match` form and the `if moves = .skip` form);
+* the target loop node is `.loop (applyNummapKey (optionLookup refreshed) names) bodyFinal
+  (applyNummapKey (optionLookup refreshed) exits)` (`CcTrans.lean:190-191, 199`; `targetLoop`,
+  `SemLoop.lean:64-66`);
+* the loop's emitted program and its output map/counter are `.seq setupProg targetLoop`,
+  `sptInter refreshed exits`, `na'` — i.e. the output map is the **exit** intersection of the setup map,
+  and the counter is the body emission's counter.  The proof records
+  `ssaCcTrans (.loop names body exits) ssa next tables = (.seq setupProg targetLoop, sptInter refreshed
+  exits, nextOut)` (`SemLoop.lean:67-71`, by `simp only [ssaCcTrans,setup,compiledBody]` then `cases
+  ssaReconcile … <;> rfl`).  The same shape is a driver theorem,
+  `ssaCcTrans_loop_output_shape` (`Driver:3889-3907`), which takes the three equations
+  (`loopSetup … = (setup, ssaRefreshed, nextRefreshed)`, the body emission, the `bodyFinal` match) as
+  hypotheses and concludes `.1 = .seq setup (.loop ssaNames bodyFinal ssaExit)`.
+
+The body's own output map `ssa'` (`mapOut`) and counter `na'` are the *only* things the back-edge needs
+from the body emission; `ssa'` is consumed **only** to build the moves (`CcTrans.lean:195`) and `na'`
+becomes the loop's counter (`:199`).  Nothing else about `mapOut` is used by the pin except
+`ssaMapOK nextOut mapOut` (from the body IH) and the bound `nextOut`-monotonicity via `ssaCcTransProps`
+(`Flapjack/Compiler/Backend/WordAlloc/Proofs/SSAProgramProps.lean:25-31`: `next ≤ nextOut ∧ isAllocVar
+nextOut ∧ ssaMapOK nextOut ssaOut`), used at `Iter.lean:348-352`.
+
+### 3. BACK-EDGE AST — `ssaReconcile ssa' refreshed names`
+
+Definition, verbatim (`Helpers.lean:50-58`):
+
+```lean
+def ssaReconcile {width : Nat} [NeZero width] {β : Type} (curSsa tgtSsa : Spt Nat)
+    (ns : Spt β) : WordLangProgHOL (BitVec width) :=
+  let vars := (sptToAList ns).map Prod.fst
+  let moves := ((vars.map fun v =>
+      match sptLookup v curSsa with
+      | none => []
+      | some curV => [(optionLookup tgtSsa v, curV)]).flatten).filter
+    (fun (a, b) => decide (a ≠ b))
+  if moves = [] then .skip else .move 1 moves
+```
+
+At the loop the call is `ssaReconcile ssa' ssaRefreshed names` (`CcTrans.lean:195`), i.e. from the body's
+output map **to the setup's refreshed map**, over the loop's live-in keys only, emitting
+`.move 1 [(optionLookup refreshed v, sptLookup v ssa') | …]` with identity pairs dropped.
+
+Correctness in the pin — the one theorem, `evaluateSSAReconcile` (`Reconcile.lean:50-60`):
+
+```lean
+theorem evaluateSSAReconcile {width : Nat} [NeZero width] {C F β : Type}
+    (next : Nat) (curSSA tgtSSA : Spt Nat) (names : Spt β)
+    (sourceLocals : Spt (WordLocW width))
+    (target : WordSemStateFiniteExact width C F)
+    (h : ssaLocalsRel next curSSA sourceLocals target.locals ∧
+      (∀ x y, sptDomain names x → sptDomain names y →
+        optionLookup tgtSSA x = optionLookup tgtSSA y → x = y)) :
+    ∃ after, WordSemStateFiniteExact.evaluate (ssaReconcile curSSA tgtSSA names) target =
+      (none, after) ∧ Flapjack.WordAlloc.wordStateEqRel target after ∧
+      Flapjack.WordAlloc.strongLocalsRel (optionLookup tgtSSA) (sptDomain names)
+        sourceLocals after.locals :=
+```
+
+Its instantiation at the loop's back edge is `bodyNoneReconcile` (`Iter.lean:498-519`):
+
+```lean
+private theorem bodyNoneReconcile {width : Nat} [NeZero width] {C F : Type}
+    (source before after : WordSemStateFiniteExact width C F)
+    (body : WordLangProgHOL (BitVec width)) (mapOut refreshed : Spt Nat)
+    (nextOut : Nat) (names : Spt Unit)
+    (run : WordSemStateFiniteExact.evaluate body before = (none,after)) (…) :
+    ∃ reconciled,
+      WordSemStateFiniteExact.evaluate
+        (match ssaReconcile mapOut refreshed names with
+          | .skip => body | moves => .seq body moves) before = (none,reconciled) ∧
+      Flapjack.WordAlloc.wordStateEqRel source reconciled ∧
+      Flapjack.WordAlloc.strongLocalsRel (optionLookup refreshed)
+        (sptDomain names) source.locals reconciled.locals :=
+```
+
+with premises `frame : wordStateEqRel source after` (`:503`), `locals : ssaLocalsRel nextOut mapOut
+source.locals after.locals` (`:504`), `injection : ∀ x y, sptDomain names x → sptDomain names y →
+optionLookup refreshed x = optionLookup refreshed y → x = y` (`:505-506`), conclusion at `:510-513`.  In words: **when the source
+body terminates normally, the compiled `bodyFinal` runs to completion in the moves, keeps the frame, and
+restores the loop's entry relation `strongLocalsRel (optionLookup refreshed) (sptDomain names)`.**  That
+restored relation — and not an `ssaLocalsRel` on the same map — is what the recursive induction
+hypothesis re-enters with (`Iter.lean:739-745`).
+
+Supporting pin lemmas used inside it: `ssaReconcileMovesEq` (`Proofs/SSAReconcileListProps.lean:13-37`,
+the move-list rewrite), `ssaReconcileFilteredAllDistinct` (`:39-47`), `ssaReconcileGetVarsLemma`
+(`Proofs/SSAReconcileGetVars.lean:31`), `evaluateSSAReconcileEmpty`
+(`Proofs/SSAReconcileEmpty.lean:26`).
+
+What the pin does **not** give about the back edge: any statement about a map.  `ssaReconcile` produces
+no map change (`Helpers.lean:50-58` returns only a program), the loop's output map is `sptInter refreshed
+exits` regardless of `ssa'` (`CcTrans.lean:199`), and nothing bounds `sptDomain ssa'` relative to
+`refreshed` or to `names`.  In particular there is no pinned fact of the form
+`mapOut = refreshed` / `sptDomain mapOut ⊆ sptDomain refreshed`.
+
+### 4. MAPPING INVARIANTS — what is available, where, and whether it is map-parametric
+
+"FUNCTION-LEVEL" below means: the proposition *mentions the map* (`map` / `refreshed` / the emitted
+program as a term in that map), so it cannot be discharged once and for all for a fixed `bodyC`; it is
+re-derived per map.  "FIXED" means the statement is independent of the map (it may still mention
+`nextRefreshed`, whose *value* is map-determined, but no map appears in the proposition).
+
+**(a) The post-setup pair `(source, after)`** — all from `loopSetupCorrect` plus the two derived facts:
+
+| fact | Lean | source | kind |
+|---|---|---|---|
+| frame | `wordStateEqRel source after` | `LoopSetup.lean:157` | FIXED |
+| map relation | `ssaLocalsRel nextRefreshed refreshed source.locals after.locals` | `:158` | FUNCTION-LEVEL |
+| counter | `next ≤ nextRefreshed`, `isAllocVar nextRefreshed` | `:158-159` | FUNCTION-LEVEL (value) |
+| map ok | `ssaMapOK nextRefreshed refreshed` | `:159` | FUNCTION-LEVEL |
+| domain | `sptDomain refreshed = (fun key => sptDomain ssa key ∨ sptDomain (sptUnion names exits) key)` | `:160` | FUNCTION-LEVEL |
+| names in map | `∀ key, sptDomain names key → sptDomain refreshed key` | `SemLoop.lean:48-51` | FUNCTION-LEVEL |
+| exits in map | `∀ key, sptDomain exits key → sptDomain refreshed key` | `SemLoop.lean:52-55` | FUNCTION-LEVEL |
+| injections | entry/exit injection of `optionLookup refreshed` on `sptDomain names` / exits | `LoopSetup.lean:161-164` | FUNCTION-LEVEL |
+| images | `∀ key, sptDomain refreshed key → sptDomain after.locals (optionLookup refreshed key)` | `:165` | FUNCTION-LEVEL |
+
+**(b) The body entry (the loop's cut pair, at `map = sptInter refreshed names`, `na = nextRefreshed`)** —
+what the pinned helper `ssaCcTransLoopHelper` receives and what it derives:
+
+* received (`SemLoop.lean:74-76`; declared at `Iter.lean:939-966`):
+  `wordStateEqRel source after`, `strongLocalsRel (optionLookup refreshed) (sptDomain names)
+  source.locals after.locals`, `(∀ key, sptDomain names key → sptDomain after.locals (optionLookup
+  refreshed key))`, `ssaMapOK nextRefreshed refreshed`, `isAllocVar nextRefreshed`, `everyVarHOL (fun key
+  => decide (key < nextRefreshed)) body = true`, entry/exit injection, `namesMapped`, `exitsMapped`, the
+  two bounds, `ltOK tables`, and the body emission equation.  At the call site the first three come out of
+  `afterLocals` and `images` (`SemLoop.lean:90-96`), and `bodyVars` out of `everyVarHOL`-monotonicity
+  (`SemLoop.lean:56-59`, `Flapjack/Pancake/WordConvs/ProgramMonotonicity.lean:11`);
+* derived, `loopBodyEntry` (`Iter.lean:190-234`): both cuts exist
+  (`wordSemCutEnv (names,.ln) source.locals = some sourceEnv`, its renamed image
+  `wordSemCutEnv (applyNummapKey (optionLookup refreshed) names,.ln) target.locals = some targetEnv`),
+  `sptDomain sourceEnv = sptDomain names`, and
+  **`ssaSimulation body {source with locals := sourceEnv} {target with locals := targetEnv}
+    (sptInter refreshed names) nextRefreshed ((refreshed,names,exits)::tables)`** (`Iter.lean:230-234`),
+  via `ssaMapOKInter` (`Proofs/SSAMapPreservation.lean:8`) and the internal `loopEntryCut`
+  (`Iter.lean:46-88`) / `bodyEntryLocals` (`Iter.lean:15-42`);
+* the counter bounds come from the loop's `everyVarHOL` itself (`SemLoop.lean:39-42`, using the `.loop`
+  case of `everyVarHOL`, `Flapjack/Pancake/WordLang/OccurrencesExact.lean:56-58`).
+
+**(c) The back edge and the exit**
+
+| fact | Lean | source | kind |
+|---|---|---|---|
+| back-edge frame | `wordStateEqRel source reconciled` | `Iter.lean:498-519`, `frameTrans` `:475-481` | FIXED |
+| back-edge entry relation | `strongLocalsRel (optionLookup refreshed) (sptDomain names) source.locals reconciled.locals` | `Reconcile.lean:57-60` via `Iter.lean:511-513` | FUNCTION-LEVEL |
+| next-iteration input triple | `wordStateEqRel ∧ strongLocalsRel (optionLookup refreshed) (sptDomain names) ∧ (∀ key, names → sptDomain nextTarget.locals (optionLookup refreshed key))` at `(decClock sourceAfter, decClock targetAfter)` | `Iter.lean:739-745`, `loopInput` `:823-831` | FUNCTION-LEVEL |
+| back-edge images | `∀ key, sptDomain names key → sptDomain target (optionLookup refreshed key)`, from the source's recursive cut | `recursiveImagePresent`, `Iter.lean:357-372`, used `:783-785` | FUNCTION-LEVEL |
+| exit cut | `∃ targetEnv, wordSemCutEnv (applyNummapKey (optionLookup refreshed) exits,.ln) target.locals = some targetEnv ∧ wordStateEqRel … ∧ ssaLocalsRel nextOut (sptInter refreshed exits) sourceEnv targetEnv` | `loopExitCut`, `Iter.lean:325-351` | FUNCTION-LEVEL |
+| timeout | `wordStateEqRel (flushState true source) (flushState true target) ∧ locals equal` | `frameTimeoutFlush`, `Iter.lean:465-473` | FIXED |
+| shifted break/continue | `strongLocalsRel (optionLookup tables[label].1) (sptDomain …)` from `tables[label]?` | `resultLocalsRel`, `Iter.lean:277-291`, `terminalResultLocals` `:294-319` | FUNCTION-LEVEL |
+
+The **only** FIXED facts in the whole loop case are the frame-level and bookkeeping ones (
+`wordStateEqRel` at setup / back edge / timeout, the counter bounds `key < next` on `names` and `exits`,
+`ltOK tables`, `isAllocVar next`, `everyVarHOL` of the body, and the budget facts quoted in §5).  Every
+statement that links the source's locals to the target's locals is FUNCTION-LEVEL: there is no single
+`bodyC` and no single map-to-map equation valid across iterations.
+
+### 5. THE RESULTING SHAPE (specification for the next implementation step; not proved here)
+
+The compiled body, as the compiler builds it — a function of `(map, na, lt)`:
+
+```lean
+/-- `ssaCcTrans`'s emission for the body of `.loop names body exits`, at the map `map`. -/
+noncomputable def bodyF (names exits : Spt Unit) (body : prog) (map : Spt Nat) (na : Nat) (lt : L) :
+    prog × Spt Nat × Nat :=
+  ssaCcTrans body (sptInter map names) na ((map, names, exits) :: lt)
+
+/-- `bodyF` with the loop clause's back-edge reconcile appended (CcTrans.lean:195-198). -/
+noncomputable def bodyFinalF (names exits : Spt Unit) (body : prog) (map : Spt Nat) (na : Nat)
+    (lt : L) : prog :=
+  let b := bodyF names exits body map na lt
+  match ssaReconcile b.2.1 map names with
+  | .skip => b.1
+  | moves => .seq b.1 moves
+
+/-- The whole loop clause's output program (CcTrans.lean:188-199), as a function of the entry map. -/
+noncomputable def loopF (names exits : Spt Unit) (body : prog) (ssa : Spt Nat) (next : Nat)
+    (lt : L) : prog :=
+  let s := loopSetup names exits ssa next
+  .seq s.1 (.loop (Flapjack.WordAlloc.applyNummapKey (optionLookup s.2.1) names)
+            (bodyFinalF names exits body s.2.1 s.2.2 lt)
+            (Flapjack.WordAlloc.applyNummapKey (optionLookup s.2.1) exits))
+```
+
+and `(ssaCcTrans (.loop names body exits) ssa next lt).1 = loopF names exits body ssa next lt` is a `rfl`
+(or `simp only [ssaCcTrans]` + the `match`-`cases` step of `SemLoop.lean:67-71`) — that equation is the
+bridge between the spec and the compiler, and it is the only "AST" hypothesis the loop lemma needs.
+
+**Body hypothesis bundle** — the pin's body IH (`SemLoop.lean:27-31`) with the compiled body *computed*
+from the map instead of supplied.  This is still `∀ map na lt`, which is *sound* precisely because the
+right-hand side now reads `bodyF … map na lt` rather than a free `bodyC`:
+
+```lean
+noncomputable def LoopBodyTransferF (names exits : Spt Unit) (body : prog) (B : Nat) : Prop :=
+  ∀ (map : Spt Nat) (na : Nat) (lt : L) (st ct : state)
+    (rS : Option (WordSemResult 64)) (sS : state),
+    Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na map st.locals ct.locals ∧
+    isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
+    ssaMapOK na map ∧ ltOK lt →
+    WordSemStateFiniteExact.evaluate body st = (rS, sS) →
+    -- the SOURCE body run is a premise, and it is NON-ERROR:
+    rS ≠ some .error →
+    (∃ (rT : Option (WordSemResult 64)) (sT : state),
+      WordSemStateFiniteExact.evaluate (bodyF names exits body map na lt).1 ct = (rT, sT) ∧
+      rT = rS ∧ Flapjack.WordAlloc.wordStateEqRel sS sT ∧
+      (rS = none → ssaLocalsRel (bodyF names exits body map na lt).2.2
+        (bodyF names exits body map na lt).2.1 sS.locals sT.locals)) ∧
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (bodyF names exits body map na lt).1 ct ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body st + B
+```
+
+Note on the post-state conjunct: `ssaLocalsRel nextOut mapOut` (i.e. `(bodyF …).2.2` against
+`(bodyF …).2.1`) after a `none` result is exactly what `ssaSimulation`'s `none` branch gives at
+`map := sptInter refreshed names`, `na := nextRefreshed`, `lt := (refreshed,names,exits)::tables`
+(`SemControl.lean:12-31`), which is the instantiation `SemLoop.lean:74-76` feeds.  It is *not* `ssaLocalsRel na map` at the input map — the body changes the map, and
+the pin never claims the input map survives a body (see §6, item 4).
+
+**Loop specification** — what the next implementation step must meet.  Two halves, both at the
+compiler's concrete AST (`loopF`), both quantified only over the source body's own map/counter (never
+over a fixed compiled program).
+
+*(C) the cost half.*  The setup is charged ONCE at a fixed, body-independent bound; `B` is charged per
+executed **source** iteration, exactly as in the live endpoint `wec_loop_transfer_safe_ren`
+(`Driver:4854-4870`):
+
+```lean
+theorem ssaCcTransCorrectLoopQuant_cost {width : Nat} [NeZero width] {C F : Type}
+    (names exits : Spt Unit) (body : prog) (source target : state) (ssa : Spt Nat) (next : Nat)
+    (tables : L) (B : Nat)
+    (hbody : LoopBodyTransferF names exits body B)
+    (premises : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun key => decide (key < next)) (.loop names body exits) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables)
+    (hsafe : (WordSemStateFiniteExact.evaluate (.loop names body exits) source).1 = some .error →
+      False) :
+    wordExecutionCost price (loopF names exits body ssa next tables) target ≤
+      wordExecutionCost price (.loop names body exits) source
+        + (3 + 3 * (sptToAList (sptUnion names exits)).length)   -- setup, charged once
+        + B * loopIterCount names body source                     -- B per executed source iteration
+```
+
+The setup constant is the `wordPathWork` bound of `loopSetup_executed_le`; transporting it to
+`wordExecutionCost price` is **not** in the pin (see the "not available" list below) — the driver takes
+such a setup-cost bound as an explicit premise instead (`seq_inserted_prefix_quantTransfer`, `Driver:3855-3864`).
+
+*(R) the run half* — the pin's own conclusion (`SemLoop.lean:86-89`, `SemControl.lean:12-31`) spelled at
+`loopF`, with the emitted map projected out of the compiler instead of named by hand:
+
+```lean
+theorem ssaCcTransCorrectLoopQuant_run {width : Nat} [NeZero width] {C F : Type}
+    (names exits : Spt Unit) (body : prog) (source target : state) (ssa : Spt Nat) (next : Nat)
+    (tables : L) (B : Nat)
+    (hbody : LoopBodyTransferF names exits body B)
+    (premises : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun key => decide (key < next)) (.loop names body exits) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables) :
+    ∃ permutation,
+      let run := WordSemStateFiniteExact.evaluate (.loop names body exits)
+        {source with permute := permutation}
+      let targetRun := WordSemStateFiniteExact.evaluate (loopF names exits body ssa next tables) target
+      run.1 = some .error ∨
+        run.1 = targetRun.1 ∧ Flapjack.WordAlloc.wordStateEqRel run.2 targetRun.2 ∧
+        (match run.1 with
+         | none => ssaLocalsRel (ssaCcTrans (.loop names body exits) ssa next tables).2.2
+             (ssaCcTrans (.loop names body exits) ssa next tables).2.1 run.2.locals targetRun.2.locals
+         | some (.break label) => match tables[label]? with
+             | none => True
+             | some (dest, _, exits') => Flapjack.WordAlloc.strongLocalsRel
+                 (optionLookup dest) (sptDomain exits') run.2.locals targetRun.2.locals
+         | some (.continue label) => match tables[label]? with
+             | none => True
+             | some (dest, entries, _) => Flapjack.WordAlloc.strongLocalsRel
+                 (optionLookup dest) (sptDomain entries) run.2.locals targetRun.2.locals
+         | some _ => run.2.locals = targetRun.2.locals)
+```
+
+The two projections `(ssaCcTrans (.loop names body exits) ssa next tables).2.1` / `.2.2` are
+definitionally `sptInter refreshed exits` / `na'` (`CcTrans.lean:199`); keeping them as projections makes
+the statement independent of any choice of witness.  The Error disjunct is the pin's; a safe-run endpoint
+may instead take `hsafe` and drop it, as `wec_loop_transfer_safe_ren` does.  Note the result-locals clause
+is at the loop's **output** map on `none`, and at `tables[label]?`'s map for shifted `break`/`continue`
+(`resultLocalsRel`, `Iter.lean:277-291`).
+
+Fixed budget ingredients already proved in the repo (all map-independent, so they cost the next step
+nothing):
+
+* `loopSetup_executed_le : wordPathWork (loopSetup (width := 64) names exitNames ssa next).1 state ≤
+  3 + 3 * (sptToAList (sptUnion names exitNames)).length`
+  (`submission/InitECandidate/Runtime/AllocCostSSAExecuted.lean:145-153`, from
+  `loopSetup_nodeCost_le`, `submission/InitECandidate/Runtime/AllocCostReconcile.lean:144-146`);
+* `ssaReconcile_nodeCost_le : wordNodeCost (ssaReconcile (width := 64) cur target names) ≤
+  1 + (sptToAList names).length` (`AllocCostReconcile.lean:51-53`) — the back edge;
+* `loopBodyFinal_executed_le : wordPathWork (match back with | .skip => body | _ => body.seq back) state ≤
+  wordPathWork body state + ((sptToAList names).length + 2)` (`AllocCostSSAExecuted.lean:157-180`) — the
+  per-iteration charge when the reconcile is charged separately from `B`;
+* `loopIterCount names body source` (`Driver:3558-3560`, `loopIterCountAux` at `:3538-3556`) — the
+  executed-iteration index of `B`.
+
+`price` in both halves is the driver's price argument
+(`InitECandidate.Runtime.WordToStack.refinedWordLocalPrice` in `Driver:4866-4870`), and both theorems are
+stated at `width` like the pin, so they are not 64-specific.
+
+### 6. What the fixed-`bodyC` bundle got wrong, and what replaces each piece
+
+| wrong piece | where | replaced by |
+|---|---|---|
+| 1. `bodyC : prog` as a fixed parameter, quantified over arbitrary `(map, na, lt)` | `Driver:4243-4256` (`LoopBodyTransferSSA`), `:4273-4287` (`LoopBodyTransferSSAInv`), endpoint `:4854-4870` | `bodyF names exits body map na lt` (`CcTrans.lean:192-194`), i.e. the emission at each map; the hypothesis is still `∀ map na lt`, but each map gets *its own* body |
+| 2. the same `bodyC` used as the loop body at the *entry* map's rename, with the invariant chased through `sptInter (sptInter ssa names) names` | `Driver:4565-4573` (and `:4623-4630` at `sptInter ssa names`) | at the concrete AST the body's map is `sptInter refreshed names` and its `na` is `nextRefreshed`; the cut pair already carries `ssaLocalsRel nextRefreshed (sptInter refreshed names)` with no re-intersection (`Iter.lean:190-234`) |
+| 3. the compiled loop taken as `.loop (renCut ssa names) bodyC (renCut ssa exitNames)` at the setup-refreshed map, with no setup node | `Driver:4866-4868` | `.seq setupProg (.loop ssaNames bodyFinal ssaExit)` (`CcTrans.lean:199`), setup cost charged once from the FIXED bound `3 + 3·|names ∪ exits|` |
+| 4. the post-body invariant stated as `ssaLocalsRel na map sS.locals sT.locals` at the *input* map | `Driver:4285` | the pin's own post relations: `ssaLocalsRel nextOut mapOut` for the raw body (`SemControl.lean:20-31`) and, after the reconcile moves, `strongLocalsRel (optionLookup map) (sptDomain names)` (`Reconcile.lean:57-60`, `Iter.lean:498-519`) — the map changes across the body, so no input-map `ssaLocalsRel` is available |
+| 5. the exit relation left implicit / at `sptInter ssa names` | `Driver:4273-4287` (no exit case) | `ssaLocalsRel nextOut (sptInter refreshed exits)` at the exit cut (`Iter.lean:325-351`), and `strongLocalsRel (optionLookup tables[label].1) …` for shifted break/continue (`Iter.lean:277-291`) |
+| 6. the body-transfer premise stated for an *arbitrary* source run, with the source's Error route only via a separate `hsafe` on the whole loop | `Driver:4854-4870` | the body premise is stated on the actual source body run and is explicitly NON-ERROR (`rS ≠ some .error`, §5), which is what the pin's `bodyIH` + `bodyNoneReconcile` consume; `hsafe` remains only for the loop node's own failing cuts |
+| 7. the setup's post-state (frame, map, injections, images) not carried at all | absent from `Driver:4238-4287` | `loopSetupCorrect`'s ten facts (`LoopSetup.lean:148-165`) plus `namesMapped`/`exitsMapped` (`SemLoop.lean:48-55`) — the *only* place the refreshed map's invariants come from |
+
+What is **not** available in the pin and must therefore *not* be assumed or invented by the next step:
+
+* no cost statement of any kind: the pin's `ssaSimulation` (`SemControl.lean:12-31`) carries no budget.
+  `wordExecutionCost` / `quantTransfer` are repo-side, and `wordExecutionCost` is **not defined anywhere
+  in this checkout** (no `def wordExecutionCost` in the tree; the module that would supply it,
+  `InitECandidate.Runtime.WordRefinedLocalPrice`, is imported at `Driver:7` but absent here), so the price
+  is a parameter of the specification in §5, not something to derive;
+* no relation between the body's output map `mapOut` and `refreshed` (no domain inclusion, no
+  agreement), and no use of `mapOut` at all beyond `ssaMapOK nextOut mapOut` + `ssaCcTransProps` bounds;
+* no `sptDomain names ⊆ sptDomain ssa` (only the refreshed-map version is derived, `SemLoop.lean:48-55`);
+* no injectivity of `optionLookup refreshed` on the *whole* domain of `refreshed` — only on `names` and
+  `exits` (`LoopSetup.lean:161-164`);
+* no `everyVarHOL`/cost fact about `setupProg` inside the pin (the fixed `wordPathWork` bound is
+  repo-side, `AllocCostSSAExecuted.lean:145-153`);
+* no statement that the back-edge reconcile leaves the source's *other* entries intact (it rewrites only
+  the keys of `names`, `Helpers.lean:50-58`).
