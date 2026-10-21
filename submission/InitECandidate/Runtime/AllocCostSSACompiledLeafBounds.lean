@@ -2112,4 +2112,37 @@ theorem wec_call_none_findCode_none {C F : Type}
   simp [wordExecutionCost, hgv, hbad, wordSemAddRetLoc, hfc, refinedWordLocalPrice_call_none]
 
 #print axioms wec_call_none_findCode_none
+/-! ## The global relation between original and transformed code
+
+The local constructors say what a transformed BODY is worth.  What a call charges, however, is a body
+FETCHED from the code by wordSemFindCode - so the missing global ingredient is a relation between the
+original code and the transformed code, saying that each callee the program can reach has been replaced
+by a body that is a quantitative transfer of it.  Stated with quantTransfer, the relation carries
+exactly the data a call site needs: the two runs agree on their outcome, and the transformed body
+charges no more than the original plus the per-function budget. -/
+def transformedCalleeRel {C F : Type}
+    (origCode transCode : Spt (Nat × WordLangProgHOL (BitVec 64))) (budget : Nat) : Prop :=
+  ∀ (dest arity : Nat) (body bodyC : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F),
+    sptLookup dest origCode = some (arity, body) →
+    sptLookup dest transCode = some (arity, bodyC) →
+    quantTransfer (C := C) (F := F) body bodyC source target budget
+
+/-- What a call site needs from the global relation, at the frame it actually fetched: the two runs
+agree on their outcome, and the transformed callee is at most the original plus the budget. -/
+theorem transformedCalleeRel.spec {C F : Type}
+    (origCode transCode : Spt (Nat × WordLangProgHOL (BitVec 64))) (budget : Nat)
+    (hrel : transformedCalleeRel (C := C) (F := F) origCode transCode budget)
+    (dest arity : Nat) (body bodyC : WordLangProgHOL (BitVec 64)) (source target : WordSemStateFiniteExact 64 C F)
+    (h1 : sptLookup dest origCode = some (arity, body))
+    (h2 : sptLookup dest transCode = some (arity, bodyC)) :
+    (∃ rS : Option (WordSemResult 64), ∃ sS : WordSemStateFiniteExact 64 C F,
+      ∃ rT : Option (WordSemResult 64), ∃ sT : WordSemStateFiniteExact 64 C F,
+      WordSemStateFiniteExact.evaluate body source = (rS, sS) ∧
+      WordSemStateFiniteExact.evaluate bodyC target = (rT, sT) ∧ rS = rT) ∧
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice bodyC target ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body source + budget :=
+  hrel dest arity body bodyC source target h1 h2
+
+#print axioms transformedCalleeRel.spec
 end InitECandidate.Runtime.FineCost
