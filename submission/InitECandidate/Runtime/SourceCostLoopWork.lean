@@ -4,8 +4,8 @@ import Flapjack.Pancake.Semantics.LoopProps.NestedSeqExact
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-/-- Local work of a non-recursive Loop statement. Structural Skip emits no
-operation; executable leaves pay dispatch plus their actual expression/move work. -/
+/-- Local cost of a non-recursive Loop statement: one dispatch unit plus the
+residual expression work and moved variable counts it actually touches. -/
 def loopWorkLeafCost : HolLoopProg 64 → Option Nat
   | .skip => some 0
   | .fail | .arith _ | .load32 _ _ | .loadByte _ _ | .store32 _ _ | .storeByte _ _
@@ -87,19 +87,19 @@ inductive LoopWork {F : Type} : LoopSemStateFiniteExact 64 F → HolLoopProg 64 
       (one : LoopWork entry body (result, middle) wb)
       (again : result = none ∨ result = some (.continue 0))
       (rest : LoopWork middle (.loop liveIn body liveOut) output wr) :
-      LoopWork s (.loop liveIn body liveOut) output (1 + wb + wr)
+      LoopWork s (.loop liveIn body liveOut) output (3 + wb + wr)
   | loopBreak {s liveIn body liveOut entry middle wb}
       (cut : LoopSemStateFiniteExact.cutRes liveIn (none, s) = (none, entry))
       (one : LoopWork entry body (some (.break 0), middle) wb) :
-      LoopWork s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.cutRes liveOut (none, middle)) (1 + wb)
+      LoopWork s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.cutRes liveOut (none, middle)) (3 + wb)
   | loopExit {s liveIn body liveOut entry result middle wb}
       (cut : LoopSemStateFiniteExact.cutRes liveIn (none, s) = (none, entry))
       (one : LoopWork entry body (result, middle) wb)
       (stop : result ≠ none ∧ result ≠ some (.continue 0) ∧ result ≠ some (.break 0)) :
-      LoopWork s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.exitLoop result, middle) (1 + wb)
+      LoopWork s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.exitLoop result, middle) (3 + wb)
   | loopCut {s liveIn body liveOut result cut}
       (stopped : LoopSemStateFiniteExact.cutRes liveIn (none, s) = (some result, cut)) :
-      LoopWork s (.loop liveIn body liveOut) (some result, cut) 1
+      LoopWork s (.loop liveIn body liveOut) (some result, cut) 3
   | callShort {s returns target arguments handler output}
       (short : loopCallShort s returns target arguments handler)
       (run : evaluate (.call returns target arguments handler) s = output) :

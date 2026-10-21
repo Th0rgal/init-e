@@ -65,11 +65,11 @@ inductive CrepWorkP (price : CrepExpHOL 64 → Nat) (priceList : List (CrepExpHO
       CrepWorkP price priceList unit t (.ite condition yes no) (unit + price condition)
   | whileExit {t condition body}
       (exit : ∀ word, evalCrepSemHOLExp t condition = some (.word word) → word = 0) :
-      CrepWorkP price priceList unit t (.while condition body) (unit + unit + price condition)
+      CrepWorkP price priceList unit t (.while condition body) (unit + unit + unit + price condition)
   | whileTimeout {t condition body word}
       (guard : evalCrepSemHOLExp t condition = some (.word word)) (nonzero : word ≠ 0)
       (clock : t.clock = 0) :
-      CrepWorkP price priceList unit t (.while condition body) (unit + unit + price condition)
+      CrepWorkP price priceList unit t (.while condition body) (unit + unit + unit + price condition)
   | whileLoop {t condition body word bodyWork result middle restWork}
       (guard : evalCrepSemHOLExp t condition = some (.word word)) (nonzero : word ≠ 0)
       (clock : t.clock ≠ 0)
@@ -77,14 +77,14 @@ inductive CrepWorkP (price : CrepExpHOL 64 → Nat) (priceList : List (CrepExpHO
       (run : evalCrepSemHOLProgExact (decClockCrepSemHOL t) body = (result, middle))
       (again : result = none ∨ result = some (.continue 0))
       (rest : CrepWorkP price priceList unit middle (.while condition body) restWork) :
-      CrepWorkP price priceList unit t (.while condition body) (unit + unit + price condition + bodyWork + restWork)
+      CrepWorkP price priceList unit t (.while condition body) (unit + unit + unit + price condition + bodyWork + restWork)
   | whileStop {t condition body word bodyWork result middle}
       (guard : evalCrepSemHOLExp t condition = some (.word word)) (nonzero : word ≠ 0)
       (clock : t.clock ≠ 0)
       (one : CrepWorkP price priceList unit (decClockCrepSemHOL t) body bodyWork)
       (run : evalCrepSemHOLProgExact (decClockCrepSemHOL t) body = (result, middle))
       (stop : result ≠ none ∧ result ≠ some (.continue 0)) :
-      CrepWorkP price priceList unit t (.while condition body) (unit + unit + price condition + bodyWork)
+      CrepWorkP price priceList unit t (.while condition body) (unit + unit + unit + price condition + bodyWork)
   /-- Argument failure, lookup failure, return-name rejection or timeout. -/
   | callShort {t returnInfo function arguments}
       (short : arguments.mapM (evalCrepSemHOLExp t) = none ∨

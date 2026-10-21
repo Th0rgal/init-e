@@ -1,5 +1,4 @@
 import InitECandidate.Runtime.GuestCostEntryStatic
-import InitECandidate.Runtime.GuestCostEntrySyntax
 import InitECandidate.Runtime.GuestCostSharpSites
 import InitECandidate.Runtime.GuestCostGlobalsInit
 import InitECandidate.Runtime.GuestCostGlobalsReady
@@ -40,8 +39,8 @@ theorem guest_entry_program :
   rw [guest_simplified_eq_pass1]; exact pass2_eq
 
 theorem guest_pass2_no_inline_local :
-    (functionsHOL (pass2.filter inlinableHOL)).map Prod.fst = [] :=
-  guest_pass2_no_inline
+    (functionsHOL (pass2.filter inlinableHOL)).map Prod.fst = [] := by
+  decide_cbv
 
 theorem guest_source_distinct : ((functionsHOL InitE.sourceDeclarations).map Prod.fst).Nodup := by
   decide_cbv

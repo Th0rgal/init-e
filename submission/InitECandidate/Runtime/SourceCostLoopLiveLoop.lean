@@ -25,7 +25,7 @@ theorem loop_live_paid_loop_next {F : Type}
     (again : result = none ∨ result = some (.continue 0))
     (one : LoopLivePaid entry body (result, middle) wb)
     (rest : LoopLivePaid middle (.loop liveIn body liveOut) output wr) :
-    LoopLivePaid s (.loop liveIn body liveOut) output (1 + wb + wr) := by
+    LoopLivePaid s (.loop liveIn body liveOut) output (3 + wb + wr) := by
   intro contexts locals wanted input
   obtain ⟨plan⟩ := loop_live_plan contexts liveIn liveOut body wanted
   have headerInput : sptSubspt (sptInter s.locals plan.header) locals := by
@@ -50,7 +50,7 @@ theorem loop_live_paid_loop_next {F : Type}
   obtain ⟨postLocals, wr', restRun, restBound, postRelated⟩ := rest contexts middleLocals wanted restInput
   rw [plan.bodyCompiled] at bodyRun
   rw [plan.compiled] at restRun
-  refine ⟨postLocals, 1 + wb' + wr', ?_, by omega, postRelated⟩
+  refine ⟨postLocals, 3 + wb' + wr', ?_, by omega, postRelated⟩
   simpa only [plan.compiled] using LoopWork.loopNext targetCut bodyRun again restRun
 
 /-- A Break-0 iteration does not execute another body. Semantic correctness
@@ -62,7 +62,7 @@ theorem loop_live_paid_loop_break {F : Type}
     (bodyRun : LoopWork entry body (some (.break 0), middle) wb)
     (bodyPaid : LoopLivePaid entry body (some (.break 0), middle) wb)
     (nonerror : (cutRes liveOut (none, middle)).1 ≠ some .error) :
-    LoopLivePaid s (.loop liveIn body liveOut) (cutRes liveOut (none, middle)) (1 + wb) := by
+    LoopLivePaid s (.loop liveIn body liveOut) (cutRes liveOut (none, middle)) (3 + wb) := by
   intro contexts locals wanted input
   obtain ⟨plan⟩ := loop_live_plan contexts liveIn liveOut body wanted
   have headerInput : sptSubspt (sptInter s.locals plan.header) locals := by
@@ -79,10 +79,10 @@ theorem loop_live_paid_loop_break {F : Type}
   have target := LoopWork.loopBreak (liveOut := sptInter liveOut wanted) targetCut targetBody
   have target' : LoopWork { s with locals := locals }
       (shrinkHOL contexts (.loop liveIn body liveOut) wanted).1
-      (cutRes (sptInter liveOut wanted) (none, { middle with locals := middleLocals })) (1 + wb') := by
+      (cutRes (sptInter liveOut wanted) (none, { middle with locals := middleLocals })) (3 + wb') := by
     simpa only [plan.compiled] using target
   have source : LoopWork s (.loop liveIn body liveOut)
-      ((cutRes liveOut (none, middle)).1, (cutRes liveOut (none, middle)).2) (1 + wb) :=
+      ((cutRes liveOut (none, middle)).1, (cutRes liveOut (none, middle)).2) (3 + wb) :=
     LoopWork.loopBreak cut bodyRun
   exact loop_live_finish source nonerror contexts locals wanted input target' (by omega)
 
@@ -95,7 +95,7 @@ theorem loop_live_paid_loop_exit {F : Type}
     (stop : result ≠ none ∧ result ≠ some (.continue 0) ∧ result ≠ some (.break 0))
     (bodyPaid : LoopLivePaid entry body (result, middle) wb)
     (nonerror : exitLoop result ≠ some .error) :
-    LoopLivePaid s (.loop liveIn body liveOut) (exitLoop result, middle) (1 + wb) := by
+    LoopLivePaid s (.loop liveIn body liveOut) (exitLoop result, middle) (3 + wb) := by
   intro contexts locals wanted input
   obtain ⟨plan⟩ := loop_live_plan contexts liveIn liveOut body wanted
   have headerInput : sptSubspt (sptInter s.locals plan.header) locals := by
@@ -112,7 +112,7 @@ theorem loop_live_paid_loop_exit {F : Type}
   have target := LoopWork.loopExit (liveOut := sptInter liveOut wanted) targetCut targetBody stop
   have target' : LoopWork { s with locals := locals }
       (shrinkHOL contexts (.loop liveIn body liveOut) wanted).1
-      (exitLoop result, { middle with locals := middleLocals }) (1 + wb') := by
+      (exitLoop result, { middle with locals := middleLocals }) (3 + wb') := by
     simpa only [plan.compiled] using target
   exact loop_live_finish (LoopWork.loopExit cut bodyRun stop) nonerror contexts locals wanted
     input target' (by omega)
@@ -122,7 +122,7 @@ theorem loop_live_paid_loop_cut {F : Type}
     {s post : LoopSemStateFiniteExact 64 F} {liveIn liveOut : NumSet} {body : HolLoopProg 64}
     {result : LoopResultExact 64} (stopped : cutRes liveIn (none, s) = (some result, post))
     (nonerror : some result ≠ some .error) :
-    LoopLivePaid s (.loop liveIn body liveOut) (some result, post) 1 := by
+    LoopLivePaid s (.loop liveIn body liveOut) (some result, post) 3 := by
   intro contexts locals wanted input
   obtain ⟨plan⟩ := loop_live_plan contexts liveIn liveOut body wanted
   have headerInput : sptSubspt (sptInter s.locals plan.header) locals := by
@@ -134,7 +134,7 @@ theorem loop_live_paid_loop_cut {F : Type}
   have target := LoopWork.loopCut (body := plan.bodyCode) (liveOut := sptInter liveOut wanted) targetCut
   have target' : LoopWork { s with locals := locals }
       (shrinkHOL contexts (.loop liveIn body liveOut) wanted).1
-      (some result, { post with locals := targetLocals }) 1 := by
+      (some result, { post with locals := targetLocals }) 3 := by
     simpa only [plan.compiled] using target
   exact loop_live_finish (LoopWork.loopCut (body := body) (liveOut := liveOut) stopped)
     nonerror contexts locals wanted input target' (Nat.le_refl _)

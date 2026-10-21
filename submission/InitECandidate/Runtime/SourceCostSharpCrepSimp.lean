@@ -258,7 +258,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
         have hw := exit w0 hev
         have hev' := crepSimp_exp_sharp t condition _ hev
         have := crepSimp_node_work_sharp condition
-        refine ⟨2 + 2 + loopNodePrice (crepSimpExpHOL condition), ?_, by omega⟩
+        refine ⟨2 + 2 + 2 + loopNodePrice (crepSimpExpHOL condition), ?_, by omega⟩
         simp only [crepSimpProgHOL]
         refine .whileExit (fun word h => ?_)
         rw [hev'] at h
@@ -267,7 +267,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
   | @whileTimeout t condition body word guard nonzero clock =>
     intro _
     have := crepSimp_node_work_sharp condition
-    exact ⟨2 + 2 + loopNodePrice (crepSimpExpHOL condition),
+    exact ⟨2 + 2 + 2 + loopNodePrice (crepSimpExpHOL condition),
       by simp only [crepSimpProgHOL]; exact .whileTimeout (crepSimp_exp_sharp t condition _ guard) nonzero clock,
       by omega⟩
   | @whileLoop t condition body word bodyWork result middle restWork guard nonzero clock one run
@@ -293,7 +293,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
     have run' := crepArithSimpProgCorrect body _ result middle run bodyOk
     simp only [crepSimpProgHOL] at hr
     have := crepSimp_node_work_sharp condition
-    exact ⟨2 + 2 + loopNodePrice (crepSimpExpHOL condition) + wb + wr,
+    exact ⟨2 + 2 + 2 + loopNodePrice (crepSimpExpHOL condition) + wb + wr,
       by simp only [crepSimpProgHOL]
          exact .whileLoop (crepSimp_exp_sharp t condition _ guard) nonzero clock hb run' again hr,
       by omega⟩
@@ -310,7 +310,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
     obtain ⟨wb, hb, bb⟩ := ihOne (by rw [run]; exact bodyOk)
     have run' := crepArithSimpProgCorrect body _ result middle run bodyOk
     have := crepSimp_node_work_sharp condition
-    exact ⟨2 + 2 + loopNodePrice (crepSimpExpHOL condition) + wb,
+    exact ⟨2 + 2 + 2 + loopNodePrice (crepSimpExpHOL condition) + wb,
       by simp only [crepSimpProgHOL]
          exact .whileStop (crepSimp_exp_sharp t condition _ guard) nonzero clock hb run' stop,
       by omega⟩
