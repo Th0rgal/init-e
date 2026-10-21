@@ -81,3 +81,37 @@ end BoundedTableExperiment
 #print axioms BoundedTableExperiment.TrieInv.rootBound
 #print axioms BoundedTableExperiment.TrieInv.childBound
 #print axioms BoundedTableExperiment.candidateFindLeafChild_descent
+
+namespace BoundedTableExperiment
+
+open Flapjack.PanSemStateFiniteExact
+open Flapjack
+
+/-- One live-edge step: a reachable parent link moves to a reachable child with
+strictly larger route. -/
+theorem TrieInv.step {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {root : BitVec 64} {keyLen : Nat} (trie : TrieInv s root keyLen)
+    {p l r route c : BitVec 64} (reach : Reachable s root p)
+    (link : NodeLinkInv s p l r route) (hc : c = l ∨ c = r)
+    {cl cr rc : BitVec 64} (childLink : NodeLinkInv s c cl cr rc) :
+    Reachable s root c ∧ routeBit route < routeBit rc := by
+  have hreach : Reachable s root c := by
+    rcases hc with h | h
+    · rw [h]; exact Reachable.left reach link
+    · rw [h]; exact Reachable.right reach link
+  exact ⟨hreach, trie.childGreater p l r route c reach link hc cl cr rc childLink⟩
+
+/-- The child of a live edge inherits the key-length route bound. -/
+theorem TrieInv.stepBound {F : Type} {s : PanSemStateFiniteExact 64 F}
+    {root : BitVec 64} {keyLen : Nat} (trie : TrieInv s root keyLen)
+    {p l r route c : BitVec 64} (reach : Reachable s root p)
+    (link : NodeLinkInv s p l r route) (hc : c = l ∨ c = r)
+    {cl cr rc : BitVec 64} (childLink : NodeLinkInv s c cl cr rc) :
+    routeBit rc < 8 * keyLen := by
+  obtain ⟨hreach, _⟩ := trie.step reach link hc childLink
+  exact trie.childBound hreach childLink
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.TrieInv.step
+#print axioms BoundedTableExperiment.TrieInv.stepBound
