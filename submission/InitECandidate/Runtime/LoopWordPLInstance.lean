@@ -52,7 +52,7 @@ noncomputable def wsLoopPrice (c : Compiler.Encoders.Asm.AsmConfigExact 64) (T1 
       argCost := fun n => 39 * (n + 1 - 22)
       ret := 0
       cont := 6 }
-  site := fun l => 24 * (tLookup T2 (0, l.1, [l.2]) + tLookup T1 (0, l.1, [l.2]))
+  site := fun l _ => 24 * (tLookup T2 (0, l.1, [l.2]) + tLookup T1 (0, l.1, [l.2]))
   tail := fun d => 24 * (tailEnv T2 d + tailEnv T1 d)
   retNames := fun n => 21 * (n + 1 - 22)
 

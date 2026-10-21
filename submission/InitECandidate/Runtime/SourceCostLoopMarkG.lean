@@ -4,7 +4,7 @@ import Flapjack.Pancake.Proofs.LoopLive.Optimise
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-variable {L : LeafPrice}
+variable {L : LeafPrice} {f : Nat}
 
 private theorem marked_shortG {F : Type} (s : LoopSemStateFiniteExact 64 F)
     (returns : Option (List Nat × NumSet)) (target : Option Nat) (arguments : List Nat)
@@ -20,10 +20,10 @@ private theorem marked_shortG {F : Type} (s : LoopSemStateFiniteExact 64 F)
 chosen branches, each iteration, and reached call handlers/continuations.
 Marks add no work; code-table callees themselves are unchanged by this pass. -/
 theorem LoopWorkG.mark_all {F : Type} {s : LoopSemStateFiniteExact 64 F}
-    {p : HolLoopProg 64} {output} {w : Nat} (work : LoopWorkG L s p output w) :
-    LoopWorkG L s (markAllHOL p).1 output w := by
+    {p : HolLoopProg 64} {output} {w : Nat} (work : LoopWorkG L f s p output w) :
+    LoopWorkG L f s (markAllHOL p).1 output w := by
   induction work with
-  | @atom s p output cost leaf run =>
+  | @atom f s p output cost leaf run =>
     have original := leaf
     have leaf := L.dom _ _ leaf
     cases p <;> simp [loopWorkLeafCost] at leaf
@@ -41,12 +41,12 @@ theorem LoopWorkG.mark_all {F : Type} {s : LoopSemStateFiniteExact 64 F}
     split
     · exact LoopWorkG.mark (LoopWorkG.seqStop ih)
     · exact LoopWorkG.seqStop ih
-  | @iteBranch s operator register right yes no live x y output w lhs rhs branch ih =>
-    have chosen : LoopWorkG L s
+  | @iteBranch f s operator register right yes no live x y output w lhs rhs branch ih =>
+    have chosen : LoopWorkG L f s
         (if Compiler.Encoders.Asm.wordCmpHOL operator x y then
           (markAllHOL yes).1 else (markAllHOL no).1) output w := by
       split <;> simpa only [*, Bool.false_eq_true, ↓reduceIte] using ih
-    have run := LoopWorkG.iteBranch (live := live) lhs rhs chosen
+    have run := LoopWorkG.iteBranch (f := f) (live := live) lhs rhs chosen
     simp only [markAllHOL]
     split
     · exact LoopWorkG.mark run
@@ -68,7 +68,7 @@ theorem LoopWorkG.mark_all {F : Type} {s : LoopSemStateFiniteExact 64 F}
   | loopCut stopped =>
     simp only [markAllHOL]
     exact LoopWorkG.loopCut stopped
-  | @callShort s returns target arguments handler output short run =>
+  | @callShort f s returns target arguments handler output short run =>
     have markedRun : evaluate
         (.call returns target arguments
           (handler.map (fun (exn, body, cont, live) =>
@@ -84,7 +84,7 @@ theorem LoopWorkG.mark_all {F : Type} {s : LoopSemStateFiniteExact 64 F}
         split at semantic
         · simpa only [evaluate, Option.map_some] using semantic
         · simpa only [Option.map_some] using semantic
-    have core := LoopWorkG.callShort (L := L) (marked_shortG s returns target arguments handler short) markedRun
+    have core := LoopWorkG.callShort (f := f) (L := L) (marked_shortG s returns target arguments handler short) markedRun
     cases handler with
     | none => simpa only [markAllHOL, Option.map_none] using LoopWorkG.mark core
     | some handler =>
@@ -93,13 +93,13 @@ theorem LoopWorkG.mark_all {F : Type} {s : LoopSemStateFiniteExact 64 F}
       split
       · exact LoopWorkG.mark core
       · exact core
-  | @callTail s target arguments handler values env prog result post wb args find noHandler
+  | @callTail f s target arguments handler values env prog result post wb args find noHandler
       clock body ih =>
     have noneHandler : handler = none := by cases handler <;> simp_all
     subst handler
     simp only [markAllHOL]
     exact LoopWorkG.mark (LoopWorkG.callTail args find noHandler clock body)
-  | @callRet s names live target arguments handler values env prog entry result post wb args find
+  | @callRet f s names live target arguments handler values env prog entry result post wb args find
       nodup cut body plain ih =>
     cases handler with
     | none =>
@@ -112,25 +112,25 @@ theorem LoopWorkG.mark_all {F : Type} {s : LoopSemStateFiniteExact 64 F}
         cases result with
         | none => trivial
         | some result => cases result <;> exact plain
-      have core := LoopWorkG.callRet args find nodup cut body plain'
+      have core := LoopWorkG.callRet (f := f) args find nodup cut body plain'
       simp only [markAllHOL]
       split
       · exact LoopWorkG.mark core
       · exact core
-  | @callRetCont s names live target arguments exceptionName handlerProgram continuation
+  | @callRetCont f s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry returned post wb output wc args find nodup cut body lengths cont
       ihBody ihCont =>
-    have core := LoopWorkG.callRetCont (exceptionName := exceptionName) (liveOut := liveOut)
+    have core := LoopWorkG.callRetCont (f := f) (exceptionName := exceptionName) (liveOut := liveOut)
       (handlerProgram := (markAllHOL handlerProgram).1)
       args find nodup cut body lengths ihCont
     simp only [markAllHOL]
     split
     · exact LoopWorkG.mark core
     · exact core
-  | @callHandle s names live target arguments exceptionName handlerProgram continuation
+  | @callHandle f s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry exn post wb output wh args find nodup cut body handle ihBody
       ihHandle =>
-    have core := LoopWorkG.callHandle (liveOut := liveOut) (continuation := (markAllHOL continuation).1)
+    have core := LoopWorkG.callHandle (f := f) (liveOut := liveOut) (continuation := (markAllHOL continuation).1)
       args find nodup cut body ihHandle
     simp only [markAllHOL]
     split

@@ -21,7 +21,7 @@ theorem wordCostLePL_callRetPlain (D : WordDominatesL wp lp) {l : Nat × Nat} {s
     (ih : WordCostLePL C wp { entry with locals := env } prog (calleeName target values, 2) (result, post) wb) :
     WordCostLePL C wp s (.call (some (names, live)) target arguments (some (n, p1, p2, liveOut))) l
       (loopRetExit result post entry names)
-      (lp.base.call + lp.base.argCost arguments.length + lp.site l + lp.retNames names.length + wb + lp.base.ret * loopRetWords result) := by
+      (lp.base.call + lp.base.argCost arguments.length + lp.site l target + lp.retNames names.length + wb + lp.base.ret * loopRetWords result) := by
   intro ok t ctxt retv rel locals ret dim notWord acc
   have stops : result = some .timeOut ∨ ∃ f, result = some (.finalFfi f) := by
     rcases result with _ | (_ | _ | _ | _ | v | e | _)
@@ -67,7 +67,7 @@ theorem wordCostLePL_callRetPlain (D : WordDominatesL wp lp) {l : Nat × Nat} {s
     t hwgv (hwf w2) hce he
   have hA := D.argOk arguments.length
   have hU := D.tailOk
-  have hS : lp.site (l.1, l.2) = lp.site l := rfl
+  have hS : lp.site (l.1, l.2) target = lp.site l target := rfl
   have hres : res1 = some .timeOut ∨ ∃ f, res1 = some (.finalFfi f) := by
     rcases stops with rfl | ⟨f, rfl⟩
     · exact Or.inl rc

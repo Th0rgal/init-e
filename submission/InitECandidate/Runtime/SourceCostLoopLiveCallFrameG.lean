@@ -2,7 +2,7 @@ import InitECandidate.Runtime.SourceCostLoopLiveCallG
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-variable {L : LeafPrice}
+variable {L : LeafPrice} {f : Nat}
 
 /-- A complete return tuple writes every named destination. -/
 theorem live_zip_absentG {α : Type} (names : List Nat) (values : List α) (key : Nat)

@@ -5,7 +5,7 @@ import InitECandidate.Runtime.SourceCostLoopLiveLoopG
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-variable {L : LeafPrice}
+variable {L : LeafPrice} {f : Nat}
 
 private theorem cut_nonerrorG {F : Type} {live : NumSet}
     {output : Option (LoopResultExact 64) × LoopSemStateFiniteExact 64 F}
@@ -21,10 +21,10 @@ supplies a trace of the real shrink output with no greater work, under exactly
 the original input projection and result-indexed successor locals relation. -/
 theorem LoopWorkG.live_paid {F : Type} {s : LoopSemStateFiniteExact 64 F} {p : HolLoopProg 64}
     {output : Option (LoopResultExact 64) × LoopSemStateFiniteExact 64 F} {w : Nat}
-    (work : LoopWorkG L s p output w) (nonerror : output.1 ≠ some .error) :
-    LoopLivePaidG L s p output w := by
+    (work : LoopWorkG L f s p output w) (nonerror : output.1 ≠ some .error) :
+    LoopLivePaidG L f s p output w := by
   induction work with
-  | @atom s p output cost leaf run =>
+  | @atom f s p output cost leaf run =>
     exact loop_live_paid_leafG (LoopWorkG.atom leaf run) leaf nonerror
   | mark inner ih => exact loop_live_paid_markG (ih nonerror)
   | seqNext one two ihOne ihTwo =>
@@ -33,21 +33,21 @@ theorem LoopWorkG.live_paid {F : Type} {s : LoopSemStateFiniteExact 64 F} {p : H
   | iteBranch lhs rhs branch ih =>
     exact loop_live_paid_iteG lhs rhs branch (ih (cut_nonerrorG nonerror)) nonerror
   | iteInvalid invalid => exact False.elim (nonerror rfl)
-  | @loopNext s liveIn body liveOut entry result middle output wb wr cut one again rest ihOne ihRest =>
+  | @loopNext f s liveIn body liveOut entry result middle output wb wr cut one again rest ihOne ihRest =>
     have bodyOk : result ≠ some .error := by rcases again with rfl | rfl <;> simp
     exact loop_live_paid_loop_nextG cut again (ihOne bodyOk) (ihRest nonerror)
   | loopBreak cut one ih => exact loop_live_paid_loop_breakG cut one (ih (by simp)) nonerror
-  | @loopExit s liveIn body liveOut entry result middle wb cut one stop ih =>
+  | @loopExit f s liveIn body liveOut entry result middle wb cut one stop ih =>
     have bodyOk : result ≠ some .error := by
       rintro rfl
       exact nonerror rfl
     exact loop_live_paid_loop_exitG cut one stop (ih bodyOk) nonerror
   | loopCut stopped => exact loop_live_paid_loop_cutG stopped nonerror
-  | @callShort s returns target arguments handler output short run =>
+  | @callShort f s returns target arguments handler output short run =>
     exact loop_live_paid_call_shortG short run nonerror
   | callTail args find noHandler clock body ih =>
     exact loop_live_paid_call_tailG args find noHandler clock body nonerror
-  | @callRet s names live target arguments handler values env prog entry result post wb
+  | @callRet f s names live target arguments handler values env prog entry result post wb
       args find nodup cut body plain ih =>
     cases handler with
     | none => exact loop_live_paid_call_ret_plainG args find nodup cut body nonerror

@@ -25,7 +25,7 @@ theorem ret_price_zero_leL (D : WordDominatesL wp lp) (rets : List Nat) (cut : W
     (rc : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat) (d : Option Nat) (args : List Nat)
     (h : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat)) (s : WordSemStateFiniteExact 64 C F)
     (zero : s.clock = 0) :
-    wp (.call (some (rets, cut, rc, l1, l2)) d args h) s ≤ lp.base.call + lp.base.argCost args.length + lp.site (l1, l2) + lp.retNames rets.length := by
+    wp (.call (some (rets, cut, rc, l1, l2)) d args h) s ≤ lp.base.call + lp.base.argCost args.length + lp.site (l1, l2) d + lp.retNames rets.length := by
   have h1 := D.retCall rets cut rc l1 l2 d args h s
   rw [if_neg (fun hr => hr.1 zero)] at h1
   have h2 := D.tailOk
@@ -39,7 +39,7 @@ theorem wordCostLePL_callShort (D : WordDominatesL wp lp) {s : LoopSemStateFinit
     (run : LoopSemStateFiniteExact.evaluate (.call returns target arguments handler) s = output) :
     WordCostLePL C wp s (.call returns target arguments handler) l output
       (lp.base.call + lp.base.argCost arguments.length +
-        (match returns with | some (names, _) => lp.site l + lp.retNames names.length | none => lp.tail target)) := by
+        (match returns with | some (names, _) => lp.site l target + lp.retNames names.length | none => lp.tail target)) := by
   intro ok t ctxt retv rel locals ret dim notWord acc
   obtain ⟨l1, l2⟩ := l
   have zero : t.clock = 0 := by
@@ -108,7 +108,7 @@ theorem wordCostLePL_callRet (D : WordDominatesL wp lp) {s entry post : LoopSemS
     (bodyW : LoopWorkPL lp (calleeName target values, 2) { entry with locals := env } prog (result, post) wb)
     (ih : WordCostLePL C wp { entry with locals := env } prog (calleeName target values, 2) (result, post) wb) :
     WordCostLePL C wp s (.call (some (names, live)) target arguments none) l (loopRetExit result post entry names)
-      (lp.base.call + lp.base.argCost arguments.length + lp.site l + lp.retNames names.length + wb + lp.base.ret * loopRetWords result) := by
+      (lp.base.call + lp.base.argCost arguments.length + lp.site l target + lp.retNames names.length + wb + lp.base.ret * loopRetWords result) := by
   intro ok t ctxt retv rel locals ret dim notWord acc
   obtain ⟨l1, l2⟩ := l
   have okBody : result ≠ some .error := by

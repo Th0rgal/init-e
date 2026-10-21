@@ -3,7 +3,7 @@ import Flapjack.Pancake.LoopLive.Fixedpoint
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-variable {L : LeafPrice}
+variable {L : LeafPrice} {f : Nat}
 
 /-- Exact compiler metadata shared by all actual iterations of this loop.
 These are liveness/compilation equations, not assumed runtime bounds. -/
