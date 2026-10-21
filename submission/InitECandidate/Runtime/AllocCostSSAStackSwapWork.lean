@@ -4888,4 +4888,125 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type} :
       omega
 #print axioms wordPathWork_stack_variant_dispatch
 
+/-! ### Fine-model equation lemmas
+
+`wordExecutionCost` unfolded one constructor at a time with the matches left in
+place, plus the `MustTerminate` body transport used by the stack-swap driver.
+All of these are local to this module so the driver does not depend on the
+auxiliary `WordExecutionCostProps` build. -/
+
+theorem wec_seq_unfold {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (first second : WordLangProgHOL (BitVec 64)) (t : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost price (.seq first second) t =
+      price (.seq first second) t +
+        InitECandidate.Runtime.FineCost.wordExecutionCost price first t +
+        (match evaluate first t with
+         | (none, middle) => InitECandidate.Runtime.FineCost.wordExecutionCost price second middle
+         | _ => 0) := by
+  rw [InitECandidate.Runtime.FineCost.wordExecutionCost, fix_clock_evaluate]
+  cases run : evaluate first t with
+  | mk result middle => cases result <;> rfl
+
+theorem wec_ite_unfold {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (cmp : Cmp) (reg : Nat) (operand : WordRegImm (BitVec 64))
+    (first second : WordLangProgHOL (BitVec 64)) (t : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost price (.ite cmp reg operand first second) t =
+      price (.ite cmp reg operand first second) t +
+        (match getVar reg t, getVarImm operand t with
+         | some x, some y =>
+             (match wordSemWordCmp cmp x y with
+              | some true => InitECandidate.Runtime.FineCost.wordExecutionCost price first t
+              | some false => InitECandidate.Runtime.FineCost.wordExecutionCost price second t
+              | none => 0)
+         | _, _ => 0) := by
+  rw [InitECandidate.Runtime.FineCost.wordExecutionCost]
+  cases hx : getVar reg t with
+  | none => rfl
+  | some x =>
+      cases hy : getVarImm operand t with
+      | none => rfl
+      | some y => cases hc : wordSemWordCmp cmp x y <;> rfl
+
+theorem wec_loop_unfold_none {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (names : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (exitNames : WordLangNumSetHOL) (t : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) t = none) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost price (.loop names body exitNames) t =
+      price (.loop names body exitNames) t := by
+  rw [InitECandidate.Runtime.FineCost.wordExecutionCost]
+  split
+  · rfl
+  · rename_i cutSource hsome
+    rw [hs] at hsome
+    cases hsome
+
+theorem wec_loop_unfold_some {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (names : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (exitNames : WordLangNumSetHOL) (t c : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) t = some c) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost price (.loop names body exitNames) t =
+      price (.loop names body exitNames) t +
+        InitECandidate.Runtime.FineCost.wordExecutionCost price body c +
+        (match fixClock c (evaluate body c) with
+         | (result, middle) =>
+             if wordSemContLoop result then
+               (if middle.clock = 0 then 0
+                else InitECandidate.Runtime.FineCost.wordExecutionCost price
+                  (wordSemSTOP (.loop names body exitNames))
+                  (Flapjack.WordSemStateFiniteExact.decClock middle))
+             else 0) := by
+  rw [InitECandidate.Runtime.FineCost.wordExecutionCost]
+  split
+  · rename_i hnone
+    rw [hs] at hnone
+    cases hnone
+  · rename_i cutSource hsome
+    rw [hs] at hsome
+    injection hsome with hcsEq
+    subst hcsEq
+    rfl
+
+theorem wec_mustTerminate_unfold {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (body : WordLangProgHOL (BitVec 64)) (t : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.FineCost.wordExecutionCost price (.mustTerminate body) t =
+      price (.mustTerminate body) t +
+        (if t.termdep = 0 then 0
+         else InitECandidate.Runtime.FineCost.wordExecutionCost price body
+           { t with clock := wordSemMustTerminateLimit 64, termdep := t.termdep - 1 }) := by
+  rw [InitECandidate.Runtime.FineCost.wordExecutionCost]
+  by_cases hz : t.termdep = 0
+  · rw [dif_pos hz, if_pos hz]
+  · rw [dif_neg hz, if_neg hz]
+
+/-- A non-erroring `MustTerminate` forces its body not to error at the reset
+clock and decremented termination depth. -/
+theorem evaluate_mustTerminate_body_nonerror {C F : Type}
+    (body : WordLangProgHOL (BitVec 64)) (t : WordSemStateFiniteExact 64 C F)
+    (hne : (evaluate (.mustTerminate body) t).1 ≠ some WordSemResult.error) :
+    (evaluate body
+      { t with clock := wordSemMustTerminateLimit 64, termdep := t.termdep - 1 }).1 ≠
+      some WordSemResult.error := by
+  intro hb
+  apply hne
+  by_cases hz : t.termdep = 0
+  · rw [evaluate, dif_pos hz]
+  · rw [Flapjack.WordSemStackEq.evaluate_mustTerminate_eq body t hz]
+    rcases hr : evaluate body
+        { t with clock := wordSemMustTerminateLimit 64, termdep := t.termdep - 1 } with ⟨res, s1⟩
+    rw [hr] at hb
+    subst hb
+    rfl
+
+theorem mustTerminate_body_state_swap_stack {C F : Type}
+    (t : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64)) :
+    ({ ({ t with stack := xs } : WordSemStateFiniteExact 64 C F) with
+        clock := wordSemMustTerminateLimit 64, termdep := t.termdep - 1 }) =
+      ({ ({ t with clock := wordSemMustTerminateLimit 64, termdep := t.termdep - 1 } :
+          WordSemStateFiniteExact 64 C F) with stack := xs }) := rfl
+
 end InitECandidate.Runtime.WordToStack
