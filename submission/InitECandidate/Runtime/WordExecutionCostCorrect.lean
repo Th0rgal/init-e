@@ -192,8 +192,8 @@ theorem wordExecutionCost_correct {F : Type} (ac : AsmConfigExact 64)
       simp only [wordCostSupported,refinedWordStackLeafBudget,Option.isSome_none,Bool.false_eq_true] at supported
   | .dataBufferWrite a b, source, supported, code, frames => by
       simp only [wordCostSupported,refinedWordStackLeafBudget,Option.isSome_none,Bool.false_eq_true] at supported
-  | .shareInst op reg expression, source, supported, code, frames => by
-      simp only [wordCostSupported,refinedWordStackLeafBudget,Option.isSome_none,Bool.false_eq_true] at supported
+  | .shareInst op reg expression, source, supported, code, frames =>
+      fine_leaf_of_isSome ac price factor caps (.shareInst op reg expression) source supported
 termination_by program source => (source.termdep,source.clock,sizeOf program)
 decreasing_by
   all_goals

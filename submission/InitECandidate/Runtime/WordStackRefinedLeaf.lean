@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.WordStackRefinedSimulation
+import InitECandidate.Runtime.WordStackRefinedSharedMemory
 import InitECandidate.Runtime.WordStackExecutedRaise
 import InitECandidate.Runtime.WordExecutionCostLowerBound
 namespace InitECandidate.Runtime.WordToStack
@@ -19,6 +19,7 @@ def refinedWordStackLeafBudget : WordLangProgHOL (BitVec 64) → Option Nat
   | .opCurrHeap _ _ _ => some 18
   | .ffi _ _ _ _ _ _ => some 25
   | .raise _ => some 63
+  | .shareInst _ _ _ => some 13
   | _ => none
 
 theorem refinedExecutedSimulation_leaf {F : Type} (ac : AsmConfigExact 64)
@@ -42,6 +43,7 @@ theorem refinedExecutedSimulation_leaf {F : Type} (ac : AsmConfigExact 64)
   case «raise» name => subst budget; exact executedSimulation_to_refined (executedSimulation_raise ac name source)
   case «break» label => subst budget; exact refinedExecutedSimulation_break ac label source
   case «continue» label => subst budget; exact refinedExecutedSimulation_continue ac label source
+  case shareInst op reg expression => subst budget; exact refinedExecutedSimulation_shareInst ac op reg expression source
   case mustTerminate body => subst budget; exact refinedExecutedSimulation_mustTerminate ac body source
 
 /-- Refinement leaves compose with the same source-cost coefficient. -/
