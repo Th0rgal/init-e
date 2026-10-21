@@ -24,3 +24,24 @@ theorem candidate_strideExpr_eval {F : Type} (s : PanSemStateFiniteExact 64 F)
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidate_strideExpr_eval
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- The actual candidate stride is 8-byte aligned. -/
+theorem candidate_stride_aligned (keyLen : BitVec 64) :
+    ((keyLen + BitVec.ofNat 64 7) &&& (BitVec.ofNat 64 0 - BitVec.ofNat 64 8)) &&&
+        BitVec.ofNat 64 7 = 0 := by
+  rw [BitVec.and_assoc]
+  have h : (BitVec.ofNat 64 0 - BitVec.ofNat 64 8) &&& BitVec.ofNat 64 7 = 0 := by decide
+  simp [h]
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidate_stride_aligned
