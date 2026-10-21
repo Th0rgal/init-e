@@ -1,4 +1,5 @@
 import ActualCandidateLoopBodyBound
+import ActualWhileBoundedStep
 
 namespace BoundedTableExperiment
 
@@ -122,3 +123,63 @@ theorem whileCount_counter_le_cap {F : Type} {fn : MlS}
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.whileCount_counter_le_cap
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Every continuing run of the actual body `st vals + i*8, i+2; i = i+1`
+increments the counter rank (below 480). -/
+theorem body_counterRank_step {F : Type} {fn : MlS}
+    {t middle : PanSemStateFiniteExact 64 F}
+    {result : Option (PanSemResultExact 64)} {bodyEvents : List WorkEvent}
+    {wi : BitVec 64}
+    (run : StatementRun fn (decClockHOLFinite t)
+      (.seq (.store (.op .add [.var .local (ofString "vals"),
+          .panop .mul [.var .local (ofString "i"), .const (BitVec.ofNat 64 8)]])
+        (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 2)]))
+        (.assign .local (ofString "i")
+          (.op .add [.var .local (ofString "i"), .const (BitVec.ofNat 64 1)])))
+      result middle bodyEvents)
+    (hwi : t.locals.lookup (ofString "i") = some (.val (.word wi)))
+    (hlt : wi.toNat < 480)
+    (hcont : result = none ∨ result = some .continue) :
+    counterRank middle = counterRank t + 1 := by
+  have hidx := counterRank_word hwi
+  cases run with
+  | seqNext one two =>
+      have hl := store_run_locals_eq one
+      cases two with
+      | assignValue expr valid =>
+          obtain ⟨w, hw⟩ := body_increment_word _ _ expr.sound
+          have hwi2 : (decClockHOLFinite t).locals.lookup (ofString "i") =
+              some (.val (.word wi)) := by
+            simp [decClockHOLFinite, hwi]
+          have hs : w = wi + 1 := by
+            have hsound := expr.sound
+            rw [hw] at hsound
+            simp [expressionValue, evalHOLExact, evalListHOLExact, hl, hwi2] at hsound
+            have hop := hsound.2
+            simp [wordOpHOL, wordOp, valueWord] at hop
+            trace_state
+            exact hop.symm
+          rw [hw, hs]
+          simp [counterRank, setKvarHOLFinite, setVarHOLFinite, hl, hwi, FUPDATE,
+            HolFiniteMapExact.lookup_updateEq, bitvec_succ_toNat wi hlt]
+      | assignInvalid expr invalid =>
+          rcases hcont with h | h <;> simp at h
+      | assignFailure expr =>
+          rcases hcont with h | h <;> simp at h
+  | seqStop terminal one =>
+      rcases hcont with h | h
+      · exact absurd h terminal
+      · cases one <;> simp_all
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.body_counterRank_step
