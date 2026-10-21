@@ -529,10 +529,32 @@ theorem sFrameKeyEq_trans (a b c : WordSemStackFrame 64) :
         cases hh <;> cases hh' <;> cases hh'' <;>
           simp only [WordSemStackEq.sFrameKeyEq] <;> simp_all
 
+/-- `popEnv_stack_swap`, with the popped state's stack identified. -/
+theorem popEnv_stack_swap_stack {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (fr : WordSemStackFrame 64) (t u : List (WordSemStackFrame 64)) :
+    ∃ r, popEnv { s with stack := fr :: t } = some r ∧
+      popEnv { s with stack := fr :: u } = some { r with stack := u } ∧ r.stack = t := by
+  obtain ⟨r, hr1, hr2⟩ := popEnv_stack_swap s fr t u
+  refine ⟨r, hr1, hr2, ?_⟩
+  cases fr with
+  | stackFrame n l0 l hh =>
+    cases hh with
+    | none =>
+      simp only [WordSemStateFiniteExact.popEnv, Option.some.injEq] at hr1
+      rw [← hr1]
+    | some q =>
+      obtain ⟨h, l1, l2⟩ := q
+      simp only [WordSemStateFiniteExact.popEnv, Option.some.injEq] at hr1
+      rw [← hr1]
+
+#print axioms popEnv_stack_swap_stack
+
+
 /-- **Pop agreement for the returning call.**  If the two stacks have the same
 head *keys* (both key-equal to the frame `fr` this call pushed) and are
 value-equal, then their head frames are literally equal and `popEnv` yields the
 same locals, with the tails `rest` resp. `u`. -/
+
 theorem popEnv_agree {C F : Type} (middle : WordSemStateFiniteExact 64 C F)
     (st : List (WordSemStackFrame 64)) (fr fM fS : WordSemStackFrame 64)
     (rest u : List (WordSemStackFrame 64))
@@ -1610,6 +1632,86 @@ theorem wordPathWork_call_exception_loc_mismatch {C F : Type}
           all_goals (try (simp only [if_pos hloc]))
           all_goals (try omega)
 
+
+/-- Exception arm with a matching handler location but whose locals domain does not
+match the cut environments: the handler is *not* run, so the cost is the body's. -/
+theorem wordPathWork_call_exception_dom_false {C F : Type}
+    (dest : Option Nat) (args : List Nat) (values : List Nat)
+    (names : WordLangCutsetsHOL) (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (t : WordSemStateFiniteExact 64 C F) (locs : List (WordLocW 64))
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (location : WordLocW 64) (value : WordLocW 64)
+    (middle : WordSemStateFiniteExact 64 C F)
+    (hget : WordSemStateFiniteExact.getVars args t = some locs)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+        (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) locs)
+        t.code t.stackSize = some (args1, prog, ss))
+    (hnd : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcut : wordSemCutEnvs names t.locals = some envs)
+    (hclk : t.clock ≠ 0)
+    (hfix : fixClock
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock t)))
+        (evaluate prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock t))))
+        = (some (.exception location value), middle))
+    (hhand : handler = some (reg, handlerCode, h1, h2))
+    (hloc : location = .loc h1 h2)
+    (hdomf : ¬ sptDomainEqUnion middle.locals envs.1 envs.2) :
+    wordPathWork (.call (some (values, names, retCode, l1, l2)) dest args handler) t =
+      1 + wordPathWork prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs handler (Flapjack.WordSemStateFiniteExact.decClock t))) := by
+  rw [wordPathWork]
+  split
+  · rename_i h1'
+    rw [hget] at h1'
+    cases h1'
+  · rename_i locs1 h1'
+    rw [hget] at h1'
+    injection h1' with hx
+    cases hx
+    rw [if_neg (by rw [hbad]; simp)]
+    split
+    · rename_i h2'
+      rw [hfind] at h2'
+      cases h2'
+    · rename_i a1 p1 ss1 h2'
+      have hinj : some (args1, prog, ss) = some (a1, p1, ss1) := hfind.symm.trans h2'
+      simp only [Option.some.injEq, Prod.mk.injEq] at hinj
+      obtain ⟨rfl, rfl, rfl⟩ := hinj
+      split
+      · rename_i hsome
+        simp at hsome
+      · rename_i v1 n1 rc1 m1 q1 hsome
+        have hinj2 : some (values, names, retCode, l1, l2) = some (v1, n1, rc1, m1, q1) := hsome
+        simp only [Option.some.injEq, Prod.mk.injEq] at hinj2
+        obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hinj2
+        rw [if_neg hnd]
+        split
+        · rename_i h3
+          rw [hcut] at h3
+          cases h3
+        · rename_i envs1 h3
+          rw [hcut] at h3
+          injection h3 with hx3
+          cases hx3
+          rw [dif_neg hclk]
+          rw [hfix]
+          all_goals (try simp_all)
+          all_goals (try (rw [hhand]))
+          all_goals (try (simp only [if_neg (show ¬ (location ≠ .loc h1 h2) from by rw [hloc]; simp)]))
+          all_goals (try (simp only [if_neg hdomf]))
+          all_goals (try omega)
+
+#print axioms wordPathWork_call_exception_dom_false
+
+
 /-! ### Error propagation from a non-erroring parent
 
 `WordSemResult.error` is never caught (`handler`s catch `exception` only), so a
@@ -2618,6 +2720,60 @@ theorem evaluate_call_error_body_noreturn {C F : Type}
 
 #print axioms evaluate_call_error_body_noreturn
 
+/-- Body transport *shape* for exception arms whose tail cost is zero: any handler. -/
+theorem callBody_transport_shape_exception {C F : Type}
+    (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64))
+    (location value : WordLocW 64) (middle : WordSemStateFiniteExact 64 C F)
+    (hval : WordSemStackEq.sValEq s.stack xs)
+    (hev : evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))) =
+      (some (.exception location value), middle)) :
+    ∃ (fr : WordSemStackFrame 64) (middleT : WordSemStateFiniteExact 64 C F),
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).stack =
+        fr :: s.stack ∧
+      WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock { s with stack := xs })) =
+        { WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)) with
+          stack := fr :: xs } ∧
+      evaluate prog
+        (WordSemStateFiniteExact.callEnv args1 ss
+          (pushEnv envs handler (decClock { s with stack := xs }))) =
+        (some (.exception location value), middleT) := by
+  obtain ⟨fr, hfr1, hfr2⟩ := callEntry_stack_swap args1 ss envs handler s xs hval
+  have hvalEntry : WordSemStackEq.sValEq
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).stack
+      (fr :: xs) := by
+    rw [hfr1]; exact sValEq_cons_self fr hval
+  have hT := Flapjack.WordSemStackEq.evaluateStackSwap prog
+    (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)))
+  rw [WordSemStackEq.stackSwapPost_iff, hev] at hT
+  obtain ⟨-, e0, e, n, ls, m, lss, hlast, hm, hloc, hkeyS1, hhandS1, hforall⟩ := hT
+  obtain ⟨fr', ls', hln', hfv⟩ :=
+    sValEq_lastN_head
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).stack
+      (fr :: xs) hvalEntry
+      (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s))).handler
+      (WordSemStackFrame.stackFrame m e0 e (some n)) ls hlast
+  cases fr' with
+  | stackFrame m' l0' l' hh' =>
+    cases hh' with
+    | none =>
+      simp only [WordSemStackEq.sFrameValEq] at hfv
+    | some q' =>
+      obtain ⟨n', q1', q2'⟩ := q'
+      simp only [WordSemStackEq.sFrameValEq] at hfv
+      obtain ⟨-, hy, hme⟩ := hfv
+      obtain ⟨rfl, rfl, rfl⟩ := hy
+      subst hme
+      obtain ⟨st, locs, hrun, -, -, -⟩ := hforall (fr :: xs) l0' l' ls' ⟨hln', hvalEntry⟩
+      refine ⟨fr, { middle with stack := st, handler := n', locals := locs }, hfr1, hfr2, ?_⟩
+      rw [hfr2]
+      exact hrun
+
+#print axioms callBody_transport_shape_exception
+
 /-- Tail of the loop clause at the stop state: swapping the stack under `decClock`
 does not change the cost, so the clock-guarded tail of the transported run equals the
 clock-guarded tail of the source run. -/
@@ -2875,7 +3031,523 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                       exact congrArg (fun z => 1 + wordPathWork body cs + z) ihStop
                   · simp [hevT, ihB, wordSemContLoop, hk]
   | .call ret dest args handler, s, xs, hval, hne =>
-      exact hcall ret dest args handler s xs hval hne
+      have hfindT : ∀ (rr : Option (List Nat × WordLangCutsetsHOL × WordLangProgHOL (BitVec 64) × Nat × Nat))
+          (locs : List (WordLocW 64)) (tr : List (WordLocW 64) × WordLangProgHOL (BitVec 64) × Option Nat),
+          wordSemFindCode dest (wordSemAddRetLoc rr locs) s.code s.stackSize = some tr →
+          wordSemFindCode dest (wordSemAddRetLoc rr locs)
+            ({ s with stack := xs } : WordSemStateFiniteExact 64 C F).code
+            ({ s with stack := xs } : WordSemStateFiniteExact 64 C F).stackSize = some tr := by
+        intro rr locs tr h
+        rw [wordSemFindCode_stack]
+        exact h
+      cases hget : WordSemStateFiniteExact.getVars args s with
+      | none =>
+        rw [wordPathWork_call_getVars_none ret dest args handler s hget,
+          wordPathWork_call_getVars_none ret dest args handler { s with stack := xs }
+            (by rw [getVars_stack args s xs]; exact hget)]
+      | some locs =>
+        cases hbv : wordSemBadDestArgs dest args with
+        | true =>
+          rw [wordPathWork_call_badDest ret dest args handler s locs hget hbv,
+            wordPathWork_call_badDest ret dest args handler { s with stack := xs } locs
+              (by rw [getVars_stack args s xs]; exact hget) hbv]
+        | false =>
+          cases hfind : wordSemFindCode dest (wordSemAddRetLoc ret locs) s.code s.stackSize with
+          | none =>
+            rw [wordPathWork_call_findCode_none ret dest args handler s locs hget hbv hfind,
+              wordPathWork_call_findCode_none ret dest args handler { s with stack := xs } locs
+                (by rw [getVars_stack args s xs]; exact hget) hbv
+                (by rw [wordSemFindCode_stack]; exact hfind)]
+          | some triple =>
+            obtain ⟨args1, prog, ss⟩ := triple
+            cases ret with
+            | none =>
+              cases handler with
+              | some hh =>
+                rw [wordPathWork_call_none_handler dest args (some hh) prog args1 ss s locs hget hbv
+                      hfind ⟨hh, rfl⟩,
+                  wordPathWork_call_none_handler dest args (some hh) prog args1 ss
+                    { s with stack := xs } locs (by rw [getVars_stack args s xs]; exact hget) hbv
+                    (hfindT none locs _ hfind) ⟨hh, rfl⟩]
+              | none =>
+                by_cases hz : s.clock = 0
+                · rw [wordPathWork_call_none_clock_zero dest args none prog args1 ss s locs hget hbv
+                      hfind rfl hz,
+                    wordPathWork_call_none_clock_zero dest args none prog args1 ss
+                      { s with stack := xs } locs (by rw [getVars_stack args s xs]; exact hget) hbv
+                      (hfindT none locs _ hfind) rfl hz]
+                · have hneBody : (evaluate prog
+                      (WordSemStateFiniteExact.callEnv args1 ss (decClock s))).1 ≠
+                      some (WordSemResult.error) := by
+                    intro hE
+                    exact hne (evaluate_call_error_body_noreturn dest args prog args1 ss s locs
+                      hget hbv hfind hz hE)
+                  have ihBody : wordPathWork prog
+                      { WordSemStateFiniteExact.callEnv args1 ss
+                          (Flapjack.WordSemStateFiniteExact.decClock s) with stack := xs } =
+                      wordPathWork prog
+                        (WordSemStateFiniteExact.callEnv args1 ss
+                          (Flapjack.WordSemStateFiniteExact.decClock s)) :=
+                    wordPathWork_stack_variant_dispatch hcall prog _ xs
+                      (by
+                        rw [show (WordSemStateFiniteExact.callEnv args1 ss
+                          (Flapjack.WordSemStateFiniteExact.decClock s)).stack = s.stack from rfl]
+                        exact hval)
+                      hneBody
+                  exact wordPathWork_call_noreturn_sValEq_variant dest args none prog args1 ss s xs
+                    locs hget hbv (hfindT none locs _ hfind) rfl hz hval ihBody
+            | some q =>
+              obtain ⟨values, names, retCode, l1, l2⟩ := q
+              by_cases hnd : sptDomainEmpty names.1 ∨ ¬ values.Nodup
+              · rw [wordPathWork_call_returning_dom values names retCode l1 l2 dest args handler prog
+                    args1 ss s locs hget hbv hfind hnd,
+                  wordPathWork_call_returning_dom values names retCode l1 l2 dest args handler prog
+                    args1 ss { s with stack := xs } locs (by rw [getVars_stack args s xs]; exact hget)
+                    hbv (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd]
+              · cases hcut : wordSemCutEnvs names s.locals with
+                | none =>
+                  rw [wordPathWork_call_returning_cut_none values names retCode l1 l2 dest args handler
+                        prog args1 ss s locs hget hbv hfind hnd hcut,
+                    wordPathWork_call_returning_cut_none values names retCode l1 l2 dest args handler
+                      prog args1 ss { s with stack := xs } locs
+                      (by rw [getVars_stack args s xs]; exact hget) hbv
+                      (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcut]
+                | some envs =>
+                  by_cases hz : s.clock = 0
+                  · rw [wordPathWork_call_returning_clock_zero values names retCode l1 l2 dest args handler
+                        prog args1 ss s locs envs hget hbv hfind hnd hcut hz,
+                      wordPathWork_call_returning_clock_zero values names retCode l1 l2 dest args handler
+                        prog args1 ss { s with stack := xs } locs envs
+                        (by rw [getVars_stack args s xs]; exact hget) hbv
+                        (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcut hz]
+                  · have hcutT : wordSemCutEnvs names
+                        ({ s with stack := xs } : WordSemStateFiniteExact 64 C F).locals = some envs := hcut
+                    rcases hev : evaluate prog
+                      (WordSemStateFiniteExact.callEnv args1 ss
+                        (pushEnv envs handler (decClock s))) with ⟨res, middle⟩
+                    have hfixB : fixClock
+                        (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)))
+                        (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                          (pushEnv envs handler (decClock s)))) = (res, middle) := by
+                      rw [← hev]; exact fix_clock_evaluate _ prog
+                    have hneBody : (evaluate prog
+                        (WordSemStateFiniteExact.callEnv args1 ss
+                          (pushEnv envs handler (decClock s)))).1 ≠
+                        some (WordSemResult.error) := by
+                      intro hE
+                      have hresEq : res = some (WordSemResult.error) :=
+                        (congrArg Prod.fst hev).symm.trans hE
+                      have hfixErr : fixClock
+                          (WordSemStateFiniteExact.callEnv args1 ss
+                            (pushEnv envs handler (decClock s)))
+                          (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                            (pushEnv envs handler (decClock s)))) =
+                          (some (WordSemResult.error), middle) := by
+                        rw [← hresEq]; exact hfixB
+                      exact hne (evaluate_call_error_body dest args values names retCode l1 l2
+                        handler prog args1 ss s locs envs middle hget hbv hfind hnd hcut hz hfixErr)
+                    obtain ⟨fr, hfr1, hfr2⟩ := callEntry_stack_swap args1 ss envs handler s xs hval
+                    have hvalEntry : WordSemStackEq.sValEq
+                        (WordSemStateFiniteExact.callEnv args1 ss
+                          (pushEnv envs handler (decClock s))).stack (fr :: xs) := by
+                      rw [hfr1]; exact sValEq_cons_self fr hval
+                    have htrans : wordPathWork prog
+                        (WordSemStateFiniteExact.callEnv args1 ss
+                          (pushEnv envs handler (decClock { s with stack := xs }))) =
+                        wordPathWork prog
+                          (WordSemStateFiniteExact.callEnv args1 ss
+                            (pushEnv envs handler (decClock s))) := by
+                      rw [hfr2]
+                      exact wordPathWork_stack_variant_dispatch hcall prog _ (fr :: xs) hvalEntry
+                        hneBody
+                    cases res with
+                    | none =>
+                      obtain ⟨fr', middleT, -, -, hevT⟩ := callBody_transport_shape prog args1 ss envs
+                        handler s xs none middle hval (by simp) (by simp) hev
+                      have hfixT : fixClock
+                          (WordSemStateFiniteExact.callEnv args1 ss
+                            (pushEnv envs handler
+                              (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                          (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                            (pushEnv envs handler
+                              (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                          (none, middleT) := by
+                        rw [← hevT]; exact fix_clock_evaluate _ prog
+                      rw [wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                          prog args1 ss s locs envs none middle hget hbv hfind hnd hcut hz hfixB
+                          (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                        wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                          prog args1 ss { s with stack := xs } locs envs none middleT
+                          (by rw [getVars_stack args s xs]; exact hget) hbv
+                          (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT hz
+                          hfixT (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                        htrans]
+                    | some r =>
+                      cases r with
+                      | error => exact (hneBody (by rw [hev])).elim
+                      | finalFfi e =>
+                        obtain ⟨fr', middleT, -, -, hevT⟩ := callBody_transport_shape prog args1 ss envs
+                          handler s xs (some (.finalFfi e)) middle hval (by simp) (by simp) hev
+                        have hfixT : fixClock
+                            (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                            (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                            (some (.finalFfi e), middleT) := by
+                          rw [← hevT]; exact fix_clock_evaluate _ prog
+                        rw [wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss s locs envs (some (.finalFfi e)) middle hget hbv hfind hnd
+                            hcut hz hfixB (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss { s with stack := xs } locs envs (some (.finalFfi e)) middleT
+                            (by rw [getVars_stack args s xs]; exact hget) hbv
+                            (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT hz
+                            hfixT (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          htrans]
+                      | timeOut =>
+                        obtain ⟨fr', middleT, -, -, hevT⟩ := callBody_transport_shape prog args1 ss envs
+                          handler s xs (some .timeOut) middle hval (by simp) (by simp) hev
+                        have hfixT : fixClock
+                            (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                            (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                            (some .timeOut, middleT) := by
+                          rw [← hevT]; exact fix_clock_evaluate _ prog
+                        rw [wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss s locs envs (some .timeOut) middle hget hbv hfind hnd hcut hz
+                            hfixB (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss { s with stack := xs } locs envs (some .timeOut) middleT
+                            (by rw [getVars_stack args s xs]; exact hget) hbv
+                            (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT hz
+                            hfixT (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          htrans]
+                      | notEnoughSpace =>
+                        obtain ⟨fr', middleT, -, -, hevT⟩ := callBody_transport_shape prog args1 ss envs
+                          handler s xs (some .notEnoughSpace) middle hval (by simp) (by simp) hev
+                        have hfixT : fixClock
+                            (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                            (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                            (some .notEnoughSpace, middleT) := by
+                          rw [← hevT]; exact fix_clock_evaluate _ prog
+                        rw [wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss s locs envs (some .notEnoughSpace) middle hget hbv hfind hnd
+                            hcut hz hfixB (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss { s with stack := xs } locs envs (some .notEnoughSpace) middleT
+                            (by rw [getVars_stack args s xs]; exact hget) hbv
+                            (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT hz
+                            hfixT (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          htrans]
+                      | «break» k =>
+                        obtain ⟨fr', middleT, -, -, hevT⟩ := callBody_transport_shape prog args1 ss envs
+                          handler s xs (some (.break k)) middle hval (by simp) (by simp) hev
+                        have hfixT : fixClock
+                            (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                            (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                            (some (.break k), middleT) := by
+                          rw [← hevT]; exact fix_clock_evaluate _ prog
+                        rw [wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss s locs envs (some (.break k)) middle hget hbv hfind hnd hcut hz
+                            hfixB (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss { s with stack := xs } locs envs (some (.break k)) middleT
+                            (by rw [getVars_stack args s xs]; exact hget) hbv
+                            (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT hz
+                            hfixT (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          htrans]
+                      | «continue» k =>
+                        obtain ⟨fr', middleT, -, -, hevT⟩ := callBody_transport_shape prog args1 ss envs
+                          handler s xs (some (.continue k)) middle hval (by simp) (by simp) hev
+                        have hfixT : fixClock
+                            (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                            (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                              (pushEnv envs handler
+                                (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                            (some (.continue k), middleT) := by
+                          rw [← hevT]; exact fix_clock_evaluate _ prog
+                        rw [wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss s locs envs (some (.continue k)) middle hget hbv hfind hnd
+                            hcut hz hfixB (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          wordPathWork_call_other_result dest args values names retCode l1 l2 handler
+                            prog args1 ss { s with stack := xs } locs envs (some (.continue k)) middleT
+                            (by rw [getVars_stack args s xs]; exact hget) hbv
+                            (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT hz
+                            hfixT (by intro l' r' h; cases h) (by intro l' v' h; cases h),
+                          htrans]
+                      | result location returned =>
+                        by_cases hnl : location ≠ .loc l1 l2 ∨ returned.length ≠ values.length
+                        · obtain ⟨fr', middleT, -, -, hevT⟩ := callBody_transport_shape prog args1 ss envs
+                            handler s xs (some (.result location returned)) middle hval (by simp)
+                            (by simp) hev
+                          have hfixT : fixClock
+                              (WordSemStateFiniteExact.callEnv args1 ss
+                                (pushEnv envs handler
+                                  (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                              (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                                (pushEnv envs handler
+                                  (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                              (some (.result location returned), middleT) := by
+                            rw [← hevT]; exact fix_clock_evaluate _ prog
+                          rw [wordPathWork_call_result_mismatch dest args values names retCode l1 l2
+                              handler prog args1 ss s locs envs location returned middle hget hbv hfind
+                              hnd hcut hz hfixB hnl,
+                            wordPathWork_call_result_mismatch dest args values names retCode l1 l2 handler
+                              prog args1 ss { s with stack := xs } locs envs location returned middleT
+                              (by rw [getVars_stack args s xs]; exact hget) hbv
+                              (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT hz
+                              hfixT hnl,
+                            htrans]
+                        · obtain ⟨fr', middleT, st, hfr1T, hfr2T, hevT, hmidT, hvalT, hkeyT, hkeyMS⟩ :=
+                            callBody_transport_result prog args1 ss envs handler s xs location returned
+                              middle hval hev
+                          have hvalEntryT : WordSemStackEq.sValEq
+                              (WordSemStateFiniteExact.callEnv args1 ss
+                                (pushEnv envs handler (decClock s))).stack (fr' :: xs) := by
+                            rw [hfr1T]; exact sValEq_cons_self fr' hval
+                          have ihBodyAt : wordPathWork prog
+                              (WordSemStateFiniteExact.callEnv args1 ss
+                                (pushEnv envs handler (decClock { s with stack := xs }))) =
+                              wordPathWork prog
+                                (WordSemStateFiniteExact.callEnv args1 ss
+                                  (pushEnv envs handler (decClock s))) := by
+                            rw [hfr2T]
+                            exact wordPathWork_stack_variant_dispatch hcall prog _ (fr' :: xs)
+                              hvalEntryT hneBody
+                          have hfixT : fixClock
+                              (WordSemStateFiniteExact.callEnv args1 ss
+                                (pushEnv envs handler
+                                  (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                              (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                                (pushEnv envs handler
+                                  (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                              (some (.result location returned), middleT) := by
+                            rw [← hevT]; exact fix_clock_evaluate _ prog
+                          cases hmstk : middle.stack with
+                          | nil =>
+                            rw [hmstk] at hvalT
+                            have hstlen : st.length = 0 := (sValEq_length _ _ hvalT).symm
+                            have hstnil : st = [] := List.eq_nil_of_length_eq_zero hstlen
+                            rw [hstnil] at hkeyT
+                            simp [WordSemStackEq.sKeyEq] at hkeyT
+                          | cons fM rest =>
+                            cases hstt : st with
+                            | nil =>
+                              rw [hstt] at hkeyT
+                              simp [WordSemStackEq.sKeyEq] at hkeyT
+                            | cons fS u =>
+                              have hM : WordSemStackEq.sFrameKeyEq fr fM := by
+                                rw [hfr1, hmstk] at hkeyMS
+                                exact hkeyMS.2
+                              have hfrEq : fr' = fr := by
+                                have hh : fr' :: s.stack = fr :: s.stack := by
+                                  rw [← hfr1T]; exact hfr1
+                                exact (List.cons.inj hh).1
+                              rw [hfrEq] at hkeyT
+                              have hS : WordSemStackEq.sFrameKeyEq fr fS := by
+                                rw [hstt] at hkeyT
+                                exact hkeyT.2
+                              have hv' : WordSemStackEq.sValEq (fM :: rest) (fS :: u) := by
+                                rw [← hmstk, ← hstt]; exact hvalT
+                              have hfv : WordSemStackEq.sFrameValEq fM fS := hv'.2
+                              have hfk : WordSemStackEq.sFrameKeyEq fM fS :=
+                                sFrameKeyEq_trans fM fr fS (sFrameKeyEq_symm fr fM hM) hS
+                              have hfeq : fM = fS := frame_eq_of_valEq_keyEq fM fS hfv hfk
+                              rw [← hfeq] at hstt
+                              obtain ⟨popped, hpop0, hpopT0, hpopRest⟩ :=
+                                popEnv_stack_swap_stack middle fM rest u
+                              have hm' : ({ middle with stack := fM :: rest } :
+                                  WordSemStateFiniteExact 64 C F) = middle := by rw [← hmstk]
+                              have hpop : popEnv middle = some popped := by
+                                rw [← hm']; exact hpop0
+                              have hpopT : popEnv { middle with stack := st } =
+                                  some { popped with stack := u } := by
+                                rw [hstt]; exact hpopT0
+                              have hpopT' : popEnv middleT = some { popped with stack := u } := by
+                                rw [hmidT]; exact hpopT
+                              have hvalPop : WordSemStackEq.sValEq popped.stack u := by
+                                rw [hpopRest]; exact hv'.1
+                              by_cases hdom : sptDomainEqUnion popped.locals envs.1 envs.2
+                              · have hvalRet : WordSemStackEq.sValEq
+                                    (WordSemStateFiniteExact.setVars values returned popped).stack u := by
+                                  rw [setVars_stack]; exact hvalPop
+                                have hneRet : (evaluate retCode
+                                    (WordSemStateFiniteExact.setVars values returned popped)).1 ≠
+                                    some (WordSemResult.error) := by
+                                  intro hE
+                                  exact hne (evaluate_call_error_ret dest args values names retCode
+                                    l1 l2 handler prog args1 ss s locs envs location returned middle
+                                    popped hget hbv hfind hnd hcut hz hfixB hnl hpop hdom hE)
+                                have ihRetAt : wordPathWork retCode
+                                    { WordSemStateFiniteExact.setVars values returned popped with
+                                      stack := u } =
+                                    wordPathWork retCode
+                                      (WordSemStateFiniteExact.setVars values returned popped) :=
+                                  wordPathWork_stack_variant_dispatch hcall retCode _ u hvalRet hneRet
+                                exact wordPathWork_call_result_at dest args values names retCode l1 l2
+                                  handler prog args1 ss s xs locs envs location returned middle middleT
+                                  popped u hget hbv hfind hnd hcut hz hfixB hfixT hnl hpop hpopT' hdom
+                                  ihBodyAt ihRetAt
+                              · have hdomfT : ¬ sptDomainEqUnion ({ popped with stack := u }).locals
+                                    envs.1 envs.2 := by
+                                  simpa using hdom
+                                rw [wordPathWork_call_result_dom_false dest args values names retCode l1 l2
+                                    handler prog args1 ss s locs envs location returned middle popped hget
+                                    hbv hfind hnd hcut hz hfixB hnl hpop hdom,
+                                  wordPathWork_call_result_dom_false dest args values names retCode l1 l2
+                                    handler prog args1 ss { s with stack := xs } locs envs location
+                                    returned middleT { popped with stack := u }
+                                    (by rw [getVars_stack args s xs]; exact hget) hbv
+                                    (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd
+                                    hcutT hz hfixT hnl hpopT' hdomfT,
+                                  ihBodyAt]
+                      | exception location value =>
+                        cases handler with
+                        | none =>
+                          obtain ⟨fr', middleT, -, -, hevT⟩ := callBody_transport_shape_exception prog
+                            args1 ss envs none s xs location value middle hval hev
+                          have hfixT : fixClock
+                              (WordSemStateFiniteExact.callEnv args1 ss
+                                (pushEnv envs none
+                                  (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                              (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                                (pushEnv envs none
+                                  (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                              (some (.exception location value), middleT) := by
+                            rw [← hevT]; exact fix_clock_evaluate _ prog
+                          rw [wordPathWork_call_exception_none_handler dest args values names retCode l1
+                              l2 none prog args1 ss s locs envs location value middle hget hbv hfind hnd
+                              hcut hz hfixB rfl,
+                            wordPathWork_call_exception_none_handler dest args values names retCode l1 l2
+                              none prog args1 ss { s with stack := xs } locs envs location value middleT
+                              (by rw [getVars_stack args s xs]; exact hget) hbv
+                              (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT hz
+                              hfixT rfl,
+                            htrans]
+                        | some qq =>
+                          obtain ⟨reg, handlerCode, h1, h2⟩ := qq
+                          by_cases hlocb : location ≠ .loc h1 h2
+                          · obtain ⟨fr', middleT, -, -, hevT⟩ :=
+                              callBody_transport_shape_exception prog args1 ss envs
+                                (some (reg, handlerCode, h1, h2)) s xs location value middle hval hev
+                            have hfixT : fixClock
+                                (WordSemStateFiniteExact.callEnv args1 ss
+                                  (pushEnv envs (some (reg, handlerCode, h1, h2))
+                                    (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))
+                                (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                                  (pushEnv envs (some (reg, handlerCode, h1, h2))
+                                    (Flapjack.WordSemStateFiniteExact.decClock { s with stack := xs })))) =
+                                (some (.exception location value), middleT) := by
+                              rw [← hevT]; exact fix_clock_evaluate _ prog
+                            rw [wordPathWork_call_exception_loc_mismatch dest args values names retCode
+                                l1 l2 (some (reg, handlerCode, h1, h2)) prog args1 ss s locs envs reg
+                                handlerCode h1 h2 location value middle hget hbv hfind hnd hcut hz hfixB
+                                rfl hlocb,
+                              wordPathWork_call_exception_loc_mismatch dest args values names retCode l1
+                                l2 (some (reg, handlerCode, h1, h2)) prog args1 ss { s with stack := xs }
+                                locs envs reg handlerCode h1 h2 location value middleT
+                                (by rw [getVars_stack args s xs]; exact hget) hbv
+                                (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT
+                                hz hfixT rfl hlocb,
+                              htrans]
+                          · have hlocEq : location = .loc h1 h2 := by simpa using hlocb
+                            by_cases hdom : sptDomainEqUnion middle.locals envs.1 envs.2
+                            · obtain ⟨fr', middleT, st, hfr1T, hfr2T, hevT, hmidT, hvalT⟩ :=
+                                callBody_transport_exception prog args1 ss envs reg handlerCode h1 h2
+                                  s xs location value middle hval hev
+                              have hvalEntryT : WordSemStackEq.sValEq
+                                  (WordSemStateFiniteExact.callEnv args1 ss
+                                    (pushEnv envs (some (reg, handlerCode, h1, h2))
+                                      (decClock s))).stack (fr' :: xs) := by
+                                rw [hfr1T]; exact sValEq_cons_self fr' hval
+                              have ihBodyAt : wordPathWork prog
+                                  (WordSemStateFiniteExact.callEnv args1 ss
+                                    (pushEnv envs (some (reg, handlerCode, h1, h2))
+                                      (decClock { s with stack := xs }))) =
+                                  wordPathWork prog
+                                    (WordSemStateFiniteExact.callEnv args1 ss
+                                      (pushEnv envs (some (reg, handlerCode, h1, h2))
+                                        (decClock s))) := by
+                                rw [hfr2T]
+                                exact wordPathWork_stack_variant_dispatch hcall prog _ (fr' :: xs)
+                                  hvalEntryT hneBody
+                              have hfixT : fixClock
+                                  (WordSemStateFiniteExact.callEnv args1 ss
+                                    (pushEnv envs (some (reg, handlerCode, h1, h2))
+                                      (Flapjack.WordSemStateFiniteExact.decClock
+                                        { s with stack := xs })))
+                                  (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                                    (pushEnv envs (some (reg, handlerCode, h1, h2))
+                                      (Flapjack.WordSemStateFiniteExact.decClock
+                                        { s with stack := xs })))) =
+                                  (some (.exception location value), middleT) := by
+                                rw [← hevT]; exact fix_clock_evaluate _ prog
+                              have hdomT : sptDomainEqUnion middleT.locals envs.1 envs.2 := by
+                                rw [hmidT]; exact hdom
+                              have hvalHand : WordSemStackEq.sValEq
+                                  (WordSemStateFiniteExact.setVar reg value middle).stack st := by
+                                rw [setVar_stack]; exact hvalT
+                              have hneHand : (evaluate handlerCode
+                                  (WordSemStateFiniteExact.setVar reg value middle)).1 ≠
+                                  some (WordSemResult.error) := by
+                                intro hE
+                                exact hne (evaluate_call_error_handler dest args values names retCode
+                                  l1 l2 (some (reg, handlerCode, h1, h2)) prog args1 ss s locs envs
+                                  reg handlerCode h1 h2 location value middle hget hbv hfind hnd hcut
+                                  hz hfixB rfl hlocEq hdom hE)
+                              have ihHandAt : wordPathWork handlerCode
+                                  { WordSemStateFiniteExact.setVar reg value middle with stack := st } =
+                                  wordPathWork handlerCode
+                                    (WordSemStateFiniteExact.setVar reg value middle) :=
+                                wordPathWork_stack_variant_dispatch hcall handlerCode _ st hvalHand
+                                  hneHand
+                              exact wordPathWork_call_exception_at dest args values names retCode l1 l2
+                                (some (reg, handlerCode, h1, h2)) reg handlerCode h1 h2 prog args1 ss s xs
+                                locs envs location value middle middleT st hget hbv hfind hnd hcut hz
+                                hfixB hfixT rfl hlocEq hmidT hdom hdomT ihBodyAt ihHandAt
+                            · obtain ⟨fr', middleT, st, hfr1T, hfr2T, hevT, hmidT, hvalT⟩ :=
+                                callBody_transport_exception prog args1 ss envs reg handlerCode h1 h2
+                                  s xs location value middle hval hev
+                              have hdomfT : ¬ sptDomainEqUnion middleT.locals envs.1 envs.2 := by
+                                intro hh; rw [hmidT] at hh; exact hdom hh
+                              have hfixT : fixClock
+                                  (WordSemStateFiniteExact.callEnv args1 ss
+                                    (pushEnv envs (some (reg, handlerCode, h1, h2))
+                                      (Flapjack.WordSemStateFiniteExact.decClock
+                                        { s with stack := xs })))
+                                  (evaluate prog (WordSemStateFiniteExact.callEnv args1 ss
+                                    (pushEnv envs (some (reg, handlerCode, h1, h2))
+                                      (Flapjack.WordSemStateFiniteExact.decClock
+                                        { s with stack := xs })))) =
+                                  (some (.exception location value), middleT) := by
+                                rw [← hevT]; exact fix_clock_evaluate _ prog
+                              rw [wordPathWork_call_exception_dom_false dest args values names retCode l1
+                                  l2 (some (reg, handlerCode, h1, h2)) prog args1 ss s locs envs reg
+                                  handlerCode h1 h2 location value middle hget hbv hfind hnd hcut hz
+                                  hfixB rfl hlocEq hdom,
+                                wordPathWork_call_exception_dom_false dest args values names retCode l1
+                                  l2 (some (reg, handlerCode, h1, h2)) prog args1 ss
+                                  { s with stack := xs } locs envs reg handlerCode h1 h2 location value
+                                  middleT (by rw [getVars_stack args s xs]; exact hget) hbv
+                                  (hfindT (some (values, names, retCode, l1, l2)) locs _ hfind) hnd hcutT
+                                  hz hfixT rfl hlocEq
+                                  hdomfT,
+                                htrans]
   | .mustTerminate _, _, _, _, _ => simp only [wordPathWork]
   | .skip, _, _, _, _ => simp only [wordPathWork]
   | .move _ _, _, _, _, _ => simp only [wordPathWork]
@@ -2903,14 +3575,11 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
     all_goals
       simp_wf
       apply wordSemLex
-      try (rcases hc with ⟨_, _⟩)
-      try (rcases hcl with ⟨_, _⟩)
-      try simp +zetaDelta only [Flapjack.WordSemStateFiniteExact.decClock,
-        Flapjack.WordSemStateFiniteExact.callEnv, Flapjack.WordSemStateFiniteExact.setVars,
+      try (have hfc := fixClock_IMP_LESS_EQ _ _ _ _ hfixB)
+      try (have hpc := popEnv_clock _ _ hpop)
+      try (have hpt := popEnv_termdep _ _ hpop)
+      try simp only [Flapjack.WordSemStateFiniteExact.callEnv,
+        Flapjack.WordSemStateFiniteExact.decClock, Flapjack.WordSemStateFiniteExact.setVars,
         Flapjack.WordSemStateFiniteExact.setVar, pushEnv_clock, pushEnv_termdep, true_and] at *
-      first
-      | omega
-      | (left; omega)
-      | (right; refine ⟨by omega, Or.inl (by omega)⟩)
-      | (right; refine ⟨by omega, Or.inr ⟨by omega, by decreasing_tactic⟩⟩)
+      omega
 end InitECandidate.Runtime.WordToStack
