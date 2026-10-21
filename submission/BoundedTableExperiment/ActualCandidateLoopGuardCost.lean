@@ -177,3 +177,65 @@ theorem candidate_loop_bounded_uniform_cost_literal {F : Type} {fn : MlS}
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidate_loop_bounded_uniform_cost_literal
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Candidate loop `i < cap` with self-terminated cost: at most 480 iterations,
+and total work at most `480 * (head + nativeCost*98 + bodyScore)` plus the
+terminal budget `statement + head + nativeCost*98`.  No separate terminal or
+missing-guard hypotheses are needed. -/
+theorem candidate_loop_selfterminated_cost {F : Type} {fn : MlS}
+    {body : ProgHOL 64} {s post : PanSemStateFiniteExact 64 F}
+    {r : Option (PanSemResultExact 64)} {events : List WorkEvent} {n : Nat}
+    {rank : PanSemStateFiniteExact 64 F → Nat}
+    (count : WhileCount fn
+      (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+      body s r post events n)
+    (start : rank s < 480)
+    (step : ∀ (t middle : PanSemStateFiniteExact 64 F)
+      (result : Option (PanSemResultExact 64)) (bodyEvents : List WorkEvent),
+      StatementRun fn (decClockHOLFinite t) body result middle bodyEvents →
+        rank t < rank middle ∧ rank middle < 480)
+    (coeff : Work) (bodyScore : Nat)
+    (hshape : ∀ (t : PanSemStateFiniteExact 64 F)
+      (value : Option (ValueHOL 64)) (guardEvents : List WorkEvent),
+      CostedExpressionRun t
+        (.cmp .lower (.var .local (ofString "i")) (.var .local (ofString "cap")))
+        value guardEvents →
+      valueInfo t.locals (ofString "i") = some (ShapeHOL.one, 1) ∧
+        valueInfo t.locals (ofString "cap") = some (ShapeHOL.one, 1))
+    (hbody : ∀ (t u v : PanSemStateFiniteExact 64 F)
+      (result : Option (PanSemResultExact 64)) (bodyEvents : List WorkEvent),
+      StatementRun fn v body result u bodyEvents →
+        coeff.score (executionWork bodyEvents) ≤ bodyScore) :
+    n ≤ 480 ∧ coeff.score (executionWork events) ≤
+      480 * (((coeff.score WorkEvent.statement.units +
+        coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+        coeff.nativeCost * 98) + bodyScore) +
+        (coeff.score WorkEvent.statement.units +
+          ((coeff.score WorkEvent.statement.units +
+            coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+            coeff.nativeCost * 98)) := by
+  refine candidate_loop_bounded_uniform_cost_literal count start step coeff bodyScore
+    (coeff.score WorkEvent.statement.units +
+      ((coeff.score WorkEvent.statement.units +
+        coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units) +
+        coeff.nativeCost * 98)) hshape hbody ?_ ?_
+  · intro t value guardEvents rung
+    have hg := loop_guard_score_bound coeff rung
+      (hshape t value guardEvents rung).1 (hshape t value guardEvents rung).2
+    rw [rung.events_eq] at hg ⊢
+    rw [executionWork_score_cons]
+    omega
+  · omega
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidate_loop_selfterminated_cost
