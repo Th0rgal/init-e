@@ -20,9 +20,9 @@ theorem globals_callDone_any (B : Nat) {F : Type} {s post : PanSemStateFiniteExa
     (ihBody : GlobalsLe B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents) :
     GlobalsLe B s (.call info function arguments) result post
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-        [.copy (callPayloadWords bodyResult)] ++ callGlobalEvents s info)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
+        [.cost (callExitOverhead bodyResult)] ++ callGlobalEvents s info)) := by
   rcases info with _ | ⟨_ | ⟨kind, name⟩, _ | ⟨exception, handlerVar, handler⟩⟩
   all_goals (try cases kind)
   all_goals first
@@ -44,9 +44,9 @@ theorem globals_callHandler_any (B : Nat) {F : Type} {s post : PanSemStateFinite
     (ihHandler : GlobalsLe B handlerEntry handlerProgram result post handlerEvents) :
     GlobalsLe B s (.call info function arguments) result post
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-        [.copy (callPayloadWords bodyResult)] ++ handlerEvents)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
+        [.cost (callExitOverhead bodyResult)] ++ handlerEvents)) := by
   by_cases plain : globalsPlainInfo info = true
   · exact globals_callHandler_plain B args lookup clock bodyRun plan handlerRun ihBody ihHandler plain
   · intro _ _ _ _ ready
@@ -65,7 +65,8 @@ theorem globals_callTimeout_any (B : Nat) {F : Type} {s : PanSemStateFiniteExact
     (clock : s.clock = 0) :
     GlobalsLe B s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
       (.statement :: (expressionListEvents s arguments ++
-        [.frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ callGlobalEvents s info)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ callGlobalEvents s info)) := by
   rcases info with _ | ⟨_ | ⟨kind, name⟩, _ | ⟨exception, handlerVar, handler⟩⟩
   all_goals (try cases kind)
   all_goals first

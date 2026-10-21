@@ -71,42 +71,95 @@ theorem globals_compileList_length (context : PanGlobalsContextExact 64) :
   | _ :: tail => by simp [compileExpExactHOLList, globals_compileList_length context tail]
 
 theorem srcScore_statement (B : Nat) (rest : List WorkEvent) :
-    sharpSourceScore B (.statement :: rest) = 10 + sharpSourceScore B rest := by
-  simp only [sharpSourceScore_cons, sharpSource_statement]
+    sharpSourceScore B (.statement :: rest) = sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_statement, Nat.zero_add]
 
 theorem srcScore_expression (B : Nat) (rest : List WorkEvent) :
-    sharpSourceScore B (.expression :: rest) = 5 + sharpSourceScore B rest := by
-  simp only [sharpSourceScore_cons, sharpSource_expression]
+    sharpSourceScore B (.expression :: rest) = sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_expression, Nat.zero_add]
 
 theorem srcScore_copy (B n : Nat) (rest : List WorkEvent) :
-    sharpSourceScore B (.copy n :: rest) = 5 * n + sharpSourceScore B rest := by
+    sharpSourceScore B (.copy n :: rest) = 14 * n + sharpSourceScore B rest := by
   simp only [sharpSourceScore_cons, sharpSource_copy]
 
 theorem srcScore_frame (B n : Nat) (rest : List WorkEvent) :
-    sharpSourceScore B (.frame n :: rest) = 4 * n + sharpSourceScore B rest := by
-  simp only [sharpSourceScore_cons, sharpSource_frame]
+    sharpSourceScore B (.frame n :: rest) = sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_frame, Nat.zero_add]
 
 theorem srcScore_scalar (B n : Nat) (rest : List WorkEvent) :
     sharpSourceScore B (.scalar n :: rest) = sharpSourceScore B rest := by
   simp only [sharpSourceScore_cons, sharpSource_scalar, Nat.zero_add]
 
 theorem srcScore_memory (B n : Nat) (rest : List WorkEvent) :
-    sharpSourceScore B (.memory n :: rest) = 12 * n + (B + 5) * (n - 1) + sharpSourceScore B rest := by
+    sharpSourceScore B (.memory n :: rest) = 142 * n + sharpSourceScore B rest := by
   simp only [sharpSourceScore_cons, sharpSource_memory]
 
+theorem srcScore_cost (B n : Nat) (rest : List WorkEvent) :
+    sharpSourceScore B (.cost n :: rest) = n + sharpSourceScore B rest := by
+  simp only [sharpSourceScore_cons, sharpSource_cost]
+
 theorem srcScore_global (B n : Nat) (rest : List WorkEvent) :
-    sharpSourceScore B (.globalAccess n :: rest) =
-      40 + 17 * n + (B + 5) * (n - 1) + sharpSourceScore B rest := by
+    sharpSourceScore B (.globalAccess n :: rest) = 128 + 156 * n + sharpSourceScore B rest := by
   simp only [sharpSourceScore_cons, sharpSource_global]
 
-/-- The `TopAddr`-relative global address costs 25 under the sharp score. -/
+theorem srcScore_expressionEvents (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (e : ExpHOL 64) :
+    sharpSourceScore B (expressionEvents s e) = sourcePrice s e := by
+  simp [expressionEvents, srcScore_cost, sharpSourceScore_nil]
+
+/-- Normalise a sharp source score of an explicit event list. -/
+macro "gsimp" loc:(Lean.Parser.Tactic.location)? : tactic =>
+  `(tactic| simp only [srcScore_statement, srcScore_cost, srcScore_copy, srcScore_frame,
+    srcScore_scalar, srcScore_memory, srcScore_global, srcScore_expression, sharpSourceScore_append,
+    sharpSourceScore_nil, List.cons_append, List.nil_append, List.append_assoc, statementUnit,
+    whileOverhead, returnOverhead, raiseOverhead, callOverhead, slotOverhead, returnCopy,
+    primitiveOverhead] $[$loc]?)
+
+/-- The `TopAddr`-relative global address costs its native price. -/
 theorem globals_address_score {F : Type} (B : Nat) (t : PanSemStateFiniteExact 64 F) (address : BitVec 64) :
-    sharpSourceScore B (expressionEvents t (.op .sub [.topAddr, .const address])) = 25 := by
-  rw [expressionEvents]
-  simp only [expressionListEvents]
-  rw [expressionEvents, expressionEvents]
-  simp only [List.cons_append, List.nil_append, List.append_nil, srcScore_expression,
-    srcScore_copy, srcScore_scalar, sharpSourceScore_nil, List.length_cons, List.length_nil]
+    sharpSourceScore B (expressionEvents t (.op .sub [.topAddr, .const address])) = globalAddressPrice := by
+  rw [srcScore_expressionEvents]
+  simp [sourcePrice, sourcePrices, exprPrices, exprListPrices, cexpHeads, globalAddressPrice]
+
+theorem sharp_size_nil : ∀ shape : ShapeHOL,
+    sizeOfShapeWithContextHOL [] shape = sizeOfShapeHOL shape := by
+  refine ShapeHOL.rec
+    (motive_1 := fun shape => sizeOfShapeWithContextHOL [] shape = sizeOfShapeHOL shape)
+    (motive_2 := fun shapes => sizeOfShapesWithContextHOL [] shapes = sizeOfShapesHOL shapes)
+    ?_ ?_ ?_ ?_ ?_
+  · simp [sizeOfShapeWithContextHOL, sizeOfShapeHOL]
+  · intro shapes ih; simp [sizeOfShapeWithContextHOL, sizeOfShapeHOL, ih]
+  · intro name; simp [sizeOfShapeWithContextHOL, sizeOfShapeHOL, structContextLookupHOL_nil]
+  · simp [sizeOfShapesWithContextHOL, sizeOfShapesHOL]
+  · intro head tail ihHead ihTail
+    simp [sizeOfShapesWithContextHOL, sizeOfShapesHOL, ihHead, ihTail]
+
+theorem sharp_value_some_load {F : Type} {s : PanSemStateFiniteExact 64 F} {shape : ShapeHOL}
+    {address : ExpHOL 64} (ok : expressionValue s (.load shape address) ≠ none) :
+    isWfShapeExactHOL s.structs shape = true ∧ ∃ w, expressionValue s address = some (.val (.word w)) := by
+  simp only [expressionValue] at ok ⊢
+  rw [evalHOLExact] at ok
+  split at ok
+  · rename_i wf
+    refine ⟨wf, ?_⟩
+    split at ok
+    · rename_i a h; exact ⟨a, h⟩
+    · exact absurd rfl ok
+  · exact absurd rfl ok
+
+theorem sharp_value_some_word_child {F : Type} {s : PanSemStateFiniteExact 64 F} {address : ExpHOL 64}
+    {e : ExpHOL 64} (shape : e = .load32 address ∨ e = .loadByte address)
+    (ok : expressionValue s e ≠ none) : ∃ w, expressionValue s address = some (.val (.word w)) := by
+  rcases shape with rfl | rfl <;>
+  · simp only [expressionValue] at ok ⊢
+    rw [evalHOLExact] at ok
+    split at ok
+    · rename_i a h; exact ⟨a, h⟩
+    · exact absurd rfl ok
+
+theorem sharp_isWord {F : Type} {s : PanSemStateFiniteExact 64 F} {e : ExpHOL 64} {w : BitVec 64}
+    (h : expressionValue s e = some (.val (.word w))) : expressionIsWord s e = true := by
+  simp [expressionIsWord, h]
+
 
 #print axioms globals_address_score
 end InitECandidate.Runtime.FineCost

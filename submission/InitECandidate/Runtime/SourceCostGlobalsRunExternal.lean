@@ -57,7 +57,7 @@ theorem globals_external (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 6
   simp only [compileProgExactHOL] at target
   cases target
   rw [externalEvents, externalEvents, transfer]
-  simp only [srcScore_statement, sharpSourceScore_append]
+  gsimp
   omega
 
 #print axioms globals_external
@@ -106,7 +106,7 @@ theorem globals_sharedStore (B : Nat) {F : Type} {s post : PanSemStateFiniteExac
   cases target
   rw [sharedStoreEvents, sharedStoreEvents, globals_isWord rel (by rw [ha]; simp),
     globals_isWord rel (by rw [hv]; simp)]
-  simp only [srcScore_statement, sharpSourceScore_append]
+  gsimp
   omega
 
 #print axioms globals_sharedLoad

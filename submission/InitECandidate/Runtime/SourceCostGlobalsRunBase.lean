@@ -91,7 +91,7 @@ theorem globals_seqNext (B : Nat) {F : Type} {s middle post : PanSemStateFiniteE
     have l := ih1 context t rel (by simp) ready.1 code h cov _ _ _ one'
     have r2 := ih2 context _ rel1 ok ready.2 (by rw [one.code_eq]; exact code)
       (one.noTemp ready.1 code h) (one.covered cov) _ _ _ two'
-    rw [sharpSourceScore_append, sharpSourceScore_append]; omega
+    gsimp; omega
   | seqStop terminal one' =>
     obtain ⟨hr, _⟩ := globals_sub_match one (by simp) rel one'
     exact absurd hr terminal

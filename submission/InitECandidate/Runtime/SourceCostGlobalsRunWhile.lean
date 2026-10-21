@@ -15,7 +15,7 @@ theorem globals_whileNext (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 
       (rest : StatementRun middle (.while condition body) r post restEvents)
       (ih1 : GlobalsLe B (decClockHOLFinite s) body none middle bodyEvents)
       (ih2 : GlobalsLe B middle (.while condition body) r post restEvents) :
-    GlobalsLe B s (.while condition body) r post (.statement :: (guardEvents ++ bodyEvents ++ restEvents)) := by
+    GlobalsLe B s (.while condition body) r post (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents ++ restEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -41,7 +41,7 @@ theorem globals_whileNext (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 
     rw [← globals_compile_while] at rest'
     have rr := ih2 context _ rel1 ok ready (by rw [one.code_eq]; exact code)
       (one.noTemp r0.2 code h) (one.covered cov) _ _ _ rest'
-    simp only [srcScore_statement, sharpSourceScore_append]
+    gsimp
     omega
   | whileContinue guard' _ _ one' _ =>
     obtain ⟨hr, _⟩ := globals_sub_match one (by simp) relD one'
@@ -62,7 +62,7 @@ theorem globals_whileContinue (B : Nat) {F : Type} {s post : PanSemStateFiniteEx
       (rest : StatementRun middle (.while condition body) r post restEvents)
       (ih1 : GlobalsLe B (decClockHOLFinite s) body (some .continue) middle bodyEvents)
       (ih2 : GlobalsLe B middle (.while condition body) r post restEvents) :
-    GlobalsLe B s (.while condition body) r post (.statement :: (guardEvents ++ bodyEvents ++ restEvents)) := by
+    GlobalsLe B s (.while condition body) r post (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents ++ restEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -88,7 +88,7 @@ theorem globals_whileContinue (B : Nat) {F : Type} {s post : PanSemStateFiniteEx
     rw [← globals_compile_while] at rest'
     have rr := ih2 context _ rel1 ok ready (by rw [one.code_eq]; exact code)
       (one.noTemp r0.2 code h) (one.covered cov) _ _ _ rest'
-    simp only [srcScore_statement, sharpSourceScore_append]
+    gsimp
     omega
   | whileNext guard' _ _ one' _ =>
     obtain ⟨hr, _⟩ := globals_sub_match one (by simp) relD one'
@@ -107,7 +107,7 @@ theorem globals_whileBreak (B : Nat) {F : Type} {s post : PanSemStateFiniteExact
       {bodyEvents}
       (one : StatementRun (decClockHOLFinite s) body (some .break) post bodyEvents)
       (ih1 : GlobalsLe B (decClockHOLFinite s) body (some .break) post bodyEvents) :
-    GlobalsLe B s (.while condition body) none post (.statement :: (guardEvents ++ bodyEvents)) := by
+    GlobalsLe B s (.while condition body) none post (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -129,7 +129,7 @@ theorem globals_whileBreak (B : Nat) {F : Type} {s post : PanSemStateFiniteExact
   | whileBreak guard' _ _ one' =>
     obtain ⟨_, g⟩ := globals_guard B rel guard guard' r0.1
     have b := ih1 context _ relD (by simp) r0.2 code h cov _ _ _ one'
-    simp only [srcScore_statement, sharpSourceScore_append]
+    gsimp
     omega
   | whileNext guard' _ _ one' _ =>
     obtain ⟨hr, _⟩ := globals_sub_match one (by simp) relD one'
@@ -148,7 +148,7 @@ theorem globals_whilePropagate (B : Nat) {F : Type} {s post : PanSemStateFiniteE
       (notBreak : result ≠ .break) (notContinue : result ≠ .continue)
       (one : StatementRun (decClockHOLFinite s) body (some result) post bodyEvents)
       (ih1 : GlobalsLe B (decClockHOLFinite s) body (some result) post bodyEvents) :
-    GlobalsLe B s (.while condition body) (some result) post (.statement :: (guardEvents ++ bodyEvents)) := by
+    GlobalsLe B s (.while condition body) (some result) post (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -170,7 +170,7 @@ theorem globals_whilePropagate (B : Nat) {F : Type} {s post : PanSemStateFiniteE
   | whilePropagate guard' _ _ _ _ one' =>
     obtain ⟨_, g⟩ := globals_guard B rel guard guard' r0.1
     have b := ih1 context _ relD ok r0.2 code h cov _ _ _ one'
-    simp only [srcScore_statement, sharpSourceScore_append]
+    gsimp
     omega
   | whileNext guard' _ _ one' _ =>
     obtain ⟨hr, _⟩ := globals_sub_match one ok relD one'
@@ -184,7 +184,7 @@ theorem globals_whilePropagate (B : Nat) {F : Type} {s post : PanSemStateFiniteE
 theorem globals_whileFalse (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F}
     {condition : ExpHOL 64} {body : ProgHOL 64} {guardEvents}
     (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents) :
-    GlobalsLe B s (.while condition body) none s (.statement :: guardEvents) := by
+    GlobalsLe B s (.while condition body) none s (.statement :: .cost whileOverhead :: guardEvents) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -192,7 +192,7 @@ theorem globals_whileFalse (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F
   cases target with
   | whileFalse guard' =>
     obtain ⟨_, g⟩ := globals_guard B rel guard guard' r0.1
-    simp only [srcScore_statement]; omega
+    gsimp; omega
   | whileMissingGuard guard' =>
     obtain ⟨hv, _⟩ := globals_guard B rel guard guard' r0.1
     cases hv
@@ -220,7 +220,7 @@ theorem globals_whileTimeout (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
     (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
     (nonzero : value ≠ 0) (clock : s.clock = 0) :
     GlobalsLe B s (.while condition body) (some .timeOut) (emptyLocalsHOLFinite s)
-      (.statement :: guardEvents) := by
+      (.statement :: .cost whileOverhead :: guardEvents) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -229,7 +229,7 @@ theorem globals_whileTimeout (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
   cases target with
   | whileTimeout guard' _ _ =>
     obtain ⟨_, g⟩ := globals_guard B rel guard guard' r0.1
-    simp only [srcScore_statement]; omega
+    gsimp; omega
   | whileFalse guard' =>
     obtain ⟨hv, _⟩ := globals_guard B rel guard guard' r0.1
     exact absurd (globals_word_inj hv).symm nonzero

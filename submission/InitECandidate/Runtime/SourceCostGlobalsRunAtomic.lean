@@ -14,14 +14,14 @@ theorem globals_skip (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) :
   exact Nat.le_refl _
 
 theorem globals_break (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) :
-    GlobalsLe B s .break (some .break) s [.statement] := by
+    GlobalsLe B s .break (some .break) s [.statement, .cost statementUnit] := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
   exact Nat.le_refl _
 
 theorem globals_continue (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) :
-    GlobalsLe B s .continue (some .continue) s [.statement] := by
+    GlobalsLe B s .continue (some .continue) s [.statement, .cost statementUnit] := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
@@ -35,7 +35,7 @@ theorem globals_annotation (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F
   exact Nat.le_refl _
 
 theorem globals_tick (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (r post) :
-    GlobalsLe B s .tick r post [.statement] := by
+    GlobalsLe B s .tick r post [.statement, .cost statementUnit] := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target <;> exact Nat.le_refl _
@@ -58,7 +58,7 @@ theorem globals_storeValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F
     obtain ⟨_, a⟩ := globals_costed B rel dst (by assumption) ready.1
     obtain ⟨hv, b⟩ := globals_costed B rel src (by assumption) ready.2
     cases hv
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_memory, sharpSourceScore_nil]
+    gsimp
     omega
   all_goals cases hr
 
@@ -80,7 +80,7 @@ theorem globals_store32Value (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
   case store32Value =>
     obtain ⟨_, a⟩ := globals_costed B rel dst (by assumption) ready.1
     obtain ⟨_, b⟩ := globals_costed B rel src (by assumption) ready.2
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_memory, sharpSourceScore_nil]
+    gsimp
     omega
   all_goals cases hr
 
@@ -102,7 +102,7 @@ theorem globals_storeByteValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 
   case storeByteValue =>
     obtain ⟨_, a⟩ := globals_costed B rel dst (by assumption) ready.1
     obtain ⟨_, b⟩ := globals_costed B rel src (by assumption) ready.2
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_memory, sharpSourceScore_nil]
+    gsimp
     omega
   all_goals cases hr
 
@@ -111,7 +111,7 @@ theorem globals_returnValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 
     (expr : CostedExpressionRun s expression (some value) events)
     (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
     GlobalsLe B s (.return expression) (some (.returned value)) (emptyLocalsHOLFinite s)
-      (.statement :: (events ++ [.copy (flattenHOL value).length])) := by
+      (.statement :: (events ++ [.cost (returnOverhead (flattenHOL value).length)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.returnValue expr size) ok rel target
@@ -120,7 +120,7 @@ theorem globals_returnValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 
   case returnValue =>
     obtain ⟨hv, a⟩ := globals_costed B rel expr (by assumption) ready
     cases hv
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_copy, sharpSourceScore_nil]
+    gsimp
     omega
   all_goals cases hr
 
@@ -131,7 +131,7 @@ theorem globals_raiseValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F
     (shapeMatches : shapeOfHOLExact value = shape)
     (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
     GlobalsLe B s (.raise exceptionId expression) (some (.exception exceptionId value))
-      (emptyLocalsHOLFinite s) (.statement :: (events ++ [.copy (flattenHOL value).length])) := by
+      (emptyLocalsHOLFinite s) (.statement :: (events ++ [.cost (raiseOverhead (flattenHOL value).length)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.raiseValue expr declared shapeMatches size) ok rel target
@@ -140,7 +140,7 @@ theorem globals_raiseValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F
   case raiseValue =>
     obtain ⟨hv, a⟩ := globals_costed B rel expr (by assumption) ready
     cases hv
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_copy, sharpSourceScore_nil]
+    gsimp
     omega
   all_goals cases hr
 

@@ -72,7 +72,7 @@ theorem compileList_length' (context : PanToCrepContextExact 64) (es : List (Exp
 /-- Sharp source weights. -/
 def sharpSourceWeights : Work :=
   { movedWords := 14, memoryAccesses := 142, nativeEvents := 37, nativeCost := 1,
-    globalAccesses := 81, globalWords := 128 }
+    globalAccesses := 128, globalWords := 156 }
 
 /-- Sharp source score of an event list. The certificate argument is kept for
 the callers' interface; exact expression prices need no replay certificate. -/
@@ -119,7 +119,7 @@ theorem sharpSourceScore_cons (B : Nat) (event : WorkEvent) (rest : List WorkEve
 /-- A global destination access pays its `pan_globals` expansion: the
 `TopAddr`-relative address and the stores of its words. -/
 @[simp] theorem sharpSource_global (n : Nat) :
-    sharpSourceWeights.score (WorkEvent.globalAccess n).units = 81 + 128 * n := by
+    sharpSourceWeights.score (WorkEvent.globalAccess n).units = 128 + 156 * n := by
   simp [sharpSourceWeights, Work.score, WorkEvent.units]
 
 /-- Static site condition on an expression. Exact expression prices need no
@@ -190,7 +190,7 @@ theorem sharpScore_native (rest : List WorkEvent) :
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_native]
 
 theorem sharpScore_global (n : Nat) (rest : List WorkEvent) :
-    sharpScore (.globalAccess n :: rest) = 81 + 128 * n + sharpScore rest := by
+    sharpScore (.globalAccess n :: rest) = 128 + 156 * n + sharpScore rest := by
   simp only [sharpScore, sharpSourceScore_cons, sharpSource_global]
 
 /-- An expression's events score its native price. -/

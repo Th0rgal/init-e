@@ -388,8 +388,7 @@ theorem globals_top_entry (B : Nat) {F : Type} (s t : PanSemStateFiniteExact 64 
     rw [hr2] at outer ⊢
     simp only [expressionListEvents, List.flatMap_nil, List.length_nil, callGlobalEvents,
       List.nil_append, List.append_nil, structsT, sharp_size_nil, globalsTopInit] at outer ⊢
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_copy, srcScore_frame,
-      sharpSourceScore_nil]
+    gsimp
     omega
   · obtain ⟨_, _, _, hinfo⟩ := globals_plan_handler_info hplan
     cases hinfo

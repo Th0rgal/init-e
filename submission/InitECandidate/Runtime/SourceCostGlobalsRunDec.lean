@@ -26,8 +26,7 @@ theorem globals_declareValue (B : Nat) {F : Type} {s post : PanSemStateFiniteExa
       (globals_noTemp_setVar ready.1.1 _ h) cov _ _ _
       (by assumption : StatementRun _ (compileProgExactHOL context body) _ _ _)
     rw [← globalsRel_locals rel]
-    simp only [srcScore_statement, sharpSourceScore_append, srcScore_copy, srcScore_frame,
-      sharpSourceScore_nil]
+    gsimp
     omega
   all_goals (cases hr; try exact absurd rfl ok)
 

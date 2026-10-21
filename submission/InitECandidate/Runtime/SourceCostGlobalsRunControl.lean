@@ -32,7 +32,7 @@ theorem globals_iteYes (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 
     (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
     (nonzero : value ≠ 0) (body : StatementRun s yes r post bodyEvents)
     (ih : GlobalsLe B s yes r post bodyEvents) :
-    GlobalsLe B s (.ite condition yes no) r post (.statement :: (guardEvents ++ bodyEvents)) := by
+    GlobalsLe B s (.ite condition yes no) r post (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_ite] at target
@@ -40,7 +40,7 @@ theorem globals_iteYes (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 
   | iteYes guard' _ body' =>
     obtain ⟨_, g⟩ := globals_guard B rel guard guard' ready.1.1
     have b := ih context t rel ok ready.1.2 code h cov _ _ _ body'
-    rw [srcScore_statement, srcScore_statement, sharpSourceScore_append, sharpSourceScore_append]
+    gsimp
     omega
   | iteNo guard' _ =>
     obtain ⟨hv, _⟩ := globals_guard B rel guard guard' ready.1.1
@@ -54,7 +54,7 @@ theorem globals_iteNo (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F
     (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents)
     (body : StatementRun s no r post bodyEvents)
     (ih : GlobalsLe B s no r post bodyEvents) :
-    GlobalsLe B s (.ite condition yes no) r post (.statement :: (guardEvents ++ bodyEvents)) := by
+    GlobalsLe B s (.ite condition yes no) r post (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_ite] at target
@@ -65,7 +65,7 @@ theorem globals_iteNo (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F
   | iteNo guard' body' =>
     obtain ⟨_, g⟩ := globals_guard B rel guard guard' ready.1.1
     have b := ih context t rel ok ready.2 code h cov _ _ _ body'
-    rw [srcScore_statement, srcScore_statement, sharpSourceScore_append, sharpSourceScore_append]
+    gsimp
     omega
   | iteInvalidGuard guard' invalid =>
     obtain ⟨hv, _⟩ := globals_guard B rel guard guard' ready.1.1
