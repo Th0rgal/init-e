@@ -937,4 +937,14 @@ theorem pad_line_bytes_le {width : Nat} [NeZero width] (nop : List (BitVec 8))
   have hp := (padSection_asm_padding nop hne a bytes len).1
   omega
 
+
+theorem pad_line_labAsm_bytes_le {width : Nat} [NeZero width] (nop : List (BitVec 8))
+    (hne : nop ≠ []) (a : AsmWithLab HolCmp (HolRegImm width) MlString)
+    (w : BitVec width) (bytes : List (BitVec 8)) (len : Nat)
+    (h : lineSlack (.labAsm a w bytes len) ≤ 4) :
+    (lineBytes (.labAsm a w (padBytes bytes len nop) len)).length - bytes.length ≤ 4 := by
+  have hp := (padSection_labAsm_padding nop hne a w bytes len).1
+  omega
+
+
 end InitECandidate.Runtime.NativePadding
