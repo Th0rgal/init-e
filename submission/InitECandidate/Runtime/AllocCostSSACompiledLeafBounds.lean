@@ -1293,4 +1293,11 @@ def fixClockMid {C F : Type}
 #print axioms fixClock_fst
 #print axioms fixClock_fst_none
 
+
+/-- `getVar` reads only `state.locals`, so the `permute` field is invisible to it. -/
+theorem getVar_permute {C F : Type} (name : Nat)
+    (s : WordSemStateFiniteExact 64 C F) (perm : Nat → Nat → Nat) :
+    getVar name {s with permute := perm} = getVar name s := rfl
+
+#print axioms getVar_permute
 end InitECandidate.Runtime.FineCost
