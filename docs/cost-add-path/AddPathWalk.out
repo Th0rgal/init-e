@@ -1,0 +1,27 @@
+  u256_add path0 []
+u256_add x1: pre-WordSimp 843 (dyn used 0/0, static 0) | WordSimp-out 843 (dyn 0) | isel@opt 843 (dyn 0) | SSA@opt 1347 (dyn 0)
+  charge_gas path0 [dyn false, static false]
+charge_gas x1: pre-WordSimp 1481 (dyn used 1/1, static 1) | WordSimp-out 1458 (dyn 1) | isel@opt 914 (dyn 1) | SSA@opt 1082 (dyn 1)
+  stack_pop path0 [dyn false, static false]
+stack_pop x2: pre-WordSimp 2585 (dyn used 1/1, static 1) | WordSimp-out 2562 (dyn 1) | isel@opt 1418 (dyn 1) | SSA@opt 1634 (dyn 1)
+  stack_push path0 [dyn false, static false, dyn false, static false]
+stack_push x1: pre-WordSimp 2167 (dyn used 2/2, static 2) | WordSimp-out 2121 (dyn 2) | isel@opt 1357 (dyn 2) | SSA@opt 1909 (dyn 2)
+  pc_add path0 []
+pc_add x1: pre-WordSimp 575 (dyn used 0/0, static 0) | WordSimp-out 575 (dyn 0) | isel@opt 375 (dyn 0) | SSA@opt 447 (dyn 0)
+  op_add path0 []
+op_add x1: pre-WordSimp 1545 (dyn used 0/0, static 0) | WordSimp-out 1593 (dyn 0) | isel@opt 1593 (dyn 0) | SSA@opt 3705 (dyn 0)
+  op_dispatch path0 [dyn true, static true, dyn true, static true, dyn false, static false, dyn true, static true]
+op_dispatch x1: pre-WordSimp 832 (dyn used 4/4, static 4) | WordSimp-out 740 (dyn 4) | isel@opt 740 (dyn 4) | SSA@opt 1076 (dyn 4)
+  run_frames path0 [dyn true, static true, dyn false, static false, dyn false, static false, dyn false, static false, dyn false, static false]
+run_frames x1: pre-WordSimp 2331 (dyn used 5/5, static 5) | WordSimp-out 2216 (dyn 5) | isel@opt 1524 (dyn 5) | SSA@opt 2844 (dyn 5)
+TOTAL pre-WordSimp@preB 15088  WordSimp-out@preB 14814  pre-WordSimp@exactIsel 10456  WordSimp-out@exactIsel 10182
+u256_add: removeDead@opt 1275 (dyn 0) final@opt 819 (dyn 0)
+charge_gas: removeDead@opt 938 (dyn 1) final@opt 770 (dyn 1)
+stack_pop: removeDead@opt 1490 (dyn 1) final@opt 914 (dyn 1)
+stack_push: removeDead@opt 1549 (dyn 2) final@opt 1405 (dyn 2)
+pc_add: removeDead@opt 447 (dyn 0) final@opt 375 (dyn 0)
+op_add: removeDead@opt 3369 (dyn 0) final@opt 2769 (dyn 0)
+op_dispatch: removeDead@opt 716 (dyn 4) final@opt 692 (dyn 4)
+run_frames: removeDead@opt 1908 (dyn 5) final@opt 1548 (dyn 5)
+TOTAL removeDead@opt 13182 final@opt 10206
+TOTAL pre-WordSimp@preIsel 14944  WordSimp-out@preIsel 14670  isel@opt 10182  SSA@opt 15678
