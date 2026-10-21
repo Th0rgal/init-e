@@ -1,6 +1,10 @@
 import InitECandidate.Runtime.GuestCostChargeFamily
 import InitECandidate.Runtime.GasFrameExpressions
+set_option maxRecDepth 10000
+set_option maxHeartbeats 4000000
 namespace InitECandidate.Runtime.FineCost
+
+variable {fn : MlS}
 
 theorem pcAdd_score_cost (coeff : Work) (n : Nat) :
     coeff.score (WorkEvent.cost n).units = coeff.nativeCost * n := by
@@ -54,7 +58,7 @@ theorem pcAdd_store_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVe
     (hFrame : s.globals.lookup (ofString "ev") = some (.val (.word frame)))
     (hN : s.locals.lookup (ofString "n") = some (.val (.word n)))
     (domain : s.memaddrs (frame + 0)) (memory : s.memory (frame + 0) = .word value) :
-    StatementRun s (.store pcAddAddress pcAddValue) none
+    StatementRun fn s (.store pcAddAddress pcAddValue) none
       { s with memory := writeWordMemory s (frame + 0) (value + n) }
       (.statement :: (expressionEvents s pcAddAddress ++
         expressionEvents s pcAddValue ++
@@ -78,10 +82,10 @@ theorem pcAdd_store_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVe
 
 /-- The final `return 0` of the helper. -/
 theorem pcAdd_return_run (s : PanSemStateFiniteExact 64 F) :
-    StatementRun s (.return (.const 0)) (some (.returned (.val (.word 0))))
+    StatementRun fn s (.return (.const 0)) (some (.returned (.val (.word 0))))
       (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const 0) ++
-        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves fn)])) :=
   StatementRun.returnValue (expression := .const (0 : BitVec 64))
     (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
     (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
@@ -95,27 +99,27 @@ noncomputable def pcAddEvents (s : PanSemStateFiniteExact 64 F) (frame value n :
     (expressionEvents s pcAddAddress ++ expressionEvents s pcAddValue ++
       [.memory (flattenHOL (.val (.word (value + n)))).length, .cost (storeOverhead (flattenHOL (.val (.word (value + n)))).length)] ++
       (.statement :: (expressionEvents stored (.const 0) ++
-        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])))
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves fn)])))
 
 /-- The actual installed `pc_add` helper runs on the fetched program counter. -/
 theorem pcAdd_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVec 64)
     (hFrame : s.globals.lookup (ofString "ev") = some (.val (.word frame)))
     (hN : s.locals.lookup (ofString "n") = some (.val (.word n)))
     (domain : s.memaddrs (frame + 0)) (memory : s.memory (frame + 0) = .word value) :
-    StatementRun s (sourceFunctionBody Guest.guestFn_pc_add)
+    StatementRun fn s (sourceFunctionBody Guest.guestFn_pc_add)
       (some (.returned (.val (.word 0))))
       (emptyLocalsHOLFinite { s with memory := writeWordMemory s (frame + 0) (value + n) })
-      (pcAddEvents s frame value n) := by
+      (pcAddEvents (fn := fn) s frame value n) := by
   classical
   rw [source_pcAdd_body]
   unfold pcAddBody pcAddEvents
-  exact StatementRun.seqNext (pcAdd_store_run s frame value n hFrame hN domain memory)
-    (pcAdd_return_run { s with memory := writeWordMemory s (frame + 0) (value + n) })
+  exact StatementRun.seqNext (fn := fn) (pcAdd_store_run (fn := fn) s frame value n hFrame hN domain memory)
+    (pcAdd_return_run (fn := fn) { s with memory := writeWordMemory s (frame + 0) (value + n) })
 
 /-- Explicit coefficient price of one `pc_add` helper run. -/
 theorem pcAddEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
     (frame value n : BitVec 64) :
-    coeff.score (executionWork (pcAddEvents s frame value n)) ≤
+    coeff.score (executionWork (pcAddEvents (fn := fn) s frame value n)) ≤
       16 * coeff.statements +
         expressionCost coeff s pcAddAddress +
         expressionCost coeff s pcAddValue +
@@ -124,7 +128,7 @@ theorem pcAddEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
         expressionCost coeff { s with memory := writeWordMemory s (frame + 0) (value + n) }
           (.const 0) +
         coeff.movedWords * (flattenHOL (.val (.word (0 : BitVec 64)))).length +
-        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)).units := by
+        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves fn)).units := by
   unfold pcAddEvents expressionCost
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
     guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
