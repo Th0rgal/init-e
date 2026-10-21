@@ -548,3 +548,25 @@ nothing about the target frame has to be assumed.
 
 Doing this leaves the call case with: the code relation, the `getVars` facts, the bad-destination fact, and the
 clocks.  Everything else is internal.
+
+## The end-to-end call lemma is proved, and the code relation alone is NOT enough
+
+`wec_call_none_callee_transfer_of_code` exists (commit ef996ed00) and takes the two frames as internal, but it
+needs TWO hypotheses beyond `transformedCalleeRel`; neither is derivable from the relation:
+
+1. `harity` - a transformed frame at a destination forces an ORIGINAL frame at that same destination and arity.
+   Without it the flat path "original lookup fails, transformed succeeds" needs `cost pC <= budget`, which is
+   false in general (the relation only ever bounds a callee conditioned on the original having one; it never says
+   the original HAS one). With it that path is a contradiction: the transformed table cannot invent callees,
+   because the arity test is the same on both sides.
+2. `harg : xs = xs'` - the two argument lists agree. Needed only for `dest = none`: an INDIRECT call takes its
+   destination from the block of its LAST ARGUMENT, i.e. off `xs`, so with `xs <> xs'` the two sides charge
+   different callees and nothing relates them. For the direct case `dest := some d` this hypothesis is removable.
+
+Design consequence worth keeping: the frames' argument lists and stack sizes are fully internal (the `ss`
+components are never identified), which is what lets the caller supply only the code relation plus these two
+facts. Supporting lemmas added: `findCode_some_frame`, `findCode_destNone_frame`, `findCode_some_of_frame`,
+`findCode_destNone_of_frame` (frames <-> sptLookup at the right arity, direct and indirect).
+
+Also recorded because it wasted a compile: `transformedCalleeRel.spec` returns `(exists ...) AND (cost <= ...)`, so
+`obtain <hspec, ->` takes the WRONG component; it must be `obtain <-, hspec>`.
