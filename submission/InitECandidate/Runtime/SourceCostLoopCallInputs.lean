@@ -16,7 +16,7 @@ theorem loop_call_retarget_work {F : Type}
     (next : LoopSemStateFiniteExact.getVars newArguments s = some nextValues)
     (same : findCode newTarget nextValues s.code = findCode target previousValues s.code) :
     ∃ w', LoopWork s (.call returns newTarget newArguments handler) output w' ∧
-      w' + arguments.length = w + newArguments.length := by
+      w' + 39 * arguments.length = w + 39 * newArguments.length := by
   have evaluated : evaluate (.call returns newTarget newArguments handler) s = output := by
     have original := run.sound
     rw [evaluate, previous] at original

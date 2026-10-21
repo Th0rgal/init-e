@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.SourceCostLoopPricing
-import InitECandidate.Runtime.SourceCostCrepSimp
+import InitECandidate.Runtime.SourceCostCrepBasis
 import Flapjack.Pancake.Proofs.CrepArith.SimpProgCorrect.Assembly
 namespace InitECandidate.Runtime.FineCost
 open Flapjack
@@ -13,7 +13,7 @@ induction on `CrepWorkS` that never needs a clock extension. -/
 theorem crepSimp_node_pos_sharp (e : CrepExpHOL 64) : 2 ≤ loopNodePrice e := loopNodePrice_pos e
 
 theorem crepSimp_mulConst_work_sharp (x : CrepExpHOL 64) (c : BitVec 64) :
-    loopNodePrice (crepMulConstHOL x c) ≤ 5 + loopNodePrice x := by
+    loopNodePrice (crepMulConstHOL x c) ≤ 76 + loopNodePrice x := by
   unfold crepMulConstHOL
   split
   · simp only [loopNodePrice]; omega
@@ -22,6 +22,10 @@ theorem crepSimp_mulConst_work_sharp (x : CrepExpHOL 64) (c : BitVec 64) :
     · split
       · simp only [loopNodePrice, loopPriceList]; omega
       · simp only [loopNodePrice, loopPriceList]; omega
+
+theorem destConst_price {e : CrepExpHOL 64} {c : BitVec 64} (h : crepDestConstHOL e = some c) :
+    loopNodePrice e = 19 := by
+  cases e <;> simp_all [crepDestConstHOL, loopNodePrice]
 
 theorem crepSimp_list_work_sharp (es : List (CrepExpHOL 64))
     (ih : ∀ e ∈ es, loopNodePrice (crepSimpExpHOL e) ≤ loopNodePrice e) :
@@ -54,9 +58,13 @@ theorem crepSimp_node_work_sharp : ∀ e : CrepExpHOL 64, loopNodePrice (crepSim
       simp only [List.map_cons, List.map_nil]
       split
       · simp only [loopNodePrice, sharpCrepList, loopPriceList]; omega
-      · have := crepSimp_mulConst_work_sharp (crepSimpExpHOL b) ‹_›
+      · rename_i constant da db
+        have := crepSimp_mulConst_work_sharp (crepSimpExpHOL b) constant
+        have := destConst_price da
         simp only [loopNodePrice, sharpCrepList, loopPriceList] at this ⊢; omega
-      · have := crepSimp_mulConst_work_sharp (crepSimpExpHOL a) ‹_›
+      · rename_i constant da db
+        have := crepSimp_mulConst_work_sharp (crepSimpExpHOL a) constant
+        have := destConst_price db
         simp only [loopNodePrice, sharpCrepList, loopPriceList] at this ⊢; omega
       · simp only [loopNodePrice, sharpCrepList, loopPriceList]; omega
     · unfold crepSimpExpHOL
@@ -76,7 +84,7 @@ theorem crepSimp_node_work_sharp : ∀ e : CrepExpHOL 64, loopNodePrice (crepSim
     have ih : ∀ e ∈ es, loopNodePrice (crepSimpExpHOL e) ≤ loopNodePrice e :=
       fun e _ => crepSimp_node_work_sharp e
     have := crepSimp_list_work_sharp es ih
-    rw [crepSimpExpHOL]; simp only [loopNodePrice]
+    rw [crepSimpExpHOL]; simp only [loopNodePrice, List.length_map]
     simp only [sharpCrepList, List.length_map] at this; omega
   | .cmp op a b => by
     rw [crepSimpExpHOL]; simp only [loopNodePrice]
@@ -140,56 +148,56 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
     (evalCrepSemHOLProgExact t p).1 ≠ some .error →
     ∃ w', CrepWorkS (crepSimpMapcsHOL t) (crepSimpProgHOL p) w' ∧ w' ≤ w := by
   induction work with
-  | skip t => intro _; exact ⟨2, by unfold crepSimpProgHOL; exact .skip _, Nat.le_refl _⟩
-  | tick t => intro _; exact ⟨2, by unfold crepSimpProgHOL; exact .tick _, Nat.le_refl _⟩
+  | skip t => intro _; exact ⟨_, by unfold crepSimpProgHOL; exact .skip _, Nat.le_refl _⟩
+  | tick t => intro _; exact ⟨_, by unfold crepSimpProgHOL; exact .tick _, Nat.le_refl _⟩
   | breakStmt t label =>
-    intro _; exact ⟨2, by unfold crepSimpProgHOL; exact .breakStmt _ _, Nat.le_refl _⟩
+    intro _; exact ⟨_, by unfold crepSimpProgHOL; exact .breakStmt _ _, Nat.le_refl _⟩
   | continueStmt t label =>
-    intro _; exact ⟨2, by unfold crepSimpProgHOL; exact .continueStmt _ _, Nat.le_refl _⟩
-  | raise t code => intro _; exact ⟨3, by unfold crepSimpProgHOL; exact .raise _ _, Nat.le_refl _⟩
+    intro _; exact ⟨_, by unfold crepSimpProgHOL; exact .continueStmt _ _, Nat.le_refl _⟩
+  | raise t code => intro _; exact ⟨_, by unfold crepSimpProgHOL; exact .raise _ _, Nat.le_refl _⟩
   | extCall t function configuration configurationLength array arrayLength =>
-    intro _; exact ⟨2, by unfold crepSimpProgHOL; exact .extCall _ _ _ _ _ _, Nat.le_refl _⟩
+    intro _; exact ⟨_, by unfold crepSimpProgHOL; exact .extCall _ _ _ _ _ _, Nat.le_refl _⟩
   | primitive t names operator args =>
     intro _
-    exact ⟨2 + names.length + args.length, by unfold crepSimpProgHOL; exact .primitive _ _ _ _,
+    exact ⟨_, by unfold crepSimpProgHOL; exact .primitive _ _ _ _,
       Nat.le_refl _⟩
   | assign t name value =>
     intro _
     have := crepSimp_node_work_sharp value
-    exact ⟨2 + loopNodePrice (crepSimpExpHOL value), by simp only [crepSimpProgHOL]; exact .assign _ _ _,
+    exact ⟨_, by simp only [crepSimpProgHOL]; exact .assign _ _ _,
       by omega⟩
   | storeGlob t address value =>
     intro _
     have := crepSimp_node_work_sharp value
-    exact ⟨2 + loopNodePrice (crepSimpExpHOL value),
+    exact ⟨_,
       by simp only [crepSimpProgHOL]; exact .storeGlob _ _ _, by omega⟩
   | shMem t operator name address =>
     intro _
     have := crepSimp_node_work_sharp address
-    exact ⟨2 + loopNodePrice (crepSimpExpHOL address),
+    exact ⟨_,
       by simp only [crepSimpProgHOL]; exact .shMem _ _ _ _, by omega⟩
   | store t address value =>
     intro _
     have := crepSimp_node_work_sharp address
     have := crepSimp_node_work_sharp value
-    exact ⟨2 + loopNodePrice (crepSimpExpHOL address) + loopNodePrice (crepSimpExpHOL value),
+    exact ⟨_,
       by simp only [crepSimpProgHOL]; exact .store _ _ _, by omega⟩
   | store32 t address value =>
     intro _
     have := crepSimp_node_work_sharp address
     have := crepSimp_node_work_sharp value
-    exact ⟨2 + loopNodePrice (crepSimpExpHOL address) + loopNodePrice (crepSimpExpHOL value),
+    exact ⟨_,
       by simp only [crepSimpProgHOL]; exact .store32 _ _ _, by omega⟩
   | storeByte t address value =>
     intro _
     have := crepSimp_node_work_sharp address
     have := crepSimp_node_work_sharp value
-    exact ⟨2 + loopNodePrice (crepSimpExpHOL address) + loopNodePrice (crepSimpExpHOL value),
+    exact ⟨_,
       by simp only [crepSimpProgHOL]; exact .storeByte _ _ _, by omega⟩
   | returnStmt t values =>
     intro _
     have := crepSimp_listWork_sharp values
-    exact ⟨2 + sharpCrepList (values.map crepSimpExpHOL) + (values.map crepSimpExpHOL).length,
+    exact ⟨_,
       by simp only [crepSimpProgHOL]; exact .returnStmt _ _, by simp only [List.length_map]; omega⟩
   | @decFailure t name value body failed =>
     intro ok
@@ -207,7 +215,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
       exact h
     obtain ⟨wb, hb, bb⟩ := ih bodyOk
     have := crepSimp_node_work_sharp value
-    exact ⟨2 + loopNodePrice (crepSimpExpHOL value) + wb,
+    exact ⟨_,
       by simp only [crepSimpProgHOL]; exact .dec (crepSimp_exp_sharp t value word evaluated) hb, by omega⟩
   | @seqNext t first second middle firstWork secondWork one run two ihOne ihTwo =>
     intro ok
@@ -236,7 +244,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
     obtain ⟨wb, hb, bb⟩ := ihBranch okBranch
     rw [apply_ite crepSimpProgHOL] at hb
     have := crepSimp_node_work_sharp condition
-    exact ⟨2 + loopNodePrice (crepSimpExpHOL condition) + wb,
+    exact ⟨_,
       by simp only [crepSimpProgHOL]; exact .iteBranch (crepSimp_exp_sharp t condition _ guard) hb,
       by omega⟩
   | @iteInvalid t condition yes no invalid =>
@@ -258,7 +266,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
         have hw := exit w0 hev
         have hev' := crepSimp_exp_sharp t condition _ hev
         have := crepSimp_node_work_sharp condition
-        refine ⟨2 + 2 + 2 + loopNodePrice (crepSimpExpHOL condition), ?_, by omega⟩
+        refine ⟨37 + 37 + 37 + loopNodePrice (crepSimpExpHOL condition), ?_, by omega⟩
         simp only [crepSimpProgHOL]
         refine .whileExit (fun word h => ?_)
         rw [hev'] at h
@@ -267,7 +275,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
   | @whileTimeout t condition body word guard nonzero clock =>
     intro _
     have := crepSimp_node_work_sharp condition
-    exact ⟨2 + 2 + 2 + loopNodePrice (crepSimpExpHOL condition),
+    exact ⟨_,
       by simp only [crepSimpProgHOL]; exact .whileTimeout (crepSimp_exp_sharp t condition _ guard) nonzero clock,
       by omega⟩
   | @whileLoop t condition body word bodyWork result middle restWork guard nonzero clock one run
@@ -293,7 +301,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
     have run' := crepArithSimpProgCorrect body _ result middle run bodyOk
     simp only [crepSimpProgHOL] at hr
     have := crepSimp_node_work_sharp condition
-    exact ⟨2 + 2 + 2 + loopNodePrice (crepSimpExpHOL condition) + wb + wr,
+    exact ⟨_,
       by simp only [crepSimpProgHOL]
          exact .whileLoop (crepSimp_exp_sharp t condition _ guard) nonzero clock hb run' again hr,
       by omega⟩
@@ -310,7 +318,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
     obtain ⟨wb, hb, bb⟩ := ihOne (by rw [run]; exact bodyOk)
     have run' := crepArithSimpProgCorrect body _ result middle run bodyOk
     have := crepSimp_node_work_sharp condition
-    exact ⟨2 + 2 + 2 + loopNodePrice (crepSimpExpHOL condition) + wb,
+    exact ⟨_,
       by simp only [crepSimpProgHOL]
          exact .whileStop (crepSimp_exp_sharp t condition _ guard) nonzero clock hb run' stop,
       by omega⟩
@@ -330,7 +338,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
         · rw [if_pos hn]
         · rfl
       · rfl
-    · refine ⟨2 + 2 + 2 + sharpCrepList (arguments.map crepSimpExpHOL), ?_, by omega⟩
+    · refine ⟨300 + sharpCrepList (arguments.map crepSimpExpHOL), ?_, by omega⟩
       unfold crepSimpProgHOL
       exact .callShort (Or.inr ⟨_, crepSimp_args_sharp t _ _ hvals, Or.inr (Or.inr hc)⟩)
   | @callBody t returnInfo function arguments values body locals bodyWork result post args lookup
@@ -355,8 +363,8 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
         some (crepSimpProgHOL body, locals) := by
       rw [crepSimp_lookup_sharp, lookup]; rfl
     have := crepSimp_listWork_sharp arguments
-    refine ⟨2 + 2 + 2 + sharpCrepList (arguments.map crepSimpExpHOL) + values.length + wb +
-      crepCallPayloadWords result, ?_, by omega⟩
+    refine ⟨300 + sharpCrepList (arguments.map crepSimpExpHOL) + values.length + wb +
+      49 * crepCallPayloadWords result, ?_, by omega⟩
     unfold crepSimpProgHOL
     refine .callBody args' lookup' ?_ clock hb run' ?_
     · rcases returnInfo with _ | ⟨rts, _ | ⟨c, h⟩⟩ <;>
@@ -391,7 +399,7 @@ theorem crep_simp_work_sharp {F : Type} {t : CrepSemHOLState 64 F} {p : CrepProg
         some (crepSimpProgHOL body, locals) := by
       rw [crepSimp_lookup_sharp, lookup]; rfl
     have := crepSimp_listWork_sharp arguments
-    refine ⟨2 + 2 + 2 + sharpCrepList (arguments.map crepSimpExpHOL) + values.length + wb + wh, ?_, by omega⟩
+    refine ⟨300 + sharpCrepList (arguments.map crepSimpExpHOL) + values.length + wb + wh, ?_, by omega⟩
     simp only [crepSimpProgHOL]
     exact .callHandler args' lookup' names clock hb run' hh
 

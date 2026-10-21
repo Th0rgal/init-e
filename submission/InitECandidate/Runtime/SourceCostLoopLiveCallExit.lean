@@ -17,7 +17,7 @@ theorem loop_live_paid_call_ret_handler {F : Type}
     (nonerror : (loopRetExit result post entry names).1 ≠ some .error) :
     LoopLivePaid s (.call (some (names, live)) target arguments
       (some (exceptionName, handlerProgram, continuation, liveOut)))
-      (loopRetExit result post entry names) (1 + arguments.length + wb + loopRetWords result) := by
+      (loopRetExit result post entry names) (189 + 39 * arguments.length + wb + 49 * loopRetWords result) := by
   intro contexts locals wanted input
   rcases contCompiled : shrinkHOL contexts continuation wanted with ⟨contCode, contLive⟩
   rcases handlerCompiled : shrinkHOL contexts handlerProgram wanted with ⟨handlerCode, handlerLive⟩
@@ -51,7 +51,7 @@ theorem loop_live_paid_call_ret_handler {F : Type}
       (shrinkHOL contexts (.call (some (names, live)) target arguments
         (some (exceptionName, handlerProgram, continuation, liveOut))) wanted).1
       (loopRetExit result post { entry with locals := entryLocals } names)
-      (1 + arguments.length + wb + loopRetWords result) := by
+      (189 + 39 * arguments.length + wb + 49 * loopRetWords result) := by
     simpa only [compiled] using targetRun
   exact loop_live_finish (LoopWork.callRet args find nodup cut body plain) nonerror
     contexts locals wanted (by simpa only [compiled] using input) target' (by omega)

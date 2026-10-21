@@ -56,7 +56,7 @@ theorem loop_live_paid_call_tail {F : Type}
     (body : LoopWork { decClock s with locals := env } prog (result, post) wb)
     (nonerror : (loopTailExit result post).1 ≠ some .error) :
     LoopLivePaid s (.call none target arguments handler) (loopTailExit result post)
-      (1 + arguments.length + wb) := by
+      (189 + 39 * arguments.length + wb) := by
   cases handler with
   | some value => simp at noHandler
   | none =>
@@ -70,7 +70,7 @@ theorem loop_live_paid_call_tail {F : Type}
     have targetRun := LoopWork.callTail (handler := none) targetArgs find rfl clock targetBody
     have target' : LoopWork { s with locals := locals }
         (shrinkHOL contexts (.call none target arguments none) live).1
-        (loopTailExit result post) (1 + arguments.length + wb) := by
+        (loopTailExit result post) (189 + 39 * arguments.length + wb) := by
       simpa only [shrinkHOL] using targetRun
     exact loop_live_finish (LoopWork.callTail args find rfl clock body) nonerror
       contexts locals live input target' (Nat.le_refl _)
@@ -99,7 +99,7 @@ theorem loop_live_paid_call_ret_plain {F : Type}
     (body : LoopWork { entry with locals := env } prog (result, post) wb)
     (nonerror : (loopRetExit result post entry names).1 ≠ some .error) :
     LoopLivePaid s (.call (some (names, live)) target arguments none)
-      (loopRetExit result post entry names) (1 + arguments.length + wb + loopRetWords result) := by
+      (loopRetExit result post entry names) (189 + 39 * arguments.length + wb + 49 * loopRetWords result) := by
   intro contexts locals wanted input
   let saved := sptListDelete names (sptInter wanted live)
   have input' : sptSubspt (sptInter s.locals
@@ -123,7 +123,7 @@ theorem loop_live_paid_call_ret_plain {F : Type}
   have target' : LoopWork { s with locals := locals }
       (shrinkHOL contexts (.call (some (names, live)) target arguments none) wanted).1
       (loopRetExit result post { entry with locals := entryLocals } names)
-      (1 + arguments.length + wb + loopRetWords result) := by
+      (189 + 39 * arguments.length + wb + 49 * loopRetWords result) := by
     simpa only [shrinkHOL, saved] using targetRun
   exact loop_live_finish (LoopWork.callRet args find nodup cut body plain) nonerror
     contexts locals wanted input target' (Nat.le_refl _)
