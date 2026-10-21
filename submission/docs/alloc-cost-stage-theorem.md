@@ -360,3 +360,60 @@ SSAFixInconsistencies.lean:69-70 matches `mergeMoves`' output), so the tuple com
 bound variables and the projections reduce definitionally; then apply the induction hypothesis directly.
 Once that lemma exists, `allocOnly_fallthrough` / `allocOnly_cost_independent` give the suffix's run and
 cost facts, and `ite_quantTransfer_then` turns them into the quantitative ite constructor.
+
+## The quantitative transfer: what is closed (HEAD 1804d4904)
+
+CLOSED, all green with axioms exactly {propext, Classical.choice, Quot.sound}:
+
+1. `seq` constructor, both outcomes: `ssaCcTrans_seq_quant_none`, `ssaCcTrans_seq_quant_escape`.
+2. `ite` constructor: `ssaCcTrans_ite_quant_then`, i.e. `quantSsaSimulation (.ite ...) source target ssa next
+   tables extra` from (a) the compiler's `ssaCcTransCorrectIf` with its invariant IHs, (b) the selected
+   branch's `quantTransfer` via `ite_quantTransfer_then`, and (c) the compiled shape equation, which is what
+   `ssaCcTrans_ite_shape` gives.  NOTE for whoever continues: `ssaCcTransCorrectIf` lives in
+   `Flapjack.Compiler.Backend.WordAlloc` and needs `import ...Proofs.SSASemanticIf`; without the import it
+   looks like a missing lemma.
+3. The compiled-branch chain, which is what makes suffix-carrying constructors composable:
+   `quantTransfer` (program-parametric: source program + EXPLICIT compiled program + runs + outcome equality
+   + cost bound) -> `ite_stage_then/else` (both runs and the bound in one package; the 23 node price cancels)
+   -> `ite_quantTransfer_then` -> `seq_suffix_transfer` (append a suffix: fall-through keeps the outcome,
+   state-independent cost makes the suffix's charge a constant) -> `compiled_branch_transfer` (suffix facts
+   from `AllocOnly`) -> `fixInconsistencies_suffix_transfer` (the concrete suffix, no hypotheses about it).
+4. The allocator-side certificate, derived rather than requested:
+   `move_fallthrough`, `seq_fallthrough`, `wec_move_state_independent`, `wec_skip_state_independent`,
+   `wec_seq_state_independent` (false WITHOUT the fall-through hypothesis - a move with missing sources
+   returns `some .error`), `suffix_seq_cost_independent`, `AllocOnly` (skip/move/inst/seq) with
+   `allocOnly_fallthrough` and `allocOnly_cost_independent`, `fakeMoves_allocOnly` (list induction; see the
+   tuple-equation technique below), `fixInconsistencies_allocOnly`.
+   The RUN half of the certificate comes from the SSA invariants (`Nodup` syntactic, `getVars` from
+   `ssaLocalsRel`/`ssaMapOK`/`everyVarHOL`), NOT from the move table; only the PRICE half uses the table
+   (`goSeq_move` via `canonical_move_price_le_table`).  The instruction fall-through is parameterised
+   (`hinst`), since `fakeMove v = .inst (.const v 0)`.
+5. Node prices complete: move `12 * |parmove (physPairs moves)|`, `ite 23`, `loop 2`, `call none 41`,
+   returning call `(if handler.isSome then 189 else 63) + 39*(args+1-22) + 21*(values+1-22)`, `seq 0`.
+   Plus `wec_call_none_getVars_none` / `wec_call_none_badDest` for the call's flat-price failure paths.
+
+## Technique note: proving things about fakeMoves (cost several compiles to find)
+
+Projecting the returned 5-tuple in a goal fights back: after `simp only [fakeMoves]` / `unfold` the goal is
+`AllocOnly (...5-tuple...).1` and every argument position stays a metavariable ("typeclass instance is
+stuck: NeZero ?m").  What works:
+
+- state an auxiliary lemma carrying the tuple EQUATION as a hypothesis
+  (`fakeMoves prio xs ssaL ssaR na = (l, r, na', sl, sr) -> AllocOnly l`) and recurse with the equation;
+- unfold the definition inside the equation only (`simp only [fakeMoves] at h`), rewrite the recursive call
+  by its own equation, so every component in `h` is a bound variable;
+- `split at h`, then `injection h with h1 _` and `rw [<- h1]` to move the goal onto the first component;
+- the split branches differ in shape (some return the recursive program itself, others a seq with a
+  `fakeMove` or a `move` node), so try `exact ih` first, then the seq forms;
+- `fakeMove`'s argument is the Nat component, not the Spt.
+The projected form then follows: obtain the tuple, `rw`, `show AllocOnly p1`, apply the auxiliary lemma `rfl`.
+
+## Remaining
+
+- `loop`: the counter's clause is not a one-shot composition - `cutState (names, .ln) s`, then the body's
+  work, then a `fixClock` split with `wordSemContLoop result` deciding whether the NEXT iteration is charged
+  (zero when `middle.clock = 0`).  So its transfer needs a recursion over the loop's own clock, not the
+  three-step assembly used for ite.
+- `call`: flat-price failure paths are done; the successful path is `getVars` -> `wordSemBadDestArgs` ->
+  `wordSemFindCode dest (wordSemAddRetLoc ret xs) s.code s.stackSize`, which charges the callee - this is
+  where the global transformed-callee code relation enters.
