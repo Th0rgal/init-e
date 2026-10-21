@@ -13,7 +13,7 @@ theorem call_cost_zero (ret dest args handler) (t : WordSemStateFiniteExact 64 C
   cases ret <;> cases handler <;> rw [wordExecutionCost] <;> repeat' split
   all_goals simp_all
 
-theorem tail_call_cost (dest : Option Nat) (args : List Nat) (t : WordSemStateFiniteExact 64 C F)
+theorem loop_tail_call_cost (dest : Option Nat) (args : List Nat) (t : WordSemStateFiniteExact 64 C F)
     {xs args1 prog ss}
     (hargs : getVars args t = some xs) (hbad : wordSemBadDestArgs dest args = false)
     (hfind : wordSemFindCode dest (wordSemAddRetLoc
@@ -150,7 +150,7 @@ theorem ret_call_eval_stop (rets : List Nat) (cutset : WordLangCutsetsHOL) (retC
 end
 
 #print axioms call_cost_zero
-#print axioms tail_call_cost
+#print axioms loop_tail_call_cost
 #print axioms ret_price_le
 #print axioms ret_call_cost_le
 #print axioms call_eval_zero
