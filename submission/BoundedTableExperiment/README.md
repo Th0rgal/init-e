@@ -957,3 +957,26 @@ This is actual AST structure, not an abstract model. The nested search loop,
 path push, binary search, and link write inside `htab_find_leaf_path` and
 `candidateHtabSetLeafBody` still need the same peeling and `StatementRun`
 composition.
+
+## 43. Actual candidate `htab_find_leaf_path` decomposition
+
+`CandidateFindLeafShape.lean` peels the actual search function down to literal
+subterms:
+
+- four scopes `cap`, `path`, `node`, `depth`, then
+  `seq candidateFindLeafLoop candidateFindLeafTail`;
+- `candidateFindLeafLoop = while (node != 0) candidateFindLeafStep`;
+- `candidateFindLeafStep = seq guard walk`, where `guard` is the
+  `cap >= node` early-return branch and `walk = seq push (seq bump route)`;
+- `candidateFindLeafPush` is exactly
+  `store (path + depth*8) node`;
+- `route = dec "route" (load node+16) (dec "b" ... (dec "m" ... child))`;
+- `child` is the `b & m != 0` left/right child branch.
+
+`candidateFindLeaf_body` and `candidateFindLeaf_body_scopes` are checked
+against `sourceFunctionBody`; every other equation is `rfl`. Axioms are
+`propext`, `Classical.choice`, `Quot.sound`.
+
+This exposes the actual path-push statement and its address. Event/cost
+composition with the `StatementRun.storeValue` rule and `PathMemoryInv.push`
+is the next step; the binary-search/link tail of `htab_set` remains open.
