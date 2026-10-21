@@ -8,7 +8,7 @@ open Flapjack.Basis.Pure.MlString
 
 set_option maxHeartbeats 2000000
 
-private def opAddDispatchFn : MlS := ofString "op_dispatch"
+def opDispatchFn : MlS := ofString "op_dispatch"
 
 /-- Zero-argument lookup of the installed `op_add` declaration. -/
 theorem opAdd_dispatch_lookup
@@ -44,9 +44,9 @@ noncomputable def opAddDispatchArmPost (d : PanSemStateFiniteExact 64 Guest.Host
 noncomputable def opAddDispatchArmEvents (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
     List WorkEvent :=
-  callEvents opAddDispatchFn d (ofString "op_add") [] [] .one (some (.returned (.val (.word 0)))) bodyEvents ++
+  callEvents opDispatchFn d (ofString "op_add") [] [] .one (some (.returned (.val (.word 0)))) bodyEvents ++
     (.statement :: (expressionEvents (opAddDispatchCallPost d bodyPost) (.const (0 : BitVec 64)) ++
-      [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves opAddDispatchFn)]))
+      [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves opDispatchFn)]))
 
 /-- Local price of that dispatcher arm. -/
 noncomputable def opAddDispatchArmLocalCost (coeff : Work)
@@ -63,7 +63,7 @@ theorem opAdd_dispatch_arm_run (coeff : Work) (d : PanSemStateFiniteExact 64 Gue
       bodyPost bodyEvents)
     (dClock : d.clock ≠ 0)
     (dInstalled : d.code.lookup = originalRuntimeCode.lookup) :
-    StatementRun opAddDispatchFn d (.seq (.call (some (none, none)) (ofString "op_add") [])
+    StatementRun opDispatchFn d (.seq (.call (some (none, none)) (ofString "op_add") [])
         (.return (.const (0 : BitVec 64))))
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (opAddDispatchArmEvents d bodyPost bodyEvents) := by
@@ -74,16 +74,16 @@ theorem opAdd_dispatch_arm_run (coeff : Work) (d : PanSemStateFiniteExact 64 Gue
       (some (.returned (.val (.word 0)))) bodyPost =
       .done none { bodyPost with locals := d.locals } :=
     callCostPlan_discard_word d bodyPost
-  have callRun := (call_statement_work (coeff := coeff) (fn := opAddDispatchFn) args lookup dClock bodyRun plan).1
-  have retRun : StatementRun opAddDispatchFn (opAddDispatchCallPost d bodyPost) (.return (.const (0 : BitVec 64)))
+  have callRun := (call_statement_work (coeff := coeff) (fn := opDispatchFn) args lookup dClock bodyRun plan).1
+  have retRun : StatementRun opDispatchFn (opAddDispatchCallPost d bodyPost) (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (.statement :: (expressionEvents (opAddDispatchCallPost d bodyPost) (.const (0 : BitVec 64)) ++
-        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves opAddDispatchFn)])) :=
-    StatementRun.returnValue (fn := opAddDispatchFn) (expression := .const (0 : BitVec 64))
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves opDispatchFn)])) :=
+    StatementRun.returnValue (fn := opDispatchFn) (expression := .const (0 : BitVec 64))
       (costedExpression_events (opAddDispatchCallPost d bodyPost) _ _
         (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
-  exact StatementRun.seqNext (fn := opAddDispatchFn) callRun retRun
+  exact StatementRun.seqNext (fn := opDispatchFn) callRun retRun
 
 #print axioms opAdd_dispatch_arm_run
 
@@ -101,24 +101,24 @@ theorem opAdd_dispatch_arm_score (coeff : Work)
 /-- The `op == 1` case of the dispatcher selects the `op_add` arm. -/
 theorem opAdd_dispatch_ite_run (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent)
-    (armRun : StatementRun opAddDispatchFn d (.seq (.call (some (none, none)) (ofString "op_add") [])
+    (armRun : StatementRun opDispatchFn d (.seq (.call (some (none, none)) (ofString "op_add") [])
         (.return (.const (0 : BitVec 64))))
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (opAddDispatchArmEvents d bodyPost bodyEvents))
     (opValue : d.locals.lookup (ofString "op") = some (.val (.word (1 : BitVec 64)))) :
-    StatementRun opAddDispatchFn d (.ite (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+    StatementRun opDispatchFn d (.ite (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
         (.const (1 : BitVec 64)))
         (.seq (.call (some (none, none)) (ofString "op_add") [])
           (.return (.const (0 : BitVec 64)))) .skip)
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
-      (.statement :: .cost (statementUnit + branchMoves opAddDispatchFn) :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+      (.statement :: .cost (statementUnit + branchMoves opDispatchFn) :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
         (.const (1 : BitVec 64))) ++ opAddDispatchArmEvents d bodyPost bodyEvents)) := by
   have guardValue : expressionValue d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
       (.const (1 : BitVec 64))) = some (.val (.word 1)) := by
     unfold expressionValue
     simp [evalHOLExact, toExact, opValue, Flapjack.Compiler.Encoders.Asm.wordCmpHOL,
       BitVec.lt_def]
-  exact StatementRun.iteYes (fn := opAddDispatchFn) (costedExpression_events d _ _ guardValue) (by decide) armRun
+  exact StatementRun.iteYes (fn := opDispatchFn) (costedExpression_events d _ _ guardValue) (by decide) armRun
 
 #print axioms opAdd_dispatch_ite_run
 

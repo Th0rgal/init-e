@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.GuestCostOpAddDispatch
+set_option maxRecDepth 10000
 namespace InitECandidate.Runtime.FineCost
 open InitECandidate.Runtime
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
@@ -6,31 +7,33 @@ open Flapjack.Basis.Pure.MlString
 
 set_option maxHeartbeats 2000000
 
+
+
 /-- The `op == 0` guard skip trace. -/
 noncomputable def opAddOuterZeroEvents (d : PanSemStateFiniteExact 64 Guest.HostMemory) :
     List WorkEvent :=
-  .statement :: .cost statementUnit :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+  .statement :: .cost (statementUnit + branchMoves opDispatchFn) :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
     (.const (0 : BitVec 64))) ++ [.statement])
 
 /-- The `op == 1` guard and `op_add` arm trace. -/
 noncomputable def opAddOuterOneEvents (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
     List WorkEvent :=
-  .statement :: .cost statementUnit :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
+  .statement :: .cost (statementUnit + branchMoves opDispatchFn) :: (expressionEvents d (.cmp Cmp.equal (.var VarKind.local (ofString "op"))
     (.const (1 : BitVec 64))) ++ opAddDispatchArmEvents d bodyPost bodyEvents)
 
 /-- The `op < 16` guard and its selected zero/one guards and arm. -/
 noncomputable def opAddOuterSixteenEvents (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
     List WorkEvent :=
-  .statement :: .cost statementUnit :: (expressionEvents d (.cmp Cmp.lower (.var VarKind.local (ofString "op"))
+  .statement :: .cost (statementUnit + branchMoves opDispatchFn) :: (expressionEvents d (.cmp Cmp.lower (.var VarKind.local (ofString "op"))
     (.const (16 : BitVec 64))) ++ (opAddOuterZeroEvents d ++ opAddOuterOneEvents d bodyPost bodyEvents))
 
 /-- The full outer dispatcher guard trace for `op = 1`. -/
 noncomputable def opAddOuterThirtyTwoEvents (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent) :
     List WorkEvent :=
-  .statement :: .cost statementUnit :: (expressionEvents d (.cmp Cmp.lower (.var VarKind.local (ofString "op"))
+  .statement :: .cost (statementUnit + branchMoves opDispatchFn) :: (expressionEvents d (.cmp Cmp.lower (.var VarKind.local (ofString "op"))
     (.const (32 : BitVec 64))) ++ opAddOuterSixteenEvents d bodyPost bodyEvents)
 
 
@@ -38,7 +41,7 @@ noncomputable def opAddOuterThirtyTwoEvents (d : PanSemStateFiniteExact 64 Guest
 theorem opAddOuter_opZero_iteNo (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (rest : ProgHOL 64)
     (opValue : d.locals.lookup (ofString "op") = some (.val (.word (1 : BitVec 64)))) :
-    StatementRun d
+    StatementRun opDispatchFn d
       (.ite (.cmp Cmp.equal (.var VarKind.local (ofString "op")) (.const (0 : BitVec 64)))
         (.seq (.call (some (none, none)) (ofString "op_stop") [])
           (.return (.const (0 : BitVec 64)))) .skip)
@@ -48,8 +51,8 @@ theorem opAddOuter_opZero_iteNo (d : PanSemStateFiniteExact 64 Guest.HostMemory)
       (.const (0 : BitVec 64))) = some (.val (.word 0)) := by
     unfold expressionValue
     simp [evalHOLExact, toExact, opValue, Flapjack.Compiler.Encoders.Asm.wordCmpHOL]
-  simpa [opAddOuterZeroEvents] using StatementRun.iteNo (r := none) (post := d) (bodyEvents := [.statement])
-    (costedExpression_events d _ _ guardValue) (StatementRun.skip d)
+  simpa [opAddOuterZeroEvents] using StatementRun.iteNo (fn := opDispatchFn) (r := none) (post := d) (bodyEvents := [.statement])
+    (costedExpression_events d _ _ guardValue) (StatementRun.skip (fn := opDispatchFn) d)
 
 #print axioms opAddOuter_opZero_iteNo
 
@@ -59,12 +62,12 @@ theorem opAddOuter_opZero_opOne_run (coeff : Work)
     (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent)
     (rest : ProgHOL 64)
-    (armRun : StatementRun d (.seq (.call (some (none, none)) (ofString "op_add") [])
+    (armRun : StatementRun opDispatchFn d (.seq (.call (some (none, none)) (ofString "op_add") [])
         (.return (.const (0 : BitVec 64))))
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (opAddDispatchArmEvents d bodyPost bodyEvents))
     (opValue : d.locals.lookup (ofString "op") = some (.val (.word (1 : BitVec 64)))) :
-    StatementRun d
+    StatementRun opDispatchFn d
       (.seq (.ite (.cmp Cmp.equal (.var VarKind.local (ofString "op")) (.const (0 : BitVec 64)))
           (.seq (.call (some (none, none)) (ofString "op_stop") [])
             (.return (.const (0 : BitVec 64)))) .skip)
@@ -75,13 +78,13 @@ theorem opAddOuter_opZero_opOne_run (coeff : Work)
       (opAddOuterZeroEvents d ++ opAddOuterOneEvents d bodyPost bodyEvents) := by
   have zero := opAddOuter_opZero_iteNo d rest opValue
   have one := opAdd_dispatch_ite_run d bodyPost bodyEvents armRun opValue
-  have tail := StatementRun.seqStop (s := d) (first :=
+  have tail := StatementRun.seqStop (fn := opDispatchFn) (s := d) (first :=
       (.ite (.cmp Cmp.equal (.var VarKind.local (ofString "op")) (.const (1 : BitVec 64)))
         (.seq (.call (some (none, none)) (ofString "op_add") [])
           (.return (.const (0 : BitVec 64)))) .skip))
       (second := rest) (r := some (.returned (.val (.word 0))))
       (post := opAddDispatchArmPost d bodyPost) (by decide) one
-  simpa [opAddOuterZeroEvents, opAddOuterOneEvents, opAddDispatchArmEvents] using StatementRun.seqNext zero tail
+  simpa [opAddOuterZeroEvents, opAddOuterOneEvents, opAddDispatchArmEvents] using StatementRun.seqNext (fn := opDispatchFn) zero tail
 
 #print axioms opAddOuter_opZero_opOne_run
 
@@ -90,12 +93,12 @@ theorem opAddOuter_lt16_run (coeff : Work)
     (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent)
     (rest rest2 : ProgHOL 64)
-    (armRun : StatementRun d (.seq (.call (some (none, none)) (ofString "op_add") [])
+    (armRun : StatementRun opDispatchFn d (.seq (.call (some (none, none)) (ofString "op_add") [])
         (.return (.const (0 : BitVec 64))))
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (opAddDispatchArmEvents d bodyPost bodyEvents))
     (opValue : d.locals.lookup (ofString "op") = some (.val (.word (1 : BitVec 64)))) :
-    StatementRun d
+    StatementRun opDispatchFn d
       (.ite (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (16 : BitVec 64)))
         (.seq (.ite (.cmp Cmp.equal (.var VarKind.local (ofString "op")) (.const (0 : BitVec 64)))
             (.seq (.call (some (none, none)) (ofString "op_stop") [])
@@ -110,7 +113,7 @@ theorem opAddOuter_lt16_run (coeff : Work)
     unfold expressionValue
     simp [evalHOLExact, toExact, opValue, Flapjack.Compiler.Encoders.Asm.wordCmpHOL]
   have inner := opAddOuter_opZero_opOne_run coeff d bodyPost bodyEvents rest armRun opValue
-  simpa [opAddOuterZeroEvents, opAddOuterOneEvents, opAddOuterSixteenEvents, opAddDispatchArmEvents] using StatementRun.iteYes (costedExpression_events d _ _ guardValue) (by decide) inner
+  simpa [opAddOuterZeroEvents, opAddOuterOneEvents, opAddOuterSixteenEvents, opAddDispatchArmEvents] using StatementRun.iteYes (fn := opDispatchFn) (costedExpression_events d _ _ guardValue) (by decide) inner
 
 #print axioms opAddOuter_lt16_run
 
@@ -120,12 +123,12 @@ theorem opAddOuter_lt32_run (coeff : Work)
     (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent)
     (rest rest2 rest2b rest3 elseBranch : ProgHOL 64)
-    (armRun : StatementRun d (.seq (.call (some (none, none)) (ofString "op_add") [])
+    (armRun : StatementRun opDispatchFn d (.seq (.call (some (none, none)) (ofString "op_add") [])
         (.return (.const (0 : BitVec 64))))
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (opAddDispatchArmEvents d bodyPost bodyEvents))
     (opValue : d.locals.lookup (ofString "op") = some (.val (.word (1 : BitVec 64)))) :
-    StatementRun d
+    StatementRun opDispatchFn d
       (.seq
         (.ite (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (32 : BitVec 64)))
           (.seq
@@ -153,7 +156,7 @@ theorem opAddOuter_lt32_run (coeff : Work)
     unfold expressionValue
     simp [evalHOLExact, toExact, opValue, Flapjack.Compiler.Encoders.Asm.wordCmpHOL]
   have inner := opAddOuter_lt16_run coeff d bodyPost bodyEvents rest rest2 armRun opValue
-  have branch := StatementRun.seqStop (s := d)
+  have branch := StatementRun.seqStop (fn := opDispatchFn) (s := d)
       (first :=
         (.ite (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (16 : BitVec 64)))
           (.seq
@@ -170,10 +173,10 @@ theorem opAddOuter_lt32_run (coeff : Work)
           rest2))
       (second := rest2b) (r := some (.returned (.val (.word 0))))
       (post := opAddDispatchArmPost d bodyPost) (by decide) inner
-  have iteRun := StatementRun.iteYes
+  have iteRun := StatementRun.iteYes (fn := opDispatchFn)
     (no := elseBranch)
     (costedExpression_events d _ _ guardValue) (by decide) branch
-  have whole := StatementRun.seqStop (s := d)
+  have whole := StatementRun.seqStop (fn := opDispatchFn) (s := d)
       (first :=
         (.ite (.cmp Cmp.lower (.var VarKind.local (ofString "op")) (.const (32 : BitVec 64)))
           (.seq
@@ -203,7 +206,7 @@ theorem opAddOuter_lt32_run (coeff : Work)
 /-- Price of one dispatcher guard statement and its condition. -/
 noncomputable def opAddOuterGuardCost (coeff : Work)
     (d : PanSemStateFiniteExact 64 Guest.HostMemory) (condition : ExpHOL 64) : Nat :=
-  coeff.score (executionWork (.statement :: .cost statementUnit :: expressionEvents d condition))
+  coeff.score (executionWork (.statement :: .cost (statementUnit + branchMoves opDispatchFn) :: expressionEvents d condition))
 
 /-- The outer guard trace splits into the `op < 32` guard and the inner trace. -/
 theorem opAddOuterThirtyTwoEvents_score (coeff : Work)
@@ -245,7 +248,7 @@ theorem opAddOuter_dispatch_body_run (coeff : Work)
     (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent)
     (rest rest2 rest2b rest3 : ProgHOL 64)
-    (armRun : StatementRun (callEntryStateHOLFinite d HolFiniteMapExact.empty)
+    (armRun : StatementRun (ofString "op_add") (callEntryStateHOLFinite d HolFiniteMapExact.empty)
       (sourceFunctionBody Guest.guestFn_op_add) (some (.returned (.val (.word 0))))
       bodyPost bodyEvents)
     (dClock : d.clock ≠ 0)
@@ -272,7 +275,7 @@ theorem opAddOuter_dispatch_body_run (coeff : Work)
             rest2b)
           .skip)
         rest3)) :
-    StatementRun d (sourceFunctionBody Guest.guestFn_op_dispatch)
+    StatementRun opDispatchFn d (sourceFunctionBody Guest.guestFn_op_dispatch)
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (opAddOuterThirtyTwoEvents d bodyPost bodyEvents) := by
   have arm := opAdd_dispatch_arm_run coeff d bodyPost bodyEvents armRun dClock dInstalled
