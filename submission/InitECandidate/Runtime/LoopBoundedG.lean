@@ -38,7 +38,7 @@ theorem seq {first second : HolLoopProg 64} {a b : Nat}
 
 theorem ite {operator : Cmp} {register : Nat} {right : RegImm (BitVec 64)} {yes no : HolLoopProg 64}
     {live : NumSet} {a b : Nat} (yesB : LoopBoundedG L yes a) (noB : LoopBoundedG L no b) :
-    LoopBoundedG L (.ite operator register right yes no live) (37 + max a b) := by
+    LoopBoundedG L (.ite operator register right yes no live) (L.ite + max a b) := by
   intro F f s
   by_cases words : ∃ x y, sptLookup register s.locals = some (.word x) ∧
       LoopSemStateFiniteExact.getVarImm right s = some (.word y)
@@ -46,15 +46,15 @@ theorem ite {operator : Cmp} {register : Nat} {right : RegImm (BitVec 64)} {yes 
     by_cases chosen : Compiler.Encoders.Asm.wordCmpHOL operator x y = true
     · obtain ⟨w, work, bound⟩ := yesB F f s
       have rule := LoopWorkG.iteBranch (live := live) (no := no) hx hy (by rw [if_pos chosen]; exact work)
-      refine ⟨37 + w, ?_, by omega⟩
+      refine ⟨L.ite + w, ?_, by omega⟩
       rwa [← LoopWorkG.sound rule] at rule
     · obtain ⟨w, work, bound⟩ := noB F f s
       have rule := LoopWorkG.iteBranch (live := live) (yes := yes) hx hy (by rw [if_neg chosen]; exact work)
-      refine ⟨37 + w, ?_, by omega⟩
+      refine ⟨L.ite + w, ?_, by omega⟩
       rwa [← LoopWorkG.sound rule] at rule
   · have rule := LoopWorkG.iteInvalid (L := L) (f := f) (live := live) (yes := yes) (no := no)
       (operator := operator) (s := s) words
-    refine ⟨1, ?_, by omega⟩
+    refine ⟨1, ?_, by have := L.iteOne; omega⟩
     rwa [← LoopWorkG.sound rule] at rule
 
 theorem single {p : HolLoopProg 64} {k : Nat} (h : LoopBoundedG L p k) : LoopBoundedG L (loopNestedSeqHOL [p]) k := by

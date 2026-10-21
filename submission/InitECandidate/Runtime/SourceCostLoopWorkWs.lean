@@ -37,6 +37,14 @@ noncomputable def wsLeaf (c : Compiler.Encoders.Asm.AsmConfigExact 64) : LeafPri
   ts := fun g => wsTail (some g) + wsTail none
   rn := fun n => 21 * (n + 1 - 22)
   shortC := 24 * callTabMax + 24 * tailMax
+  ite := 29
+  iteOne := by decide
+  iter := 14
+  call := 189
+  cont := 6
+  argCost := fun n => 39 * (n + 1 - 22)
+  argMono := fun m n h => by omega
+  ret := 0
 
 theorem tabMax_le_of (T : SiteTable) (P Q : Nat × Nat × List Nat → Bool) (h : ∀ k, P k = true → Q k = true) :
     tabMax T P ≤ tabMax T Q := by
@@ -125,6 +133,12 @@ theorem LoopWorkG.toPL {F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) 
     (work : LoopWorkG (wsLeaf c) f s p output w) :
     ∀ l : Nat × Nat, l.1 = f → SiteLe siteA siteB l p → CodeSiteLe siteA siteB s →
       ∃ w', LoopWorkPL (wsLoopPrice c wsT1 wsT2) l s p output w' ∧ w' ≤ w := by
+  have hIte : (wsLeaf c).ite = 29 := rfl
+  have hIter : (wsLeaf c).iter = 14 := rfl
+  have hCall : (wsLeaf c).call = 189 := rfl
+  have hCont : (wsLeaf c).cont = 6 := rfl
+  have hRet : (wsLeaf c).ret = 0 := rfl
+  have hArg : ∀ n, (wsLeaf c).argCost n = 39 * (n + 1 - 22) := fun _ => rfl
   induction work with
   | atom leaf run => intro l _ _ _; exact ⟨_, .atom leaf run, Nat.le_refl _⟩
   | mark _ ih =>
@@ -149,41 +163,41 @@ theorem LoopWorkG.toPL {F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) 
       · exact hf
       · rw [labAfter_fst]; exact hf
     obtain ⟨w', a, h⟩ := ih _ hfb hb hc
-    exact ⟨_, .iteBranch lhs rhs a, by simp only [wsLoopPrice]; omega⟩
+    exact ⟨_, .iteBranch lhs rhs a, by simp only [hArg, hCall, hRet, hCont, wsLoopPrice]; omega⟩
   | iteInvalid invalid => intro l _ _ _; exact ⟨1, .iteInvalid invalid, Nat.le_refl _⟩
   | loopNext cut _ again _ ih1 ih2 =>
     intro l hf hs hc
     have hce := codeSiteLe_of_code hc (cut_entry_code cut)
     obtain ⟨a', x, h1⟩ := ih1 l hf hs hce
     obtain ⟨b', y, h2⟩ := ih2 l hf hs (codeSiteLe_of_code hce (x.code (ws_dom c)))
-    exact ⟨_, .loopNext cut x again y, by simp only [wsLoopPrice]; omega⟩
+    exact ⟨_, .loopNext cut x again y, by simp only [hArg, hCall, hRet, hCont, wsLoopPrice]; omega⟩
   | loopBreak cut _ ih =>
     intro l hf hs hc
     obtain ⟨a', x, h⟩ := ih l hf hs (codeSiteLe_of_code hc (cut_entry_code cut))
-    exact ⟨_, .loopBreak cut x, by simp only [wsLoopPrice]; omega⟩
+    exact ⟨_, .loopBreak cut x, by simp only [hArg, hCall, hRet, hCont, wsLoopPrice]; omega⟩
   | loopExit cut _ stop ih =>
     intro l hf hs hc
     obtain ⟨a', x, h⟩ := ih l hf hs (codeSiteLe_of_code hc (cut_entry_code cut))
-    exact ⟨_, .loopExit cut x stop, by simp only [wsLoopPrice]; omega⟩
-  | loopCut stopped => intro l _ _ _; exact ⟨_, .loopCut stopped, by simp only [wsLoopPrice]; omega⟩
+    exact ⟨_, .loopExit cut x stop, by simp only [hArg, hCall, hRet, hCont, wsLoopPrice]; omega⟩
+  | loopCut stopped => intro l _ _ _; exact ⟨_, .loopCut stopped, by simp only [hArg, hCall, hRet, hCont, wsLoopPrice]; omega⟩
   | @callShort f s returns target arguments handler output short run =>
     intro l hf hs _
     refine ⟨_, .callShort short run, ?_⟩
     rcases returns with _ | ⟨names, live⟩
     · have := wsTail_le target
-      simp only [wsLoopPrice, wsLeaf, LeafPrice.rnOpt, wsTail] at this ⊢; omega
+      simp only [hArg, hCall, hRet, hCont, wsLoopPrice, wsLeaf, LeafPrice.rnOpt, wsTail] at this ⊢; omega
     · have h1 : siteA l target ≤ siteB l target := by unfold SiteLe at hs; exact hs.1
       have h2 := callTab_le_max (l.1, target)
       simp only [siteB] at h1
       have h3 : (wsLoopPrice c wsT1 wsT2).site l target = siteA l target := rfl
-      simp only [wsLoopPrice, wsLeaf, LeafPrice.rnOpt] at h3 ⊢; omega
+      simp only [hArg, hCall, hRet, hCont, wsLoopPrice, wsLeaf, LeafPrice.rnOpt] at h3 ⊢; omega
   | @callTail f s target arguments handler values env prog result post wb args find noHandler clock _ ih =>
     intro l hf hs hc
     obtain ⟨a', x, h⟩ := ih (calleeName target values, 2) (calleeName_loopCallee target values)
       (hc _ _ _ _ find) (codeSiteLe_of_code hc rfl)
     have ht := tail_le_ts c target values
     refine ⟨_, .callTail args find noHandler clock x, ?_⟩
-    simp only [wsLoopPrice, wsTail] at ht ⊢; omega
+    simp only [hArg, hCall, hRet, hCont, wsLoopPrice, wsTail] at ht ⊢; omega
   | @callRet f s names live target arguments handler values env prog entry result post wb args find nodup cut _
       plain ih =>
     intro l hf hs hc
@@ -194,7 +208,7 @@ theorem LoopWorkG.toPL {F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) 
     have hcs := site_le_cs c values h1 hf
     have h3 : (wsLoopPrice c wsT1 wsT2).site l target = siteA l target := rfl
     refine ⟨_, .callRet args find nodup cut x plain, ?_⟩
-    simp only [wsLoopPrice, wsLeaf] at h3 hcs ⊢; omega
+    simp only [hArg, hCall, hRet, hCont, wsLoopPrice, wsLeaf] at h3 hcs ⊢; omega
   | @callRetCont f s names live target arguments exceptionName handlerProgram continuation liveOut values env
       prog entry returned post wb output wc args find nodup cut _ lengths _ ih1 ih2 =>
     intro l hf hs hc
@@ -209,7 +223,7 @@ theorem LoopWorkG.toPL {F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) 
     have hcs := site_le_cs c values hsa hf
     have h3 : (wsLoopPrice c wsT1 wsT2).site l target = siteA l target := rfl
     refine ⟨_, .callRetCont (exceptionName := exceptionName) (liveOut := liveOut) args find nodup cut x lengths y, ?_⟩
-    simp only [wsLoopPrice, wsLeaf] at h3 hcs ⊢; omega
+    simp only [hArg, hCall, hRet, hCont, wsLoopPrice, wsLeaf] at h3 hcs ⊢; omega
   | @callHandle f s names live target arguments exceptionName handlerProgram continuation liveOut values env prog
       entry exn post wb output wh args find nodup cut _ _ ih1 ih2 =>
     intro l hf hs hc
@@ -223,7 +237,7 @@ theorem LoopWorkG.toPL {F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) 
     have hcs := site_le_cs c values hsa hf
     have h3 : (wsLoopPrice c wsT1 wsT2).site l target = siteA l target := rfl
     refine ⟨_, .callHandle (continuation := continuation) (liveOut := liveOut) args find nodup cut x y, ?_⟩
-    simp only [wsLoopPrice, wsLeaf] at h3 hcs ⊢; omega
+    simp only [hArg, hCall, hRet, hCont, wsLoopPrice, wsLeaf] at h3 hcs ⊢; omega
 
 #print axioms LoopWorkG.toPL
 end InitECandidate.Runtime.FineCost

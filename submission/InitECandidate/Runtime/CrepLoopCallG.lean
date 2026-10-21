@@ -178,7 +178,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
   have preAllowance : P.A.works (p ++ temps.zipWith HolLoopProg.assign les) =
       some (preCode + moveCost) := by
     rw [P.A.works_append, preSupported, moveSupported]; rfl
-  have unitOk := fit.unitOk
+  have argOk := fit.argOk temps.length
   have retOk := fit.retOk
   have handleOk := fit.handleOk
   have raiseRetOk := fit.raiseRetOk
@@ -291,7 +291,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
             crepToLoopGlobalsRelHOLExact st'.globals t1.globals ∧
             crepToLoopCodeRelExact ctxt st'.code t1.code ∧
             ∃ wc, LoopWorkG P.L (labOf funcs fn) { sA with clock := sA.clock + ck' } (HolLoopProg.call none (some loc) temps none)
-              (resultToLoop (some r), t1) wc ∧ wc ≤ 189 + 39 * temps.length + P.L.ts loc + wb := by
+              (resultToLoop (some r), t1) wc ∧ wc ≤ P.L.call + P.L.argCost temps.length + P.L.ts loc + wb := by
         intro r st' hb hre hrb hrc
         obtain ⟨ck', wbody, bodyWork, bodyWorkBound, bodyRel⟩ := ihBody T0 nctxt
           (listToNumSetHOLExact (List.range len)) hfun (by rw [hb]; simpa using hre)
@@ -632,6 +632,8 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
               have l3 : rn.length = nrhss.length := by rw [hrn]
               simp only [crepCallPayloadWords] at crepBound
               have payloadPrice := Nat.mul_le_mul_right retvs.length retOk
+              have hm : P.L.ret * (List.map wlabWlocExact retvs).length = P.L.ret * retvs.length := by
+                rw [List.length_map]
               omega
           · simp only [hlr, ne_eq, not_false_eq_true, if_true, Prod.mk.injEq] at he
             exact absurd he.1.symm hne
@@ -703,7 +705,7 @@ theorem call_loop_paidG (P : LoopPricingG) {unit prim ret shortP : Nat} {callP :
                   LoopWorkG P.L (labOf funcs fn) { Z with clock := Z.clock + (J - 1) } (compileHOLExact ctxt l hp) o wc →
                   LoopWorkG P.L (labOf funcs fn) (LoopSemStateFiniteExact.setVar (ctxt.vmax + 1) (.word eid)
                     { t1 with clock := t1.clock + J, locals := sptInter sA.locals l }) hbody
-                    (LoopSemStateFiniteExact.cutRes l o) (37 + (kt + wc)) := by
+                    (LoopSemStateFiniteExact.cutRes l o) (P.L.ite + (kt + wc)) := by
                 intro J o wc hJ hpWork
                 have tickRun : LoopSemStateFiniteExact.evaluate .tick
                     (LoopSemStateFiniteExact.setVar (ctxt.vmax + 1) (.word eid)

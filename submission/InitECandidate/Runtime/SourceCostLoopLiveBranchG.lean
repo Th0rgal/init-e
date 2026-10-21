@@ -18,7 +18,7 @@ theorem loop_live_paid_iteG {F : Type} {s : LoopSemStateFiniteExact 64 F}
     (paid : LoopLivePaidG L f s (if Compiler.Encoders.Asm.wordCmpHOL operator x y then yes else no)
       output w)
     (nonerror : (cutRes liveOut output).1 ≠ some .error) :
-    LoopLivePaidG L f s (.ite operator register right yes no liveOut) (cutRes liveOut output) (37 + w) := by
+    LoopLivePaidG L f s (.ite operator register right yes no liveOut) (cutRes liveOut output) (L.ite + w) := by
   intro contexts locals live input
   rcases compiledYes : shrinkHOL contexts yes (sptInter live liveOut) with ⟨yes', yesLive⟩
   rcases compiledNo : shrinkHOL contexts no (sptInter live liveOut) with ⟨no', noLive⟩
@@ -72,10 +72,10 @@ theorem loop_live_paid_iteG {F : Type} {s : LoopSemStateFiniteExact 64 F}
   have target' : LoopWorkG L f { s with locals := locals }
       (shrinkHOL contexts (.ite operator register right yes no liveOut) live).1
       (cutRes (sptInter live liveOut) (output.1, { output.2 with locals := branchLocals }))
-      (37 + w') := by
+      (L.ite + w') := by
     simpa only [compiled] using target
   have source : LoopWorkG L f s (.ite operator register right yes no liveOut)
-      ((cutRes liveOut output).1, (cutRes liveOut output).2) (37 + w) :=
+      ((cutRes liveOut output).1, (cutRes liveOut output).2) (L.ite + w) :=
     LoopWorkG.iteBranch lhs rhs branch
   exact loop_live_finishG source nonerror contexts locals live input target' (by omega)
 

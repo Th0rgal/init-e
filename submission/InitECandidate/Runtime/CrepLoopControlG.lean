@@ -84,7 +84,7 @@ theorem crep_loop_executed_workG (P : LoopPricingG) {unit prim ret shortP : Nat}
     intro u context live hfun ok rel
     have okBranch : (evalCrepSemHOLProgExact t (if word ≠ 0 then yes else no)).1 ≠ some .error := by
       rw [evalCrepSemHOLProgExact_ite_holShape, guard] at ok; exact ok
-    exact ite_loop_paidG P (labOf funcs fn) fit.unitOk guard ok rel (fun u' rel' => ihBranch u' context live hfun okBranch rel')
+    exact ite_loop_paidG P (labOf funcs fn) fit.iteOk guard ok rel (fun u' rel' => ihBranch u' context live hfun okBranch rel')
   | @iteInvalid fn t condition yes no invalid =>
     intro u context live hfun ok rel
     exfalso
@@ -111,10 +111,10 @@ theorem crep_loop_executed_workG (P : LoopPricingG) {unit prim ret shortP : Nat}
       | word w =>
         have hw := exit w hev
         subst hw
-        exact while_false_loop_paidG P (labOf funcs fn) fit.unitOk fit.breakOk fit.contOk hev rel
+        exact while_false_loop_paidG P (labOf funcs fn) fit.iteOk fit.iterOk fit.breakOk fit.contOk hev rel
   | @whileTimeout fn t condition body word guard nonzero clock =>
     intro u context live hfun ok rel
-    exact while_timeout_loop_paidG P (labOf funcs fn) fit.unitOk fit.breakOk fit.contOk guard nonzero clock rel
+    exact while_timeout_loop_paidG P (labOf funcs fn) fit.iteOk fit.iterOk fit.breakOk fit.contOk guard nonzero clock rel
   | @whileLoop fn t condition body word bodyWork result middle restWork guard nonzero clock one run
       again rest ihOne ihRest =>
     intro u context live hfun ok rel
@@ -127,14 +127,14 @@ theorem crep_loop_executed_workG (P : LoopPricingG) {unit prim ret shortP : Nat}
         rw [if_pos nonzero, run]
         rcases again with rfl | rfl <;> rfl
       rw [← crepRun]; exact ok
-    exact while_loop_loop_paidG P (labOf funcs fn) fit.unitOk fit.breakOk fit.contOk guard nonzero clock run again rel
+    exact while_loop_loop_paidG P (labOf funcs fn) fit.iteOk fit.iterOk fit.breakOk fit.contOk guard nonzero clock run again rel
       (fun u' rel' => ihOne u' context live hfun (by rw [run]; exact bodyOk) rel')
       (fun u' rel' => ihRest u' context live hfun restOk rel')
   | @whileStop fn t condition body word bodyWork result middle guard nonzero clock one run stop
       ihOne =>
     intro u context live hfun ok rel
     have bodyOk := while_body_not_error guard nonzero clock run ok
-    exact while_stop_loop_paidG P (labOf funcs fn) fit.unitOk fit.breakOk fit.contOk guard nonzero clock run stop ok rel
+    exact while_stop_loop_paidG P (labOf funcs fn) fit.iteOk fit.iterOk fit.breakOk fit.contOk guard nonzero clock run stop ok rel
       (fun u' rel' => ihOne u' context live hfun (by rw [run]; exact bodyOk) rel')
   | @callShort fn t returnInfo function arguments short =>
     intro u context live hfun ok rel

@@ -131,11 +131,11 @@ theorem loopBoundedS_ite {c : Compiler.Encoders.Asm.AsmConfigExact 64} {operator
     by_cases chosen : Compiler.Encoders.Asm.wordCmpHOL operator x y = true
     · obtain ⟨w, work, bound⟩ := yesB F f s
       have rule := LoopWorkG.iteBranch (live := live) (no := no) hx hy (by rw [if_pos chosen]; exact work)
-      refine ⟨37 + w, ?_, by omega⟩
+      refine ⟨(wsLeaf c).ite + w, ?_, by show 29 + w ≤ 37 + max a b; omega⟩
       rwa [← LoopWorkG.sound rule] at rule
     · obtain ⟨w, work, bound⟩ := noB F f s
       have rule := LoopWorkG.iteBranch (live := live) (yes := yes) hx hy (by rw [if_neg chosen]; exact work)
-      refine ⟨37 + w, ?_, by omega⟩
+      refine ⟨(wsLeaf c).ite + w, ?_, by show 29 + w ≤ 37 + max a b; omega⟩
       rwa [← LoopWorkG.sound rule] at rule
   · have rule := LoopWorkG.iteInvalid (L := wsLeaf c) (f := f) (live := live) (yes := yes) (no := no)
       (operator := operator) (s := s) words

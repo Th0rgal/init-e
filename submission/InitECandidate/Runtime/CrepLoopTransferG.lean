@@ -34,8 +34,11 @@ def LoopPaidG (L : LeafPrice) (f : Nat) {F : Type} (context : CrepToLoopContextE
 Loop labels through `funcs`; `shortP` pays a call stopping before its callee. -/
 structure CrepFitG (P : LoopPricingG) (unit prim ret shortP : Nat) (callP : CName → CName → Nat → Nat)
     (funcs : HolFiniteMapExact Basis.Pure.MlString.MlString (Nat × Nat)) : Prop where
-  unitOk : 37 ≤ unit
-  retOk : 49 ≤ ret
+  iteOk : P.L.ite ≤ unit
+  iterOk : P.L.iter ≤ unit
+  retOk : P.L.ret ≤ ret
+  /-- Argument passing is within the per-argument move charge. -/
+  argOk : ∀ n, P.L.argCost n ≤ 39 * n
   tickOk : P.tickC ≤ unit
   breakOk : P.breakC ≤ unit
   contOk : P.contC ≤ unit
@@ -48,12 +51,12 @@ structure CrepFitG (P : LoopPricingG) (unit prim ret shortP : Nat) (callP : CNam
   returnOk : P.returnC ≤ unit
   primOk : P.primC ≤ prim
   /-- A matched handler's dispatch: comparison and tick. -/
-  handleOk : 37 + P.tickC ≤ ret
+  handleOk : P.L.ite + P.tickC ≤ ret
   /-- An unmatched or absent handler re-raises (an exception pays three payload words). -/
-  raiseRetOk : 37 + P.raiseC ≤ 3 * ret
+  raiseRetOk : P.L.ite + P.raiseC ≤ 3 * ret
   /-- Return-name surcharges are for `n` names, or for the single fallback name
   `crep_to_loop` uses when the names are not all locals. -/
-  callOk : ∀ fn g n, 196 + P.L.cs (labOf funcs fn) (labOf funcs g) + P.L.ts (labOf funcs g) + P.L.rn n +
+  callOk : ∀ fn g n, P.L.call + P.L.cont + P.L.cs (labOf funcs fn) (labOf funcs g) + P.L.ts (labOf funcs g) + P.L.rn n +
     P.L.rn 1 ≤ callP fn g n
   shortOk : P.L.shortC ≤ shortP
 

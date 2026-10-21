@@ -4,8 +4,8 @@ open Flapjack Flapjack.LoopSemStateFiniteExact
 
 variable {L : LeafPrice} {f : Nat}
 
-/-! Executed Loop work with a parametric leaf price. Every non-leaf price is
-the `LoopWork` constant; a `LeafPrice` charges leaves only on `LoopWork`'s leaf
+/-! Executed Loop work with a parametric leaf price and parametric structural
+prices (`LoopWork`'s constants at `defaultLeaf`); a `LeafPrice` charges leaves only on `LoopWork`'s leaf
 kinds, and `skip` is free. `LoopWork` is `LoopWorkG defaultLeaf`. -/
 
 /-- A Loop leaf price for the optimisation passes. -/
@@ -22,6 +22,18 @@ structure LeafPrice where
   rn : Nat → Nat
   /-- Surcharge of a call that stops before its callee runs. -/
   shortC : Nat
+  /-- Structural prices: a taken conditional, a loop entry, a call, the extra
+  of a call with a handler, the arguments of a call by count, a returned word. -/
+  ite : Nat
+  /-- An invalid comparison (cost 1) is within a conditional's price. -/
+  iteOne : 1 ≤ ite
+  iter : Nat
+  call : Nat
+  cont : Nat
+  argCost : Nat → Nat
+  /-- Passing fewer arguments never costs more (call compilation drops one). -/
+  argMono : ∀ m n, m ≤ n → argCost m ≤ argCost n
+  ret : Nat
 
 /-- The callee function of a call: its explicit target, else the code
 location carried by the last argument (as `findCode`). -/
@@ -46,6 +58,14 @@ def defaultLeaf : LeafPrice where
   ts := fun _ => 0
   rn := fun _ => 0
   shortC := 0
+  ite := 37
+  iteOne := by decide
+  iter := 16
+  call := 189
+  cont := 7
+  argCost := fun n => 39 * n
+  argMono := fun m n h => Nat.mul_le_mul_left 39 h
+  ret := 49
 
 /-- Executed Loop work, indexed by the exact evaluator output. Every executed
 statement pays its local cost; recursive rules expose only actual successors:
@@ -66,7 +86,7 @@ inductive LoopWorkG (L : LeafPrice) {F : Type} : Nat → LoopSemStateFiniteExact
       (rhs : LoopSemStateFiniteExact.getVarImm right s = some (.word y))
       (branch : LoopWorkG L f s (if Compiler.Encoders.Asm.wordCmpHOL operator x y then yes else no)
         output w) :
-      LoopWorkG L f s (.ite operator register right yes no live) (LoopSemStateFiniteExact.cutRes live output) (37 + w)
+      LoopWorkG L f s (.ite operator register right yes no live) (LoopSemStateFiniteExact.cutRes live output) (L.ite + w)
   | iteInvalid {f s operator register right yes no live}
       (invalid : ¬ ∃ x y, sptLookup register s.locals = some (.word x) ∧
         LoopSemStateFiniteExact.getVarImm right s = some (.word y)) :
@@ -76,30 +96,30 @@ inductive LoopWorkG (L : LeafPrice) {F : Type} : Nat → LoopSemStateFiniteExact
       (one : LoopWorkG L f entry body (result, middle) wb)
       (again : result = none ∨ result = some (.continue 0))
       (rest : LoopWorkG L f middle (.loop liveIn body liveOut) output wr) :
-      LoopWorkG L f s (.loop liveIn body liveOut) output (16 + wb + wr)
+      LoopWorkG L f s (.loop liveIn body liveOut) output (L.iter + wb + wr)
   | loopBreak {f s liveIn body liveOut entry middle wb}
       (cut : LoopSemStateFiniteExact.cutRes liveIn (none, s) = (none, entry))
       (one : LoopWorkG L f entry body (some (.break 0), middle) wb) :
-      LoopWorkG L f s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.cutRes liveOut (none, middle)) (16 + wb)
+      LoopWorkG L f s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.cutRes liveOut (none, middle)) (L.iter + wb)
   | loopExit {f s liveIn body liveOut entry result middle wb}
       (cut : LoopSemStateFiniteExact.cutRes liveIn (none, s) = (none, entry))
       (one : LoopWorkG L f entry body (result, middle) wb)
       (stop : result ≠ none ∧ result ≠ some (.continue 0) ∧ result ≠ some (.break 0)) :
-      LoopWorkG L f s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.exitLoop result, middle) (16 + wb)
+      LoopWorkG L f s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.exitLoop result, middle) (L.iter + wb)
   | loopCut {f s liveIn body liveOut result cut}
       (stopped : LoopSemStateFiniteExact.cutRes liveIn (none, s) = (some result, cut)) :
-      LoopWorkG L f s (.loop liveIn body liveOut) (some result, cut) 16
+      LoopWorkG L f s (.loop liveIn body liveOut) (some result, cut) L.iter
   | callShort {f s returns target arguments handler output}
       (short : loopCallShort s returns target arguments handler)
       (run : evaluate (.call returns target arguments handler) s = output) :
-      LoopWorkG L f s (.call returns target arguments handler) output (189 + 39 * arguments.length + L.shortC + L.rnOpt returns)
+      LoopWorkG L f s (.call returns target arguments handler) output (L.call + L.argCost arguments.length + L.shortC + L.rnOpt returns)
   | callTail {f s target arguments handler values env prog result post wb}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
       (find : LoopSemStateFiniteExact.findCode target values s.code = some (env, prog))
       (noHandler : handler.isSome = false) (clock : s.clock ≠ 0)
       (body : LoopWorkG L (loopCallee target values) { LoopSemStateFiniteExact.decClock s with locals := env } prog (result, post) wb) :
       LoopWorkG L f s (.call none target arguments handler) (loopTailExit result post)
-        (189 + 39 * arguments.length + L.ts (loopCallee target values) + wb)
+        (L.call + L.argCost arguments.length + L.ts (loopCallee target values) + wb)
   | callRet {f s names live target arguments handler values env prog entry result post wb}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
       (find : LoopSemStateFiniteExact.findCode target values s.code = some (env, prog))
@@ -107,8 +127,8 @@ inductive LoopWorkG (L : LeafPrice) {F : Type} : Nat → LoopSemStateFiniteExact
       (body : LoopWorkG L (loopCallee target values) { entry with locals := env } prog (result, post) wb)
       (plain : loopRetPlain result names handler) :
       LoopWorkG L f s (.call (some (names, live)) target arguments handler)
-        (loopRetExit result post entry names) (189 + 39 * arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
-          49 * loopRetWords result)
+        (loopRetExit result post entry names) (L.call + L.argCost arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
+          L.ret * loopRetWords result)
   | callRetCont {f s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry returned post wb output wc}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
@@ -120,8 +140,8 @@ inductive LoopWorkG (L : LeafPrice) {F : Type} : Nat → LoopSemStateFiniteExact
         continuation output wc) :
       LoopWorkG L f s (.call (some (names, live)) target arguments
           (some (exceptionName, handlerProgram, continuation, liveOut)))
-        (LoopSemStateFiniteExact.cutRes liveOut output) (196 + 39 * arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
-          49 * returned.length + wc)
+        (LoopSemStateFiniteExact.cutRes liveOut output) (L.call + L.cont + L.argCost arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb +
+          L.ret * returned.length + wc)
   | callHandle {f s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry exn post wb output wh}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
@@ -132,7 +152,7 @@ inductive LoopWorkG (L : LeafPrice) {F : Type} : Nat → LoopSemStateFiniteExact
         handlerProgram output wh) :
       LoopWorkG L f s (.call (some (names, live)) target arguments
           (some (exceptionName, handlerProgram, continuation, liveOut)))
-        (LoopSemStateFiniteExact.cutRes liveOut output) (196 + 39 * arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb + wh)
+        (LoopSemStateFiniteExact.cutRes liveOut output) (L.call + L.cont + L.argCost arguments.length + L.cs f (loopCallee target values) + L.rn names.length + wb + wh)
 
 theorem LoopWorkG.sound {F : Type} {s : LoopSemStateFiniteExact 64 F} {p : HolLoopProg 64}
     {output} {w : Nat} (work : LoopWorkG L f s p output w) : evaluate p s = output := by

@@ -65,12 +65,14 @@ per-(caller, callee, return count) call price. -/
 theorem selPricing_fit (c : Compiler.Encoders.Asm.AsmConfigExact 64) {unit prim ret shortP : Nat}
     {callP : CName → CName → Nat → Nat} {funcs : HolFiniteMapExact Basis.Pure.MlString.MlString (Nat × Nat)}
     (hu : 37 ≤ unit) (hffi : ffiSel ≤ unit) (hp : 111 ≤ prim) (hr : 49 ≤ ret)
-    (callOk : ∀ fn g n, 196 + (wsLeaf c).cs (labOf funcs fn) (labOf funcs g) + (wsLeaf c).ts (labOf funcs g) +
+    (callOk : ∀ fn g n, (wsLeaf c).call + (wsLeaf c).cont + (wsLeaf c).cs (labOf funcs fn) (labOf funcs g) + (wsLeaf c).ts (labOf funcs g) +
       (wsLeaf c).rn n + (wsLeaf c).rn 1 ≤ callP fn g n)
     (shortOk : (wsLeaf c).shortC ≤ shortP) :
     CrepFitG (selPricing c) unit prim ret shortP callP funcs where
-  unitOk := hu
-  retOk := hr
+  iteOk := by show 29 ≤ unit; omega
+  iterOk := by show 14 ≤ unit; omega
+  retOk := by show 0 ≤ ret; omega
+  argOk := fun n => by show 39 * (n + 1 - 22) ≤ 39 * n; omega
   tickOk := by show 6 ≤ unit; omega
   breakOk := by show 2 ≤ unit; omega
   contOk := by show 0 ≤ unit; omega
@@ -82,8 +84,8 @@ theorem selPricing_fit (c : Compiler.Encoders.Asm.AsmConfigExact 64) {unit prim 
   store32Ok := by show 24 ≤ unit; omega
   returnOk := by show 15 ≤ unit; omega
   primOk := hp
-  handleOk := by show 37 + 6 ≤ ret; omega
-  raiseRetOk := by show 37 + 63 ≤ 3 * ret; omega
+  handleOk := by show 29 + 6 ≤ ret; omega
+  raiseRetOk := by show 29 + 63 ≤ 3 * ret; omega
   callOk := callOk
   shortOk := shortOk
 

@@ -5,7 +5,7 @@ open Flapjack Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proof
 
 /-- Conditional transfer: guard materialization, the comparison, the selected
 compiled branch (with the original relations) and the join. -/
-theorem ite_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (unitOk : 37 ≤ unit) {F : Type} {context : CrepToLoopContextExact} {live : NumSet}
+theorem ite_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (unitOk : P.L.ite ≤ unit) {F : Type} {context : CrepToLoopContextExact} {live : NumSet}
     {t : CrepSemHOLState 64 F} {u : LoopSemStateFiniteExact 64 F}
     {condition : CrepExpHOL 64} {yes no : CrepProgHOL 64} {word : BitVec 64} {wb : Nat}
     (guard : evalCrepSemHOLExp t condition = some (.word word))
@@ -55,7 +55,7 @@ theorem ite_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (unitOk : 37 �
         (loopNestedSeqHOL [.assign tmp le,
           .ite .notEqual tmp (.imm (0 : BitVec 64))
             (compileHOLExact context live yes) (compileHOLExact context live no) live])
-        (LoopSemStateFiniteExact.cutRes live output) w ∧ w ≤ 37 + P.vp le + wc := by
+        (LoopSemStateFiniteExact.cutRes live output) w ∧ w ≤ P.L.ite + P.vp le + wc := by
     intro k output wc child
     have hle : LoopSemStateFiniteExact.eval { st with clock := st.clock + k } le =
         some (.word word) := by
@@ -78,9 +78,9 @@ theorem ite_loop_paidG (P : LoopPricingG) (f : Nat) {unit : Nat} (unitOk : 37 �
     rcases r2 with _ | r2
     · have skipWork : LoopWorkG P.L f s2 (loopNestedSeqHOL ([] : List (HolLoopProg 64))) (none, s2) 0 :=
         LoopWorkG.atom P.L.skip (by rw [loopNestedSeqHOL, evaluate])
-      exact ⟨ka + ((37 + wc) + 0),
+      exact ⟨ka + ((P.L.ite + wc) + 0),
         LoopWorkG.seqNext assignWork (LoopWorkG.seqNext iteWork skipWork), by omega⟩
-    · exact ⟨ka + (37 + wc),
+    · exact ⟨ka + (P.L.ite + wc),
         LoopWorkG.seqNext assignWork (LoopWorkG.seqStop (second := .skip) iteWork), by omega⟩
   have h1k : ∀ k, evaluate (loopNestedSeqHOL np) { u with clock := u.clock + (ck + k) } =
       (none, { st with clock := st.clock + k }) := by
