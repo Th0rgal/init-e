@@ -29,12 +29,12 @@ theorem LoopWork.toP {F : Type} {s : LoopSemStateFiniteExact 64 F} {p : HolLoopP
     have := LoopWorkP.callRetCont (exceptionName := exceptionName) (handlerProgram := handlerProgram)
       (liveOut := liveOut) args find nodup cut ih1 lengths ih2
     simp only [defaultLoopPrice, Nat.one_mul] at this
-    rwa [show 1 + 1 = 2 from rfl] at this
+    exact this
   | @callHandle s names live target arguments exceptionName handlerProgram continuation liveOut
       values env prog entry exn post wb output wh args find nodup cut body handle ih1 ih2 =>
     have := LoopWorkP.callHandle (continuation := continuation) (liveOut := liveOut) args find nodup cut ih1 ih2
     simp only [defaultLoopPrice, Nat.one_mul] at this
-    rwa [show 1 + 1 = 2 from rfl] at this
+    exact this
 
 open Classical in
 /-- `loopWordPrice` is dominated by the default Loop prices. -/
@@ -60,5 +60,13 @@ noncomputable def loopWordDominates {C F : Type} : WordDominates (C := C) (F := 
   retOk := by decide
   contOk := by decide
 
+/-- Loop-to-Word executed cost: from any Word state related to the Loop state
+as in the pinned `compile_correct`, the compiled program's executed Word work
+under `loopWordPrice` is at most the `LoopWork` of the same non-error run. -/
+theorem loop_to_word_cost {C F : Type} {s : LoopSemStateFiniteExact 64 F} {p : HolLoopProg 64} {output w}
+    (work : LoopWork s p output w) : WordCostLe C s p output w :=
+  loop_to_word_costP (C := C) loopWordDominates work.toP
+
 #print axioms LoopWork.toP
+#print axioms loop_to_word_cost
 end InitECandidate.Runtime.FineCost

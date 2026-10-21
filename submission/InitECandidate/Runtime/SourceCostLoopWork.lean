@@ -4,16 +4,21 @@ import Flapjack.Pancake.Semantics.LoopProps.NestedSeqExact
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.LoopSemStateFiniteExact
 
-/-- Local cost of a non-recursive Loop statement: one dispatch unit plus the
-residual expression work and moved variable counts it actually touches. -/
+/-- Native cap of a non-recursive Loop statement, from the checked
+`WordToStack` caps at gap 6 (an assignment by its expression shape). -/
 def loopWorkLeafCost : HolLoopProg 64 → Option Nat
-  | .skip => some 0
-  | .fail | .arith _ | .load32 _ _ | .loadByte _ _ | .store32 _ _ | .storeByte _ _
-  | .break _ | .continue _ | .raise _ | .tick | .locValue _ _ | .ffi _ _ _ _ _ _ => some 1
-  | .assign _ value | .store value _ | .setGlobal _ value | .shMem _ _ value =>
-      some (1 + loopValueWork value)
-  | .primitive destinations _ arguments => some (1 + destinations.length + arguments.length)
-  | .return values => some (1 + values.length)
+  | .skip | .fail => some 0
+  | .tick | .break _ | .continue _ => some 7
+  | .assign _ value => some (loopNativeValue value)
+  | .store address _ | .shMem _ _ address => some (35 + loopNativeValue address)
+  | .setGlobal _ value => some (14 + loopNativeValue value)
+  | .load32 _ _ | .loadByte _ _ | .store32 _ _ | .storeByte _ _ => some 35
+  | .arith _ => some 43
+  | .primitive _ _ _ => some 85
+  | .raise _ => some 63
+  | .return values => some (15 + 28 * values.length)
+  | .locValue _ _ => some 15
+  | .ffi _ _ _ _ _ _ => some 25
   | _ => none
 
 /-- Output of a tail call after the callee body. -/
@@ -77,7 +82,7 @@ inductive LoopWork {F : Type} : LoopSemStateFiniteExact 64 F → HolLoopProg 64 
       (rhs : LoopSemStateFiniteExact.getVarImm right s = some (.word y))
       (branch : LoopWork s (if Compiler.Encoders.Asm.wordCmpHOL operator x y then yes else no)
         output w) :
-      LoopWork s (.ite operator register right yes no live) (LoopSemStateFiniteExact.cutRes live output) (2 + w)
+      LoopWork s (.ite operator register right yes no live) (LoopSemStateFiniteExact.cutRes live output) (37 + w)
   | iteInvalid {s operator register right yes no live}
       (invalid : ¬ ∃ x y, sptLookup register s.locals = some (.word x) ∧
         LoopSemStateFiniteExact.getVarImm right s = some (.word y)) :
@@ -87,30 +92,30 @@ inductive LoopWork {F : Type} : LoopSemStateFiniteExact 64 F → HolLoopProg 64 
       (one : LoopWork entry body (result, middle) wb)
       (again : result = none ∨ result = some (.continue 0))
       (rest : LoopWork middle (.loop liveIn body liveOut) output wr) :
-      LoopWork s (.loop liveIn body liveOut) output (3 + wb + wr)
+      LoopWork s (.loop liveIn body liveOut) output (16 + wb + wr)
   | loopBreak {s liveIn body liveOut entry middle wb}
       (cut : LoopSemStateFiniteExact.cutRes liveIn (none, s) = (none, entry))
       (one : LoopWork entry body (some (.break 0), middle) wb) :
-      LoopWork s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.cutRes liveOut (none, middle)) (3 + wb)
+      LoopWork s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.cutRes liveOut (none, middle)) (16 + wb)
   | loopExit {s liveIn body liveOut entry result middle wb}
       (cut : LoopSemStateFiniteExact.cutRes liveIn (none, s) = (none, entry))
       (one : LoopWork entry body (result, middle) wb)
       (stop : result ≠ none ∧ result ≠ some (.continue 0) ∧ result ≠ some (.break 0)) :
-      LoopWork s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.exitLoop result, middle) (3 + wb)
+      LoopWork s (.loop liveIn body liveOut) (LoopSemStateFiniteExact.exitLoop result, middle) (16 + wb)
   | loopCut {s liveIn body liveOut result cut}
       (stopped : LoopSemStateFiniteExact.cutRes liveIn (none, s) = (some result, cut)) :
-      LoopWork s (.loop liveIn body liveOut) (some result, cut) 3
+      LoopWork s (.loop liveIn body liveOut) (some result, cut) 16
   | callShort {s returns target arguments handler output}
       (short : loopCallShort s returns target arguments handler)
       (run : evaluate (.call returns target arguments handler) s = output) :
-      LoopWork s (.call returns target arguments handler) output (1 + arguments.length)
+      LoopWork s (.call returns target arguments handler) output (189 + 39 * arguments.length)
   | callTail {s target arguments handler values env prog result post wb}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
       (find : LoopSemStateFiniteExact.findCode target values s.code = some (env, prog))
       (noHandler : handler.isSome = false) (clock : s.clock ≠ 0)
       (body : LoopWork { LoopSemStateFiniteExact.decClock s with locals := env } prog (result, post) wb) :
       LoopWork s (.call none target arguments handler) (loopTailExit result post)
-        (1 + arguments.length + wb)
+        (189 + 39 * arguments.length + wb)
   | callRet {s names live target arguments handler values env prog entry result post wb}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
       (find : LoopSemStateFiniteExact.findCode target values s.code = some (env, prog))
@@ -118,7 +123,7 @@ inductive LoopWork {F : Type} : LoopSemStateFiniteExact 64 F → HolLoopProg 64 
       (body : LoopWork { entry with locals := env } prog (result, post) wb)
       (plain : loopRetPlain result names handler) :
       LoopWork s (.call (some (names, live)) target arguments handler)
-        (loopRetExit result post entry names) (1 + arguments.length + wb + loopRetWords result)
+        (loopRetExit result post entry names) (189 + 39 * arguments.length + wb + 49 * loopRetWords result)
   | callRetCont {s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry returned post wb output wc}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
@@ -130,7 +135,7 @@ inductive LoopWork {F : Type} : LoopSemStateFiniteExact 64 F → HolLoopProg 64 
         continuation output wc) :
       LoopWork s (.call (some (names, live)) target arguments
           (some (exceptionName, handlerProgram, continuation, liveOut)))
-        (LoopSemStateFiniteExact.cutRes liveOut output) (2 + arguments.length + wb + returned.length + wc)
+        (LoopSemStateFiniteExact.cutRes liveOut output) (196 + 39 * arguments.length + wb + 49 * returned.length + wc)
   | callHandle {s names live target arguments exceptionName handlerProgram continuation
       liveOut values env prog entry exn post wb output wh}
       (args : LoopSemStateFiniteExact.getVars arguments s = some values)
@@ -141,7 +146,7 @@ inductive LoopWork {F : Type} : LoopSemStateFiniteExact 64 F → HolLoopProg 64 
         handlerProgram output wh) :
       LoopWork s (.call (some (names, live)) target arguments
           (some (exceptionName, handlerProgram, continuation, liveOut)))
-        (LoopSemStateFiniteExact.cutRes liveOut output) (2 + arguments.length + wb + wh)
+        (LoopSemStateFiniteExact.cutRes liveOut output) (196 + 39 * arguments.length + wb + wh)
 
 theorem LoopWork.sound {F : Type} {s : LoopSemStateFiniteExact 64 F} {p : HolLoopProg 64}
     {output} {w : Nat} (work : LoopWork s p output w) : evaluate p s = output := by

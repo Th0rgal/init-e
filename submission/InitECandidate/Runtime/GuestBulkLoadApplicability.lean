@@ -76,15 +76,15 @@ theorem checked_bulk_source_to_loop_cost {F G : Type}
     let compiled := compileExpsHOLExact loopContext tmp live expressions
     ∃ cost, LoopWorkRun state (loopNestedSeqHOL compiled.1)
         (LoopSemStateFiniteExact.evaluate (loopNestedSeqHOL compiled.1) state) cost ∧
-      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤
-        36 * expressionCost scalarLoweringWeights s expression := by
+      cost + loopNativeValues compiled.2.1 + 39 * compiled.2.1.length ≤
+        960 * expressionCost scalarLoweringWeights s expression := by
   have present := expression_success_locals_present s expression value evaluated
   have layout := scopedWidthsFit_of_related_present s context targetLocals related expression present
   have supported := bulk_sites_imply_supported s expression checked
   have sourceBound := bounded_bulk_lowering_cost_bound s context expression layout supported
   obtain ⟨cost, trace, bound⟩ := compiled_pan_expression_trace context loopContext tmp live expression state
   refine ⟨cost, trace, Nat.le_trans bound ?_⟩
-  simpa only [← Nat.mul_assoc] using Nat.mul_le_mul_left 6 sourceBound
+  simpa only [← Nat.mul_assoc] using Nat.mul_le_mul_left 160 sourceBound
 
 #print axioms checked_bulk_source_to_loop_cost
 

@@ -84,7 +84,7 @@ theorem work_zero_slots {σ : Type} (t : CrepSemHOLState 64 σ) (rts : List Nat)
     (program : CrepProgHOL 64) (w : Nat) (nodup : rts.Nodup)
     (inner : CrepWork (zeroSlotState t rts) program w) :
     CrepWork t (nestedDecsHOL rts (List.replicate rts.length (.const (0 : BitVec 64))) program)
-      (2 * rts.length + w) := by
+      (rts.length + w) := by
   have work := work_nestedDecs_eval (List.replicate rts.length (.const (0 : BitVec 64))) rts
     (List.replicate rts.length (HolWordLab.word (0 : BitVec 64))) program t w
     (by simp [evalCrepSemHOLExp]) (by simp)

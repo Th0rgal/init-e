@@ -20,12 +20,12 @@ structure LoopPrice where
 /-- The prices of `LoopWork`. -/
 def defaultLoopPrice : LoopPrice where
   leaf := loopWorkLeafCost
-  ite := 2
-  iter := 3
-  call := 1
-  arg := 1
-  ret := 1
-  cont := 1
+  ite := 37
+  iter := 16
+  call := 189
+  arg := 39
+  ret := 49
+  cont := 7
 
 /-- Executed Loop work, indexed by the exact evaluator output. Every executed
 statement pays its local cost; recursive rules expose only actual successors:

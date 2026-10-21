@@ -21,7 +21,7 @@ theorem bounded_raise (code : BitVec 64) : CrepBounded (.raise code) 2 :=
 
 theorem bounded_assign (name : Nat) (value : CrepExpHOL 64) :
     CrepBounded (.assign name value) (1 + crepNodeWork value) :=
-  fun _ t => ⟨_, CrepWork.assign t name value, Nat.le_refl _⟩
+  fun _ t => ⟨_, CrepWork.assign t name value, by omega⟩
 
 theorem bounded_storeGlob (address : BitVec 5) (value : CrepExpHOL 64) :
     CrepBounded (.storeGlob address value) (1 + crepNodeWork value) :=

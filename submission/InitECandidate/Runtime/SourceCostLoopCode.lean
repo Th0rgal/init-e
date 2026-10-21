@@ -38,7 +38,7 @@ theorem loopBounded_seq {first second : HolLoopProg 64} {a b : Nat}
 theorem loopBounded_ite {operator : Cmp} {register : Nat} {right : RegImm (BitVec 64)}
     {yes no : HolLoopProg 64} {live : NumSet} {a b : Nat}
     (yesBounded : LoopBounded yes a) (noBounded : LoopBounded no b) :
-    LoopBounded (.ite operator register right yes no live) (2 + max a b) := by
+    LoopBounded (.ite operator register right yes no live) (37 + max a b) := by
   intro F s
   by_cases words : ∃ x y, sptLookup register s.locals = some (.word x) ∧
       LoopSemStateFiniteExact.getVarImm right s = some (.word y)
@@ -47,12 +47,12 @@ theorem loopBounded_ite {operator : Cmp} {register : Nat} {right : RegImm (BitVe
     · obtain ⟨w, work, bound⟩ := yesBounded F s
       have rule := LoopWork.iteBranch (live := live) (no := no) hx hy
         (by rw [if_pos chosen]; exact work)
-      refine ⟨2 + w, ?_, by omega⟩
+      refine ⟨37 + w, ?_, by omega⟩
       rwa [← LoopWork.sound rule] at rule
     · obtain ⟨w, work, bound⟩ := noBounded F s
       have rule := LoopWork.iteBranch (live := live) (yes := yes) hx hy
         (by rw [if_neg chosen]; exact work)
-      refine ⟨2 + w, ?_, by omega⟩
+      refine ⟨37 + w, ?_, by omega⟩
       rwa [← LoopWork.sound rule] at rule
   · have rule := LoopWork.iteInvalid (live := live) (yes := yes) (no := no)
       (operator := operator) (s := s) words

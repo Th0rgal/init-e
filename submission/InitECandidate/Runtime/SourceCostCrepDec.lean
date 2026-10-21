@@ -30,7 +30,7 @@ theorem work_nestedDecs_eval {σ : Type} (expressions : List (CrepExpHOL 64))
     (bodyRun : CrepWork { t with locals := t.locals.updateListEq (names.zip values) } body
       bodyWork) :
     CrepWork t (nestedDecsHOL names expressions body)
-      (names.length + crepListWork expressions + bodyWork) := by
+      (crepListWork expressions + bodyWork) := by
   induction expressions generalizing names values t with
   | nil =>
     cases names with
@@ -94,8 +94,7 @@ theorem dec_transfer {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHO
       SourceCrepRel bodyContext (setVarHOLFinite name value s) bodyState ∧
       ∀ bodyWork, CrepWork bodyState (compileProgExactHOLW bodyContext body) bodyWork →
         CrepWork t (compileProgExactHOLW context (.dec name shape initializer body))
-          ((flattenHOL value).length + crepListWork (compileExpExactHOLW context initializer).1 +
-            bodyWork) := by
+          (crepListWork (compileExpExactHOLW context initializer).1 + bodyWork) := by
   classical
   rcases hc : compileExpExactHOLW context initializer with ⟨es, cs⟩
   obtain ⟨hes, hlen, hcs, hwf⟩ :=
@@ -139,9 +138,6 @@ theorem dec_transfer {F : Type} {s : PanSemStateFiniteExact 64 F} {t : CrepSemHO
   rw [hcomp]
   have work := work_nestedDecs_eval es (decCallSlots context (shapeOfHOLExact value))
     (flattenHOL value) _ t bodyWork hes hslen hdist hnodup bodyRun
-  have lengthEq : (decCallSlots context (shapeOfHOLExact value)).length =
-      (flattenHOL value).length := by rw [hslen, hlen, hflen]
-  rw [lengthEq] at work
   exact work
 
 #print axioms work_nestedDecs_eval

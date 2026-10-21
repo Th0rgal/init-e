@@ -67,11 +67,11 @@ theorem related_local_source_to_loop_cost {F G : Type}
     let compiled := compileExpsHOLExact loopContext tmp live expressions
     ∃ cost, LoopWorkRun state (loopNestedSeqHOL compiled.1)
         (LoopSemStateFiniteExact.evaluate (loopNestedSeqHOL compiled.1) state) cost ∧
-      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤
-        6 * expressionCost scalarLoweringWeights s (.var .local name) := by
+      cost + loopNativeValues compiled.2.1 + 39 * compiled.2.1.length ≤
+        160 * expressionCost scalarLoweringWeights s (.var .local name) := by
   obtain ⟨cost, trace, bound⟩ := compiled_pan_expression_trace context loopContext tmp live
     (.var .local name) state
-  exact ⟨cost, trace, Nat.le_trans bound (Nat.mul_le_mul_left 6
+  exact ⟨cost, trace, Nat.le_trans bound (Nat.mul_le_mul_left 160
     (related_local_source_allowance s context targetLocals related name value present))⟩
 
 #print axioms related_local_source_to_loop_cost
@@ -106,11 +106,11 @@ theorem related_scalar_source_to_loop_cost {F G : Type}
     let compiled := compileExpsHOLExact loopContext tmp live expressions
     ∃ cost, LoopWorkRun state (loopNestedSeqHOL compiled.1)
         (LoopSemStateFiniteExact.evaluate (loopNestedSeqHOL compiled.1) state) cost ∧
-      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤
-        6 * expressionCost scalarLoweringWeights s expression := by
+      cost + loopNativeValues compiled.2.1 + 39 * compiled.2.1.length ≤
+        160 * expressionCost scalarLoweringWeights s expression := by
   have layout := scopedWidthsFit_of_related_present s context targetLocals related expression presentReads
   obtain ⟨cost, trace, bound⟩ := compiled_pan_expression_trace context loopContext tmp live expression state
-  exact ⟨cost, trace, Nat.le_trans bound (Nat.mul_le_mul_left 6
+  exact ⟨cost, trace, Nat.le_trans bound (Nat.mul_le_mul_left 160
     (scoped_scalar_lowering_cost_bound s context expression layout supported))⟩
 
 #print axioms related_scalar_source_to_loop_cost
@@ -130,8 +130,8 @@ theorem successful_scalar_source_to_loop_cost {F G : Type}
     let compiled := compileExpsHOLExact loopContext tmp live expressions
     ∃ cost, LoopWorkRun state (loopNestedSeqHOL compiled.1)
         (LoopSemStateFiniteExact.evaluate (loopNestedSeqHOL compiled.1) state) cost ∧
-      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤
-        6 * expressionCost scalarLoweringWeights s expression :=
+      cost + loopNativeValues compiled.2.1 + 39 * compiled.2.1.length ≤
+        160 * expressionCost scalarLoweringWeights s expression :=
   related_scalar_source_to_loop_cost s context targetLocals related expression
     (expression_success_locals_present s expression value evaluated)
     supported loopContext tmp live state

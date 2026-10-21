@@ -21,13 +21,38 @@ mutual
 end
 
 mutual
+  /-- Native cap of evaluating a Loop expression into a destination, from the
+  checked `WordToStack` caps at gap 6: var 14, constant 19, global or heap
+  lookup 14, load 21 + address, binary operator 28 per extra operand +
+  operands, shift 32 + operands (an immediate shift 25 + operand). -/
+  def loopNativeValue : HolLoopExp 64 → Nat
+    | .const _ => 19
+    | .var _ => 14
+    | .lookup _ => 14
+    | .baseAddr => 14
+    | .topAddr => 28 + 14 + (25 + 14)
+    | .load address => 21 + loopNativeValue address
+    | .op _ args => 28 * (args.length - 1) + 19 * (1 - (args.length - 1)) + loopNativeValues args
+    | .shift _ left right => 32 + loopNativeValue left + loopNativeValue right
+  termination_by e => sizeOf e
+  decreasing_by all_goals first | sizeOf_list_dec | decreasing_trivial
+
+  def loopNativeValues : List (HolLoopExp 64) → Nat
+    | [] => 0
+    | head :: tail => loopNativeValue head + loopNativeValues tail
+  termination_by es => sizeOf es
+  decreasing_by all_goals first | sizeOf_list_dec | decreasing_trivial
+end
+
+mutual
   /-- Local expression-generated code allowance. Unsupported control flow
   returns none; loops and calls cannot be silently assigned a finite cost.
   Conditional branches use their larger allowance, not their sum. -/
   def loopExpressionCodeWork : HolLoopProg 64 → Option Nat
     | .skip => some 0
-    | .assign _ value => some (1 + loopValueWork value)
-    | .arith _ | .load32 _ _ | .loadByte _ _ => some 1
+    | .assign _ value => some (loopNativeValue value)
+    | .arith _ => some 43
+    | .load32 _ _ | .loadByte _ _ => some 35
     | .seq first second => do
         let a ← loopExpressionCodeWork first
         let b ← loopExpressionCodeWork second
@@ -35,7 +60,7 @@ mutual
     | .ite _ _ _ yes no _ => do
         let a ← loopExpressionCodeWork yes
         let b ← loopExpressionCodeWork no
-        pure (2 + max a b)
+        pure (37 + max a b)
     | _ => none
   termination_by p => sizeOf p
 
@@ -65,34 +90,34 @@ clock-only accounting would lose both assignment and memory-access work. -/
 def crepToLoopExpansionWork (context : CrepToLoopContextExact) (tmp : Nat)
     (live : NumSet) (e : CrepExpHOL 64) : Option Nat :=
   let compiled := compileExpHOLExact context tmp live e
-  (loopExpressionCodesWork compiled.1).map (fun cost => cost + loopValueWork compiled.2.1)
+  (loopExpressionCodesWork compiled.1).map (fun cost => cost + loopNativeValue compiled.2.1)
 
-/-- Scalar loadByte adds an assignment, a memory operation and a residual variable. -/
+/-- Scalar loadByte adds a memory operation and a residual variable. -/
 theorem crepToLoop_loadByte_expansion (context : CrepToLoopContextExact) (tmp : Nat)
     (live : NumSet) (address : CrepExpHOL 64) :
     crepToLoopExpansionWork context tmp live (.loadByte address) =
-      (crepToLoopExpansionWork context tmp live address).map (fun cost => cost + 3) := by
+      (crepToLoopExpansionWork context tmp live address).map (fun cost => cost + 49) := by
   unfold crepToLoopExpansionWork
   generalize hc : compileExpHOLExact context tmp live address = compiled
   obtain ⟨code, value, next, out⟩ := compiled
   rw [compileExpHOLExact, hc]
   simp only [loopExpressionCodesWork_append, loopExpressionCodesWork,
-    loopExpressionCodeWork, loopValueWork]
+    loopExpressionCodeWork, loopNativeValue]
   cases loopExpressionCodesWork code <;> simp [Nat.add_assoc] <;> omega
 
 #print axioms crepToLoop_loadByte_expansion
 
-/-- Scalar load32 adds an assignment, a memory operation and a residual variable. -/
+/-- Scalar load32 adds a memory operation and a residual variable. -/
 theorem crepToLoop_load32_expansion (context : CrepToLoopContextExact) (tmp : Nat)
     (live : NumSet) (address : CrepExpHOL 64) :
     crepToLoopExpansionWork context tmp live (.load32 address) =
-      (crepToLoopExpansionWork context tmp live address).map (fun cost => cost + 3) := by
+      (crepToLoopExpansionWork context tmp live address).map (fun cost => cost + 49) := by
   unfold crepToLoopExpansionWork
   generalize hc : compileExpHOLExact context tmp live address = compiled
   obtain ⟨code, value, next, out⟩ := compiled
   rw [compileExpHOLExact, hc]
   simp only [loopExpressionCodesWork_append, loopExpressionCodesWork,
-    loopExpressionCodeWork, loopValueWork]
+    loopExpressionCodeWork, loopNativeValue]
   cases loopExpressionCodesWork code <;> simp [Nat.add_assoc] <;> omega
 
 #print axioms crepToLoop_load32_expansion
@@ -106,10 +131,10 @@ theorem comparison_materializer_work (operator : Cmp)
     (secondCost : loopExpressionCodesWork second = some b) :
     loopExpressionCodesWork
       (progIfHOLExact operator first second left right condition rightRegister live) =
-      some (a + b + loopValueWork left + loopValueWork right + 6) := by
+      some (a + b + loopNativeValue left + loopNativeValue right + 56) := by
   unfold progIfHOLExact
   simp only [loopExpressionCodesWork_append, firstCost, secondCost,
-    loopExpressionCodesWork, loopExpressionCodeWork, loopValueWork]
+    loopExpressionCodesWork, loopExpressionCodeWork, loopNativeValue]
   simp
   omega
 

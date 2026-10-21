@@ -39,8 +39,8 @@ theorem successful_bulk_load_source_to_loop_cost {F G : Type}
     let compiled := compileExpsHOLExact loopContext tmp live expressions
     ∃ cost, LoopWorkRun state (loopNestedSeqHOL compiled.1)
         (LoopSemStateFiniteExact.evaluate (loopNestedSeqHOL compiled.1) state) cost ∧
-      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤
-        36 * expressionCost scalarLoweringWeights s (.load shape address) := by
+      cost + loopNativeValues compiled.2.1 + 39 * compiled.2.1.length ≤
+        960 * expressionCost scalarLoweringWeights s (.load shape address) := by
   have present := expression_success_locals_present s (.load shape address) value evaluated
   simp only [varExpHOL] at present
   have layout := scopedWidthsFit_of_related_present s context targetLocals related address present
@@ -52,7 +52,7 @@ theorem successful_bulk_load_source_to_loop_cost {F G : Type}
   obtain ⟨cost, trace, bound⟩ := compiled_pan_expression_trace context loopContext tmp live
     (.load shape address) state
   refine ⟨cost, trace, Nat.le_trans bound ?_⟩
-  simpa only [← Nat.mul_assoc] using Nat.mul_le_mul_left 6 sourceBound
+  simpa only [← Nat.mul_assoc] using Nat.mul_le_mul_left 160 sourceBound
 
 #print axioms bulk_load_source_allowance_bound
 #print axioms successful_bulk_load_source_to_loop_cost

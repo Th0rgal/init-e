@@ -12,7 +12,7 @@ theorem scalar_lowering_cost_bound {F : Type} (s : PanSemStateFiniteExact 64 F)
   exact layout name shape names mapped
 
 /-- Executed Loop expression-code work is bounded directly by source expression
-cost, with coefficient six. Variable layout is explicit; multiword loads and
+cost, with the native coefficient 160. Variable layout is explicit; multiword loads and
 the preprocessing/later backend passes require their own transfer proofs. -/
 theorem scalar_source_to_loop_cost {F G : Type}
     (s : PanSemStateFiniteExact 64 F) (panContext : PanToCrepContextExact 64)
@@ -23,11 +23,11 @@ theorem scalar_source_to_loop_cost {F G : Type}
     let compiled := compileExpsHOLExact loopContext tmp live expressions
     ∃ cost, LoopWorkRun state (loopNestedSeqHOL compiled.1)
         (LoopSemStateFiniteExact.evaluate (loopNestedSeqHOL compiled.1) state) cost ∧
-      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤
-        6 * expressionCost scalarLoweringWeights s expression := by
+      cost + loopNativeValues compiled.2.1 + 39 * compiled.2.1.length ≤
+        160 * expressionCost scalarLoweringWeights s expression := by
   obtain ⟨cost, trace, bound⟩ := compiled_pan_expression_trace
     panContext loopContext tmp live expression state
-  exact ⟨cost, trace, Nat.le_trans bound (Nat.mul_le_mul_left 6
+  exact ⟨cost, trace, Nat.le_trans bound (Nat.mul_le_mul_left 160
     (scalar_lowering_cost_bound s panContext layout expression supported))⟩
 
 #print axioms scalar_source_to_loop_cost

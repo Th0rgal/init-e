@@ -25,7 +25,7 @@ theorem loopBounded_single {statement : HolLoopProg 64} {c : Nat}
 
 theorem assign_codes_work (names : List Nat) (values : List (HolLoopExp 64)) :
     ∃ cost, loopExpressionCodesWork (names.zipWith HolLoopProg.assign values) = some cost ∧
-      cost ≤ loopValuesWork values + values.length := by
+      cost ≤ loopNativeValues values := by
   induction names generalizing values with
   | nil => exact ⟨0, by simp [List.zipWith, loopExpressionCodesWork], by omega⟩
   | cons name names ih =>
@@ -33,9 +33,9 @@ theorem assign_codes_work (names : List Nat) (values : List (HolLoopExp 64)) :
     | nil => exact ⟨0, by simp [List.zipWith, loopExpressionCodesWork], by omega⟩
     | cons value rest =>
       obtain ⟨cost, supported, bound⟩ := ih rest
-      refine ⟨1 + loopValueWork value + cost, ?_, ?_⟩
+      refine ⟨loopNativeValue value + cost, ?_, ?_⟩
       · simp [List.zipWith, loopExpressionCodesWork, loopExpressionCodeWork, supported]
-      · simp only [loopValuesWork, List.length_cons]; omega
+      · simp only [loopNativeValues, List.length_cons]; omega
 
 theorem loopCompileExps_length (context : CrepToLoopContextExact) :
     ∀ (es : List (CrepExpHOL 64)) (tmp : Nat) (live : NumSet),
@@ -51,33 +51,41 @@ theorem loopCompileExps_length (context : CrepToLoopContextExact) :
     omega
 
 /-- A Loop pricing of Crep work: an expression price and an argument-list
-price that dominate the actual compiled Loop code work, and a statement unit.
-The list price also pays one move per argument (argument registers). -/
+price that dominate the native compiled Loop code work, a statement unit, a
+raise/primitive unit and a call unit. The list price also pays the native
+argument move (39) of each argument. -/
 structure LoopPricing where
   price : CrepExpHOL 64 → Nat
   priceList : List (CrepExpHOL 64) → Nat
   unit : Nat
+  prim : Nat
+  call : Nat
+  ret : Nat
   exprOk : ∀ (context : CrepToLoopContextExact) (tmp : Nat) (live : NumSet) (e : CrepExpHOL 64),
     ∃ cost, loopExpressionCodesWork (compileExpHOLExact context tmp live e).1 = some cost ∧
-      cost + loopValueWork (compileExpHOLExact context tmp live e).2.1 + 1 ≤ price e
+      cost + loopNativeValue (compileExpHOLExact context tmp live e).2.1 ≤ price e
   listOk : ∀ (context : CrepToLoopContextExact) (tmp : Nat) (live : NumSet) (es : List (CrepExpHOL 64)),
     ∃ cost, loopExpressionCodesWork (compileExpsHOLExact context tmp live es).1 = some cost ∧
-      cost + loopValuesWork (compileExpsHOLExact context tmp live es).2.1 +
-        2 * (compileExpsHOLExact context tmp live es).2.1.length ≤ priceList es
-  unitOk : 2 ≤ unit
+      cost + loopNativeValues (compileExpsHOLExact context tmp live es).2.1 +
+        39 * (compileExpsHOLExact context tmp live es).2.1.length ≤ priceList es
+  unitOk : 37 ≤ unit
+  primOk : 85 ≤ prim
+  callOk : 300 ≤ call
+  retOk : 49 ≤ ret
 
 /-- Crep work priced by a Loop pricing. -/
-abbrev CrepWorkL (P : LoopPricing) {σ : Type} := @CrepWorkP P.price P.priceList P.unit σ
+abbrev CrepWorkL (P : LoopPricing) {σ : Type} := @CrepWorkP P.price P.priceList P.unit P.prim P.call P.ret σ
 
 /-- Static priced work of the non-recursive statements, as charged by `CrepWorkL`. -/
 def crepLeafPrice (P : LoopPricing) : CrepProgHOL 64 → Option Nat
   | .skip | .tick | .break _ | .continue _ | .extCall _ _ _ _ _ => some P.unit
-  | .raise _ => some (P.unit + 1)
-  | .assign _ value | .storeGlob _ value | .shMem _ _ value => some (P.unit + P.price value)
+  | .raise _ => some (P.prim + 1)
+  | .assign _ value => some (P.price value)
+  | .storeGlob _ value | .shMem _ _ value => some (P.unit + P.price value)
   | .store address value | .store32 address value | .storeByte address value =>
       some (P.unit + P.price address + P.price value)
   | .return values => some (P.unit + P.priceList values + values.length)
-  | .primitive names _ args => some (P.unit + names.length + args.length)
+  | .primitive names _ args => some (P.prim + names.length + args.length)
   | _ => none
 
 theorem crepWork_leaf {σ : Type} (P : LoopPricing) {t : CrepSemHOLState 64 σ} {p : CrepProgHOL 64}
@@ -94,7 +102,7 @@ theorem pricing_list_work (P : LoopPricing) (context : CrepToLoopContextExact) (
     (es : List (CrepExpHOL 64)) :
     let compiled := compileExpsHOLExact context tmp live es
     ∃ cost, loopExpressionCodesWork compiled.1 = some cost ∧
-      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤ P.priceList es := by
+      cost + loopNativeValues compiled.2.1 + 39 * compiled.2.1.length ≤ P.priceList es := by
   obtain ⟨cost, h, b⟩ := P.listOk context tmp live es
   exact ⟨cost, h, by omega⟩
 
@@ -104,29 +112,30 @@ theorem loopBounded_leaf_compile (P : LoopPricing) (context : CrepToLoopContextE
     (p : CrepProgHOL 64) (c : Nat) (leaf : crepLeafPrice P p = some c) :
     LoopBounded (compileHOLExact context live p) c := by
   have unit := P.unitOk
+  have prim := P.primOk
   cases p with
   | skip =>
     simp [crepLeafPrice] at leaf; subst leaf; rw [compileHOLExact]
     exact (loopBounded_leaf (program := .skip) (cost := 0) rfl).mono (by omega)
   | tick =>
     simp [crepLeafPrice] at leaf; subst leaf; rw [compileHOLExact]
-    exact (loopBounded_leaf (program := .tick) (cost := 1) rfl).mono (by omega)
+    exact (loopBounded_leaf (program := .tick) (cost := 7) rfl).mono (by omega)
   | «break» l =>
     simp [crepLeafPrice] at leaf; subst leaf; rw [compileHOLExact]
-    exact (loopBounded_leaf (program := .break l) (cost := 1) rfl).mono (by omega)
+    exact (loopBounded_leaf (program := .break l) (cost := 7) rfl).mono (by omega)
   | «continue» l =>
     simp [crepLeafPrice] at leaf; subst leaf; rw [compileHOLExact]
-    exact (loopBounded_leaf (program := .continue l) (cost := 1) rfl).mono (by omega)
+    exact (loopBounded_leaf (program := .continue l) (cost := 7) rfl).mono (by omega)
   | raise e =>
     simp [crepLeafPrice] at leaf; subst leaf
     simp only [compileHOLExact]
     exact (loopBounded_seq (loopBounded_leaf (program := .assign _ (.const e)) rfl)
-      (loopBounded_leaf (program := .raise _) rfl)).mono (by simp only [loopWorkLeafCost, loopValueWork] at *; omega)
+      (loopBounded_leaf (program := .raise _) rfl)).mono (by simp only [loopWorkLeafCost, loopNativeValue] at *; omega)
   | extCall f a b c d =>
     simp [crepLeafPrice] at leaf; subst leaf
     simp only [compileHOLExact]
     split
-    · exact (loopBounded_leaf (program := .ffi _ _ _ _ _ _) (cost := 1) rfl).mono (by omega)
+    · exact (loopBounded_leaf (program := .ffi _ _ _ _ _ _) (cost := 25) rfl).mono (by omega)
     · exact (loopBounded_leaf (program := .skip) (cost := 0) rfl).mono (by omega)
   | primitive names op args =>
     simp [crepLeafPrice] at leaf; subst leaf

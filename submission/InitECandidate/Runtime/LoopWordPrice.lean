@@ -88,6 +88,31 @@ attribute [local simp] wordCost_skip wordCost_tick wordCost_assign wordCost_set 
   wordCost_break wordCost_continue wordCost_raise wordCost_return wordCost_locValue wordCost_ffi
   wordCost_shareInst
 
+mutual
+  /-- The native value price exceeds the Word node count by a margin. -/
+  theorem loopValueWork_add_le_native : ∀ e : HolLoopExp 64, loopValueWork e + 13 ≤ loopNativeValue e
+    | .const _ | .var _ | .lookup _ | .baseAddr | .topAddr => by
+      simp only [loopValueWork, loopNativeValue]; omega
+    | .load a => by
+      have := loopValueWork_add_le_native a; simp only [loopValueWork, loopNativeValue]; omega
+    | .op _ args => by
+      have := loopValuesWork_add_le_native args; simp only [loopValueWork, loopNativeValue]; omega
+    | .shift _ l r => by
+      have := loopValueWork_add_le_native l; have := loopValueWork_add_le_native r
+      simp only [loopValueWork, loopNativeValue]; omega
+  termination_by e => sizeOf e
+  decreasing_by all_goals first | sizeOf_list_dec | decreasing_trivial
+
+  theorem loopValuesWork_add_le_native : ∀ es : List (HolLoopExp 64),
+      loopValuesWork es + 13 * es.length ≤ loopNativeValues es
+    | [] => by simp [loopValuesWork, loopNativeValues]
+    | e :: es => by
+      have := loopValueWork_add_le_native e; have := loopValuesWork_add_le_native es
+      simp only [loopValuesWork, loopNativeValues, List.length_cons]; omega
+  termination_by es => sizeOf es
+  decreasing_by all_goals first | sizeOf_list_dec | decreasing_trivial
+end
+
 /-- Compiled non-recursive Loop statements cost at most their `LoopWork`
 leaf price, from every Word state. -/
 theorem loop_word_leaf {C F : Type} (context : Spt Nat) (p : HolLoopProg 64) (labels : Nat × Nat)
@@ -123,22 +148,26 @@ theorem loop_word_leaf {C F : Type} (context : Spt Nat) (p : HolLoopProg 64) (la
     simp only [loopWorkLeafCost, Option.some.injEq] at leaf
     subst leaf
     simp [LoopToWord.compHOL, loopWordPrice, loop_to_word_expression_work]
+      <;> (have := loopValueWork_add_le_native value; omega)
   | store value address =>
     simp only [loopWorkLeafCost, Option.some.injEq] at leaf
     subst leaf
     simp [LoopToWord.compHOL, loopWordPrice, loop_to_word_expression_work]
+      <;> (have := loopValueWork_add_le_native value; omega)
   | setGlobal address value =>
     simp only [loopWorkLeafCost, Option.some.injEq] at leaf
     subst leaf
     simp [LoopToWord.compHOL, loopWordPrice, loop_to_word_expression_work]
+      <;> (have := loopValueWork_add_le_native value; omega)
   | shMem operation name value =>
     simp only [loopWorkLeafCost, Option.some.injEq] at leaf
     subst leaf
     simp [LoopToWord.compHOL, loopWordPrice, loop_to_word_expression_work]
+      <;> (have := loopValueWork_add_le_native value; omega)
   | «return» values =>
     simp only [loopWorkLeafCost, Option.some.injEq] at leaf
     subst leaf
-    simp [LoopToWord.compHOL, loopWordPrice]
+    simp [LoopToWord.compHOL, loopWordPrice] <;> omega
   | seq _ _ | ite _ _ _ _ _ _ | loop _ _ _ | mark _ | call _ _ _ _ => simp [loopWorkLeafCost] at leaf
   | _ =>
     simp only [loopWorkLeafCost, Option.some.injEq] at leaf
@@ -147,4 +176,5 @@ theorem loop_word_leaf {C F : Type} (context : Spt Nat) (p : HolLoopProg 64) (la
 
 #print axioms wordCost_seq_le
 #print axioms loop_word_leaf
+#print axioms loopValueWork_add_le_native
 end InitECandidate.Runtime.FineCost

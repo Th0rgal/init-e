@@ -18,7 +18,7 @@ theorem dec_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopContextExac
       CrepLoopRel ctxt' live' { v1 with locals := v1.locals.updateEq (name, value) } u' →
       LoopPaid ctxt' live' { v1 with locals := v1.locals.updateEq (name, value) } u' body
         bodyWork) :
-    LoopPaid ctxt l v1 t (.dec name e body) (P.unit + P.price e + bodyWork) := by
+    LoopPaid ctxt l v1 t (.dec name e body) (P.price e + bodyWork) := by
   have unitOk := P.unitOk
   classical
   rcases hEvalAll : evalCrepSemHOLProgExact v1 (.dec name e body) with ⟨res, s1⟩
@@ -243,10 +243,10 @@ theorem dec_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopContextExac
     obtain ⟨wp, workP, boundP⟩ := loopBounded_nestedSeq_codes codePrefix codeCost codeSupported F
       { t with clock := t.clock + (prefixClock + bodyClock) }
     rw [hPrefixLift] at workP
-    have workA := LoopWork.atom (cost := 1 + loopValueWork compiledValue) rfl hAssignEval
+    have workA := LoopWork.atom (cost := loopNativeValue compiledValue) rfl hAssignEval
     have whole := LoopWork.seqNext workP (LoopWork.seqNext workA bodyWorkDeriv)
     rw [← hCompile] at whole
-    refine ⟨prefixClock + bodyClock, wp + (1 + loopValueWork compiledValue + bodyWl), ?_, ?_, ?_⟩
+    refine ⟨prefixClock + bodyClock, wp + (loopNativeValue compiledValue + bodyWl), ?_, ?_, ?_⟩
     · rw [hRun]; exact whole
     · omega
     · rw [hRun, hEvalAll]; exact finalRel
