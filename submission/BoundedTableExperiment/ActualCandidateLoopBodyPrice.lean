@@ -92,3 +92,51 @@ end BoundedTableExperiment
 #print axioms BoundedTableExperiment.body_address_score_bound
 #print axioms BoundedTableExperiment.body_value_score_bound
 #print axioms BoundedTableExperiment.body_increment_score_bound
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- The stored loop-body value `i + 2`, whenever it evaluates, is a word. -/
+theorem body_value_word {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (v : ValueHOL 64)
+    (h : expressionValue t (.op .add [.var .local (ofString "i"),
+      .const (BitVec.ofNat 64 2)]) = some v) :
+    ∃ w : BitVec 64, v = .val (.word w) := by
+  simp only [expressionValue, evalHOLExact, evalListHOLExact] at h
+  cases hl : t.locals.lookup (ofString "i") with
+  | none => simp [hl] at h
+  | some val =>
+      simp [hl] at h
+      rcases h with ⟨_, a, _, hv⟩
+      exact ⟨a, hv.symm⟩
+
+/-- The increment value `i + 1`, whenever it evaluates, is a word. -/
+theorem body_increment_word {F : Type} (t : PanSemStateFiniteExact 64 F)
+    (v : ValueHOL 64)
+    (h : expressionValue t (.op .add [.var .local (ofString "i"),
+      .const (BitVec.ofNat 64 1)]) = some v) :
+    ∃ w : BitVec 64, v = .val (.word w) := by
+  simp only [expressionValue, evalHOLExact, evalListHOLExact] at h
+  cases hl : t.locals.lookup (ofString "i") with
+  | none => simp [hl] at h
+  | some val =>
+      simp [hl] at h
+      rcases h with ⟨_, a, _, hv⟩
+      exact ⟨a, hv.symm⟩
+
+/-- A word value flattens to exactly one word. -/
+theorem word_value_flatten (w : BitVec 64) :
+    (flattenHOL (ValueHOL.val (.word w))).length = 1 := by
+  simp [flattenHOL]
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.body_value_word
+#print axioms BoundedTableExperiment.body_increment_word
+#print axioms BoundedTableExperiment.word_value_flatten
