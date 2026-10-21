@@ -175,8 +175,7 @@ theorem opAddFinalPost_clock (s : PanSemStateFiniteExact 64 Guest.HostMemory)
       (opAddPushState s frame sp cap base (fourWordValue a0 a1 a2 a3)
         (fourWordValue b0 b1 b2 b3) funding a0 a1 a2 a3 b0 b1 b2 b3).clock - 1 from rfl]
   rw [opAddPushState_clock, opAddREntry_clock, opAddGasState_clock, hy]
-  simp only [Nat.sub_sub]
-  norm_num
+  omega
 
 #print axioms opAddFinalPost_funding
 #print axioms opAddFinalPost_pc

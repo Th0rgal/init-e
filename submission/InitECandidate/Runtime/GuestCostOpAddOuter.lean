@@ -119,7 +119,7 @@ so the whole dispatcher body stops once the `op_add` arm returns. -/
 theorem opAddOuter_lt32_run (coeff : Work)
     (d : PanSemStateFiniteExact 64 Guest.HostMemory)
     (bodyPost : PanSemStateFiniteExact 64 Guest.HostMemory) (bodyEvents : List WorkEvent)
-    (rest rest2 rest2b rest3 : ProgHOL 64)
+    (rest rest2 rest2b rest3 elseBranch : ProgHOL 64)
     (armRun : StatementRun d (.seq (.call (some (none, none)) (ofString "op_add") [])
         (.return (.const (0 : BitVec 64))))
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
@@ -144,8 +144,7 @@ theorem opAddOuter_lt32_run (coeff : Work)
                   rest))
               rest2)
             rest2b)
-          (.seq (.call (some (none, none)) (ofString "op_stop") [])
-            (.return (.const (0 : BitVec 64)))))
+          elseBranch)
         rest3)
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (opAddOuterThirtyTwoEvents d bodyPost bodyEvents) := by
@@ -172,8 +171,7 @@ theorem opAddOuter_lt32_run (coeff : Work)
       (second := rest2b) (r := some (.returned (.val (.word 0))))
       (post := opAddDispatchArmPost d bodyPost) (by decide) inner
   have iteRun := StatementRun.iteYes
-    (no := (.seq (.call (some (none, none)) (ofString "op_stop") [])
-      (.return (.const (0 : BitVec 64)))))
+    (no := elseBranch)
     (costedExpression_events d _ _ guardValue) (by decide) branch
   have whole := StatementRun.seqStop (s := d)
       (first :=
@@ -194,8 +192,7 @@ theorem opAddOuter_lt32_run (coeff : Work)
                   rest))
               rest2)
             rest2b)
-          (.seq (.call (some (none, none)) (ofString "op_stop") [])
-            (.return (.const (0 : BitVec 64))))))
+          elseBranch))
       (second := rest3) (r := some (.returned (.val (.word 0))))
       (post := opAddDispatchArmPost d bodyPost) (by decide) iteRun
   simpa [opAddOuterZeroEvents, opAddOuterOneEvents, opAddOuterSixteenEvents, opAddOuterThirtyTwoEvents, opAddDispatchArmEvents] using whole
@@ -273,16 +270,15 @@ theorem opAddOuter_dispatch_body_run (coeff : Work)
                   rest))
               rest2)
             rest2b)
-          (.seq (.call (some (none, none)) (ofString "op_stop") [])
-            (.return (.const (0 : BitVec 64)))))
+          .skip)
         rest3)) :
     StatementRun d (sourceFunctionBody Guest.guestFn_op_dispatch)
       (some (.returned (.val (.word 0)))) (opAddDispatchArmPost d bodyPost)
       (opAddOuterThirtyTwoEvents d bodyPost bodyEvents) := by
   have arm := opAdd_dispatch_arm_run coeff d bodyPost bodyEvents armRun dClock dInstalled
-  have run := opAddOuter_lt32_run coeff d bodyPost bodyEvents rest rest2 rest2b rest3 arm opValue
+  have run := opAddOuter_lt32_run coeff d bodyPost bodyEvents rest rest2 rest2b rest3 .skip arm opValue
   rw [hbody]
-  simpa [opAddOuterThirtyTwoEvents] using run
+  exact run
 
 #print axioms opAddOuter_dispatch_body_run
 
