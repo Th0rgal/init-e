@@ -3,7 +3,7 @@ import InitECandidate.Runtime.SSAQuantitativeAllowance
 import InitECandidate.Runtime.SSAQuantitativeIf
 import InitECandidate.Runtime.SSAQuantitativeMustTerminate
 import InitECandidate.Runtime.SSAQuantitativeLoopEntry
-import InitECandidate.Runtime.SSAQuantitativeReturningNone
+import InitECandidate.Runtime.SSAQuantitativeReturningSome
 import InitECandidate.Runtime.SSAQuantitativeTail
 import Flapjack.Pancake.WordConvs.ProgramMonotonicity
 
@@ -14,7 +14,7 @@ set_option maxHeartbeats 10000000
 set_option pp.structureInstances false
 
 /-- Static local-price certificates at the contexts the actual compiler
-visits. Handler-present calls are deliberately unsupported by this version.
+visits, including returning calls with both continuations.
 No execution, target run, semantic simulation or whole-run bound is a field. -/
 noncomputable def ssaCostFits (SP TP : WordLangProgHOL (BitVec 64) → Nat)
     (p : WordLangProgHOL (BitVec 64)) (map : Spt Nat) (next : Nat)
@@ -47,7 +47,13 @@ noncomputable def ssaCostFits (SP TP : WordLangProgHOL (BitVec 64) → Nat)
     let binding := ssaReturningBodyContext p map next
     ssaReturningEntryPrice TP (ssaRootEntryAllowance TP body) p map next tables ≤ SP p ∧
       ssaCostFits SP TP body binding.1 binding.2 tables
-  | .call _ _ _ (some _) => False
+  | .call (some (_,_,body,_,_)) _ _ (some (_,handlerBody,_,_)) =>
+    let contexts := ssaReturningSomeContexts p map next tables
+    ssaReturningSomeEntryPrice TP (ssaRootEntryAllowance TP body) (ssaRootEntryAllowance TP handlerBody)
+        p map next tables ≤ SP p ∧
+      ssaCostFits SP TP body contexts.1.1 contexts.1.2 tables ∧
+      ssaCostFits SP TP handlerBody contexts.2.1 contexts.2.2 tables
+  | .call none _ _ (some _) => False
   | _ => ssaAtomicPrice TP (ssaCcTrans p map next tables).1 ≤ SP p
 termination_by sizeOf p
 
@@ -131,7 +137,49 @@ theorem ssa_quantitative_of_fit {C F : Type}
     · exact h
   | call returns dest args handler =>
     cases handler with
-    | some payload => simp only [ssaCostFits] at fit
+    | some handlerPayload =>
+      obtain ⟨exceptionVar,handlerBody,handlerL1,handlerL2,handlerShape⟩ :
+          ∃ (exceptionVar : Nat) (handlerBody : WordLangProgHOL (BitVec 64)) (handlerL1 handlerL2 : Nat),
+            handlerPayload = (exceptionVar,handlerBody,handlerL1,handlerL2) := by
+        rcases handlerPayload with ⟨exceptionVar,handlerBody,handlerL1,handlerL2⟩
+        exact ⟨exceptionVar,handlerBody,handlerL1,handlerL2,rfl⟩
+      rw [handlerShape] at fit h ⊢
+      cases returns with
+      | none => simp only [ssaCostFits] at fit
+      | some payload =>
+        obtain ⟨returns,firstNames,secondNames,body,l1,l2,payloadShape⟩ :
+            ∃ (returns : List Nat) (firstNames secondNames : Spt Unit)
+              (body : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat),
+              payload = (returns,(firstNames,secondNames),body,l1,l2) := by
+          rcases payload with ⟨returns,⟨firstNames,secondNames⟩,body,l1,l2⟩
+          exact ⟨returns,firstNames,secondNames,body,l1,l2,rfl⟩
+        rw [payloadShape] at fit h ⊢
+        simp only [ssaCostFits] at fit
+        apply (ssa_quantitative_allowance_zero SP TP
+          (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args
+            (some (exceptionVar,handlerBody,handlerL1,handlerL2))) source target map next tables).mpr
+        apply ssa_quantitative_returning_some_fund_entry SP TP
+          (ssaRootEntryAllowance TP body) (ssaRootEntryAllowance TP handlerBody)
+          source target map next returns firstNames secondNames body handlerBody l1 l2
+          exceptionVar handlerL1 handlerL2 dest args tables
+        · dsimp only
+          intro s t premises
+          let contexts := ssaReturningSomeContexts
+            (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args
+              (some (exceptionVar,handlerBody,handlerL1,handlerL2))) map next tables
+          exact ssa_quantitative_of_fit SP TP optimizer sourcePrices body contexts.1.1 contexts.1.2
+            tables fit.2.1 s t premises
+        · dsimp only
+          intro s t premises
+          let contexts := ssaReturningSomeContexts
+            (.call (some (returns,(firstNames,secondNames),body,l1,l2)) dest args
+              (some (exceptionVar,handlerBody,handlerL1,handlerL2))) map next tables
+          exact ssa_quantitative_of_fit SP TP optimizer sourcePrices handlerBody contexts.2.1 contexts.2.2
+            tables fit.2.2 s t premises
+        · exact sourcePrices
+        · exact fun q => optimizer q target
+        · exact fit.1
+        · exact h
     | none =>
       cases returns with
       | none =>
