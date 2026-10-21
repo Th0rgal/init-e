@@ -375,5 +375,157 @@ theorem u256Lt_run_limb2_greater (s : PanSemStateFiniteExact 64 F)
 #print axioms u256Lt_limb_greater_run
 #print axioms u256Lt_run_limb2_greater
 
+/-- Limb-1-greater execution when limbs 3 and 2 are equal. -/
+theorem u256Lt_run_limb1_greater (s : PanSemStateFiniteExact 64 F)
+    (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64)
+    (hA : s.locals.lookup (ofString "a") =
+      some (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)]))
+    (hB : s.locals.lookup (ofString "b") =
+      some (.rStruct [.val (.word b0), .val (.word b1), .val (.word b2), .val (.word b3)]))
+    (h3 : a3 = b3) (h2 : a2 = b2) (hne : a1 ≠ b1) (hnotlt : ¬ a1 < b1) :
+    ∃ events, StatementRun s (sourceFunctionBody Guest.guestFn_u256_lt)
+      (some (.returned (.val (.word (0 : BitVec 64)))))
+      (emptyLocalsHOLFinite s) events := by
+  classical
+  have ha3 := eval_rfield_four_three s (ofString "a") a0 a1 a2 a3 hA
+  have hb3 := eval_rfield_four_three s (ofString "b") b0 b1 b2 b3 hB
+  have skip3 : StatementRun s (u256LtLimb 3) none s
+      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+    StatementRun.iteNo (costedExpression_events s _ _
+      (eval_cmp_word_ne_false s _ _ a3 b3 ha3 hb3 h3)) (StatementRun.skip s)
+  have ha2 := eval_rfield_four_two s (ofString "a") a0 a1 a2 a3 hA
+  have hb2 := eval_rfield_four_two s (ofString "b") b0 b1 b2 b3 hB
+  have skip2 : StatementRun s (u256LtLimb 2) none s
+      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+    StatementRun.iteNo (costedExpression_events s _ _
+      (eval_cmp_word_ne_false s _ _ a2 b2 ha2 hb2 h2)) (StatementRun.skip s)
+  have ha1 := eval_rfield_four_one s (ofString "a") a0 a1 a2 a3 hA
+  have hb1 := eval_rfield_four_one s (ofString "b") b0 b1 b2 b3 hB
+  obtain ⟨_, limb1Run⟩ := u256Lt_limb_greater_run s 1 a1 b1 ha1 hb1 hne hnotlt
+  have rest1 : StatementRun s (.seq (u256LtLimb 1)
+      (.seq u256LtFinal (.return (.const (0 : BitVec 64)))))
+      (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s) _ :=
+    StatementRun.seqStop (second := _) (by simp) limb1Run
+  have rest2 : StatementRun s (.seq (u256LtLimb 2) (.seq (u256LtLimb 1)
+      (.seq u256LtFinal (.return (.const (0 : BitVec 64))))))
+      (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s) _ :=
+    StatementRun.seqNext skip2 rest1
+  rw [source_u256Lt_body]
+  exact ⟨_, StatementRun.seqNext skip3 rest2⟩
+
+/-- Final-limb not-less execution when limbs 3, 2 and 1 are equal: return 0. -/
+theorem u256Lt_run_limb0_not_less (s : PanSemStateFiniteExact 64 F)
+    (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64)
+    (hA : s.locals.lookup (ofString "a") =
+      some (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)]))
+    (hB : s.locals.lookup (ofString "b") =
+      some (.rStruct [.val (.word b0), .val (.word b1), .val (.word b2), .val (.word b3)]))
+    (h3 : a3 = b3) (h2 : a2 = b2) (h1 : a1 = b1) (hnotlt : ¬ a0 < b0) :
+    ∃ events, StatementRun s (sourceFunctionBody Guest.guestFn_u256_lt)
+      (some (.returned (.val (.word (0 : BitVec 64)))))
+      (emptyLocalsHOLFinite s) events := by
+  classical
+  have ret0 : StatementRun s (.return (.const (0 : BitVec 64)))
+      (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s)
+      (.statement :: (expressionEvents s (.const (0 : BitVec 64)) ++
+        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+    StatementRun.returnValue (expression := .const (0 : BitVec 64))
+      (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
+      (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
+  have ha3 := eval_rfield_four_three s (ofString "a") a0 a1 a2 a3 hA
+  have hb3 := eval_rfield_four_three s (ofString "b") b0 b1 b2 b3 hB
+  have skip3 : StatementRun s (u256LtLimb 3) none s
+      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+    StatementRun.iteNo (costedExpression_events s _ _
+      (eval_cmp_word_ne_false s _ _ a3 b3 ha3 hb3 h3)) (StatementRun.skip s)
+  have ha2 := eval_rfield_four_two s (ofString "a") a0 a1 a2 a3 hA
+  have hb2 := eval_rfield_four_two s (ofString "b") b0 b1 b2 b3 hB
+  have skip2 : StatementRun s (u256LtLimb 2) none s
+      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+    StatementRun.iteNo (costedExpression_events s _ _
+      (eval_cmp_word_ne_false s _ _ a2 b2 ha2 hb2 h2)) (StatementRun.skip s)
+  have ha1 := eval_rfield_four_one s (ofString "a") a0 a1 a2 a3 hA
+  have hb1 := eval_rfield_four_one s (ofString "b") b0 b1 b2 b3 hB
+  have skip1 : StatementRun s (u256LtLimb 1) none s
+      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+    StatementRun.iteNo (costedExpression_events s _ _
+      (eval_cmp_word_ne_false s _ _ a1 b1 ha1 hb1 h1)) (StatementRun.skip s)
+  have ha0 := eval_rfield_four_zero s (ofString "a") a0 a1 a2 a3 hA
+  have hb0 := eval_rfield_four_zero s (ofString "b") b0 b1 b2 b3 hB
+  have ltValue := eval_cmp_word_true s _ _ a0 b0 ha0 hb0
+  have ltGuard : expressionValue s
+      (.cmp Cmp.lower (.rfield 0 (.var VarKind.local (ofString "a")))
+        (.rfield 0 (.var VarKind.local (ofString "b")))) =
+      some (.val (.word (0 : BitVec 64))) := by
+    rw [ltValue]
+    simp [hnotlt]
+  have finalRun : StatementRun s u256LtFinal none s
+      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+    StatementRun.iteNo (costedExpression_events s _ _ ltGuard) (StatementRun.skip s)
+  have finalSeq : StatementRun s (.seq u256LtFinal (.return (.const (0 : BitVec 64))))
+      (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s) _ :=
+    StatementRun.seqNext finalRun ret0
+  have rest1 : StatementRun s (.seq (u256LtLimb 1)
+      (.seq u256LtFinal (.return (.const (0 : BitVec 64)))))
+      (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s) _ :=
+    StatementRun.seqNext skip1 finalSeq
+  have rest2 : StatementRun s (.seq (u256LtLimb 2) (.seq (u256LtLimb 1)
+      (.seq u256LtFinal (.return (.const (0 : BitVec 64))))))
+      (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s) _ :=
+    StatementRun.seqNext skip2 rest1
+  rw [source_u256Lt_body]
+  exact ⟨_, StatementRun.seqNext skip3 rest2⟩
+
+#print axioms u256Lt_run_limb1_greater
+#print axioms u256Lt_run_limb0_not_less
+
+/-- The value computed by `u256_lt`: lexicographic comparison from limb 3 down. -/
+def u256LtValue (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64) : BitVec 64 :=
+  if a3 = b3 then
+    if a2 = b2 then
+      if a1 = b1 then
+        if a0 < b0 then 1 else 0
+      else if a1 < b1 then 1 else 0
+    else if a2 < b2 then 1 else 0
+  else if a3 < b3 then 1 else 0
+
+/-- Complete `u256_lt` decision tree: every pair of four-word values executes the
+real source body and returns the lexicographic comparison value. -/
+theorem u256Lt_run (s : PanSemStateFiniteExact 64 F)
+    (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64)
+    (hA : s.locals.lookup (ofString "a") =
+      some (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)]))
+    (hB : s.locals.lookup (ofString "b") =
+      some (.rStruct [.val (.word b0), .val (.word b1), .val (.word b2), .val (.word b3)])) :
+    ∃ events, StatementRun s (sourceFunctionBody Guest.guestFn_u256_lt)
+      (some (.returned (.val (.word (u256LtValue a0 a1 a2 a3 b0 b1 b2 b3)))))
+      (emptyLocalsHOLFinite s) events := by
+  classical
+  by_cases h3 : a3 = b3
+  · by_cases h2 : a2 = b2
+    · by_cases h1 : a1 = b1
+      · by_cases h0 : a0 < b0
+        · obtain ⟨ev, run⟩ := u256Lt_run_limb0_less s a0 a1 a2 a3 b0 b1 b2 b3 hA hB h3 h2 h1 h0
+          exact ⟨ev, by simpa [u256LtValue, h3, h2, h1, h0] using run⟩
+        · obtain ⟨ev, run⟩ := u256Lt_run_limb0_not_less s a0 a1 a2 a3 b0 b1 b2 b3 hA hB h3 h2 h1 h0
+          exact ⟨ev, by simpa [u256LtValue, h3, h2, h1, h0] using run⟩
+      · by_cases hlt1 : a1 < b1
+        · obtain ⟨ev, run⟩ := u256Lt_run_limb1_less s a0 a1 a2 a3 b0 b1 b2 b3 hA hB h3 h2 h1 hlt1
+          exact ⟨ev, by simpa [u256LtValue, h3, h2, h1, hlt1] using run⟩
+        · obtain ⟨ev, run⟩ := u256Lt_run_limb1_greater s a0 a1 a2 a3 b0 b1 b2 b3 hA hB h3 h2 h1 hlt1
+          exact ⟨ev, by simpa [u256LtValue, h3, h2, h1, hlt1] using run⟩
+    · by_cases hlt2 : a2 < b2
+      · obtain ⟨ev, run⟩ := u256Lt_run_limb2_less s a0 a1 a2 a3 b0 b1 b2 b3 hA hB h3 h2 hlt2
+        exact ⟨ev, by simpa [u256LtValue, h3, h2, hlt2] using run⟩
+      · obtain ⟨ev, run⟩ := u256Lt_run_limb2_greater s a0 a1 a2 a3 b0 b1 b2 b3 hA hB h3 h2 hlt2
+        exact ⟨ev, by simpa [u256LtValue, h3, h2, hlt2] using run⟩
+  · by_cases hlt3 : a3 < b3
+    · obtain ⟨ev, run⟩ := u256Lt_run_limb3_less s a0 a1 a2 a3 b0 b1 b2 b3 hA hB h3 hlt3
+      exact ⟨ev, by simpa [u256LtValue, h3, hlt3] using run⟩
+    · obtain ⟨ev, run⟩ := u256Lt_run_limb3_greater s a0 a1 a2 a3 b0 b1 b2 b3 hA hB h3 hlt3
+      exact ⟨ev, by simpa [u256LtValue, h3, hlt3] using run⟩
+
+#print axioms u256Lt_run
+
 #print axioms u256Lt_run_limb3_less
 end InitECandidate.Runtime.FineCost
