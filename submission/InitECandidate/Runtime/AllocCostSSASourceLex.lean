@@ -56,4 +56,32 @@ theorem lex3_induction (P : Nat × Nat × Nat → Prop)
 
 #print axioms lex3_induction
 
+/-- **Paired callee from the real allocator facts.**  The allocator's call case
+obtains the target `wordSemFindCode` fact from the source one purely by
+rewriting `code` and `stackSize` (`SSASemanticCallCase` does exactly this with
+the `wordStateEqRel` projections `h14`/`h7`).  So the callee program is the
+*same* syntax tree on both sides, and no code-map relation is needed: the pair
+is supplied by `SsaAllocRel` itself. -/
+theorem stage_findCode {C F : Type} {ssa : Spt Nat} {next : Nat}
+    {s t : WordSemStateFiniteExact 64 C F} (rel : SsaAllocRel ssa next s t)
+    (dest : Option Nat) (values : List (WordLocW 64)) :
+    wordSemFindCode dest values t.code t.stackSize =
+      wordSemFindCode dest values s.code s.stackSize := by
+  rw [stage_code rel, stage_stackSize rel]
+
+/-- The paired-callee interface in the direction the call stage consumes: a
+target-side lookup is the source-side lookup, with the same callee program and
+the same argument/stack-size payload. -/
+theorem ssaCall_callee_pair {C F : Type} {ssa : Spt Nat} {next : Nat}
+    {s t : WordSemStateFiniteExact 64 C F} (rel : SsaAllocRel ssa next s t)
+    (dest : Option Nat) (values : List (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (hfind : wordSemFindCode dest values t.code t.stackSize = some (args1, prog, ss)) :
+    wordSemFindCode dest values s.code s.stackSize = some (args1, prog, ss) := by
+  rw [← stage_findCode rel]
+  exact hfind
+
+#print axioms stage_findCode
+#print axioms ssaCall_callee_pair
+
 end InitECandidate.Runtime.FineCost
