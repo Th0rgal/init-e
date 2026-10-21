@@ -21,7 +21,7 @@ theorem opAdd_dispatch_body_run_direct (coeff : FineCost.Work)
     (inv : FineCost.GuestFrameInvariant d frame sp cap base pc funding a0 a1 a2 a3 b0 b1 b2 b3)
     (opcode : d.locals.lookup (ofString "op") = some (.val (.word (1 : BitVec 64))))
     (clock : 8 ≤ d.clock) :
-    ∃ bodyPost bodyEvents, StatementRun d (sourceFunctionBody Guest.guestFn_op_dispatch)
+    ∃ bodyPost bodyEvents, StatementRun (ofString "op_dispatch") d (sourceFunctionBody Guest.guestFn_op_dispatch)
       (some (.returned (.val (.word 0)))) (FineCost.opAddDispatchArmPost d bodyPost)
       (FineCost.opAddOuterThirtyTwoEvents d bodyPost bodyEvents) ∧
       HasGasFunding bodyPost frame (funding.charge 3) ∧
@@ -40,7 +40,7 @@ theorem opAdd_dispatch_body_run_direct (coeff : FineCost.Work)
     funding a0 a1 a2 a3 b0 b1 b2 b3
   let bodyEvents := FineCost.opAddEvents entry frame sp cap base pc funding
     a0 a1 a2 a3 b0 b1 b2 b3
-  have bodyRun : StatementRun entry (sourceFunctionBody Guest.guestFn_op_add)
+  have bodyRun : StatementRun (ofString "op_add") entry (sourceFunctionBody Guest.guestFn_op_add)
       (some (.returned (.val (.word 0)))) bodyPost bodyEvents :=
     FineCost.opAdd_body_run_of_frame (coeff := coeff) entry frame sp cap base pc funding
       a0 a1 a2 a3 b0 b1 b2 b3 entryInv

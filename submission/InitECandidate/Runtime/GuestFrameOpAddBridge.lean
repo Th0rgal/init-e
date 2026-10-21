@@ -13,7 +13,7 @@ theorem opAdd_body_run_of_frame
     (frame sp cap base pc : BitVec 64) (funding : GasFunding)
     (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64)
     (inv : GuestFrameInvariant s frame sp cap base pc funding a0 a1 a2 a3 b0 b1 b2 b3) :
-    StatementRun s (sourceFunctionBody Guest.guestFn_op_add)
+    StatementRun (ofString "op_add") s (sourceFunctionBody Guest.guestFn_op_add)
       (some (.returned (.val (.word 0))))
       (opAddFinalPost s frame sp cap base pc (fourWordValue a0 a1 a2 a3)
         (fourWordValue b0 b1 b2 b3) funding a0 a1 a2 a3 b0 b1 b2 b3)
