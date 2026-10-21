@@ -572,10 +572,6 @@ theorem compileExps_length' (ctxt : CrepToLoopContextExact) :
       (compileExpsHOLExact ctxt tmp live es).2.1.length = es.length :=
   price_compileExps_length ctxt
 
-/-- Argument-list price with the per-value move. -/
-def nodeTsM (c : Compiler.Encoders.Asm.AsmConfigExact 64) (es : List (CrepExpHOL 64)) : Nat :=
-  nodeTs c es + 39 * es.length
-
 /-- The pattern-aware selector pricing of compiled Crep code at leaf price `wsLeaf c`. -/
 noncomputable def tightPricing (c : Compiler.Encoders.Asm.AsmConfigExact 64) : LoopPricingG where
   L := wsLeaf c
@@ -585,12 +581,9 @@ noncomputable def tightPricing (c : Compiler.Encoders.Asm.AsmConfigExact 64) : L
   vps_nil := by simp [fLTs]
   vps_cons := fun v vs => by simp [fLTs]
   price := nodeT c
-  priceList := nodeTsM c
+  priceList := nodeTs c
   exprOk := fun context tmp live e => crep_to_loop_T_work c context e tmp live
-  listOk := fun context tmp live es => by
-    obtain ⟨cost, h, b⟩ := crep_to_loop_T_list c context es tmp live
-    have len := compileExps_length' context es tmp live
-    exact ⟨cost, h, by simp only [nodeTsM]; omega⟩
+  listOk := fun context tmp live es => crep_to_loop_T_list c context es tmp live
   assignWork := fun n v => ⟨fLT c v, rfl, Nat.le_refl _⟩
   assignOk := fun n v => leafPL_assignT c n v
   tickC := 6

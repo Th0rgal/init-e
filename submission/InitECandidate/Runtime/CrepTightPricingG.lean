@@ -41,7 +41,7 @@ theorem crep_loop_tight_workG (c : Compiler.Encoders.Asm.AsmConfigExact 64) {K :
     {callP : CName → CName → Nat → Nat} {funcs : HolFiniteMapExact Basis.Pure.MlString.MlString (Nat × Nat)}
     (fit : CrepFitG (tightPricing c) K shortP callP funcs) {F : Type} {fn : CName}
     {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64} {w : Nat}
-    (work : @CrepWorkF (nodeT c) (nodeTsM c) K callP shortP F fn t p w)
+    (work : @CrepWorkF (nodeT c) (nodeTs c) K callP shortP F fn t p w)
     (u : LoopSemStateFiniteExact 64 F) (context : CrepToLoopContextExact) (live : NumSet)
     (hfun : context.funcs = funcs) (ok : (evalCrepSemHOLProgExact t p).1 ≠ some .error)
     (rel : CrepLoopRel context live t u) :

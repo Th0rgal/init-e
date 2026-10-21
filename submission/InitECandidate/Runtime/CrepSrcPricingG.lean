@@ -38,9 +38,6 @@ mutual
   decreasing_by all_goals first | sizeOf_list_dec | decreasing_trivial
 end
 
-/-- Source-charge price of an argument list, with the per-value move. -/
-def srcPriceListM (es : List (CrepExpHOL 64)) : Nat := nodePriceListK srcK es + 39 * es.length
-
 theorem nodeT_le_srcK (c : Compiler.Encoders.Asm.AsmConfigExact 64) (e : CrepExpHOL 64) :
     nodeT c e ≤ nodePriceK srcK e := by
   have h1 := nodeT_le_sel c e
@@ -55,12 +52,8 @@ theorem nodeTs_le_srcK (c : Compiler.Encoders.Asm.AsmConfigExact 64) :
     rw [nodeTs_cons]; simp only [nodePriceListK]; omega
 
 noncomputable def srcPricing (c : Compiler.Encoders.Asm.AsmConfigExact 64) : LoopPricingG :=
-  (tightPricing c).weaken (nodePriceK srcK) srcPriceListM
-    (fun e => nodeT_le_srcK c e)
-    (fun es => by
-      show nodeTsM c es ≤ _
-      have := nodeTs_le_srcK c es
-      simp only [nodeTsM, srcPriceListM]; omega)
+  (tightPricing c).weaken (nodePriceK srcK) (nodePriceListK srcK)
+    (fun e => nodeT_le_srcK c e) (fun es => nodeTs_le_srcK c es)
 
 theorem srcPricing_fit (c : Compiler.Encoders.Asm.AsmConfigExact 64) {K : StmtK} {shortP : Nat}
     {callP : CName → CName → Nat → Nat} {funcs : HolFiniteMapExact Basis.Pure.MlString.MlString (Nat × Nat)}
@@ -78,7 +71,7 @@ theorem crep_loop_src_workG (c : Compiler.Encoders.Asm.AsmConfigExact 64) {K : S
     {callP : CName → CName → Nat → Nat} {funcs : HolFiniteMapExact Basis.Pure.MlString.MlString (Nat × Nat)}
     (fit : CrepFitG (srcPricing c) K shortP callP funcs) {F : Type} {fn : CName}
     {t : CrepSemHOLState 64 F} {p : CrepProgHOL 64} {w : Nat}
-    (work : @CrepWorkF (nodePriceK srcK) srcPriceListM K callP shortP F fn t p w)
+    (work : @CrepWorkF (nodePriceK srcK) (nodePriceListK srcK) K callP shortP F fn t p w)
     (u : LoopSemStateFiniteExact 64 F) (context : CrepToLoopContextExact) (live : NumSet)
     (hfun : context.funcs = funcs) (ok : (evalCrepSemHOLProgExact t p).1 ≠ some .error)
     (rel : CrepLoopRel context live t u) :
