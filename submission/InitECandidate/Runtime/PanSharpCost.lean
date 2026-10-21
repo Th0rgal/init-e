@@ -2,21 +2,22 @@ import InitECandidate.Runtime.SourceCostSharpSource
 import InitECandidate.Runtime.PanCostDeterminism
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.LoopSemStateFiniteExact Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-- Canonical finite Pancake execution cost at the checked sharp compiler
 prices. Address replay is charged per actual multiword operation, not by a
 whole-program expression-size multiplier. -/
-noncomputable def sourceSharpExecutionCost {F : Type}
+noncomputable def sourceSharpExecutionCost {F : Type} (fn : MlS)
     (s : PanSemStateFiniteExact 64 F) (p : ProgHOL 64) : Nat :=
-  sharpScore (sourceExecutionEvents s p)
+  sharpScore (sourceExecutionEvents fn s p)
 
 /-- Any concrete guest trace computes the canonical cost, independently of the
 choice used to select the total source execution witness. -/
 theorem sourceSharpExecutionCost_eq_of_run {F : Type}
     {s post : PanSemStateFiniteExact 64 F} {p : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
-    (run : StatementRun s p r post events) :
-    sourceSharpExecutionCost s p = sharpScore events := by
+    (run : StatementRun fn s p r post events) :
+    sourceSharpExecutionCost fn s p = sharpScore events := by
   unfold sourceSharpExecutionCost
   rw [sourceExecutionEvents_eq_of_run run]
 
@@ -39,13 +40,14 @@ theorem sourceSharpExecutionCost_pays_loop {F : Type}
         (compileHOLExact loopContext live (crepSimpProgHOL (compileProgExactHOLW context p)))
         (evaluate (compileHOLExact loopContext live (crepSimpProgHOL (compileProgExactHOLW context p)))
           {u with clock := u.clock + extra}) wl ∧
-      wl ≤ sourceSharpExecutionCost s p ∧
+      wl ≤ sourceSharpExecutionCost fn s p ∧
       LoopRunRel loopContext live
         (evalCrepSemHOLProgExact (crepSimpMapcsHOL t) (crepSimpProgHOL (compileProgExactHOLW context p)))
         (evaluate (compileHOLExact loopContext live (crepSimpProgHOL (compileProgExactHOLW context p)))
-          {u with clock := u.clock + extra}) :=
-  source_loop_sharp_work (sourceExecutionEvents_run s p) t context resultOk rel localised checked
-    codeChecked u loopContext live loopRel
+          {u with clock := u.clock + extra}) := by
+  obtain ⟨extra, wl, work, bound, loopRel', -⟩ := source_loop_sharp_work (sourceExecutionEvents_run fn s p) t
+    context resultOk rel localised checked codeChecked u loopContext live loopRel
+  exact ⟨extra, wl, work, bound, loopRel'⟩
 
 #print axioms sourceSharpExecutionCost_eq_of_run
 #print axioms sourceSharpExecutionCost_pays_loop
