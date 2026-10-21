@@ -1,4 +1,6 @@
-import InitECandidate.Runtime.SSAInstructionExactCost
+import InitECandidate.Runtime.SSAQuantitativeCost
+import InitECandidate.Runtime.WordLineCost
+import InitECandidate.Runtime.WordCseAtomicCost
 import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticCorrect
 
 namespace InitECandidate.Runtime.FineCost

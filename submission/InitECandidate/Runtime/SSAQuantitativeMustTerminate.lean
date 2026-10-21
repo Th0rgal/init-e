@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.SSAQuantitativeCost
+import InitECandidate.Runtime.SSAQuantitativeAllowanceCore
 import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticMustTerminate
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.WordAlloc
@@ -8,20 +8,21 @@ set_option maxHeartbeats 5000000
 /-- The actual bounded-depth wrapper preserves the quantitative witness.
 Its body is charged at the real reset clock/decremented depth. Timeouts become
 source errors exactly as in the pinned evaluator, retaining error exemption. -/
-theorem ssa_quantitative_mustTerminate {C F : Type}
+theorem ssa_quantitative_mustTerminate_fund_entry {C F : Type}
     (SP TP : WordLangProgHOL (BitVec 64) → Nat)
     (body : WordLangProgHOL (BitVec 64))
     (source target : WordSemStateFiniteExact 64 C F)
     (map : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
-    (bodyIH : ∀ (s t : WordSemStateFiniteExact 64 C F) m n ts,
-      Flapjack.WordAlloc.wordStateEqRel s t ∧ ssaLocalsRel n m s.locals t.locals ∧
-      isAllocVar n ∧ everyVarHOL (fun x => decide (x < n)) body = true ∧
-      ssaMapOK n m ∧ ltOK ts → SSAQuantitativeSimulation SP TP body s t m n ts)
+    (entry : Nat)
+    (bodyIH : ∀ (s t : WordSemStateFiniteExact 64 C F),
+      Flapjack.WordAlloc.wordStateEqRel s t ∧ ssaLocalsRel next map s.locals t.locals ∧
+      isAllocVar next ∧ everyVarHOL (fun x => decide (x < next)) body = true ∧
+      ssaMapOK next map ∧ ltOK tables → SSAQuantitativeAllowance SP TP body s t map next tables entry)
     (h : Flapjack.WordAlloc.wordStateEqRel source target ∧
       ssaLocalsRel next map source.locals target.locals ∧ isAllocVar next ∧
       everyVarHOL (fun x => decide (x < next)) (.mustTerminate body) = true ∧
       ssaMapOK next map ∧ ltOK tables)
-    (headPrice : TP (ssaCcTrans (.mustTerminate body) map next tables).1 ≤ SP (.mustTerminate body)) :
+    (headPrice : TP (ssaCcTrans (.mustTerminate body) map next tables).1 + entry ≤ SP (.mustTerminate body)) :
     SSAQuantitativeSimulation SP TP (.mustTerminate body) source target map next tables := by
   by_cases zero : source.termdep = 0
   · refine ⟨target.permute, Or.inl ?_⟩
@@ -33,7 +34,7 @@ theorem ssa_quantitative_mustTerminate {C F : Type}
       exact depth
     have frame : Flapjack.WordAlloc.wordStateEqRel innerSource innerTarget := by
       simp_all [innerSource, innerTarget, Flapjack.WordAlloc.wordStateEqRel]
-    obtain ⟨permutation, simulation⟩ := bodyIH innerSource innerTarget map next tables
+    obtain ⟨permutation, simulation⟩ := bodyIH innerSource innerTarget
       ⟨frame, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2⟩
     rcases compiledEq : ssaCcTrans body map next tables with ⟨output, mapOut, nextOut⟩
     have compileOuter : ssaCcTrans (.mustTerminate body) map next tables =
@@ -85,9 +86,35 @@ theorem ssa_quantitative_mustTerminate {C F : Type}
           conv_rhs => rw [wordExecutionCost]
           simp only [zero, depth, if_false]
           dsimp only at work
-          have price : TP (.mustTerminate output) ≤ SP (.mustTerminate body) := by
+          have price : TP (.mustTerminate output) + entry ≤ SP (.mustTerminate body) := by
             simpa only [compileOuter] using headPrice
-          exact Nat.add_le_add price work
+          simp only [dite_false]
+          dsimp only [innerSource,innerTarget] at work ⊢
+          omega
 
+
+/-- Zero-entry specialization preserves the original interface. -/
+theorem ssa_quantitative_mustTerminate {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (body : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (map : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (bodyIH : ∀ (s t : WordSemStateFiniteExact 64 C F) m n ts,
+      Flapjack.WordAlloc.wordStateEqRel s t ∧ ssaLocalsRel n m s.locals t.locals ∧
+      isAllocVar n ∧ everyVarHOL (fun x => decide (x < n)) body = true ∧
+      ssaMapOK n m ∧ ltOK ts → SSAQuantitativeSimulation SP TP body s t m n ts)
+    (h : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next map source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) (.mustTerminate body) = true ∧
+      ssaMapOK next map ∧ ltOK tables)
+    (headPrice : TP (ssaCcTrans (.mustTerminate body) map next tables).1 ≤ SP (.mustTerminate body)) :
+    SSAQuantitativeSimulation SP TP (.mustTerminate body) source target map next tables := by
+  apply ssa_quantitative_mustTerminate_fund_entry SP TP body source target map next tables 0
+  · intro s t premises
+    exact (ssa_quantitative_allowance_zero SP TP body s t map next tables).mpr (bodyIH s t map next tables premises)
+  · exact h
+  · simpa only [Nat.add_zero] using headPrice
+
+#print axioms ssa_quantitative_mustTerminate_fund_entry
 #print axioms ssa_quantitative_mustTerminate
 end InitECandidate.Runtime.FineCost
