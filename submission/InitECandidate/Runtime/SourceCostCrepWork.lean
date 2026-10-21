@@ -20,7 +20,7 @@ composition and carries no local charge. -/
 inductive CrepWorkP (price : CrepExpHOL 64 → Nat) (priceList : List (CrepExpHOL 64) → Nat)
     (unit prim call ret : Nat) {σ : Type} :
     CrepSemHOLState 64 σ → CrepProgHOL 64 → Nat → Prop where
-  | skip (t) : CrepWorkP price priceList unit prim call ret t .skip unit
+  | skip (t) : CrepWorkP price priceList unit prim call ret t .skip 0
   | tick (t) : CrepWorkP price priceList unit prim call ret t .tick unit
   | breakStmt (t label) : CrepWorkP price priceList unit prim call ret t (.break label) unit
   | continueStmt (t label) : CrepWorkP price priceList unit prim call ret t (.continue label) unit
@@ -152,12 +152,5 @@ abbrev CrepWork.callShort {σ : Type} := @CrepWorkP.callShort crepNodeWork crepL
 abbrev CrepWork.callBody {σ : Type} := @CrepWorkP.callBody crepNodeWork crepListWork 1 1 3 1 σ
 abbrev CrepWork.callHandler {σ : Type} := @CrepWorkP.callHandler crepNodeWork crepListWork 1 1 3 1 σ
 
-/-- Every executed Crep statement pays at least its entry unit. -/
-theorem CrepWork.entry {σ : Type} {t : CrepSemHOLState 64 σ} {p : CrepProgHOL 64} {w : Nat}
-    (run : CrepWork t p w) : 1 ≤ w := by
-  have pos : ∀ e : CrepExpHOL 64, 1 ≤ crepNodeWork e := by
-    intro e; cases e <;> simp only [crepNodeWork] <;> omega
-  induction run <;> (try have := pos ‹_›) <;> omega
-
-#print axioms CrepWork.entry
+#print axioms CrepWorkP
 end InitECandidate.Runtime.FineCost

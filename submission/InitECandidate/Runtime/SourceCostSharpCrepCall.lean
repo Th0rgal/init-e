@@ -1,5 +1,4 @@
 import InitECandidate.Runtime.SourceCostSharpCrepDec
-import InitECandidate.Runtime.SourceCostCrepCall
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -36,6 +35,10 @@ theorem expressionList_cons_events_sharp {F : Type} (s : PanSemStateFiniteExact 
     expressionListEvents s (head :: tail) = expressionEvents s head ++ expressionListEvents s tail := by
   rw [expressionListEvents]
 
+theorem everyExpHOL_root {P : ExpHOL 64 → Bool} {e : ExpHOL 64}
+    (every : everyExpHOL P e = true) : P e = true := by
+  cases e <;> simp_all [everyExpHOL]
+
 /-- Every successfully evaluated call argument pays for its compiled words. -/
 theorem arguments_paid_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
     {t : CrepSemHOLState 64 F} {context : PanToCrepContextExact 64}
@@ -43,10 +46,10 @@ theorem arguments_paid_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
     ∀ (arguments : List (ExpHOL 64)) (values : List (ValueHOL 64)),
       evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a)) arguments =
         some values →
-      sharpSitesList sharpReplayBound arguments = true →
-      sharpCrepList ((compileExpExactHOLWList context arguments).flatMap Prod.fst) ≤
+      everyExpListHOL localisedExpHOL arguments = true →
+      loopPriceList ((compileExpExactHOLWList context arguments).flatMap Prod.fst) ≤
         sharpScore ((expressionListEvents s arguments))
-  | [], _, _, _ => by simp [compileExpExactHOLWList, sharpCrepList, loopPriceList]
+  | [], _, _, _ => by simp [compileExpExactHOLWList, loopPriceList]
   | head :: tail, values, evaluated, checked => by
     simp only [evalListHOLFinite, evalListHOLExact] at evaluated
     cases headValue : @evalHOLExact 64 F _ s.toExact
@@ -57,20 +60,35 @@ theorem arguments_paid_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
           (fun a => Classical.propDecidable (s.memaddrs a)) tail with
       | none => rw [headValue, tailValue] at evaluated; simp at evaluated
       | some rest =>
-        simp only [sharpSitesList, Bool.and_eq_true] at checked
+        simp only [everyExpListHOL, Bool.and_eq_true] at checked
         have headBound := compiled_expression_sharp_score s context t.locals rel.locals
-          rel.state.2.2.2.1 head value headValue checked.1
+          head value headValue (everyExpHOL_root checked.1)
         have tailBound := arguments_paid_sharp rel tail rest tailValue checked.2
-        rw [compileExpExactHOLWList, List.flatMap_cons, sharpCrepList_append,
+        rw [compileExpExactHOLWList, List.flatMap_cons, loopPriceList_append,
           expressionList_cons_events_sharp, sharpScore_append]
         omega
 
+theorem mapM_some_length_sharp {α β : Type} (f : α → Option β) :
+    ∀ (l : List α) (r : List β), l.mapM f = some r → r.length = l.length
+  | [], r, h => by simp at h; subst h; rfl
+  | a :: l, r, h => by
+    simp only [List.mapM_cons, Option.bind_eq_bind] at h
+    cases fa : f a with
+    | none => simp [fa] at h
+    | some b =>
+      cases fl : l.mapM f with
+      | none => simp [fa, fl] at h
+      | some rs =>
+        simp [fa, fl] at h
+        subst h
+        simp [mapM_some_length_sharp f l rs fl]
+
 theorem crepListWork_zero_consts_sharp (n : Nat) :
-    sharpCrepList (List.replicate n (CrepExpHOL.const (0 : BitVec 64))) = 3 * n := by
+    loopPriceList (List.replicate n (CrepExpHOL.const (0 : BitVec 64))) = 19 * n := by
   induction n with
-  | zero => simp [sharpCrepList, loopPriceList]
+  | zero => simp [loopPriceList]
   | succ n ih =>
-    simp only [List.replicate_succ, sharpCrepList_cons, loopNodePrice]
+    simp only [List.replicate_succ, loopPriceList_cons', loopNodePrice]
     rw [ih]; omega
 
 /-- The caller state after zero-initializing compiled return slots. -/
@@ -84,7 +102,7 @@ theorem work_zero_slots_sharp {σ : Type} (t : CrepSemHOLState 64 σ) (rts : Lis
     (program : CrepProgHOL 64) (w : Nat) (nodup : rts.Nodup)
     (inner : CrepWorkS (zeroSlotState_sharp t rts) program w) :
     CrepWorkS t (nestedDecsHOL rts (List.replicate rts.length (.const (0 : BitVec 64))) program)
-      (4 * rts.length + w) := by
+      (19 * rts.length + w) := by
   have work := work_nestedDecs_eval_sharp (List.replicate rts.length (.const (0 : BitVec 64))) rts
     (List.replicate rts.length (HolWordLab.word (0 : BitVec 64))) program t w
     (by simp [evalCrepSemHOLExp]) (by simp)
@@ -123,6 +141,14 @@ theorem call_body_ok_sharp {F : Type} {s : PanSemStateFiniteExact 64 F} {info re
   rintro rfl
   simp only [callCostPlan, CallCostPlan.done.injEq] at plan
   exact resultOk plan.1.symm
+
+theorem call_body_time_sharp {F : Type} {s : PanSemStateFiniteExact 64 F} {info returnShape}
+    {bodyResult : Option (PanSemResultExact 64)} {bodyPost : PanSemStateFiniteExact 64 F}
+    {result post} (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post)
+    (resultTime : result ≠ some .timeOut) : bodyResult ≠ some .timeOut := by
+  rintro rfl
+  simp only [callCostPlan, CallCostPlan.done.injEq] at plan
+  exact resultTime plan.1.symm
 
 theorem everyArgs_localised_sharp {info : Option (Option (VarKind × MlStringHOL) ×
       Option (MlStringHOL × MlStringHOL × ProgHOL 64))}
@@ -184,13 +210,12 @@ theorem done_plan_no_fire_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
         · simp only [CallCostPlan.done.injEq] at plan; exact resultOk plan.1.symm
       · simp only [CallCostPlan.done.injEq] at plan; exact resultOk plan.1.symm
 
-theorem call_events_score_sharp (arguments bodyEvents : List WorkEvent) (a b f c : Nat) :
-    sharpScore ((.statement :: (arguments ++ [.copy a, .frame b, .frame f] ++
-      bodyEvents ++ [.copy c]))) =
-    10 + sharpScore arguments + 5 * a + 4 * b + 4 * f +
-      sharpScore bodyEvents + 5 * c := by
+theorem call_events_score_sharp (arguments bodyEvents : List WorkEvent) (a f c : Nat) :
+    sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
+      bodyEvents ++ [.cost (returnCopy c)]))) =
+    sharpScore arguments + (300 + 40 * a + 19 * f) + sharpScore bodyEvents + 49 * c := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
-    sharpScore_statement, sharpScore_copy, sharpScore_frame, sharpScore_nil]
+    sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead, returnCopy]
   omega
 
 /-- Call exits that do not enter a handler: tail calls and return-info calls
@@ -222,9 +247,9 @@ theorem call_done_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       CrepWorkPaid_sharp t' (compileProgExactHOLW context' body) bodyEvents) :
     CrepWorkPaid_sharp t (compileProgExactHOLW context (.call info function arguments))
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-        [.copy (callPayloadWords bodyResult)])) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
+        [.cost (returnCopy (callPayloadWords bodyResult))])) := by
   classical
   have bodyOk := call_body_ok_sharp plan resultOk
   obtain ⟨vshapes, _hsrc, hprogLoc, hfuncs, _hlen, htargs, htlookup, hst', hcode', hexcp',
@@ -235,9 +260,13 @@ theorem call_done_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
   obtain ⟨r1, t1, hrun1, _, _, _, hrr⟩ :=
     compiled_source_run _ _ bodyRun.sound bodyOk hst' hcode' hexcp' hloc' hprogLoc
   have htclock : t.clock ≠ 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
-  have argsPaid := arguments_paid_sharp rel arguments values args checkedArgs
+  have argsPaid := arguments_paid_sharp rel arguments values args (everyArgs_localised_sharp localised)
   have payload := crep_payload_le_sharp hrr
   have rsize := frame_size_eq_sharp rel returnShape
+  have argLen := mapM_some_length_sharp _ _ _ htargs
+  have argPrice : sharpCrepList ((compileExpExactHOLWList context arguments).flatMap Prod.fst) =
+      loopPriceList ((compileExpExactHOLWList context arguments).flatMap Prod.fst) +
+        39 * ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length := rfl
   unfold CrepWorkPaid_sharp
   rw [call_events_score_sharp, rsize]
   generalize sharpScore ((expressionListEvents s arguments)) = A
@@ -343,23 +372,29 @@ theorem call_timeout_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
     :
     CrepWorkPaid_sharp t (compileProgExactHOLW context (.call info function arguments))
       (.statement :: (expressionListEvents s arguments ++
-        [.frame (sizeOfShapeWithContextHOL s.structs returnShape)])) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))])) := by
   classical
   obtain ⟨vshapes, _hsrc, _, hfuncs, _hlen, htargs, htlookup, _, _, _, _⟩ :=
     pcCompileCorrectCallPrelude s t context function arguments values body callee returnShape
       args lookup rel.state rel.code rel.exceptions rel.locals (everyArgs_localised_sharp localised)
   have htclock : t.clock = 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
-  have argsPaid := arguments_paid_sharp rel arguments values args checkedArgs
+  have argsPaid := arguments_paid_sharp rel arguments values args (everyArgs_localised_sharp localised)
+  have argLen := mapM_some_length_sharp _ _ _ htargs
+  have argPrice : sharpCrepList ((compileExpExactHOLWList context arguments).flatMap Prod.fst) =
+      loopPriceList ((compileExpExactHOLWList context arguments).flatMap Prod.fst) +
+        39 * ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length := rfl
   have rsize := frame_size_eq_sharp rel returnShape
   unfold CrepWorkPaid_sharp
-  simp only [sharpScore_statement, sharpScore_append, sharpScore_frame, sharpScore_nil, rsize]
+  simp only [sharpScore_statement, sharpScore_append, sharpScore_cost, sharpScore_nil, rsize,
+    callOverhead, slotOverhead]
   generalize sharpScore (expressionListEvents s arguments) = A at argsPaid ⊢
   have short : ∀ (t'' : CrepSemHOLState 64 F) ri,
       ((compileExpExactHOLWList context arguments).flatMap Prod.fst).mapM
         (evalCrepSemHOLExp t'') = some (values.flatMap flattenHOL) → t''.code = t.code →
       t''.clock = t.clock →
       CrepWorkS t'' (.call ri function ((compileExpExactHOLWList context arguments).flatMap
-        Prod.fst)) (2 + 2 + 2 + sharpCrepList ((compileExpExactHOLWList context arguments).flatMap
+        Prod.fst)) (300 + sharpCrepList ((compileExpExactHOLWList context arguments).flatMap
           Prod.fst)) := by
     intro t'' ri hargs hcode hclk
     exact CrepWorkP.callShort (Or.inr ⟨_, hargs, Or.inr (Or.inr (by rw [hclk]; exact htclock))⟩)
@@ -390,6 +425,7 @@ theorem call_timeout_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
 
 #print axioms handler_plan_info_sharp
 #print axioms call_timeout_transfer_sharp
+#print axioms call_body_time_sharp
 #print axioms call_done_transfer_sharp
 #print axioms arguments_paid_sharp
 #print axioms work_zero_slots_sharp

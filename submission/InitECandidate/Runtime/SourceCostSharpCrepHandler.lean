@@ -1,11 +1,10 @@
 import InitECandidate.Runtime.SourceCostSharpCrepCall
-import InitECandidate.Runtime.SourceCostCrepHandler
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 theorem sharp_bounded_load_globals_sharp (names : List Nat) (address : BitVec 5) :
     CrepBoundedS (crepNestedSeqHOL (panMap2 (fun destination source => .assign destination source)
-      names (loadGlobalsHOL address names.length))) (2 + 4 * names.length) := by
+      names (loadGlobalsHOL address names.length))) (14 * names.length) := by
   induction names generalizing address with
   | nil => simpa [panMap2, crepNestedSeqHOL] using sharp_bounded_skip
   | cons name names ih =>
@@ -85,7 +84,7 @@ theorem handler_entry_work_sharp {F : Type} {s bodyPost : PanSemStateFiniteExact
       CrepWorkPaid_sharp t' (compileProgExactHOLW context handlerProgram) handlerEvents) :
     ∃ w, CrepWorkS { t1 with locals := targetLocals }
         (.seq (expHdlExact context.vars handlerVar) (compileProgExactHOLW context handlerProgram)) w ∧
-      w ≤ 2 + 4 * (flattenHOL exn).length +
+      w ≤ 14 * (flattenHOL exn).length +
         sharpScore handlerEvents := by
   classical
   cases hold : s.locals.lookup handlerVar with
@@ -169,14 +168,13 @@ theorem handler_entry_work_sharp {F : Type} {s bodyPost : PanSemStateFiniteExact
   omega
 
 theorem call_handler_events_score_sharp (arguments bodyEvents handlerEvents : List WorkEvent)
-    (a b f c : Nat) :
-    sharpScore ((.statement :: (arguments ++ [.copy a, .frame b, .frame f] ++
-      bodyEvents ++ [.copy c] ++ handlerEvents))) =
-    10 + sharpScore arguments + 5 * a + 4 * b + 4 * f +
-      sharpScore bodyEvents + 5 * c +
+    (a f c : Nat) :
+    sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
+      bodyEvents ++ [.cost (returnCopy c)] ++ handlerEvents))) =
+    sharpScore arguments + (300 + 40 * a + 19 * f) + sharpScore bodyEvents + 49 * c +
       sharpScore handlerEvents := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
-    sharpScore_statement, sharpScore_copy, sharpScore_frame, sharpScore_nil]
+    sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead, returnCopy]
   omega
 
 /-- Caught exceptions: the callee body, payload copy into the handler variable
@@ -209,9 +207,9 @@ theorem call_handler_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       CrepWorkPaid_sharp t' (compileProgExactHOLW context' handlerProgram) handlerEvents) :
     CrepWorkPaid_sharp t (compileProgExactHOLW context (.call info function arguments))
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-        [.copy (callPayloadWords bodyResult)] ++ handlerEvents)) := by
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
+        [.cost (returnCopy (callPayloadWords bodyResult))] ++ handlerEvents)) := by
   classical
   obtain ⟨dest, handlerId, handlerVar, rfl⟩ := handler_plan_info_sharp plan
   obtain ⟨exn, shape, rfl, _, _, valid, rfl, -⟩ := handler_plan_inv_sharp plan
@@ -248,8 +246,12 @@ theorem call_handler_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       (codeRelExactHOLW_ctxtFc context _ _ _ _ _ hc) he
       (fun t' rel' => ihHandler t' context rel' hlocP)
   have htclock : t.clock ≠ 0 := by rw [← rel.state.2.2.2.2.2.1]; exact clock
-  have argsPaid := arguments_paid_sharp rel arguments values args checkedArgs
+  have argsPaid := arguments_paid_sharp rel arguments values args (everyArgs_localised_sharp localised)
   have rsize := frame_size_eq_sharp rel returnShape
+  have argLen := mapM_some_length_sharp _ _ _ htargs
+  have argPrice : sharpCrepList ((compileExpExactHOLWList context arguments).flatMap Prod.fst) =
+      loopPriceList ((compileExpExactHOLWList context arguments).flatMap Prod.fst) +
+        39 * ((compileExpExactHOLWList context arguments).flatMap Prod.fst).length := rfl
   unfold CrepWorkPaid_sharp
   rw [call_handler_events_score_sharp, rsize]
   simp only [callPayloadWords]

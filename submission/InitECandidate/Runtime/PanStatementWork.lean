@@ -5,16 +5,21 @@ open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 /-! Native overheads of executed statements beyond their expressions, at the
 native Crep prices (`CrepWorkS`): a statement unit is 37, a call 300 plus one
-argument move (39) and one argument slot (1) per word, a returned word 49. -/
+argument move (39) and one argument slot (1) per word, a returned word 49.
+`Skip`, sequencing, declarations and assignments emit no unit: their Crep code
+is the expressions' own. -/
 
-/-- A loop guard evaluation pays three statement units; one is `.statement`. -/
-def whileOverhead : Nat := 74
+/-- The Crep statement unit. -/
+def statementUnit : Nat := 37
 
-/-- `return` of `n` words: one move and one slot per word. -/
-def returnOverhead (n : Nat) : Nat := 40 * n
+/-- A loop guard evaluation pays three statement units. -/
+def whileOverhead : Nat := 3 * statementUnit
+
+/-- `return` of `n` words: the statement unit, one move and one slot per word. -/
+def returnOverhead (n : Nat) : Nat := statementUnit + 40 * n
 
 /-- `raise` of `n` words: a global store per word and the raise itself. -/
-def raiseOverhead (n : Nat) : Nat := 51 * n + 49
+def raiseOverhead (n : Nat) : Nat := 51 * n + 86
 
 /-- A call with `n` argument words. -/
 def callOverhead (n : Nat) : Nat := 300 + 40 * n
@@ -47,15 +52,15 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (nonzero : value ≠ 0)
       (body : StatementRun s yes r post bodyEvents) :
       StatementRun s (.ite condition yes no) r post
-        (.statement :: (guardEvents ++ bodyEvents))
+        (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents))
   | iteNo {s condition yes no guardEvents r post bodyEvents}
       (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents)
       (body : StatementRun s no r post bodyEvents) :
       StatementRun s (.ite condition yes no) r post
-        (.statement :: (guardEvents ++ bodyEvents))
+        (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents))
 
-  | breakStmt (s) : StatementRun s .break (some .break) s [.statement]
-  | continueStmt (s) : StatementRun s .continue (some .continue) s [.statement]
+  | breakStmt (s) : StatementRun s .break (some .break) s [.statement, .cost statementUnit]
+  | continueStmt (s) : StatementRun s .continue (some .continue) s [.statement, .cost statementUnit]
   | whileFalse {s condition body guardEvents}
       (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents) :
       StatementRun s (.while condition body) none s (.statement :: .cost whileOverhead :: guardEvents)
@@ -221,7 +226,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post) :
       StatementRun s (.call info function arguments) result post
         (.statement :: (expressionListEvents s arguments ++
-          [.cost (callOverhead (values.flatMap flattenHOL).length)] ++ bodyEvents ++
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
           [.cost (returnCopy (callPayloadWords bodyResult))] ++ callGlobalEvents s info))
   | callHandler {s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post}
@@ -234,7 +240,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (handlerRun : StatementRun handlerEntry handlerProgram result post handlerEvents) :
       StatementRun s (.call info function arguments) result post
         (.statement :: (expressionListEvents s arguments ++
-          [.cost (callOverhead (values.flatMap flattenHOL).length)] ++ bodyEvents ++
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
           [.cost (returnCopy (callPayloadWords bodyResult))] ++ handlerEvents))
   | callArgumentsFailure {s info function arguments}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -254,7 +261,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (clock : s.clock = 0) :
       StatementRun s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
         (.statement :: (expressionListEvents s arguments ++
-          [.cost (callOverhead (values.flatMap flattenHOL).length)] ++ callGlobalEvents s info))
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ callGlobalEvents s info))
 
   | declareCallReturn {s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents continuationEvents result post}
@@ -327,14 +335,14 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
           [.cost (returnCopy (callPayloadWords bodyResult))]))
 
   | tickStep {s} (clock : s.clock ≠ 0) :
-      StatementRun s .tick none (decClockHOLFinite s) [.statement]
+      StatementRun s .tick none (decClockHOLFinite s) [.statement, .cost statementUnit]
   | tickTimeout {s} (clock : s.clock = 0) :
-      StatementRun s .tick (some .timeOut) (emptyLocalsHOLFinite s) [.statement]
+      StatementRun s .tick (some .timeOut) (emptyLocalsHOLFinite s) [.statement, .cost statementUnit]
   | annotation {s tag text} : StatementRun s (.annot tag text) none s [.statement]
   | iteInvalidGuard {s condition yes no value events}
       (guard : CostedExpressionRun s condition value events)
       (invalid : ∀ word, value ≠ some (.val (.word word))) :
-      StatementRun s (.ite condition yes no) (some .error) s (.statement :: events)
+      StatementRun s (.ite condition yes no) (some .error) s (.statement :: .cost statementUnit :: events)
   | whileInvalidGuard {s condition body value events}
       (guard : CostedExpressionRun s condition value events)
       (invalid : ∀ word, value ≠ some (.val (.word word))) :

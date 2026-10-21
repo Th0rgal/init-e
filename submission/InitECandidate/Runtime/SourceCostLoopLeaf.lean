@@ -78,7 +78,8 @@ abbrev CrepWorkL (P : LoopPricing) {σ : Type} := @CrepWorkP P.price P.priceList
 
 /-- Static priced work of the non-recursive statements, as charged by `CrepWorkL`. -/
 def crepLeafPrice (P : LoopPricing) : CrepProgHOL 64 → Option Nat
-  | .skip | .tick | .break _ | .continue _ | .extCall _ _ _ _ _ => some P.unit
+  | .skip => some 0
+  | .tick | .break _ | .continue _ | .extCall _ _ _ _ _ => some P.unit
   | .raise _ => some (P.prim + 1)
   | .assign _ value => some (P.price value)
   | .storeGlob _ value | .shMem _ _ value => some (P.unit + P.price value)

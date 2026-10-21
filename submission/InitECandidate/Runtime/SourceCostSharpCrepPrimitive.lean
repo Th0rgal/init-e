@@ -1,5 +1,4 @@
 import InitECandidate.Runtime.SourceCostSharpCrepDecCall
-import InitECandidate.Runtime.SourceCostCrepPrimitive
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -16,7 +15,7 @@ theorem primop_shape_sharp {operator : PrimOp} {values : List (ValueHOL 64)} {va
   · simp at operation
 
 theorem sharp_bounded_primitive_sharp (names : List Nat) (operator : PrimOp) (args : List Nat) :
-    CrepBoundedS (.primitive names operator args) (2 + names.length + args.length) :=
+    CrepBoundedS (.primitive names operator args) (85 + names.length + args.length) :=
   fun _ t => ⟨_, CrepWorkS.primitive t names operator args, Nat.le_refl _⟩
 
 /-- Successful primitives: argument expressions are charged by their events;
@@ -33,7 +32,8 @@ theorem primitive_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
     (localised : localisedProgHOL (.primitive name operator arguments) = true)
     (checkedArgs : sharpSitesList sharpReplayBound arguments = true) :
     CrepWorkPaid_sharp t (compileProgExactHOLW context (.primitive name operator arguments))
-      (.statement :: (expressionListEvents s arguments ++ [.scalar 1] ++
+      (.statement :: (expressionListEvents s arguments ++
+        [.cost (primitiveOverhead (values.flatMap flattenHOL).length)] ++
         [.copy (flattenHOL value).length])) := by
   classical
   obtain ⟨argWords, valueShape, valueWords⟩ := primop_shape_sharp operation
@@ -43,13 +43,14 @@ theorem primitive_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
     rel.code rel.locals localisedArgs
   have flatLength := opt_mmap_length_eq _ _ _ targetArgs
   rw [argWords] at flatLength
-  have argsPaid := arguments_paid_sharp rel arguments values args checkedArgs
+  have argsPaid := arguments_paid_sharp rel arguments values args localisedArgs
   unfold CrepWorkPaid_sharp
   simp only [compileProgExactHOLW, compilePrimitiveExactHOLW]
-  rw [sharpScore_statement, sharpScore_append, sharpScore_append, valueWords]
+  rw [sharpScore_statement, sharpScore_append, sharpScore_append, valueWords, argWords]
   generalize sharpScore ((expressionListEvents s arguments)) = A
     at argsPaid ⊢
-  simp only [sharpScore_statement, sharpScore_expression, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil]
+  simp only [sharpScore_statement, sharpScore_cost, sharpScore_copy, sharpScore_nil,
+    primitiveOverhead]
   split
   · obtain ⟨w, work, bound⟩ := sharp_bounded_skip F t
     exact ⟨w, work, by omega⟩
