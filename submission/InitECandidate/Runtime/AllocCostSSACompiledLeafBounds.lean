@@ -906,4 +906,49 @@ theorem stack_live_move_prefix_charge_refined {C F : Type}
 
 #print axioms call_arg_prefix_charge_refined
 #print axioms stack_live_move_prefix_charge_refined
+
+/-- **Whole call-site composition, canonically priced.**  Combines the inserted
+argument-move prefix charge with the move's own price differential and the tail's
+transfer at the reached middle states.  The move differential `hmove` is where the
+scheduler-exact price of the emitted node enters: for a move node it is
+`refinedWordLocalPrice (.move 1 pairs) target <= refinedWordLocalPrice (.move 1 pairs)
+source + extra1`, i.e. exactly the obligation the checked table discharges. -/
+theorem call_site_transfer_refined {C F : Type} (ssa : Spt Nat) (args : List Nat)
+    (tail : WordLangProgHOL (BitVec 64))
+    (source target midS midT : WordSemStateFiniteExact 64 C F)
+    (hS : fixClock source (evaluate (.move 1
+      (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) source) = (none, midS))
+    (hT : fixClock target (evaluate (.move 1
+      (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) target) = (none, midT))
+    (extraNode extra1 extra2 : Nat)
+    (hnode : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) target <=
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) source + extraNode)
+    (hmove : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) target <=
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) source + extra1)
+    (htail : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      tail midT <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      tail midS + extra2) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) source
+        + extraNode + extra1 + extra2 := by
+  rw [call_arg_prefix_charge_refined ssa args tail target midT hT,
+      call_arg_prefix_charge_refined ssa args tail source midS hS]
+  omega
+
+#print axioms call_site_transfer_refined
 end InitECandidate.Runtime.FineCost
