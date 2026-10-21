@@ -1605,4 +1605,17 @@ theorem ite_quantTransfer_then {C F : Type}
       thenB elseB source target xS yS xT yT hxS hyS hcS hxT hyT hcT extra hcost
 
 #print axioms ite_quantTransfer_then
+/-! ## State independence of the allocator-only node costs
+
+The allocator's own code (the move nodes and the inconsistency-fixing suffixes) must be
+chargeable without knowing the state it runs in.  `refinedWordLocalPrice` is state independent
+already, so a `.move` node's cost is a constant: this is the first half of the suffix fact. -/
+theorem wec_move_state_independent {C F : Type} (pri : Nat) (moves : List (Nat × Nat))
+    (s1 s2 : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.move pri moves) s1 =
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.move pri moves) s2 := by
+  rw [wec_move_generic, wec_move_generic, refinedWordLocalPrice_move,
+      refinedWordLocalPrice_move]
+
+#print axioms wec_move_state_independent
 end InitECandidate.Runtime.FineCost
