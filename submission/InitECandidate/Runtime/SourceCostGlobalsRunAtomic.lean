@@ -1,41 +1,42 @@
 import InitECandidate.Runtime.SourceCostGlobalsRunWhile
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! Atomic rules of the `pan_globals` statement transfer. A compiled branch
 other than the source's ends with a different result than the source run
 (`globals_sub_match` on the whole statement). -/
 
 theorem globals_skip (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) :
-    GlobalsLe B s .skip none s [.statement] := by
+    GlobalsLe fn B s .skip none s [.statement] := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
   exact Nat.le_refl _
 
 theorem globals_break (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) :
-    GlobalsLe B s .break (some .break) s [.statement, .cost statementUnit] := by
+    GlobalsLe fn B s .break (some .break) s [.statement, .cost statementUnit] := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
   exact Nat.le_refl _
 
 theorem globals_continue (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) :
-    GlobalsLe B s .continue (some .continue) s [.statement, .cost statementUnit] := by
+    GlobalsLe fn B s .continue (some .continue) s [.statement, .cost statementUnit] := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
   exact Nat.le_refl _
 
 theorem globals_annotation (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (tag text) :
-    GlobalsLe B s (.annot tag text) none s [.statement] := by
+    GlobalsLe fn B s (.annot tag text) none s [.statement] := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target
   exact Nat.le_refl _
 
 theorem globals_tick (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (r post) :
-    GlobalsLe B s .tick r post [.statement, .cost statementUnit] := by
+    GlobalsLe fn B s .tick r post [.statement, .cost statementUnit] := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [compileProgExactHOL] at target
   cases target <;> exact Nat.le_refl _
@@ -47,7 +48,7 @@ theorem globals_storeValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F
     (src : CostedExpressionRun s source (some value) valueEvents)
     (write : @panMemStoresHOL 64 _ address (flattenHOL value) s.memaddrs
       (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = some memory) :
-    GlobalsLe B s (.store destination source) none { s with memory := memory }
+    GlobalsLe fn B s (.store destination source) none { s with memory := memory }
       (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length, .cost (storeOverhead (flattenHOL value).length)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
@@ -70,7 +71,7 @@ theorem globals_store32Value (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
     (write : @panMemStore32HOL 64 _ s.memory s.memaddrs
       (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
       (BitVec.ofNat 32 value.toNat) = some memory) :
-    GlobalsLe B s (.store32 destination source) none { s with memory := memory }
+    GlobalsLe fn B s (.store32 destination source) none { s with memory := memory }
       (.statement :: (addressEvents ++ valueEvents ++ [.memory 1, .cost (storeOverhead 1)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
@@ -92,7 +93,7 @@ theorem globals_storeByteValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 
     (write : @panMemStoreByteWord8HOL 64 _ s.memory s.memaddrs
       (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
       (BitVec.ofNat 8 value.toNat) = some memory) :
-    GlobalsLe B s (.storeByte destination source) none { s with memory := memory }
+    GlobalsLe fn B s (.storeByte destination source) none { s with memory := memory }
       (.statement :: (addressEvents ++ valueEvents ++ [.memory 1, .cost (storeOverhead 1)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
@@ -110,8 +111,8 @@ theorem globals_returnValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 
     {expression : ExpHOL 64} {value : ValueHOL 64} {events : List WorkEvent}
     (expr : CostedExpressionRun s expression (some value) events)
     (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
-    GlobalsLe B s (.return expression) (some (.returned value)) (emptyLocalsHOLFinite s)
-      (.statement :: (events ++ [.cost (returnOverhead (flattenHOL value).length)])) := by
+    GlobalsLe fn B s (.return expression) (some (.returned value)) (emptyLocalsHOLFinite s)
+      (.statement :: (events ++ [.cost (returnOverhead (flattenHOL value).length + returnMoves fn)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.returnValue expr size) ok rel target
@@ -130,8 +131,8 @@ theorem globals_raiseValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F
     (declared : s.eshapes.lookup exceptionId = some shape)
     (shapeMatches : shapeOfHOLExact value = shape)
     (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
-    GlobalsLe B s (.raise exceptionId expression) (some (.exception exceptionId value))
-      (emptyLocalsHOLFinite s) (.statement :: (events ++ [.cost (raiseOverhead (flattenHOL value).length)])) := by
+    GlobalsLe fn B s (.raise exceptionId expression) (some (.exception exceptionId value))
+      (emptyLocalsHOLFinite s) (.statement :: (events ++ [.cost (raiseOverhead (flattenHOL value).length + raiseMoves fn)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg] at ready
   obtain ⟨hr, -⟩ := globals_sub_match (StatementRun.raiseValue expr declared shapeMatches size) ok rel target
@@ -148,7 +149,7 @@ theorem globals_assignLocal (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 
     {name} {expression : ExpHOL 64} {value : ValueHOL 64} {events : List WorkEvent}
     (expr : CostedExpressionRun s expression (some value) events)
     (valid : isValidValueHOLFinite s .local name value = true) :
-    GlobalsLe B s (.assign .local name expression) none (setKvarHOLFinite .local name value s)
+    GlobalsLe fn B s (.assign .local name expression) none (setKvarHOLFinite .local name value s)
       (.statement :: (events ++ .copy (flattenHOL value).length ::
         globalEvents .local (flattenHOL value).length)) := by
   intro context t rel ok ready code h cov r' t' ev' target

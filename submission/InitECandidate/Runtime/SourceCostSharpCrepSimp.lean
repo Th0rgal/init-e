@@ -3,6 +3,7 @@ import InitECandidate.Runtime.SourceCostCrepBasis
 import Flapjack.Pancake.Proofs.CrepArith.SimpProgCorrect.Assembly
 namespace InitECandidate.Runtime.FineCost
 open Flapjack
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! Executed-work transfer across `crep_arith$simp_prog`, the per-function
 Crep-to-Crep pass that `crep_to_loop$compile_prog` applies before

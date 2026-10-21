@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsReady
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem globals_validExact_ne {F : Type} {s : PanSemStateFiniteExact 64 F} {name : MlS} {value : ValueHOL 64}
     (valid : isValidValueHOLExact s.toExact .local name value = true)
@@ -95,7 +96,7 @@ theorem globals_ofExact_noTemp {F : Type} (m : PanSemStateExact 64 F) (support :
 /-- Ready programs never bind the `pan_globals` call temporary: a run from a
 state without it ends in a state without it. -/
 theorem StatementRun.noTemp {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
-    (run : StatementRun s p r post ev) :
+    (run : StatementRun fn s p r post ev) :
     globalsReadyProg p = true → GlobalsCodeReady s.code →
       s.locals.lookup globalsTemp = none → post.locals.lookup globalsTemp = none := by
   induction run

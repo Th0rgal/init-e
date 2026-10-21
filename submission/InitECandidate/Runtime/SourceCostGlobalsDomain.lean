@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsNoTemp
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! Statement runs never remove a global: the source global domain only grows. -/
 
@@ -59,7 +60,7 @@ theorem globals_setKvarExact_present {F : Type} {s : PanSemStateFiniteExact 64 F
     · exact h
 
 theorem StatementRun.globals_present {F : Type} {s post : PanSemStateFiniteExact 64 F} {p r ev}
-    (run : StatementRun s p r post ev) (key : MlS) :
+    (run : StatementRun fn s p r post ev) (key : MlS) :
     GlobalsPresent s key → GlobalsPresent post key := by
   induction run
   case seqNext ih1 ih2 => exact fun h => ih2 (ih1 h)

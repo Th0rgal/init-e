@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostPanSimpBase
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! `pan_simp$seq_assoc` never increases executed source work. The invariant
 is stated against `SmartSeq pre p`, the program `seq_assoc pre p` stands for, so
@@ -13,10 +14,10 @@ theorem simp_seqAssoc_seq (pre a b : ProgHOL 64) :
 /-- Running `SmartSeq pre (Seq a b)` splits into a run of `SmartSeq pre a`
 followed (when it completes normally) by a run of `b`. -/
 theorem simp_smartSeq_split {F : Type} {pre a b : ProgHOL 64} {s : PanSemStateFiniteExact 64 F}
-    {r post ev} (run : StatementRun s (smartSeqHOL pre (.seq a b)) r post ev) :
-    (∃ middle ev1 ev2, StatementRun s (smartSeqHOL pre a) none middle ev1 ∧
-        StatementRun middle b r post ev2 ∧ SimpWorkLe (ev1 ++ ev2) ev) ∨
-      (∃ ev1, r ≠ none ∧ StatementRun s (smartSeqHOL pre a) r post ev1 ∧ SimpWorkLe ev1 ev) := by
+    {r post ev} (run : StatementRun fn s (smartSeqHOL pre (.seq a b)) r post ev) :
+    (∃ middle ev1 ev2, StatementRun fn s (smartSeqHOL pre a) none middle ev1 ∧
+        StatementRun fn middle b r post ev2 ∧ SimpWorkLe (ev1 ++ ev2) ev) ∨
+      (∃ ev1, r ≠ none ∧ StatementRun fn s (smartSeqHOL pre a) r post ev1 ∧ SimpWorkLe ev1 ev) := by
   by_cases hp : pre = .skip
   · subst hp
     cases run with
@@ -39,7 +40,7 @@ theorem simp_smartSeq_split {F : Type} {pre a b : ProgHOL 64} {s : PanSemStateFi
       exact Or.inr ⟨_, terminal, .seqStop terminal one, SimpWorkLe.refl _⟩
 
 theorem simp_seqAssoc_run {F : Type} :
-    ∀ (p pre : ProgHOL 64), SimpRunLe (F := F) (smartSeqHOL pre p) (seqAssocHOL pre p)
+    ∀ (p pre : ProgHOL 64), SimpRunLe fn (F := F) (smartSeqHOL pre p) (seqAssocHOL pre p)
   | .skip, pre => by
     unfold seqAssocHOL
     intro run
@@ -78,7 +79,7 @@ theorem simp_seqAssoc_run {F : Type} :
     rename_i s r post ev
     rcases simp_smartSeq_split run with ⟨middle, ev1, ev2, r1, r2, le⟩ | ⟨ev1, terminal, r1, le⟩
     · obtain ⟨evA, rA, leA⟩ := simp_seqAssoc_run a pre r1
-      have comb : ∃ e, StatementRun s (smartSeqHOL (seqAssocHOL pre a) b) r post e ∧
+      have comb : ∃ e, StatementRun fn s (smartSeqHOL (seqAssocHOL pre a) b) r post e ∧
           SimpWorkLe e (evA ++ ev2) := by
         by_cases hA : seqAssocHOL pre a = .skip
         · rw [hA] at rA ⊢
@@ -96,7 +97,7 @@ theorem simp_seqAssoc_run {F : Type} :
     · obtain ⟨evA, rA, leA⟩ := simp_seqAssoc_run a pre r1
       have hA : seqAssocHOL pre a ≠ .skip := by
         intro hA; rw [hA] at rA; exact terminal (simp_skip_run rA).1
-      have re : StatementRun s (smartSeqHOL (seqAssocHOL pre a) b) r post evA := by
+      have re : StatementRun fn s (smartSeqHOL (seqAssocHOL pre a) b) r post evA := by
         rw [simp_smartSeq_ne _ hA] at ⊢
         exact .seqStop terminal rA
       obtain ⟨e', re', le3⟩ := simp_seqAssoc_run b (seqAssocHOL pre a) re
@@ -146,12 +147,12 @@ theorem simp_seqAssoc_run {F : Type} :
         smartSeqHOL pre (.call (simpMapInfo (seqAssocHOL .skip)
           (some (returns, some (exception, handlerVar, handler)))) function arguments) := by
       rw [seqAssocHOL]; rfl
-    have ih : SimpRunLe (F := F) (smartSeqHOL .skip handler) (seqAssocHOL .skip handler) :=
+    have ih : SimpRunLe fn (F := F) (smartSeqHOL .skip handler) (seqAssocHOL .skip handler) :=
       simp_seqAssoc_run handler .skip
     have hh : ∀ returns' exception' handlerVar' handler',
         some (returns, some (exception, handlerVar, handler)) =
           some (returns', some (exception', handlerVar', handler')) →
-        SimpRunLe (F := F) handler' (seqAssocHOL .skip handler') := by
+        SimpRunLe fn (F := F) handler' (seqAssocHOL .skip handler') := by
       intro r' e' v' h' heq
       simp only [Option.some.injEq, Prod.mk.injEq] at heq
       obtain ⟨-, -, -, rfl⟩ := heq

@@ -38,7 +38,7 @@ theorem globals_external (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 6
     {configuration configurationLength array arrayLength : ExpHOL 64} {result}
     (run : evaluateHOLFiniteState s
       (.extCall function configuration configurationLength array arrayLength) = (result, post)) :
-    GlobalsLe B s (.extCall function configuration configurationLength array arrayLength) result post
+    GlobalsLe fn B s (.extCall function configuration configurationLength array arrayLength) result post
       (externalEvents s function configuration configurationLength array arrayLength) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
@@ -65,7 +65,7 @@ theorem globals_external (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 6
 theorem globals_sharedLoad (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F} {operator}
     {kind : VarKind} {name : MlStringHOL} {address : ExpHOL 64} {result}
     (run : evaluateHOLFiniteState s (.shMemLoad operator kind name address) = (result, post)) :
-    GlobalsLe B s (.shMemLoad operator kind name address) result post
+    GlobalsLe fn B s (.shMemLoad operator kind name address) result post
       (sharedLoadEvents s kind name address) := by
   intro context t rel ok ready code h cov r' t' ev' target
   cases kind with
@@ -89,7 +89,7 @@ theorem globals_sharedLoad (B : Nat) {F : Type} {s post : PanSemStateFiniteExact
 theorem globals_sharedStore (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F} {operator}
     {address value : ExpHOL 64} {result}
     (run : evaluateHOLFiniteState s (.shMemStore operator address value) = (result, post)) :
-    GlobalsLe B s (.shMemStore operator address value) result post (sharedStoreEvents s address value) := by
+    GlobalsLe fn B s (.shMemStore operator address value) result post (sharedStoreEvents s address value) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   have words : ∃ a v, expressionValue s address = some (.val (.word a)) ∧

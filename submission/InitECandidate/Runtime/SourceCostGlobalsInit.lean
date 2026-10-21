@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsRun
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! The one-time initialiser cost of `pan_globals`'s generated entry: each
 global initialised by a constant becomes one `TopAddr` store. -/
@@ -51,7 +52,7 @@ theorem globals_constStores : ∀ (decls : List (DeclHOL 64)) (context : PanGlob
 stored word 65. -/
 theorem globals_constStore_score (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {address word : BitVec 64} {r ev}
-    (run : StatementRun s (.store (.op .sub [.topAddr, .const address]) (.const word)) r post ev)
+    (run : StatementRun fn s (.store (.op .sub [.topAddr, .const address]) (.const word)) r post ev)
     (ok : r ≠ some .error) : sharpSourceScore B ev = 212 := by
   cases run
   case storeValue =>
@@ -73,7 +74,7 @@ theorem globals_constStore_score (B : Nat) {F : Type} {s post : PanSemStateFinit
 final `Skip` is free. -/
 theorem globals_inits_score (B : Nat) {F : Type} :
     ∀ (inits : List (ProgHOL 64)) {s post : PanSemStateFiniteExact 64 F} {r ev},
-      ConstStores inits → StatementRun s (nestedSeqHOL inits) r post ev → r ≠ some .error →
+      ConstStores inits → StatementRun fn s (nestedSeqHOL inits) r post ev → r ≠ some .error →
         sharpSourceScore B ev ≤ 212 * inits.length
   | [], _, _, _, _, _, run, _ => by
     cases run

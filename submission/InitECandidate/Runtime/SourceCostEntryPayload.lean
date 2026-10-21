@@ -2,6 +2,7 @@ import InitECandidate.Runtime.SourceCostExnShape
 import InitECandidate.Runtime.SourceCostEntryLocals
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! The payload of an entry result is bounded by the entry's return shape and
 the declared exception shapes. -/
@@ -17,7 +18,7 @@ theorem payload_of_shape {value : ValueHOL 64} {n : Nat}
   rw [flattenHOL_length_eq_sizeOfShapeHOL value wf]; exact size
 
 theorem entry_payload_le {F : Type} {s post : PanSemStateFiniteExact 64 F} {function : MlStringHOL}
-    {r ev} (run : StatementRun s (.call none function []) r post ev) (ok : r ≠ some .error) {n : Nat}
+    {r ev} (run : StatementRun fn s (.call none function []) r post ev) (ok : r ≠ some .error) {n : Nat}
     (returns : ∀ body callee returnShape,
       lookupCodeHOLFinite s.code.lookup function [] = some (body, callee, returnShape) →
       isWfShapeExactHOL ([] : StructContextExact) returnShape = true ∧ sizeOfShapeHOL returnShape ≤ n)
@@ -28,7 +29,7 @@ theorem entry_payload_le {F : Type} {s post : PanSemStateFiniteExact 64 F} {func
   all_goals try omega
   · -- returned value: the entry call checked its shape against the return shape
     cases run with
-    | @callDone _ _ _ _ _ _ _ returnShape bodyResult _ _ _ _ args lookup clock bodyRun plan =>
+    | @callDone fn _ _ _ _ _ _ _ returnShape bodyResult _ _ _ _ args lookup clock bodyRun plan =>
       have values : _ := args
       simp [evalListHOLFinite, evalListHOLExact] at values
       subst values

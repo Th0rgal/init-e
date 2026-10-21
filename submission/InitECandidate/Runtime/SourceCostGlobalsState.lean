@@ -3,6 +3,7 @@ import Flapjack.Pancake.Proofs.PanGlobals.CompileCorrect.Assembly
 import Flapjack.Pancake.Proofs.PanGlobals.StateRelationClock
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! State-relation facts for the `pan_globals` run transfer. Every clause of the
 original relation except the locals equation is independent of `locals`. -/
@@ -67,9 +68,9 @@ state related at `goodRes`. -/
 theorem globals_sub_match {F : Type} {context : PanGlobalsContextExact 64}
     {s t post post' : PanSemStateFiniteExact 64 F} {p : ProgHOL 64}
     {r r' : Option (PanSemResultExact 64)} {ev ev' : List WorkEvent}
-    (run : StatementRun s p r post ev) (ok : r ≠ some .error)
+    (run : StatementRun fn s p r post ev) (ok : r ≠ some .error)
     (rel : panGlobalsStateRelHOLExact true context s t)
-    (target : StatementRun t (compileProgExactHOL context p) r' post' ev') :
+    (target : StatementRun fn t (compileProgExactHOL context p) r' post' ev') :
     r' = r ∧ panGlobalsStateRelHOLExact (goodResHOL r) context post post' := by
   obtain ⟨t2, ev2, rel2⟩ := PanGlobalsCompileCorrectAssembly.compileCorrectHOL p s r context t post
     ⟨rel, run.sound, ok⟩

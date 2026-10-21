@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsRunBase
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem globals_compile_ite (context : PanGlobalsContextExact 64) (e : ExpHOL 64) (a b : ProgHOL 64) :
     compileProgExactHOL context (.ite e a b) =
@@ -30,9 +31,9 @@ theorem globals_word_inj {a b : BitVec 64}
 theorem globals_iteYes (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {condition : ExpHOL 64} {yes no : ProgHOL 64} {value : BitVec 64} {guardEvents r bodyEvents}
     (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
-    (nonzero : value ≠ 0) (body : StatementRun s yes r post bodyEvents)
-    (ih : GlobalsLe B s yes r post bodyEvents) :
-    GlobalsLe B s (.ite condition yes no) r post (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents)) := by
+    (nonzero : value ≠ 0) (body : StatementRun fn s yes r post bodyEvents)
+    (ih : GlobalsLe fn B s yes r post bodyEvents) :
+    GlobalsLe fn B s (.ite condition yes no) r post (.statement :: .cost (statementUnit + branchMoves fn) :: (guardEvents ++ bodyEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_ite] at target
@@ -52,9 +53,9 @@ theorem globals_iteYes (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 
 theorem globals_iteNo (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {condition : ExpHOL 64} {yes no : ProgHOL 64} {guardEvents r bodyEvents}
     (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents)
-    (body : StatementRun s no r post bodyEvents)
-    (ih : GlobalsLe B s no r post bodyEvents) :
-    GlobalsLe B s (.ite condition yes no) r post (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents)) := by
+    (body : StatementRun fn s no r post bodyEvents)
+    (ih : GlobalsLe fn B s no r post bodyEvents) :
+    GlobalsLe fn B s (.ite condition yes no) r post (.statement :: .cost (statementUnit + branchMoves fn) :: (guardEvents ++ bodyEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   simp only [globalsReadyProg, Bool.and_eq_true] at ready
   rw [globals_compile_ite] at target

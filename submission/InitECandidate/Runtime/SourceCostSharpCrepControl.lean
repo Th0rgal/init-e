@@ -2,6 +2,7 @@ import InitECandidate.Runtime.SourceCostSharpCrepAtomic
 import Flapjack.Pancake.Proofs.PanGlobals.SemanticsInitCall
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-- Source statements currently covered by the checked transfer. -/
 def sourceControlProg_sharp : ProgHOL 64 → Bool
@@ -25,7 +26,7 @@ def CodeCovered_sharp (code : HolFiniteMapExact MlStringHOL
 
 theorem run_code_sharp {F : Type} {s post : PanSemStateFiniteExact 64 F} {p : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
-    (run : StatementRun s p r post events) : post.code = s.code := by
+    (run : StatementRun fn s p r post events) : post.code = s.code := by
   have := SemInitSupport.eval_code s p
   rw [run.sound] at this
   exact this
@@ -103,7 +104,7 @@ Uses the full original Pan-to-Crep premises; the static guest load-site
 certificate supplies the expression lowering bound. -/
 theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
-    (run : StatementRun s p r post events) :
+    (run : StatementRun fn s p r post events) :
     ∀ (t : CrepSemHOLState 64 F) (context : PanToCrepContextExact 64),
       r ≠ some .error → SourceCrepRel context s t → localisedProgHOL p = true →
       sharpSitesProg sharpReplayBound p = true → sourceControlProg_sharp p = true →
@@ -128,7 +129,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
   | annotation =>
     intro t context _ _ _ _ _ _
     exact ⟨0, by simp only [compileProgExactHOLW]; exact CrepWorkS.skip t, leaf_paid_sharp⟩
-  | @seqNext s first middle second r post left right one two ihOne ihTwo =>
+  | @seqNext fn s first middle second r post left right one two ihOne ihTwo =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, sourceControlProg_sharp, Bool.and_eq_true]
       at localised checked control
@@ -145,7 +146,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at bound1 bound2 ⊢
     omega
-  | @seqStop s first second r post left terminal one ihOne =>
+  | @seqStop fn s first second r post left terminal one ihOne =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, sourceControlProg_sharp, Bool.and_eq_true]
       at localised checked control
@@ -157,7 +158,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     obtain ⟨r0, rfl⟩ := Option.ne_none_iff_exists'.mp terminal
     obtain ⟨c1, rfl⟩ := Option.ne_none_iff_exists'.mp (resultRel_some_ne_none rel1)
     exact ⟨w1, by simp only [compileProgExactHOLW]; exact CrepWorkS.seqStop work1 run1, bound1⟩
-  | @iteYes s condition yes no value guardEvents r post bodyEvents guard nonzero body ihBody =>
+  | @iteYes fn s condition yes no value guardEvents r post bodyEvents guard nonzero body ihBody =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, sourceControlProg_sharp, Bool.and_eq_true]
       at localised checked control
@@ -172,7 +173,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     · simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
       try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody ⊢
       omega
-  | @iteNo s condition yes no guardEvents r post bodyEvents guard body ihBody =>
+  | @iteNo fn s condition yes no guardEvents r post bodyEvents guard body ihBody =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, sourceControlProg_sharp, Bool.and_eq_true]
       at localised checked control
@@ -187,7 +188,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     · simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
       try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody ⊢
       omega
-  | @whileFalse s condition body guardEvents guard =>
+  | @whileFalse fn s condition body guardEvents guard =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, sourceControlProg_sharp, Bool.and_eq_true]
       at localised checked control
@@ -203,7 +204,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     · simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
       try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound ⊢
       omega
-  | @whileTimeout s condition body value guardEvents guard nonzero clock =>
+  | @whileTimeout fn s condition body value guardEvents guard nonzero clock =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, sourceControlProg_sharp, Bool.and_eq_true]
       at localised checked control
@@ -216,7 +217,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound ⊢
     omega
-  | @whileNext s condition body value guardEvents middle r post bodyEvents restEvents
+  | @whileNext fn s condition body value guardEvents middle r post bodyEvents restEvents
       guard nonzero clock one rest ihOne ihRest =>
     intro t context result rel localised checked control codeOk
     have localisedWhole := localised
@@ -245,7 +246,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody boundRest ⊢
     omega
-  | @whileContinue s condition body value guardEvents middle r post bodyEvents restEvents
+  | @whileContinue fn s condition body value guardEvents middle r post bodyEvents restEvents
       guard nonzero clock one rest ihOne ihRest =>
     intro t context result rel localised checked control codeOk
     have localisedWhole := localised
@@ -274,7 +275,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody boundRest ⊢
     omega
-  | @whileBreak s condition body value guardEvents post bodyEvents guard nonzero clock one
+  | @whileBreak fn s condition body value guardEvents post bodyEvents guard nonzero clock one
       ihOne =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, sourceControlProg_sharp, Bool.and_eq_true]
@@ -297,7 +298,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody ⊢
     omega
-  | @whilePropagate s condition body value guardEvents post bodyEvents bodyResult guard nonzero
+  | @whilePropagate fn s condition body value guardEvents post bodyEvents bodyResult guard nonzero
       clock notBreak notContinue one ihOne =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, sourceControlProg_sharp, Bool.and_eq_true]
@@ -320,7 +321,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at guardBound boundBody ⊢
     omega
-  | @assignValue s kind name expression value events expr valid =>
+  | @assignValue fn s kind name expression value events expr valid =>
     intro t context result rel localised checked control codeOk
     cases kind with
     | «global» => simp [localisedProgHOL] at localised
@@ -335,7 +336,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
       try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paid ⊢
       omega
-  | @storeValue s destination source address value memory addressEvents valueEvents dst src
+  | @storeValue fn s destination source address value memory addressEvents valueEvents dst src
       write =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, Bool.and_eq_true] at localised checked
@@ -348,7 +349,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paidAddress paidValue ⊢
     omega
-  | @store32Value s destination source address value memory addressEvents valueEvents dst src
+  | @store32Value fn s destination source address value memory addressEvents valueEvents dst src
       write =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, Bool.and_eq_true] at localised checked
@@ -359,7 +360,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paidAddress paidValue ⊢
     omega
-  | @storeByteValue s destination source address value memory addressEvents valueEvents dst src
+  | @storeByteValue fn s destination source address value memory addressEvents valueEvents dst src
       write =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, Bool.and_eq_true] at localised checked
@@ -370,7 +371,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paidAddress paidValue ⊢
     omega
-  | @returnValue s expression value events expr size =>
+  | @returnValue fn s expression value events expr size =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg] at localised checked
     have paid := expression_paid_sharp expr rel localised
@@ -381,7 +382,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paid ⊢
     omega
-  | @raiseValue s exceptionId expression value events shape expr declared shapeMatches size =>
+  | @raiseValue fn s exceptionId expression value events shape expr declared shapeMatches size =>
     intro t context result rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg] at localised checked
     have paid := expression_paid_sharp expr rel localised
@@ -392,7 +393,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_nil] at paid ⊢
     omega
-  | @declareValue s name shape initializer body value initEvents bodyEvents result post init
+  | @declareValue fn s name shape initializer body value initEvents bodyEvents result post init
       shapeMatch bodyRun ihBody =>
     intro t context resultOk rel localised checked control codeOk
     simp only [localisedProgHOL, sharpSitesProg, sourceControlProg_sharp, Bool.and_eq_true]
@@ -407,7 +408,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead]
     try simp only [sharpScore_statement, sharpScore_append, sharpScore_copy, sharpScore_frame, sharpScore_scalar, sharpScore_memory, sharpScore_expression, sharpScore_cost, sharpScore_nil, statementUnit, whileOverhead, returnOverhead, raiseOverhead, storeOverhead] at paid boundBody ⊢
     omega
-  | @callDone s info function arguments values body callee returnShape bodyResult bodyPost
+  | @callDone fn s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents result post args lookup clock bodyRun plan ihBody =>
     intro t context resultOk rel localised checked control codeOk
     obtain ⟨vshapes, hsrc, _, _, _⟩ :=
@@ -420,13 +421,13 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
     exact call_done_transfer_sharp args lookup clock bodyRun plan resultOk rel localised checkedArgs
       (fun t' c' rel' loc' =>
         ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
-  | @callTimeout s info function arguments values body callee returnShape args lookup clock =>
+  | @callTimeout fn s info function arguments values body callee returnShape args lookup clock =>
     intro t context resultOk rel localised checked control codeOk
     have checkedArgs : sharpSitesList sharpReplayBound arguments = true := by
       rcases info with _ | ⟨dest, _ | ⟨a, b, c⟩⟩ <;> simp_all [sharpSitesProg]
     rw [callGlobalEvents_localised localised, List.append_nil]
     exact call_timeout_transfer_sharp args lookup clock rel localised checkedArgs
-  | @callHandler s info function arguments values body callee returnShape bodyResult bodyPost
+  | @callHandler fn s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post args lookup clock bodyRun
       plan handlerRun ihBody ihHandler =>
     intro t context resultOk rel localised checked control codeOk
@@ -447,7 +448,7 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
         ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
       (fun t' c' rel' loc' =>
         ihHandler t' c' resultOk rel' loc' checked.2 control handlerCode)
-  | @declareCallReturn s name shape function arguments continuation values body callee returnShape
+  | @declareCallReturn fn s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents continuationEvents result post args lookup clock bodyRun shapeMatch
       continuationRun ihBody ihContinuation =>
     intro t context resultOk rel localised checked control codeOk
@@ -466,12 +467,12 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       (fun t' c' rel' loc' => ihBody t' c' (by simp) rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
       (fun t' c' rel' => ihContinuation t' c' resultOk rel' localisedCont checked.2 control
         contCode)
-  | @declareCallTimeout s name shape function arguments continuation values body callee
+  | @declareCallTimeout fn s name shape function arguments continuation values body callee
       returnShape args lookup clock =>
     intro t context resultOk rel localised checked control codeOk
     simp only [sharpSitesProg, Bool.and_eq_true] at checked
     exact decCall_timeout_transfer_sharp args lookup clock rel localised checked.1
-  | @declareCallStopped s name shape function arguments continuation values body callee
+  | @declareCallStopped fn s name shape function arguments continuation values body callee
       returnShape bodyResult bodyPost bodyEvents args lookup clock bodyRun terminal ihBody =>
     intro t context resultOk rel localised checked control codeOk
     simp only [sharpSitesProg, Bool.and_eq_true] at checked
@@ -483,17 +484,17 @@ theorem source_control_crep_work_sharp {F : Type} {s post : PanSemStateFiniteExa
       rcases stop with h | ⟨f, h⟩ | ⟨eid, v, h⟩ <;> rw [h] <;> simp
     exact decCall_stopped_transfer_sharp args lookup clock bodyRun stop rel localised checked.1
       (fun t' c' rel' loc' => ihBody t' c' bodyOk rel' loc' bodyStatic.1 bodyStatic.2 codeOk)
-  | @primitiveValue s name operator arguments values value args operation valid =>
+  | @primitiveValue fn s name operator arguments values value args operation valid =>
     intro t context resultOk rel localised checked control codeOk
     simp only [sharpSitesProg] at checked
     exact primitive_transfer_sharp args operation valid rel localised checked
-  | @external s function configuration configurationLength array arrayLength result post run =>
+  | @external fn s function configuration configurationLength array arrayLength result post run =>
     intro t context resultOk rel localised checked control codeOk
     exact external_transfer_sharp run resultOk rel localised checked
-  | @sharedLoad s operator kind name address result post run =>
+  | @sharedLoad fn s operator kind name address result post run =>
     intro t context resultOk rel localised checked control codeOk
     exact shared_load_transfer_sharp run resultOk rel localised checked
-  | @sharedStore s operator address value result post run =>
+  | @sharedStore fn s operator address value result post run =>
     intro t context resultOk rel localised checked control codeOk
     exact shared_store_transfer_sharp run resultOk rel localised checked
   | _ =>
@@ -549,7 +550,7 @@ Crep program's actual execution has a work derivation paid by the source
 event vector under `sourceCrepWeights`. -/
 theorem source_crep_executed_work_sharp {F : Type} {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
-    (run : StatementRun s p r post events) (t : CrepSemHOLState 64 F)
+    (run : StatementRun fn s p r post events) (t : CrepSemHOLState 64 F)
     (context : PanToCrepContextExact 64) (resultOk : r ≠ some .error)
     (rel : SourceCrepRel context s t) (localised : localisedProgHOL p = true)
     (checked : sharpSitesProg sharpReplayBound p = true)
@@ -574,8 +575,8 @@ theorem source_execution_cost_pays_crep_sharp {F : Type} (s : PanSemStateFiniteE
     (codeChecked : ∀ function shapes body returnShape,
       s.code.lookup function = some (shapes, body, returnShape) → sharpSitesProg sharpReplayBound body = true) :
     ∃ w, CrepWorkS t (compileProgExactHOLW context p) w ∧
-      w ≤ sharpScore (sourceExecutionEvents s p) :=
-  source_crep_executed_work_sharp (sourceExecutionEvents_run s p) t context resultOk rel localised
+      w ≤ sharpScore (sourceExecutionEvents fn s p) :=
+  source_crep_executed_work_sharp (sourceExecutionEvents_run fn s p) t context resultOk rel localised
     checked codeChecked
 
 #print axioms covered_of_localised_sharp

@@ -3,6 +3,7 @@ import InitECandidate.Runtime.SourceCostEntry
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact Flapjack.LoopSemStateFiniteExact
 open Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-- The premises of the installed entry (`entry_loop_sharp_work`) for the
 program `pan_to_crep` receives and its post-declaration state `T`: the pinned
@@ -71,6 +72,7 @@ theorem source_loop_top {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
       panSimpDeclsHOL decls)
     (body : ProgHOL 64) (rshape : ShapeHOL)
     (hstartLookup : (functionsHOL (panSimpDeclsHOL decls)).lookup start = some ([], body, rshape))
+    (hlabels : LabelInvariant start (newMainNameHOL (panSimpDeclsHOL decls)))
     (ready : ∀ entry ∈ functionsHOL (panSimpDeclsHOL decls),
       globalsReadyProg entry.2.2.1 = true ∧ globalsTemp ∉ entry.2.1.map Prod.fst)
     (constGlobals : constGlobalDecls ((panSimpDeclsHOL decls).filter isDeclHOL) = true)
@@ -84,7 +86,7 @@ theorem source_loop_top {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
     (hs1 : @evaluateDeclsHOLFinite 64 F _ { s0 with structs := [] }
       (fun a => Classical.propDecidable (s0.memaddrs a)) decls = some s1)
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F} {ev : List WorkEvent}
-    (run : StatementRun { s1 with clock := clock } (.call none start []) r post ev)
+    (run : StatementRun fn { s1 with clock := clock } (.call none start []) r post ev)
     (ok : r ≠ some .error) :
     ∃ T, @evaluateDeclsHOLFinite 64 F _ { t with structs := [] }
         (fun a => Classical.propDecidable (t.memaddrs a))
@@ -100,7 +102,8 @@ theorem source_loop_top {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
                 (entryPanContext (compileTopExactHOL (panSimpDeclsHOL decls) start)) (.call none start []))))
             { u with clock := T.clock + 1 + extra }) wl ∧
         wl ≤ sharpScore ev +
-          globalsTopInit rshape ((panSimpDeclsHOL decls).filter isDeclHOL).length (callPayloadWords r) ∧
+          globalsTopInit rshape ((panSimpDeclsHOL decls).filter isDeclHOL).length (callPayloadWords r) +
+          callMoves start (newMainNameHOL (panSimpDeclsHOL decls)) ∧
         LoopRunRel (entryLoopContext target (compileTopExactHOL (panSimpDeclsHOL decls) start)) .ln
           (evalCrepSemHOLProgExact (crepSimpMapcsHOL { tc with clock := T.clock + 1 })
             (crepSimpProgHOL (compileProgExactHOLW
@@ -116,7 +119,7 @@ theorem source_loop_top {F : Type} (decls : List (DeclHOL 64)) (start : MlS)
                 (entryPanContext (compileTopExactHOL (panSimpDeclsHOL decls) start)) (.call none start []))))
             { u with clock := T.clock + 1 + extra }).1 ≠ some .error := by
   obtain ⟨T, hT, r', post', ev', run', ok', le'⟩ := source_top_entry decls start s0 t clock mgs freeAddrs
-    tmem tlocals h structFree body rshape hstartLookup ready constGlobals hs1 run ok
+    tmem tlocals h structFree body rshape hstartLookup hlabels ready constGlobals hs1 run ok
   rw [structFree] at hT
   have p := pipeline T hT
   obtain ⟨extra, wl, work, bound, runRel, loopOk⟩ := entry_loop_sharp_work target

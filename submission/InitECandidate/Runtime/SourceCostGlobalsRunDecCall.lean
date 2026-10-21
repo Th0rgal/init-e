@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsRunCallGlobal
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem globals_callTimeout_global (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F}
     {name function arguments values body callee returnShape}
@@ -8,11 +9,12 @@ theorem globals_callTimeout_global (B : Nat) {F : Type} {s : PanSemStateFiniteEx
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock = 0) :
-    GlobalsLe B s (.call (some (some (.global, name), none)) function arguments) (some .timeOut)
+    GlobalsLe fn B s (.call (some (some (.global, name), none)) function arguments) (some .timeOut)
       (emptyLocalsHOLFinite s)
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++
         callGlobalEvents s (some (some (.global, name), none)))) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have values' := globals_list_values rel arguments values args
@@ -72,22 +74,23 @@ theorem globals_declareCallReturn (B : Nat) {F : Type} {s post : PanSemStateFini
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body
       (some (.returned value)) bodyPost bodyEvents)
     (shapeMatch : (shapeEqHOL (shapeOfHOLExact value) shape &&
       shapeEqHOL (shapeOfHOLExact value) returnShape) = true)
-    (continuationRun : StatementRun
+    (continuationRun : StatementRun fn
       (setVarHOLFinite name value { bodyPost with locals := s.locals })
       continuation result post continuationEvents)
-    (ihBody : GlobalsLe B (callEntryStateHOLFinite s callee) body (some (.returned value)) bodyPost
+    (ihBody : GlobalsLe function B (callEntryStateHOLFinite s callee) body (some (.returned value)) bodyPost
       bodyEvents)
-    (ihCont : GlobalsLe B (setVarHOLFinite name value { bodyPost with locals := s.locals })
+    (ihCont : GlobalsLe fn B (setVarHOLFinite name value { bodyPost with locals := s.locals })
       continuation result post continuationEvents) :
-    GlobalsLe B s (.decCall name shape function arguments continuation) result
+    GlobalsLe fn B s (.decCall name shape function arguments continuation) result
       { post with locals := HolFiniteMapExact.resVarEq post.locals (name, s.locals.lookup name) }
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
+          slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
+            callMoves fn function)] ++ bodyEvents ++
         [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match
@@ -100,7 +103,7 @@ theorem globals_declareCallReturn (B : Nat) {F : Type} {s post : PanSemStateFini
   rw [globals_compile_decCall] at target
   cases target
   case declareCallReturn =>
-    rename_i vs body' callee' rs' v bp' bev' cev post' clock' bodyRun' shapeMatch' lookup' args'
+    rename_i vs body' callee' rs' v bp' bev' cev post' clock' shapeMatch' lookup' bodyRun' args'
       contRun'
     have : vs = values := Option.some.inj (args'.symm.trans values')
     subst this
@@ -122,7 +125,7 @@ theorem globals_declareCallReturn (B : Nat) {F : Type} {s post : PanSemStateFini
     gsimp
     omega
   case declareCallStopped =>
-    rename_i vs body' callee' rs' br' bp' bev' terminal' clock' bodyRun' lookup' args'
+    rename_i vs body' callee' rs' br' bp' bev' terminal' clock' lookup' bodyRun' args'
     have : vs = values := Option.some.inj (args'.symm.trans values')
     subst this
     obtain ⟨hb, hc, hrs⟩ := globals_lookup_match rel lookup lookup'
@@ -141,10 +144,11 @@ theorem globals_declareCallTimeout (B : Nat) {F : Type} {s : PanSemStateFiniteEx
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock = 0) :
-    GlobalsLe B s (.decCall name shape function arguments continuation)
+    GlobalsLe fn B s (.decCall name shape function arguments continuation)
       (some .timeOut) (emptyLocalsHOLFinite s) (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs shape))])) := by
+          slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
+            callMoves fn function)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match
     (StatementRun.declareCallTimeout (name := name) (shape := shape) (continuation := continuation)
@@ -177,14 +181,15 @@ theorem globals_declareCallStopped (B : Nat) {F : Type} {s : PanSemStateFiniteEx
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (terminal : ∀ value, bodyResult ≠ some (.returned value))
-    (ihBody : GlobalsLe B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents) :
-    GlobalsLe B s (.decCall name shape function arguments continuation)
+    (ihBody : GlobalsLe function B (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents) :
+    GlobalsLe fn B s (.decCall name shape function arguments continuation)
       (declareCallStopPlan bodyResult bodyPost).1 (declareCallStopPlan bodyResult bodyPost).2
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
+          slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
+            callMoves fn function)] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)])) := by
   intro context t rel ok ready code h cov r' t' ev' target
   obtain ⟨hr, -⟩ := globals_sub_match
@@ -200,7 +205,7 @@ theorem globals_declareCallStopped (B : Nat) {F : Type} {s : PanSemStateFiniteEx
   rw [globals_compile_decCall] at target
   cases target
   case declareCallStopped =>
-    rename_i vs body' callee' rs' br' bp' bev' terminal' clock' bodyRun' lookup' args'
+    rename_i vs body' callee' rs' br' bp' bev' terminal' clock' lookup' bodyRun' args'
     have : vs = values := Option.some.inj (args'.symm.trans values')
     subst this
     obtain ⟨hb, hc, hrs⟩ := globals_lookup_match rel lookup lookup'
@@ -212,7 +217,7 @@ theorem globals_declareCallStopped (B : Nat) {F : Type} {s : PanSemStateFiniteEx
     gsimp
     omega
   case declareCallReturn =>
-    rename_i vs body' callee' rs' v bp' bev' cev post' clock' bodyRun' shapeMatch' lookup' args'
+    rename_i vs body' callee' rs' v bp' bev' cev post' clock' shapeMatch' lookup' bodyRun' args'
       contRun'
     have : vs = values := Option.some.inj (args'.symm.trans values')
     subst this

@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostSharpCrepDec
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem size_nil_context_sharp : ∀ shape : ShapeHOL,
     sizeOfShapeWithContextHOL [] shape = sizeOfShapeHOL shape := by
@@ -210,10 +211,10 @@ theorem done_plan_no_fire_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
         · simp only [CallCostPlan.done.injEq] at plan; exact resultOk plan.1.symm
       · simp only [CallCostPlan.done.injEq] at plan; exact resultOk plan.1.symm
 
-theorem call_events_score_sharp (arguments bodyEvents : List WorkEvent) (a f x : Nat) :
-    sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
+theorem call_events_score_sharp (arguments bodyEvents : List WorkEvent) (a f x m : Nat) :
+    sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f + m)] ++
       bodyEvents ++ [.cost x]))) =
-    sharpScore arguments + (196 + 40 * a + 19 * f) + sharpScore bodyEvents + x := by
+    sharpScore arguments + (196 + 40 * a + 19 * f + m) + sharpScore bodyEvents + x := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
     sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead]
   omega
@@ -235,7 +236,7 @@ theorem call_done_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post)
     (resultOk : result ≠ some .error)
     (rel : SourceCrepRel context s t)
@@ -248,7 +249,8 @@ theorem call_done_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
     CrepWorkPaid_sharp t (compileProgExactHOLW context (.call info function arguments))
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)])) := by
   classical
   have bodyOk := call_body_ok_sharp plan resultOk
@@ -373,7 +375,8 @@ theorem call_timeout_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
     CrepWorkPaid_sharp t (compileProgExactHOLW context (.call info function arguments))
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))])) := by
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)])) := by
   classical
   obtain ⟨vshapes, _hsrc, _, hfuncs, _hlen, htargs, htlookup, _, _, _, _⟩ :=
     pcCompileCorrectCallPrelude s t context function arguments values body callee returnShape

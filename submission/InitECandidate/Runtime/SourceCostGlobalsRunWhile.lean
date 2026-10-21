@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsRunControl
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! Loop rules of the `pan_globals` statement transfer. In every compiled
 branch other than the source's, the guard word, the clock, or the body result
@@ -11,11 +12,11 @@ theorem globals_whileNext (B : Nat) {F : Type} {s post : PanSemStateFiniteExact 
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       {middle bodyEvents restEvents}
-      (one : StatementRun (decClockHOLFinite s) body none middle bodyEvents)
-      (rest : StatementRun middle (.while condition body) r post restEvents)
-      (ih1 : GlobalsLe B (decClockHOLFinite s) body none middle bodyEvents)
-      (ih2 : GlobalsLe B middle (.while condition body) r post restEvents) :
-    GlobalsLe B s (.while condition body) r post (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents ++ restEvents)) := by
+      (one : StatementRun fn (decClockHOLFinite s) body none middle bodyEvents)
+      (rest : StatementRun fn middle (.while condition body) r post restEvents)
+      (ih1 : GlobalsLe fn B (decClockHOLFinite s) body none middle bodyEvents)
+      (ih2 : GlobalsLe fn B middle (.while condition body) r post restEvents) :
+    GlobalsLe fn B s (.while condition body) r post (.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents ++ restEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -58,11 +59,11 @@ theorem globals_whileContinue (B : Nat) {F : Type} {s post : PanSemStateFiniteEx
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       {middle bodyEvents restEvents}
-      (one : StatementRun (decClockHOLFinite s) body (some .continue) middle bodyEvents)
-      (rest : StatementRun middle (.while condition body) r post restEvents)
-      (ih1 : GlobalsLe B (decClockHOLFinite s) body (some .continue) middle bodyEvents)
-      (ih2 : GlobalsLe B middle (.while condition body) r post restEvents) :
-    GlobalsLe B s (.while condition body) r post (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents ++ restEvents)) := by
+      (one : StatementRun fn (decClockHOLFinite s) body (some .continue) middle bodyEvents)
+      (rest : StatementRun fn middle (.while condition body) r post restEvents)
+      (ih1 : GlobalsLe fn B (decClockHOLFinite s) body (some .continue) middle bodyEvents)
+      (ih2 : GlobalsLe fn B middle (.while condition body) r post restEvents) :
+    GlobalsLe fn B s (.while condition body) r post (.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents ++ restEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -105,9 +106,9 @@ theorem globals_whileBreak (B : Nat) {F : Type} {s post : PanSemStateFiniteExact
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       {bodyEvents}
-      (one : StatementRun (decClockHOLFinite s) body (some .break) post bodyEvents)
-      (ih1 : GlobalsLe B (decClockHOLFinite s) body (some .break) post bodyEvents) :
-    GlobalsLe B s (.while condition body) none post (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents)) := by
+      (one : StatementRun fn (decClockHOLFinite s) body (some .break) post bodyEvents)
+      (ih1 : GlobalsLe fn B (decClockHOLFinite s) body (some .break) post bodyEvents) :
+    GlobalsLe fn B s (.while condition body) none post (.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -146,9 +147,9 @@ theorem globals_whilePropagate (B : Nat) {F : Type} {s post : PanSemStateFiniteE
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0) {result bodyEvents}
       (notBreak : result ≠ .break) (notContinue : result ≠ .continue)
-      (one : StatementRun (decClockHOLFinite s) body (some result) post bodyEvents)
-      (ih1 : GlobalsLe B (decClockHOLFinite s) body (some result) post bodyEvents) :
-    GlobalsLe B s (.while condition body) (some result) post (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents)) := by
+      (one : StatementRun fn (decClockHOLFinite s) body (some result) post bodyEvents)
+      (ih1 : GlobalsLe fn B (decClockHOLFinite s) body (some result) post bodyEvents) :
+    GlobalsLe fn B s (.while condition body) (some result) post (.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents)) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -184,7 +185,7 @@ theorem globals_whilePropagate (B : Nat) {F : Type} {s post : PanSemStateFiniteE
 theorem globals_whileFalse (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64 F}
     {condition : ExpHOL 64} {body : ProgHOL 64} {guardEvents}
     (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents) :
-    GlobalsLe B s (.while condition body) none s (.statement :: .cost whileOverhead :: guardEvents) := by
+    GlobalsLe fn B s (.while condition body) none s (.statement :: .cost (whileOverhead + loopMoves fn) :: guardEvents) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0
@@ -219,8 +220,8 @@ theorem globals_whileTimeout (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
     {condition : ExpHOL 64} {body : ProgHOL 64} {value : BitVec 64} {guardEvents}
     (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
     (nonzero : value ≠ 0) (clock : s.clock = 0) :
-    GlobalsLe B s (.while condition body) (some .timeOut) (emptyLocalsHOLFinite s)
-      (.statement :: .cost whileOverhead :: guardEvents) := by
+    GlobalsLe fn B s (.while condition body) (some .timeOut) (emptyLocalsHOLFinite s)
+      (.statement :: .cost (whileOverhead + loopMoves fn) :: guardEvents) := by
   intro context t rel ok ready code h cov r' t' ev' target
   have r0 := ready
   simp only [globalsReadyProg, Bool.and_eq_true] at r0

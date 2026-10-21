@@ -1,12 +1,13 @@
 import InitECandidate.Runtime.SourceCostSharpCrepHandler
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem decCall_events_score_sharp (arguments bodyEvents continuationEvents : List WorkEvent)
-    (a f c : Nat) :
-    sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
+    (a f c m : Nat) :
+    sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f + m)] ++
       bodyEvents ++ [.cost (returnCopy c)] ++ continuationEvents))) =
-    sharpScore arguments + (196 + 40 * a + 19 * f) + sharpScore bodyEvents + 49 * c +
+    sharpScore arguments + (196 + 40 * a + 19 * f + m) + sharpScore bodyEvents + 49 * c +
       sharpScore continuationEvents := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
     sharpScore_statement, sharpScore_cost, sharpScore_copy, sharpScore_nil, callOverhead,
@@ -24,7 +25,7 @@ theorem decCall_prelude_sharp {F : Type} {s : PanSemStateFiniteExact 64 F} {t : 
     (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (bodyOk : bodyResult ≠ some .error)
     (rel : SourceCrepRel context s t)
     (localisedArgs : everyExpListHOL localisedExpHOL arguments = true)
@@ -94,7 +95,7 @@ theorem decCall_return_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body
       (some (.returned value)) bodyPost bodyEvents)
     (shapeMatch : (shapeEqHOL (shapeOfHOLExact value) shape &&
       shapeEqHOL (shapeOfHOLExact value) returnShape) = true)
@@ -112,7 +113,8 @@ theorem decCall_return_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 
         continuation))
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
+          slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
+            callMoves fn function)] ++ bodyEvents ++
         [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents)) := by
   classical
   have localisedAll : everyExpListHOL localisedExpHOL arguments = true ∧
@@ -204,7 +206,8 @@ theorem decCall_timeout_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64
         continuation))
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs shape))])) := by
+          slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
+            callMoves fn function)])) := by
   classical
   have localisedAll : everyExpListHOL localisedExpHOL arguments = true ∧
       localisedProgHOL continuation = true := by
@@ -291,7 +294,7 @@ theorem decCall_stopped_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (stop : bodyResult = some .timeOut ∨ (∃ f, bodyResult = some (.finalFfi f)) ∨
       ∃ eid v, bodyResult = some (.exception eid v))
     (rel : SourceCrepRel context s t)
@@ -305,7 +308,8 @@ theorem decCall_stopped_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64
         continuation))
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
+          slotOverhead (sizeOfShapeWithContextHOL s.structs shape) +
+            callMoves fn function)] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)])) := by
   classical
   have localisedAll : everyExpListHOL localisedExpHOL arguments = true ∧

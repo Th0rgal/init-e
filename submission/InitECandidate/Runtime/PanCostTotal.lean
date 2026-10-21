@@ -14,67 +14,67 @@ private theorem cost_measure_decrease {oldClock newClock oldSize newSize : Nat}
 /-- Global source-cost completeness. Calls and loop iterations decrease the
 semantic clock; structural composition decreases the program size. No guest
 well-formedness or accepting-result hypothesis is required. -/
-theorem source_statement_cost_complete {F : Type} (s : PanSemStateFiniteExact 64 F)
-    (p : ProgHOL 64) : HasStatementCost s p := by
+theorem source_statement_cost_complete {F : Type} (fn : MlS) (s : PanSemStateFiniteExact 64 F)
+    (p : ProgHOL 64) : HasStatementCost fn s p := by
   classical
   cases p with
   | seq first second =>
     apply sequence_cost_complete s first second
-    · exact source_statement_cost_complete s first
+    · exact source_statement_cost_complete fn s first
     · intro post run
       have mono := evaluateHOLFiniteState_clock_le s first
       rw [run] at mono
       simp only [] at mono
-      exact source_statement_cost_complete post second
+      exact source_statement_cost_complete fn post second
   | ite condition yes no =>
     apply conditional_cost_complete s condition yes no
     intro word guard
     by_cases zero : word = 0
     · simp only [zero, ↓reduceIte]
-      exact source_statement_cost_complete s no
+      exact source_statement_cost_complete fn s no
     · simp only [zero, ↓reduceIte]
-      exact source_statement_cost_complete s yes
+      exact source_statement_cost_complete fn s yes
   | dec name shape initializer body =>
     apply declaration_cost_complete s name shape initializer body
     intro value evaluated matched
-    exact source_statement_cost_complete (setVarHOLFinite name value s) body
+    exact source_statement_cost_complete fn (setVarHOLFinite name value s) body
   | «while» condition body =>
     apply while_cost_complete s condition body
     · intro word guard nonzero clock
       have smaller : (decClockHOLFinite s).clock < s.clock := by
         simp only [decClockHOLFinite]; omega
-      exact source_statement_cost_complete (decClockHOLFinite s) body
+      exact source_statement_cost_complete fn (decClockHOLFinite s) body
     · intro clock post run
       have mono := evaluateHOLFiniteState_clock_le (decClockHOLFinite s) body
       rw [run] at mono
       have smaller : post.clock < s.clock := by
         simp only [decClockHOLFinite] at mono; omega
-      exact source_statement_cost_complete post (.while condition body)
+      exact source_statement_cost_complete fn post (.while condition body)
     · intro clock post run
       have mono := evaluateHOLFiniteState_clock_le (decClockHOLFinite s) body
       rw [run] at mono
       have smaller : post.clock < s.clock := by
         simp only [decClockHOLFinite] at mono; omega
-      exact source_statement_cost_complete post (.while condition body)
+      exact source_statement_cost_complete fn post (.while condition body)
   | call info function arguments =>
     apply call_cost_complete s info function arguments
     · intro values body callee returnShape args lookup clock
       have smaller : (callEntryStateHOLFinite s callee).clock < s.clock := by
         simp only [callEntryStateHOLFinite]; omega
-      exact source_statement_cost_complete (callEntryStateHOLFinite s callee) body
+      exact source_statement_cost_complete function (callEntryStateHOLFinite s callee) body
     · intro callee body returnShape result post entry program clock run plan
       have mono := evaluateHOLFiniteState_clock_le (callEntryStateHOLFinite s callee) body
       rw [run] at mono
       have handlerClock := callCostPlan_handler_clock s post entry info returnShape result program plan
       have smaller : entry.clock < s.clock := by
         simp only [callEntryStateHOLFinite] at mono; omega
-      exact source_statement_cost_complete entry program
+      exact source_statement_cost_complete fn entry program
   | decCall name shape function arguments continuation =>
     apply declared_call_cost_complete s name shape function arguments continuation
     · intro values body callee returnShape args lookup clock
       have smaller : (callEntryStateHOLFinite s callee).clock < s.clock := by
         simp only [callEntryStateHOLFinite]; omega
-      exact source_statement_cost_complete (callEntryStateHOLFinite s callee) body
+      exact source_statement_cost_complete function (callEntryStateHOLFinite s callee) body
     · intro callee body value post clock run
       have mono := evaluateHOLFiniteState_clock_le (callEntryStateHOLFinite s callee) body
       rw [run] at mono
@@ -82,7 +82,7 @@ theorem source_statement_cost_complete {F : Type} (s : PanSemStateFiniteExact 64
         simp only [callEntryStateHOLFinite] at mono
         simp only [setVarHOLFinite]
         omega
-      exact source_statement_cost_complete
+      exact source_statement_cost_complete fn
         (setVarHOLFinite name value { post with locals := s.locals }) continuation
   | _ => exact atomic_statement_cost_complete s _ rfl
 termination_by (s.clock, sizeOf p)
@@ -94,34 +94,34 @@ decreasing_by
     | omega
 
 /-- Every exact source evaluation has a finite, size-aware work trace. -/
-theorem source_evaluation_cost_trace {F : Type} (s : PanSemStateFiniteExact 64 F)
+theorem source_evaluation_cost_trace {F : Type} (fn : MlS) (s : PanSemStateFiniteExact 64 F)
     (p : ProgHOL 64) :
-    ∃ events, StatementRun s p (evaluateHOLFiniteState s p).1
+    ∃ events, StatementRun fn s p (evaluateHOLFiniteState s p).1
       (evaluateHOLFiniteState s p).2 events :=
-  (source_statement_cost_complete s p).exact_trace
+  (source_statement_cost_complete fn s p).exact_trace
 
 /-- Select a certified finite source trace. Compiler and guest bounds should
-hold for all StatementRun traces, hence also for this selected witness. -/
-noncomputable def sourceExecutionEvents {F : Type} (s : PanSemStateFiniteExact 64 F)
-    (p : ProgHOL 64) : List WorkEvent := (source_evaluation_cost_trace s p).choose
+hold for all StatementRun fn traces, hence also for this selected witness. -/
+noncomputable def sourceExecutionEvents {F : Type} (fn : MlS) (s : PanSemStateFiniteExact 64 F)
+    (p : ProgHOL 64) : List WorkEvent := (source_evaluation_cost_trace fn s p).choose
 
-theorem sourceExecutionEvents_run {F : Type} (s : PanSemStateFiniteExact 64 F)
+theorem sourceExecutionEvents_run {F : Type} (fn : MlS) (s : PanSemStateFiniteExact 64 F)
     (p : ProgHOL 64) :
-    StatementRun s p (evaluateHOLFiniteState s p).1 (evaluateHOLFiniteState s p).2
-      (sourceExecutionEvents s p) := (source_evaluation_cost_trace s p).choose_spec
+    StatementRun fn s p (evaluateHOLFiniteState s p).1 (evaluateHOLFiniteState s p).2
+      (sourceExecutionEvents fn s p) := (source_evaluation_cost_trace fn s p).choose_spec
 
 /-- Finite source execution cost, parameterized by compiler-certified unit
 coefficients. It is independent of any whole-program syntax maximum. -/
-noncomputable def sourceExecutionCost {F : Type} (coeff : Work)
+noncomputable def sourceExecutionCost {F : Type} (fn : MlS) (coeff : Work)
     (s : PanSemStateFiniteExact 64 F) (p : ProgHOL 64) : Nat :=
-  coeff.score (executionWork (sourceExecutionEvents s p))
+  coeff.score (executionWork (sourceExecutionEvents fn s p))
 
-theorem sourceExecutionCost_spec {F : Type} (coeff : Work)
+theorem sourceExecutionCost_spec {F : Type} (fn : MlS) (coeff : Work)
     (s : PanSemStateFiniteExact 64 F) (p : ProgHOL 64) :
-    ∃ events, StatementRun s p (evaluateHOLFiniteState s p).1
+    ∃ events, StatementRun fn s p (evaluateHOLFiniteState s p).1
       (evaluateHOLFiniteState s p).2 events ∧
-      sourceExecutionCost coeff s p = coeff.score (executionWork events) :=
-  ⟨sourceExecutionEvents s p, sourceExecutionEvents_run s p, rfl⟩
+      sourceExecutionCost fn coeff s p = coeff.score (executionWork events) :=
+  ⟨sourceExecutionEvents fn s p, sourceExecutionEvents_run fn s p, rfl⟩
 
 #print axioms sourceExecutionCost_spec
 

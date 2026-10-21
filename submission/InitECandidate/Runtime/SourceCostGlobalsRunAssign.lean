@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostGlobalsRunAtomic
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem globals_address_events (B : Nat) {F : Type} {t : PanSemStateFiniteExact 64 F} {address : BitVec 64}
     {value : Option (ValueHOL 64)} {ev : List WorkEvent}
@@ -22,7 +23,7 @@ theorem globals_assignGlobal (B : Nat) {F : Type} {s : PanSemStateFiniteExact 64
     {name} {expression : ExpHOL 64} {value : ValueHOL 64} {events : List WorkEvent}
     (expr : CostedExpressionRun s expression (some value) events)
     (valid : isValidValueHOLFinite s .global name value = true) :
-    GlobalsLe B s (.assign .global name expression) none (setKvarHOLFinite .global name value s)
+    GlobalsLe fn B s (.assign .global name expression) none (setKvarHOLFinite .global name value s)
       (.statement :: (events ++ .copy (flattenHOL value).length ::
         globalEvents .global (flattenHOL value).length)) := by
   intro context t rel ok ready code h cov r' t' ev' target
@@ -52,7 +53,7 @@ theorem globals_primitiveValue (B : Nat) {F : Type} {s : PanSemStateFiniteExact 
       arguments = some values)
     (operation : panPrimopHOLExact operator values = some value)
     (valid : isValidValueHOLFinite s .local name value = true) :
-    GlobalsLe B s (.primitive name operator arguments) none (setVarHOLFinite name value s)
+    GlobalsLe fn B s (.primitive name operator arguments) none (setVarHOLFinite name value s)
       (.statement :: (expressionListEvents s arguments ++ [.cost (primitiveOverhead (values.flatMap flattenHOL).length)] ++
         [.copy (flattenHOL value).length])) := by
   intro context t rel ok ready code h cov r' t' ev' target

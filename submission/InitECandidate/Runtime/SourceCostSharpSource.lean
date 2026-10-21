@@ -3,6 +3,7 @@ import InitECandidate.Runtime.SourceCostSharpCrepSimp
 import InitECandidate.Runtime.SourceCostLoopSource
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.LoopSemStateFiniteExact Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-- Sharp end-to-end statement transfer: source -> pan_to_crep -> simp_prog
 -> crep_to_loop (installed optimiser discharged), with factor one at every
@@ -13,7 +14,7 @@ shared-memory operation. Preprocessing
 theorem source_loop_sharp_work {F : Type}
     {s post : PanSemStateFiniteExact 64 F}
     {p : ProgHOL 64} {r : Option (PanSemResultExact 64)} {events : List WorkEvent}
-    (run : StatementRun s p r post events) (t : CrepSemHOLState 64 F)
+    (run : StatementRun fn s p r post events) (t : CrepSemHOLState 64 F)
     (context : PanToCrepContextExact 64) (resultOk : r ≠ some .error)
     (rel : SourceCrepRel context s t) (localised : localisedProgHOL p = true)
     (checked : sharpSitesProg sharpReplayBound p = true)

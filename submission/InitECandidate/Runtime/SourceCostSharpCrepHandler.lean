@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.SourceCostSharpCrepCall
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 theorem sharp_bounded_load_globals_sharp (names : List Nat) (address : BitVec 5) :
     CrepBoundedS (crepNestedSeqHOL (panMap2 (fun destination source => .assign destination source)
@@ -168,10 +169,10 @@ theorem handler_entry_work_sharp {F : Type} {s bodyPost : PanSemStateFiniteExact
   omega
 
 theorem call_handler_events_score_sharp (arguments bodyEvents handlerEvents : List WorkEvent)
-    (a f x : Nat) :
-    sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f)] ++
+    (a f x m : Nat) :
+    sharpScore ((.statement :: (arguments ++ [.cost (callOverhead a + slotOverhead f + m)] ++
       bodyEvents ++ [.cost x] ++ handlerEvents))) =
-    sharpScore arguments + (196 + 40 * a + 19 * f) + sharpScore bodyEvents + x +
+    sharpScore arguments + (196 + 40 * a + 19 * f + m) + sharpScore bodyEvents + x +
       sharpScore handlerEvents := by
   simp only [List.append_assoc, List.cons_append, List.nil_append, sharpScore_append,
     sharpScore_statement, sharpScore_cost, sharpScore_nil, callOverhead, slotOverhead]
@@ -192,7 +193,7 @@ theorem call_handler_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
       arguments = some values)
     (lookup : lookupCodeHOLFinite s.code.lookup function values = some (body, callee, returnShape))
     (clock : s.clock ≠ 0)
-    (bodyRun : StatementRun (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
+    (bodyRun : StatementRun function (callEntryStateHOLFinite s callee) body bodyResult bodyPost bodyEvents)
     (plan : callCostPlan s info returnShape bodyResult bodyPost = .handler handlerEntry handlerProgram)
     (rel : SourceCrepRel context s t)
     (localised : localisedProgHOL (.call info function arguments) = true)
@@ -208,7 +209,8 @@ theorem call_handler_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F}
     CrepWorkPaid_sharp t (compileProgExactHOLW context (.call info function arguments))
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
-          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
+          slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape) +
+            callMoves fn function)] ++ bodyEvents ++
         [.cost (callExitOverhead bodyResult)] ++ handlerEvents)) := by
   classical
   obtain ⟨dest, handlerId, handlerVar, rfl⟩ := handler_plan_info_sharp plan
