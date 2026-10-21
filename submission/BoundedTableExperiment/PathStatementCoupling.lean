@@ -55,7 +55,29 @@ theorem path_store_one_word_units :
     (WorkEvent.cost (storeOverhead 1)).units.nativeCost = storeOverhead 1 := by
   simp [WorkEvent.units]
 
+/-- Every path-load or loop-guard expression has the actual expression run
+with exactly one native-price event. -/
+theorem path_load_expression_events {F : Type}
+    (s : PanSemStateFiniteExact 64 F) (e : Pancake.PanLang.ExpHOL 64) :
+    CostedExpressionRun s e (expressionValue s e) [.cost (sourcePrice s e)] :=
+  costedExpressionRun_total s e
+
+/-- The same expression run charges exactly `nativeCost * sourcePrice`. -/
+theorem path_load_expression_cost {F : Type} (coeff : Work)
+    (s : PanSemStateFiniteExact 64 F) (e : Pancake.PanLang.ExpHOL 64) :
+    coeff.score (executionWork [.cost (sourcePrice s e)]) =
+      coeff.nativeCost * sourcePrice s e := by
+  simp [executionWork, WorkEvent.units, Work.plus, Work.score]
+
+/-- A path load expression's event list is nonempty and carries a native cost
+event for its source price. -/
+theorem path_load_has_cost_event {F : Type}
+    (s : PanSemStateFiniteExact 64 F) (e : Pancake.PanLang.ExpHOL 64) :
+    .cost (sourcePrice s e) ∈ (expressionEvents s e) := by
+  simp [expressionEvents]
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.storeValue_events
 #print axioms BoundedTableExperiment.path_store_one_word_events
+#print axioms BoundedTableExperiment.path_load_expression_cost

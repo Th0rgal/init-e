@@ -771,3 +771,17 @@ proves:
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. This is statement-run
 event coupling for the path store; coupling the loop guard/load executions and
 the full per-operation cost remains open.
+
+## 31. Path-load / loop-guard expression coupling
+
+`PathStatementCoupling.lean` also proves:
+
+- `path_load_expression_events`: every path-load or loop-guard expression has
+  the actual `CostedExpressionRun` with event list `[.cost (sourcePrice s e)]`;
+- `path_load_expression_cost`: that run charges exactly
+  `nativeCost * sourcePrice s e`;
+- `path_load_has_cost_event`: the native-price event is present.
+
+So the path buffer's load/guard executions are coupled to the candidate
+expression cost, not just counted by the model. Axioms are `propext` and
+`Quot.sound` for the cost lemmas.
