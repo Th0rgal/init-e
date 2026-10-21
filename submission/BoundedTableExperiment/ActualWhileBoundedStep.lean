@@ -46,3 +46,19 @@ theorem whileCount_le_480_none {F : Type} {fn : MlS} {condition : ExpHOL 64}
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.whileCount_le_480_none
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+
+/-- Below 480, adding one to a word counter does not wrap. -/
+theorem bitvec_succ_toNat (w : BitVec 64) (h : w.toNat < 480) :
+    (w + BitVec.ofNat 64 1).toNat = w.toNat + 1 := by
+  bv_omega
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.bitvec_succ_toNat
