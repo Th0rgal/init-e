@@ -205,4 +205,20 @@ theorem stackPopStored_memory_below {F : Type} (s : PanSemStateFiniteExact 64 F)
 #print axioms opAddYEntry_memory_ne
 #print axioms opAddXEntry_clock
 #print axioms opAddYEntry_clock
+/-- Updating locals never changes the frame invariant. -/
+theorem setVar_GuestFrameInvariant (s : PanSemStateFiniteExact 64 Guest.HostMemory)
+    (name : MlS) (value : ValueHOL 64)
+    (frame sp cap base pc : BitVec 64) (funding : GasFunding)
+    (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64)
+    (inv : GuestFrameInvariant s frame sp cap base pc funding a0 a1 a2 a3 b0 b1 b2 b3) :
+    GuestFrameInvariant (setVarHOLFinite name value s) frame sp cap base pc funding
+      a0 a1 a2 a3 b0 b1 b2 b3 := by
+  cases inv with
+  | mk ev code clock hd b sc cc pcv fm en fe be cb sl scp xd0 xd1 xd2 xd3 xc0 xc1 xc2 xc3
+      yd0 yd1 yd2 yd3 yc0 yc1 yc2 yc3 xb yb =>
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    all_goals simp_all [setVarHOLFinite, HasGasFunding]
+
+#print axioms setVar_GuestFrameInvariant
+
 end InitECandidate.Runtime.FineCost
