@@ -8,12 +8,15 @@ open InitECandidate.Runtime.WordToStack
 /-- Intermediate post-instruction-selection price. Parallel assignments pay
 for their input pairs, so physical renaming and merge scheduling need no
 unproved invariance of the final allocated scheduler. Other nodes retain the
-canonical compiler-fragment prices. Assign expressions are still excluded by
+canonical compiler-fragment prices, with a floor of 24 for heads that CSE or
+copy propagation can replace by a singleton move. Assign expressions are still excluded by
 the post-selection eligibility obligation. -/
 noncomputable def wordOptimizerLocalPrice {C F : Type}
     (program : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F) : Nat :=
   match program with
   | .move _ pairs => 24 * pairs.length
+  | .inst _ | .get _ _ | .locValue _ _ | .opCurrHeap _ _ _ =>
+      max 24 (refinedWordLocalPrice program source)
   | _ => refinedWordLocalPrice program source
 
 theorem refinedWordLocalPrice_le_optimizer {C F : Type}
@@ -23,6 +26,13 @@ theorem refinedWordLocalPrice_le_optimizer {C F : Type}
   case move priority pairs =>
     simpa only [refinedWordLocalPrice, refinedWordStackLeafBudget,
       wordOptimizerLocalPrice, id_eq] using renamed_parallel_moves_cost_le id pairs
+  all_goals exact Nat.le_max_right _ _
+
+theorem wordOptimizerLocalPrice_state_independent {C F C' F' : Type}
+    (program : WordLangProgHOL (BitVec 64))
+    (source : WordSemStateFiniteExact 64 C F) (target : WordSemStateFiniteExact 64 C' F') :
+    wordOptimizerLocalPrice program source = wordOptimizerLocalPrice program target := by
+  cases program <;> rfl
 
 theorem refinedWordExecutionCost_le_optimizer {C F : Type}
     (program : WordLangProgHOL (BitVec 64)) (source : WordSemStateFiniteExact 64 C F) :
