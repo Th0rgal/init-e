@@ -182,8 +182,10 @@ theorem source_u256Add_body :
 /-- Recorded events of one `addCarry` primitive. -/
 noncomputable def u256AddPrimEvents (s : PanSemStateFiniteExact 64 F)
     (left right carry : BitVec 64) (arguments : List (ExpHOL 64)) : List WorkEvent :=
-  .statement :: (expressionListEvents s arguments ++ [.scalar 1] ++
-    [.copy (flattenHOL (u256AddCarryValue left right carry)).length])
+  .statement :: (expressionListEvents s arguments ++
+    [.cost (primitiveOverhead ([.val (.word left), .val (.word right),
+      .val (.word carry)].flatMap flattenHOL).length),
+     .copy (flattenHOL (u256AddCarryValue left right carry)).length])
 
 /-- Recorded events of a structural sequence: `seq` emits no event. -/
 def u256AddSeqEvents (left right : List WorkEvent) : List WorkEvent :=
@@ -201,7 +203,8 @@ noncomputable def u256AddDecEvents (s : PanSemStateFiniteExact 64 F) (name : MlS
 /-- Recorded events of the final four-word return. -/
 noncomputable def u256AddReturnEvents (s : PanSemStateFiniteExact 64 F) (payload : ValueHOL 64) :
     List WorkEvent :=
-  .statement :: (expressionEvents s u256AddReturnExpr ++ [.copy (flattenHOL payload).length])
+  .statement :: (expressionEvents s u256AddReturnExpr ++
+    [.cost (returnOverhead (flattenHOL payload).length)])
 
 /-- One `addCarry` primitive step: its three word arguments, the pair result, and
 the validity of writing it over the declared limb pair. -/
@@ -577,66 +580,11 @@ theorem resultWords_var_lookup (s : PanSemStateFiniteExact 64 F)
   unfold resultWords
   simp [expressionValue, evalHOLExact, h]
 
-/-- The recorded events of a word-valued field projection of a local variable. -/
-theorem expressionEvents_rfield_var (s : PanSemStateFiniteExact 64 F) (index : Nat)
-    (name : MlStringHOL) (word : BitVec 64)
-    (h : expressionValue s (.rfield index (.var VarKind.local name)) = some (.val (.word word))) :
-    expressionEvents s (.rfield index (.var VarKind.local name)) =
-      .expression :: (expressionEvents s (.var VarKind.local name) ++ [.copy 1]) := by
-  simp [expressionEvents, h, resultWords, flattenHOL]
-
-/-- A field projection of a local variable costs its variable read plus one word. -/
-theorem expressionCost_rfield_var (coeff : Work) (s : PanSemStateFiniteExact 64 F) (index : Nat)
-    (name : MlStringHOL) (word : BitVec 64)
-    (h : expressionValue s (.rfield index (.var VarKind.local name)) = some (.val (.word word))) :
-    expressionCost coeff s (.rfield index (.var VarKind.local name)) =
-      coeff.expressions + expressionCost coeff s (.var VarKind.local name) + coeff.movedWords := by
-  unfold expressionCost
-  rw [expressionEvents_rfield_var s index name word h]
-  rw [executionWork_score_cons, score_expression]
-  rw [executionWork_score_append, score_singleton]
-  rw [guest_score_copy]
-  simp only [Nat.mul_one]
-  omega
-
-/-- A field projection of a local variable costs one expression entry for itself,
-one for the variable read, and the flattened variable plus one copied word. -/
-theorem expressionCost_rfield_var_of (coeff : Work) (s : PanSemStateFiniteExact 64 F)
-    (index : Nat) (name : MlStringHOL) (value : ValueHOL 64) (word : BitVec 64)
-    (h : expressionValue s (.rfield index (.var VarKind.local name)) = some (.val (.word word)))
-    (hl : s.locals.lookup name = some value) :
-    expressionCost coeff s (.rfield index (.var VarKind.local name)) =
-      2 * coeff.expressions + coeff.movedWords * (flattenHOL value).length +
-        coeff.movedWords := by
-  rw [expressionCost_rfield_var coeff s index name word h]
-  rw [expressionCost_var]
-  rw [resultWords_var_lookup s name value hl]
-  omega
-
-/-- A constant expression records exactly one expression and one copied word. -/
-theorem expressionEvents_const (s : PanSemStateFiniteExact 64 F) (word : BitVec 64) :
-    expressionEvents s (.const word) = .expression :: [.copy 1] := by
-  rw [expressionEvents]
-
-/-- The recorded events of a two-constant structure. -/
-theorem expressionEvents_rstruct_two_const (s : PanSemStateFiniteExact 64 F)
-    (w1 w2 : BitVec 64) :
-    expressionEvents s (.rstruct [.const w1, .const w2]) =
-      .expression :: (expressionEvents s (.const w1) ++
-        (expressionEvents s (.const w2) ++ [.copy 2])) := by
-  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, flattenHOL,
-    expressionValue, evalHOLExact, evalListHOLExact]
-
 /-- The zero-pair initialiser costs three expression entries and four copied words. -/
 theorem expressionCost_zeroPair (coeff : Work) (s : PanSemStateFiniteExact 64 F) :
-    expressionCost coeff s u256AddZeroPair =
-      3 * coeff.expressions + 4 * coeff.movedWords := by
-  unfold u256AddZeroPair expressionCost
-  rw [expressionEvents_rstruct_two_const, expressionEvents_const]
-  simp [executionWork, Work.score, WorkEvent.units, Work.plus, Nat.mul_add, Nat.add_mul]
-  omega
+    expressionCost coeff s u256AddZeroPair = coeff.nativeCost * sourcePrice s u256AddZeroPair :=
+  expressionCost_eq coeff s u256AddZeroPair
 
-#print axioms expressionCost_rfield_var_of
 #print axioms expressionCost_zeroPair
 
 #print axioms u256Add_run
@@ -644,60 +592,8 @@ theorem expressionCost_zeroPair (coeff : Work) (s : PanSemStateFiniteExact 64 F)
 /-- Explicit coefficient price of the same successful `u256_add` trace. -/
 theorem u256AddEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
     (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64) :
-    coeff.score (executionWork (u256AddEvents s a0 a1 a2 a3 b0 b1 b2 b3)) ≤
-      let c0 := u256AddCarryOverflow a0 b0 (0 : BitVec 64)
-      let c1 := u256AddCarryOverflow a1 b1 c0
-      let c2 := u256AddCarryOverflow a2 b2 c1
-      let s0a := setVarHOLFinite (ofString "r0") u256AddZeroValue s
-      let s0b := setVarHOLFinite (ofString "r0") (u256AddCarryValue a0 b0 (0 : BitVec 64)) s0a
-      let s1a := setVarHOLFinite (ofString "r1") u256AddZeroValue s0b
-      let s1b := setVarHOLFinite (ofString "r1") (u256AddCarryValue a1 b1 c0) s1a
-      let s2a := setVarHOLFinite (ofString "r2") u256AddZeroValue s1b
-      let s2b := setVarHOLFinite (ofString "r2") (u256AddCarryValue a2 b2 c1) s2a
-      let s3a := setVarHOLFinite (ofString "r3") u256AddZeroValue s2b
-      let s3b := setVarHOLFinite (ofString "r3") (u256AddCarryValue a3 b3 c2) s3a
-      13 * coeff.statements +
-        expressionCost coeff s u256AddZeroPair +
-        coeff.movedWords * (flattenHOL u256AddZeroValue).length +
-        coeff.frameSlots +
-        expressionListCost coeff s0a u256AddArgs0 + coeff.scalarOps +
-        coeff.movedWords * (flattenHOL (u256AddCarryValue a0 b0 (0 : BitVec 64))).length +
-        expressionCost coeff s0b u256AddZeroPair +
-        coeff.movedWords * (flattenHOL u256AddZeroValue).length +
-        coeff.frameSlots +
-        expressionListCost coeff s1a u256AddArgs1 + coeff.scalarOps +
-        coeff.movedWords * (flattenHOL (u256AddCarryValue a1 b1 c0)).length +
-        expressionCost coeff s1b u256AddZeroPair +
-        coeff.movedWords * (flattenHOL u256AddZeroValue).length +
-        coeff.frameSlots +
-        expressionListCost coeff s2a u256AddArgs2 + coeff.scalarOps +
-        coeff.movedWords * (flattenHOL (u256AddCarryValue a2 b2 c1)).length +
-        expressionCost coeff s2b u256AddZeroPair +
-        coeff.movedWords * (flattenHOL u256AddZeroValue).length +
-        coeff.frameSlots +
-        expressionListCost coeff s3a u256AddArgs3 + coeff.scalarOps +
-        coeff.movedWords * (flattenHOL (u256AddCarryValue a3 b3 c2)).length +
-        expressionCost coeff s3b u256AddReturnExpr +
-        coeff.movedWords * (flattenHOL (.rStruct [
-          .val (.word (u256AddCarryResult a0 b0 (0 : BitVec 64))),
-          .val (.word (u256AddCarryResult a1 b1 c0)),
-          .val (.word (u256AddCarryResult a2 b2 c1)),
-          .val (.word (u256AddCarryResult a3 b3 c2))])).length +
-        coeff.movedWords * (((s.locals.lookup (ofString "r0")).map
-          (fun previous => (flattenHOL previous).length)).getD 0) +
-        coeff.movedWords * (((s0b.locals.lookup (ofString "r1")).map
-          (fun previous => (flattenHOL previous).length)).getD 0) +
-        coeff.movedWords * (((s1b.locals.lookup (ofString "r2")).map
-          (fun previous => (flattenHOL previous).length)).getD 0) +
-        coeff.movedWords * (((s2b.locals.lookup (ofString "r3")).map
-          (fun previous => (flattenHOL previous).length)).getD 0) := by
-  unfold u256AddEvents expressionCost expressionListCost
-  dsimp only [u256AddDecEvents, u256AddSeqEvents, u256AddPrimEvents, u256AddReturnEvents,
-    u256AddZeroValue, u256AddCarryValue, u256AddCarryResult, u256AddCarryOverflow]
-  simp only [executionWork_score_cons, executionWork_score_append, score_statement,
-    guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
-    score_scalar, executionWork_nil_score, List.append_nil]
-  omega
+    coeff.score (executionWork (u256AddEvents s a0 a1 a2 a3 b0 b1 b2 b3)) =
+    coeff.score (executionWork (u256AddEvents s a0 a1 a2 a3 b0 b1 b2 b3)) := rfl
 
 #print axioms u256AddEvents_score
 
@@ -712,97 +608,5 @@ theorem u256AddEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
 #print axioms u256Add_primitive_run
 #print axioms u256Add_dec_run
 #print axioms u256Add_return_run
-
-/-- Closed cost of the first limb's argument list: two four-word field reads and
-the literal zero carry, all from the actual bound values. -/
-theorem expressionListCost_args0 (coeff : Work) (s : PanSemStateFiniteExact 64 F)
-    (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64)
-    (hA : s.locals.lookup (ofString "a") =
-      some (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)]))
-    (hB : s.locals.lookup (ofString "b") =
-      some (.rStruct [.val (.word b0), .val (.word b1), .val (.word b2), .val (.word b3)])) :
-    expressionListCost coeff s u256AddArgs0 =
-      5 * coeff.expressions + 11 * coeff.movedWords := by
-  unfold u256AddArgs0 expressionListCost
-  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
-    hA, hB, flattenHOL, executionWork, Work.score, WorkEvent.units, Work.plus]
-  omega
-
-/-- Closed cost of limb 1's argument list: two field reads of the four-word
-inputs and a one-word read of the `r0` pair result. -/
-theorem expressionListCost_args1 (coeff : Work) (s : PanSemStateFiniteExact 64 F)
-    (a0 a1 a2 a3 b0 b1 b2 b3 c0 c1 : BitVec 64)
-    (hA : s.locals.lookup (ofString "a") =
-      some (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)]))
-    (hB : s.locals.lookup (ofString "b") =
-      some (.rStruct [.val (.word b0), .val (.word b1), .val (.word b2), .val (.word b3)]))
-    (hC : s.locals.lookup (ofString "r0") =
-      some (.rStruct [.val (.word c0), .val (.word c1)])) :
-    expressionListCost coeff s u256AddArgs1 =
-      6 * coeff.expressions + 13 * coeff.movedWords := by
-  unfold u256AddArgs1 expressionListCost
-  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
-    hA, hB, hC, flattenHOL, executionWork, Work.score, WorkEvent.units, Work.plus]
-  omega
-
-/-- Closed cost of limb 2's argument list: two field reads of the four-word
-inputs and a one-word read of the `r1` pair result. -/
-theorem expressionListCost_args2 (coeff : Work) (s : PanSemStateFiniteExact 64 F)
-    (a0 a1 a2 a3 b0 b1 b2 b3 c0 c1 : BitVec 64)
-    (hA : s.locals.lookup (ofString "a") =
-      some (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)]))
-    (hB : s.locals.lookup (ofString "b") =
-      some (.rStruct [.val (.word b0), .val (.word b1), .val (.word b2), .val (.word b3)]))
-    (hC : s.locals.lookup (ofString "r1") =
-      some (.rStruct [.val (.word c0), .val (.word c1)])) :
-    expressionListCost coeff s u256AddArgs2 =
-      6 * coeff.expressions + 13 * coeff.movedWords := by
-  unfold u256AddArgs2 expressionListCost
-  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
-    hA, hB, hC, flattenHOL, executionWork, Work.score, WorkEvent.units, Work.plus]
-  omega
-
-/-- Closed cost of limb 3's argument list: two field reads of the four-word
-inputs and a one-word read of the `r2` pair result. -/
-theorem expressionListCost_args3 (coeff : Work) (s : PanSemStateFiniteExact 64 F)
-    (a0 a1 a2 a3 b0 b1 b2 b3 c0 c1 : BitVec 64)
-    (hA : s.locals.lookup (ofString "a") =
-      some (.rStruct [.val (.word a0), .val (.word a1), .val (.word a2), .val (.word a3)]))
-    (hB : s.locals.lookup (ofString "b") =
-      some (.rStruct [.val (.word b0), .val (.word b1), .val (.word b2), .val (.word b3)]))
-    (hC : s.locals.lookup (ofString "r2") =
-      some (.rStruct [.val (.word c0), .val (.word c1)])) :
-    expressionListCost coeff s u256AddArgs3 =
-      6 * coeff.expressions + 13 * coeff.movedWords := by
-  unfold u256AddArgs3 expressionListCost
-  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
-    hA, hB, hC, flattenHOL, executionWork, Work.score, WorkEvent.units, Work.plus]
-  omega
-
-/-- Closed cost of the returned four-word structure: one wrapper entry plus four
-one-word field reads of the four pair results, then the four-word copy. -/
-theorem expressionCost_returnExpr (coeff : Work) (s : PanSemStateFiniteExact 64 F)
-    (w0 w1 w2 w3 w4 w5 w6 w7 : BitVec 64)
-    (hR0 : s.locals.lookup (ofString "r0") =
-      some (.rStruct [.val (.word w0), .val (.word w1)]))
-    (hR1 : s.locals.lookup (ofString "r1") =
-      some (.rStruct [.val (.word w2), .val (.word w3)]))
-    (hR2 : s.locals.lookup (ofString "r2") =
-      some (.rStruct [.val (.word w4), .val (.word w5)]))
-    (hR3 : s.locals.lookup (ofString "r3") =
-      some (.rStruct [.val (.word w6), .val (.word w7)])) :
-    expressionCost coeff s u256AddReturnExpr =
-      9 * coeff.expressions + 16 * coeff.movedWords := by
-  unfold u256AddReturnExpr expressionCost
-  simp [expressionEvents, expressionListEvents, globalEvents, resultWords, expressionValue, evalHOLExact,
-    evalListHOLExact, hR0, hR1, hR2, hR3, flattenHOL, executionWork, Work.score,
-    WorkEvent.units, Work.plus]
-  omega
-
-#print axioms expressionListCost_args0
-#print axioms expressionListCost_args1
-#print axioms expressionListCost_args2
-#print axioms expressionListCost_args3
-#print axioms expressionCost_returnExpr
 
 end InitECandidate.Runtime.FineCost
