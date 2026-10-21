@@ -1234,4 +1234,131 @@ theorem quantSsaSimulation.toSsaSimulation {C F : Type}
     ssaSimulation prog source target ssa next tables :=
   h.1
 
+
+/-! ## Restored supporting lemmas (see the commits referenced in the log) -/
+
+theorem refinedWordLocalPrice_ite {C F : Type} (op : Cmp) (condition : Nat)
+    (right : WordRegImm (BitVec 64))
+    (thenBranch elseBranch : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.ite op condition right thenBranch elseBranch) s = 23 := by
+  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
+    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
+
+theorem refinedWordLocalPrice_loop {C F : Type}
+    (liveIn : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (liveOut : WordLangNumSetHOL) (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop liveIn body liveOut) s = 2 := by
+  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
+    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
+
+theorem refinedWordLocalPrice_call_none {C F : Type}
+    (target : Option Nat) (arguments : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none target arguments handler) s = 41 := by
+  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
+    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
+
+theorem evaluate_seq_none {C F : Type}
+    (c1 c2 : WordLangProgHOL (BitVec 64))
+    (s mid : WordSemStateFiniteExact 64 C F)
+    (h : fixClock s (WordSemStateFiniteExact.evaluate c1 s) = (none, mid)) :
+    WordSemStateFiniteExact.evaluate (.seq c1 c2) s =
+      WordSemStateFiniteExact.evaluate c2 mid := by
+  simp only [WordSemStateFiniteExact.evaluate, h]
+
+theorem evaluate_seq_escape {C F : Type}
+    (c1 c2 : WordLangProgHOL (BitVec 64))
+    (s mid : WordSemStateFiniteExact 64 C F)
+    (res : Option (WordSemResult 64))
+    (h : fixClock s (WordSemStateFiniteExact.evaluate c1 s) = (res, mid))
+    (hr : res = none → False) :
+    WordSemStateFiniteExact.evaluate (.seq c1 c2) s = (res, mid) := by
+  simp only [WordSemStateFiniteExact.evaluate, h]
+
+theorem fixClock_fst {C F : Type}
+    (s : WordSemStateFiniteExact 64 C F)
+    (p : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F) :
+    (fixClock s p).1 = p.1 := by
+  simp only [fixClock]
+
+theorem fixClock_fst_none {C F : Type}
+    (s : WordSemStateFiniteExact 64 C F)
+    (p : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F)
+    (h : p.1 = none) : (fixClock s p).1 = none := by
+  rw [fixClock_fst, h]
+
+def fixClockMid {C F : Type}
+    (s : WordSemStateFiniteExact 64 C F)
+    (p : Option (WordSemResult 64) × WordSemStateFiniteExact 64 C F) :
+    WordSemStateFiniteExact 64 C F :=
+  (fixClock s p).2
+
+theorem getVar_permute {C F : Type} (name : Nat)
+    (s : WordSemStateFiniteExact 64 C F) (perm : Nat → Nat → Nat) :
+    getVar name {s with permute := perm} = getVar name s := rfl
+
+/-- **The `seq` constructor, fall-through outcome.**  From the two recursive quantitative IHs
+(the second instantiated at the reached middle and at the threaded allocator state) this
+DERIVES the composite runs, the composite simulation and the composite cost: `midS`/`midT` are
+the `fixClock`ed reached states, the first body's outcome is read from the evaluator, and the
+second body supplies the final runs.  No final run or cost is assumed. -/
+theorem ssaCcTrans_seq_quant_none {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (extra1 extra2 : Nat)
+    (firstIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) first = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation first source target ssa next tables)
+    (secondIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) second = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation second source target ssa next tables)
+    (hinv : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) (.seq first second) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables)
+    (h1 : quantSsaSimulation (C := C) (F := F) first source target ssa next tables extra1)
+    (h2 : ∀ (src tgt : WordSemStateFiniteExact 64 C F) (s2 : Spt Nat) (n2 : Nat),
+      quantSsaSimulation (C := C) (F := F) second src tgt s2 n2 tables extra2)
+    (hS0 : (WordSemStateFiniteExact.evaluate first source).1 = none) :
+    quantSsaSimulation (C := C) (F := F) (.seq first second) source target ssa next tables
+      (extra1 + extra2) := by
+  obtain ⟨hsim1, ⟨rS1, sS1, rT1, sT1, hrunS1, hrunT1, hout1⟩, hcost1⟩ := h1
+  have hr1 : rS1 = none := by
+    have hs := hS0
+    rw [hrunS1] at hs
+    exact hs
+  have hrT1 : (WordSemStateFiniteExact.evaluate (ssaCcTrans first ssa next tables).1 target).1 = none := by
+    rw [hrunT1, ← hout1, hr1]
+  set midS := (fixClock source (WordSemStateFiniteExact.evaluate first source)).2 with hmidS
+  set midT := (fixClock target (WordSemStateFiniteExact.evaluate (ssaCcTrans first ssa next tables).1 target)).2 with hmidT
+  have hS : fixClock source (WordSemStateFiniteExact.evaluate first source) = (none, midS) := by
+    simp only [hmidS, fixClock, hS0]
+  have hT : fixClock target (WordSemStateFiniteExact.evaluate (ssaCcTrans first ssa next tables).1 target) = (none, midT) := by
+    simp only [hmidT, fixClock, hrT1]
+  obtain ⟨hsim2, ⟨rS2, sS2, rT2, sT2, hrunS2, hrunT2, hout2⟩, hcost2⟩ :=
+    h2 midS midT (ssaCcTrans first ssa next tables).2.1 (ssaCcTrans first ssa next tables).2.2
+  refine ⟨ssaCcTransCorrectSeq first second source target ssa next tables firstIH secondIH hinv,
+    ⟨rS2, sS2, rT2, sT2, ?_, ?_, hout2⟩, ?_⟩
+  · rw [evaluate_seq_none first second source midS hS, hrunS2]
+  · rw [ssaCcTrans_seq_shape, evaluate_seq_none (ssaCcTrans first ssa next tables).1 (ssaCcTrans second (ssaCcTrans first ssa next tables).2.1 (ssaCcTrans first ssa next tables).2.2 tables).1 target midT hT, hrunT2]
+  · rw [ssaCcTrans_seq_shape,
+      wec_seq_none_split_generic InitECandidate.Runtime.WordToStack.refinedWordLocalPrice _ _ target midT hT,
+      wec_seq_none_split_generic InitECandidate.Runtime.WordToStack.refinedWordLocalPrice _ _ source midS hS]
+    have hp1 : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq (ssaCcTrans first ssa next tables).1 (ssaCcTrans second (ssaCcTrans first ssa next tables).2.1 (ssaCcTrans first ssa next tables).2.2 tables).1) target = 0 :=
+      refinedWordLocalPrice_seq_zero _ _ _
+    have hp2 : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq first second) source = 0 :=
+      refinedWordLocalPrice_seq_zero _ _ _
+    rw [hp1, hp2]
+    omega
+
+#print axioms ssaCcTrans_seq_quant_none
+
 end InitECandidate.Runtime.FineCost
