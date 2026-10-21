@@ -375,3 +375,60 @@ theorem candidate_header_four_stores_keys_run {F : Type} (fn : MlS)
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidate_header_four_stores_keys_run
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- One candidate allocation followed by its header store. -/
+def candidateAllocStep (offset : Nat) (name : String) (argument : ExpHOL 64)
+    (tail : ProgHOL 64) : ProgHOL 64 :=
+  .decCall (ofString name) .one (ofString "scratch_alloc") [argument]
+    (.seq (.store (tAddr offset) (.var .local (ofString name))) tail)
+
+/-- Argument `cap * stride` of the keys allocation. -/
+def candidateKeysArgument : ExpHOL 64 :=
+  .panop .mul [.var .local (ofString "cap"), .var .local (ofString "stride")]
+
+/-- Argument `cap * 8`. -/
+def candidateCap8Argument : ExpHOL 64 :=
+  .panop .mul [.var .local (ofString "cap"), .const (BitVec.ofNat 64 8)]
+
+/-- Argument `(cap >> 1) * 24` of the nodes allocation. -/
+def candidateNodesArgument : ExpHOL 64 :=
+  .panop .mul [.shift .asr (.var .local (ofString "cap"))
+    (.const (BitVec.ofNat 64 1)), .const (BitVec.ofNat 64 24)]
+
+/-- Argument `key_len * 64` of the path allocation. -/
+def candidatePathArgument : ExpHOL 64 :=
+  .panop .mul [.var .local (ofString "key_len"), .const (BitVec.ofNat 64 64)]
+
+/-- Continuation after the keys allocation: its store then the remaining
+allocations with their stores. -/
+def candidateAllocationAfterKeys (tail : ProgHOL 64) : ProgHOL 64 :=
+  .seq (.store (tAddr 32) (.var .local (ofString "keys"))) <|
+    candidateAllocStep 40 "vals" candidateCap8Argument <|
+      candidateAllocStep 56 "order" candidateCap8Argument <|
+        candidateAllocStep 64 "order_pos" candidateCap8Argument <|
+          candidateAllocStep 96 "nodes" candidateNodesArgument <|
+            candidateAllocStep 104 "path" candidatePathArgument tail
+
+/-- The full candidate allocation/header prefix: the t header stores, then the
+keys, vals, order, order_pos, nodes and path allocations with their stores. -/
+def candidateAllocationPrefix (tail : ProgHOL 64) : ProgHOL 64 :=
+  .seq (.store (tAddr 0) (.var .local (ofString "key_len")))
+    (.seq (.store (tAddr 8) (.var .local (ofString "stride")))
+      (.seq (.store (tAddr 16) (.var .local (ofString "cap")))
+        (.seq (.store (tAddr 24) (.const (BitVec.ofNat 64 0)))
+          (.decCall (ofString "keys") .one (ofString "scratch_alloc")
+            [candidateKeysArgument]
+            (candidateAllocationAfterKeys tail)))))
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidate_header_four_stores_keys_run
