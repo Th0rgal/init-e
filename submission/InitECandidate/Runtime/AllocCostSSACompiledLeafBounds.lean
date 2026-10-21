@@ -2680,4 +2680,169 @@ theorem evaluate_loop_cont {C F : Type}
     · rfl
 
 #print axioms evaluate_loop_cont
+
+/-- The frame a DIRECT call site resolves sits in the code table, and the arity check the call
+performed is the length equation: the destination and arity the callee bound needs, together with the
+evidence that the arity test passed. -/
+theorem findCode_some_frame {StackSize : Type}
+    (d : Nat) (ys : List (WordLocW 64))
+    (code : Spt (Nat × WordLangProgHOL (BitVec 64))) (ss : Spt StackSize)
+    (args' : List (WordLocW 64)) (body : WordLangProgHOL (BitVec 64)) (ssOpt : Option StackSize)
+    (h : wordSemFindCode (some d) ys code ss = some (args', body, ssOpt)) :
+    ∃ arity, sptLookup d code = some (arity, body) ∧ ys.length = arity := by
+  simp only [wordSemFindCode] at h
+  split at h
+  · cases h
+  · rename_i arity exp hlk
+    split at h
+    · rename_i hlen
+      simp only [Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨-, rfl, -⟩ := h
+      exact ⟨arity, hlk, hlen⟩
+    · cases h
+
+/-- The frame an INDIRECT call site resolves sits in the code table at the block of its last argument,
+with the arity test as the length equation.  The destination is read off the argument list, so two call
+sites with the same arguments charge the same callee whatever code table they look in. -/
+theorem findCode_destNone_frame
+    (ys : List (WordLocW 64)) (hne : ys ≠ [])
+    (code : Spt (Nat × WordLangProgHOL (BitVec 64))) (ss : Spt Nat)
+    (args' : List (WordLocW 64)) (body : WordLangProgHOL (BitVec 64)) (ssOpt : Option Nat)
+    (h : wordSemFindCode none ys code ss = some (args', body, ssOpt)) :
+    ∃ loc arity, ys.getLast hne = WordLocW.loc loc 0 ∧ sptLookup loc code = some (arity, body) ∧
+      ys.length = arity + 1 := by
+  simp only [wordSemFindCode] at h
+  rw [dif_neg hne] at h
+  split at h
+  · rename_i loc heq
+    split at h
+    · cases h
+    · rename_i arity exp hlk
+      split at h
+      · rename_i hlen
+        simp only [Option.some.injEq, Prod.mk.injEq] at h
+        obtain ⟨-, rfl, -⟩ := h
+        exact ⟨loc, arity, heq, hlk, hlen⟩
+      · cases h
+  · rename_i hnot
+    cases h
+
+/-- Conversely, a frame in the table at the right arity makes the DIRECT lookup succeed: this is the
+step that forbids the transformed table from resolving a frame at a destination the original lacks. -/
+theorem findCode_some_of_frame {StackSize : Type}
+    (d arity : Nat) (ys : List (WordLocW 64))
+    (code : Spt (Nat × WordLangProgHOL (BitVec 64))) (ss : Spt StackSize)
+    (body : WordLangProgHOL (BitVec 64))
+    (hlk : sptLookup d code = some (arity, body)) (hlen : ys.length = arity) :
+    wordSemFindCode (some d) ys code ss = some (ys, body, sptLookup d ss) := by
+  simp only [wordSemFindCode, hlk]
+  rw [if_pos hlen]
+
+/-- The INDIRECT counterpart of findCode_some_of_frame. -/
+theorem findCode_destNone_of_frame
+    (loc arity : Nat) (ys : List (WordLocW 64)) (hne : ys ≠ [])
+    (code : Spt (Nat × WordLangProgHOL (BitVec 64))) (ss : Spt Nat)
+    (body : WordLangProgHOL (BitVec 64))
+    (hlk : sptLookup loc code = some (arity, body))
+    (heq : ys.getLast hne = WordLocW.loc loc 0) (hlen : ys.length = arity + 1) :
+    wordSemFindCode none ys code ss = some (ys.dropLast, body, sptLookup loc ss) := by
+  simp only [wordSemFindCode, dif_neg hne, heq, hlk, if_pos hlen]
+
+/-- **The call node transfers from the code relation alone.**  A call whose state carries the original
+program costs at most the same call whose state carries the transformed program, plus the per-function
+budget: the frames are fetched internally.  The transformed code relation supplies the callee bound at
+exactly the environments the two calls construct; `harity` is what the relation cannot supply - that
+every destination and arity the transformed table resolves is also in the original table, so a frame the
+transformed call resolves is a frame the original call resolves, and both callees are the two sides of
+one `transformedCalleeRel` instance.  `harg` identifies the two argument lists, which is what makes an
+INDIRECT call (`dest = none`) charge the same destination on both sides: its destination is the block of
+its last argument.  The two flat paths charge the node price on both sides. -/
+theorem wec_call_none_callee_transfer_of_code {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (s s' : WordSemStateFiniteExact 64 C F) (xs xs' : List (WordLocW 64))
+    (origCode transCode : Spt (Nat × WordLangProgHOL (BitVec 64))) (budget : Nat)
+    (hgv : WordSemStateFiniteExact.getVars args s = some xs)
+    (hgv' : WordSemStateFiniteExact.getVars args s' = some xs')
+    (harg : xs = xs')
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hclk : s.clock = 0 → False) (hclk' : s'.clock = 0 → False)
+    (hcode : s.code = origCode) (hcode' : s'.code = transCode)
+    (harity : ∀ (d arity : Nat) (bodyC : WordLangProgHOL (BitVec 64)),
+      sptLookup d transCode = some (arity, bodyC) →
+        ∃ body, sptLookup d origCode = some (arity, body))
+    (hrel : transformedCalleeRel (C := C) (F := F) origCode transCode budget) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none dest args none) s' ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none dest args none) s + budget := by
+  subst harg
+  rcases hfc0 : wordSemFindCode dest xs origCode s.stackSize with _ | ⟨a1, p, ss⟩
+  · rcases hfc1 : wordSemFindCode dest xs transCode s'.stackSize with _ | ⟨a1', pC, ss'⟩
+    · have h0 := wec_call_none_findCode_none dest args none s xs hgv hbad (by rw [hcode]; exact hfc0)
+      have h1 := wec_call_none_findCode_none dest args none s' xs hgv' hbad (by rw [hcode']; exact hfc1)
+      rw [h1, h0]
+      omega
+    · rcases dest with _ | d
+      · have hne : xs ≠ [] := by
+          intro hnil
+          rw [hnil] at hfc1
+          simp [wordSemFindCode] at hfc1
+        obtain ⟨loc, arity, heq, hlk, hlen⟩ :=
+          findCode_destNone_frame xs hne transCode s'.stackSize a1' pC ss' hfc1
+        obtain ⟨body, hlk'⟩ := harity loc arity pC hlk
+        rw [findCode_destNone_of_frame loc arity xs hne origCode s.stackSize body hlk' heq hlen] at hfc0
+        cases hfc0
+      · obtain ⟨arity, hlk, hlen⟩ := findCode_some_frame d xs transCode s'.stackSize a1' pC ss' hfc1
+        obtain ⟨body, hlk'⟩ := harity d arity pC hlk
+        rw [findCode_some_of_frame d arity xs origCode s.stackSize body hlk' hlen] at hfc0
+        cases hfc0
+  · rcases hfc1 : wordSemFindCode dest xs transCode s'.stackSize with _ | ⟨a1', pC, ss'⟩
+    · have h0 := wec_call_none_success dest args s xs a1 p ss hgv hbad (by rw [hcode]; exact hfc0) hclk
+      have h1 := wec_call_none_findCode_none dest args none s' xs hgv' hbad (by rw [hcode']; exact hfc1)
+      rw [h1, h0]
+      omega
+    · have h0 := wec_call_none_success dest args s xs a1 p ss hgv hbad (by rw [hcode]; exact hfc0) hclk
+      have h1 := wec_call_none_success dest args s' xs a1' pC ss' hgv' hbad (by rw [hcode']; exact hfc1) hclk'
+      rcases dest with _ | d
+      · have hne : xs ≠ [] := by
+          intro hnil
+          rw [hnil] at hfc0
+          simp [wordSemFindCode] at hfc0
+        obtain ⟨loc0, ar0, heq0, hlk0, -⟩ :=
+          findCode_destNone_frame xs hne origCode s.stackSize a1 p ss hfc0
+        obtain ⟨loc1, ar1, heq1, hlk1, -⟩ :=
+          findCode_destNone_frame xs hne transCode s'.stackSize a1' pC ss' hfc1
+        have hloc : loc0 = loc1 := by
+          rw [heq0] at heq1
+          cases heq1
+          rfl
+        subst hloc
+        obtain ⟨body, hlk0'⟩ := harity loc0 ar1 pC hlk1
+        obtain ⟨-, hspec⟩ := transformedCalleeRel.spec origCode transCode budget hrel loc0 ar1 body pC
+          (Flapjack.WordSemStateFiniteExact.callEnv a1 ss (Flapjack.WordSemStateFiniteExact.decClock s))
+          (Flapjack.WordSemStateFiniteExact.callEnv a1' ss' (Flapjack.WordSemStateFiniteExact.decClock s'))
+          hlk0' hlk1
+        rw [hlk0] at hlk0'
+        obtain ⟨-, hpb⟩ : ar0 = ar1 ∧ p = body := by simpa using hlk0'
+        rw [h1, h0]
+        rw [← hpb] at hspec
+        omega
+      · obtain ⟨ar0, hlk0, -⟩ :=
+          findCode_some_frame d xs origCode s.stackSize a1 p ss hfc0
+        obtain ⟨ar1, hlk1, -⟩ :=
+          findCode_some_frame d xs transCode s'.stackSize a1' pC ss' hfc1
+        obtain ⟨body, hlk0'⟩ := harity d ar1 pC hlk1
+        obtain ⟨-, hspec⟩ := transformedCalleeRel.spec origCode transCode budget hrel d ar1 body pC
+          (Flapjack.WordSemStateFiniteExact.callEnv a1 ss (Flapjack.WordSemStateFiniteExact.decClock s))
+          (Flapjack.WordSemStateFiniteExact.callEnv a1' ss' (Flapjack.WordSemStateFiniteExact.decClock s'))
+          hlk0' hlk1
+        rw [hlk0] at hlk0'
+        obtain ⟨-, hpb⟩ : ar0 = ar1 ∧ p = body := by simpa using hlk0'
+        rw [h1, h0]
+        rw [← hpb] at hspec
+        omega
+
+#print axioms findCode_some_frame
+#print axioms findCode_destNone_frame
+#print axioms findCode_some_of_frame
+#print axioms findCode_destNone_of_frame
+#print axioms wec_call_none_callee_transfer_of_code
 end InitECandidate.Runtime.FineCost
