@@ -196,15 +196,54 @@ fun 1 htab_has(1 t, 1 key) {
 fun 1 htab_grow(1 t) {
   var cap = lds 1 (t + HT_CAP);
   var count = lds 1 (t + HT_COUNT);
+  var stride = lds 1 (t + HT_KEYSTRIDE);
   var 1 n = htab_new(lds 1 (t + HT_KEYLEN), cap * 2);
+  var ncap = lds 1 (n + HT_CAP);
+  var 1 nkeys = lds 1 (n + HT_KEYS);
+  var 1 nvals = lds 1 (n + HT_VALS);
+  var 1 norder = lds 1 (n + HT_ORDER);
+  var 1 npos = lds 1 (n + HT_ORDER_POS);
+  var 1 nnodes = lds 1 (n + HT_NODES);
+  memcpy(nkeys, lds 1 (t + HT_KEYS), cap * stride);
+  memcpy(nvals, lds 1 (t + HT_VALS), cap * 8);
+  memcpy(norder, lds 1 (t + HT_ORDER), cap * 8);
+  memcpy(npos, lds 1 (t + HT_ORDER_POS), cap * 8);
+  var 1 obase = lds 1 (t + HT_NODES);
   var i = 0;
-  while i < count {
-    var leaf = lds 1 ((lds 1 (t + HT_ORDER)) + i * 8);
-    var key = htab_key_ptr(t, leaf);
-    var value = lds 1 ((lds 1 (t + HT_VALS)) + (leaf - 1) * 8);
-    htab_set(n, key, value);
+  while i < (cap >> 1) {
+    var op = obase + i * 24;
+    var np = nnodes + i * 24;
+    var c0 = lds 1 op;
+    var c1 = lds 1 (op + 8);
+    if c0 >+ cap { c0 = c0 + cap; }
+    if c1 >+ cap { c1 = c1 + cap; }
+    st np, c0;
+    st np + 8, c1;
+    st np + 16, lds 1 (op + 16);
     i = i + 1;
   }
+  var root = lds 1 (t + HT_ROOT);
+  if root >+ cap { root = root + cap; }
+  st n + HT_ROOT, root;
+  var ifree = lds 1 (t + HT_INT_FREE);
+  if ifree != 0 { ifree = ifree + cap; }
+  i = cap >> 1;
+  while i < (ncap >> 1) {
+    var np = nnodes + i * 24;
+    st np, ifree;
+    ifree = ncap + i + 1;
+    i = i + 1;
+  }
+  st n + HT_INT_FREE, ifree;
+  var lfree = lds 1 (t + HT_LEAF_FREE);
+  i = cap + 1;
+  while i <= ncap {
+    st nvals + (i - 1) * 8, lfree;
+    lfree = i;
+    i = i + 1;
+  }
+  st n + HT_LEAF_FREE, lfree;
+  st n + HT_COUNT, count;
   memcpy(t, n, HT_SIZE);
   return 0;
 }

@@ -332,7 +332,7 @@ by the guest. No resize/copy/truncate path is bypassed in these runs.
 ## 10. Pinned compile/source record
 
 - candidate source: `submission/BoundedTableExperiment/htab_patricia.pnk`
-  sha256 `ff85be313987b3be8b1727ccf0c401fa001a369b99f7d1540caeb3f7ac5fce62`
+  sha256 `da352aa6f92f3283c00472d7452d8b505b017b7add4beebad31f20efa5d10074`
 - semantic model: `submission/BoundedTableExperiment/prototype.py`
   sha256 `ad8b1bdea4186f3da088bea6a6c421e9745cca1fb74c49a1affc5ef83edce64d`
 - order/ownership proof: `ReachableOrderInvariant.lean`
@@ -423,13 +423,32 @@ Conservative full-input arithmetic using the KL32 coefficients:
 - one read per entry adds `33.55M * 3,360 = 1.13e11`, total ~`3.40e11`.
 - `htab_copy` at N=5,000 is unchanged by the routing change: 523,075 steps,
   ~105/entry, or `3.5e9` at 33.55M entries.
-- growth reinsertion is bounded by one extra insertion per key on average over
-  doubling, so a coarse `2.27e11` allowance gives ~`5.7e11` before nodedb,
-  transcript, and other guest work.
+- growth is now structural: `htab_grow` relocates the existing internal nodes
+  and copies arrays in O(cap), with no key re-insertion. Its measured cost is
+  included in the N=5,000 result below and is small relative to the per-key
+  walks; a coarse `1e10` allowance is ample at the relevant capacities.
 
-That is below `9e11`, but the margin is not a proof and is sensitive to the
-source-tick/native-step ratio. The honest status is: the previous random-depth
-projection is unsafe, the optimized traversal removes most of the per-node
-coefficient, and the remaining full-input budget must be checked with the
-actual source-event accounting and the adversarial shape. This is not yet a
-certificate claim.
+That is ~`3.45e11` before nodedb, transcript, and other guest work. It is below
+`9e11`, but the margin is not a proof and is sensitive to the source-tick/native
+step ratio. The honest status is: the previous random-depth projection is
+unsafe, the optimized traversal removes most of the per-node coefficient, and
+the remaining full-input budget must be checked with the actual source-event
+accounting and the adversarial shape. This is not yet a certificate claim.
+
+## 14. Structural growth (no re-insertion walk)
+
+`htab_grow` no longer re-inserts every key. It allocates the doubled table,
+copies the old key/value/order/pos arrays, relocates the internal-node slab
+with child and free-list ids shifted by the old capacity, rebuilds the extra
+internal and leaf free lists, remaps the root, and copies the header back. The
+work is O(cap) memory movement instead of O(count * key_length * depth).
+
+The linked tests still match:
+- N=5,000 KL=32: 26,031,455 -> 16,577,066 steps (1.57x faster overall).
+- Lifecycle copy/delete/reinsert: 1,051,935 -> 837,997 steps.
+- Worst path KL=20/32/60: 35,723,447 / 85,253,787 / 292,800,936 steps.
+- Every 20/28/32/52/60-byte differential checksum still matches.
+
+The structural invariant is the same `nodes = 2*leaves - 1`; the relocation
+preserves leaf ids and shifts only internal ids. The order arrays are copied
+verbatim, so insertion order and swap-remove positions are unchanged.
