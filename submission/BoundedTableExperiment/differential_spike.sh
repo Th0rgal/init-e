@@ -10,6 +10,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 N="${N:-200}"
 PHASE="${PHASE:-2}"
+KL="${KL:-20}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 SPIKE_RUN="${SPIKE_RUN:-$ROOT/tools/spike/spike_run}"
@@ -19,6 +20,7 @@ SPIKE_RUN="${SPIKE_RUN:-$ROOT/tools/spike/spike_run}"
 }
 [[ $((N % 20)) -eq 0 ]] || { echo "N must be a multiple of 20" >&2; exit 1; }
 [[ "$PHASE" =~ ^[012]$ ]] || { echo "PHASE must be 0, 1, or 2" >&2; exit 1; }
+[[ "$KL" =~ ^(20|28|32|52|60)$ ]] || { echo "KL must be 20, 28, 32, 52, or 60" >&2; exit 1; }
 DELETE_LOOP=""
 TRUNCATE=""
 if ((PHASE >= 1)); then
@@ -44,16 +46,21 @@ cat > "$TMP/test.pnk" <<PNK
 #include "$ROOT/submission/BoundedTableExperiment/htab_patricia.pnk"
 
 fun 1 ps_key(1 buf, 1 i) {
-  memzero(buf, 20);
+  memzero(buf, $KL);
   st buf, i;
   st buf + 8, i * 3;
+  var off = 16;
+  while off < $KL {
+    st8 buf + off, (i + off) & 255;
+    off = off + 1;
+  }
   return 0;
 }
 
 fun 1 main() {
   mem_init();
-  var 1 t = htab_new(20, 8);
-  var 1 buf = alloc(20);
+  var 1 t = htab_new($KL, 8);
+  var 1 buf = alloc($KL);
   var i = 0;
   while i < $N {
     ps_key(buf, i);
@@ -83,14 +90,17 @@ PNK
   cat "$TMP/spike.err" >&2; exit 1
 }
 cat "$TMP/spike.err"
-PYTHONPATH="$ROOT/submission/BoundedTableExperiment" N="$N" PHASE="$PHASE" python3 - "$TMP/out.bin" <<'PY'
+PYTHONPATH="$ROOT/submission/BoundedTableExperiment" N="$N" PHASE="$PHASE" KL="$KL" python3 - "$TMP/out.bin" <<'PY'
 import os, sys
 from prototype import Patricia
 N = int(os.environ['N'])
 PHASE = int(os.environ['PHASE'])
-p = Patricia(20, 8)
+KL = int(os.environ['KL'])
+p = Patricia(KL, 8)
 def key(i):
-    return i.to_bytes(8, 'little') + ((i * 3) % (1 << 64)).to_bytes(8, 'little') + b'\0' * 4
+    fixed = i.to_bytes(8, 'little') + ((i * 3) % (1 << 64)).to_bytes(8, 'little')
+    tail = bytes(((i + off) & 255) for off in range(16, KL))
+    return fixed + tail
 for i in range(N):
     p.set(key(i), i + 1000)
 if PHASE >= 1:
@@ -101,7 +111,7 @@ if PHASE >= 2:
 expected = sum(v for _, v in p.items()) + len(p.order)
 out = open(sys.argv[1], 'rb').read()
 got = int.from_bytes(out[:8], 'little')
-print(f"N={N} expected={expected} spike={got} steps_ok={got == expected}")
+print(f"N={N} KL={KL} expected={expected} spike={got} steps_ok={got == expected}")
 if got != expected:
     raise SystemExit(1)
 PY

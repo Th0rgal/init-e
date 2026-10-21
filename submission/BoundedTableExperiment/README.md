@@ -291,3 +291,52 @@ behavior and give a calibration path for the source-event derivation; they do
 not by themselves prove the `9e11` bound. The step counts scale sub-quadratically
 at these sizes, but the asymptotic certificate still needs the per-operation
 `StatementRun` events and coefficient calibration.
+
+## 9. Reachable order/ownership invariant and key-length coverage
+
+`ReachableOrderInvariant.lean` is checked with `lake env lean` and proves the
+concrete bookkeeping that the shape-only depth lemma did not cover:
+
+- `swapRemove_perm_erase`: the exact replacement-of-position-`i`-by-last-order
+  update is a permutation of ordinary erasure of the key at position `i`,
+  assuming the order list is duplicate-free. This is the PNK `htab_del`
+  order update, including the last-position case.
+- `Ordered.insert`: appending a new leaf preserves `order ~ live`.
+- `Ordered.delete`: swap-removal preserves `order ~ live.erase x`.
+- `Owned.alloc` / `Owned.free`: with the pool partition invariant
+  `(live ++ free) ~ pool` and `pool.Nodup`, moving one id from `free` to `live`
+  and back preserves the partition. This is pool recycling, disjointness, and
+  the `live.length + free.length = cap` accounting in permutation form.
+
+Axioms printed for the file are only `propext`, `Classical.choice`, and
+`Quot.sound`.
+
+Linked Spike/model checks now cover the database key sizes as well:
+
+| N | key length | Spike steps | checksum |
+|---|---|---:|---|
+| 1,000 | 20 | 6,355,778 | match |
+| 1,000 | 32 | 6,390,582 | match |
+| 1,000 | 60 | 6,905,554 | match |
+| 5,000 | 20 | 48,123,994 | match |
+| 5,000 | 32 | 48,449,122 | match |
+| 5,000 | 60 | 51,222,010 | match |
+
+The 32-byte case is the node-DB shape; 60 bytes is the maximum key length used
+by the guest. No resize/copy/truncate path is bypassed in these runs.
+
+## 10. Pinned compile/source record
+
+- candidate source: `submission/BoundedTableExperiment/htab_patricia.pnk`
+  sha256 `7c10739a25f47721672c56de0e890e9167e88e177489f8dac91639050a482ae7`
+- semantic model: `submission/BoundedTableExperiment/prototype.py`
+  sha256 `ad8b1bdea4186f3da088bea6a6c421e9745cca1fb74c49a1affc5ef83edce64d`
+- order/ownership proof: `ReachableOrderInvariant.lean`
+  sha256 `9692b073524d5b3abe3e9d30f3dbaa4ede999ac5f0351379aa0658bb6bbe7342`
+- preprocess: `cpp -P -w -nostdinc -I guest/src -x c`
+- compiler: `lake exe flapjack-compile --assembly`, Flapjack revision
+  `034bb5a1ed0b757082768d5406206bd2f8e31b7c` from `lakefile.toml`
+- RISC-V execution: `tools/spike/spike_run`, built from
+  `riscv-isa-sim` with `riscv64-unknown-elf-{as,ld}`
+
+These are experimental participant artifacts, not challenge inputs.
