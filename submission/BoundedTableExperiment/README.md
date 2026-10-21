@@ -1197,3 +1197,15 @@ use three-argument `add`. Axioms are `propext`, `Classical.choice`,
   parts.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 61. Actual copy 8-byte and byte iterations
+
+`CandidateMemcpyTrace.lean` also proves:
+- `candidateMemcpyStep8Bytes_trace`: actual unaligned 8-byte iteration as
+  eight byte stores plus bump;
+- `candidateMemcpyWhile8_trace` / `candidateMemcpyWhileByte_trace`: actual
+  aligned 8-byte and byte-loop iterations as store plus bump;
+- `candidateMemcpyWhile8_score` / `candidateMemcpyWhileByte_score`: additive
+  actual scores.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.

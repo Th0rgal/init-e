@@ -60,7 +60,110 @@ theorem candidateMemcpyStep32_score {F : Type} (coeff : Work)
     executionWork_score_append, executionWork_score_append]
   omega
 
+/-- Actual unaligned 8-byte copy iteration: eight byte stores plus bump. -/
+theorem candidateMemcpyStep8Bytes_trace {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s memcpyStep8Bytes none post events) :
+    ∃ (s1 s2 s3 s4 s5 s6 s7 s8 : PanSemStateFiniteExact 64 F)
+      (e0 e1 e2 e3 e4 e5 e6 e7 bump : List WorkEvent),
+      events = e0 ++ (e1 ++ (e2 ++ (e3 ++ (e4 ++ (e5 ++ (e6 ++ (e7 ++ bump))))))) ∧
+      StatementRun fn s memcpyStoreByte0 none s1 e0 ∧
+      StatementRun fn s1 (memcpyStoreByte 1) none s2 e1 ∧
+      StatementRun fn s2 (memcpyStoreByte 2) none s3 e2 ∧
+      StatementRun fn s3 (memcpyStoreByte 3) none s4 e3 ∧
+      StatementRun fn s4 (memcpyStoreByte 4) none s5 e4 ∧
+      StatementRun fn s5 (memcpyStoreByte 5) none s6 e5 ∧
+      StatementRun fn s6 (memcpyStoreByte 6) none s7 e6 ∧
+      StatementRun fn s7 (memcpyStoreByte 7) none s8 e7 ∧
+      StatementRun fn s8 memcpyBump8 none post bump := by
+  rw [show memcpyStep8Bytes = .seq memcpyStoreByte0
+    (.seq (memcpyStoreByte 1)
+      (.seq (memcpyStoreByte 2)
+        (.seq (memcpyStoreByte 3)
+          (.seq (memcpyStoreByte 4)
+            (.seq (memcpyStoreByte 5) (.seq (memcpyStoreByte 6) (.seq (memcpyStoreByte 7) memcpyBump8)))))))
+    from rfl] at run
+  cases run with
+  | seqNext b0 r0 =>
+    cases r0 with
+    | seqNext b1 r1 =>
+      cases r1 with
+      | seqNext b2 r2 =>
+        cases r2 with
+        | seqNext b3 r3 =>
+          cases r3 with
+          | seqNext b4 r4 =>
+            cases r4 with
+            | seqNext b5 r5 =>
+              cases r5 with
+              | seqNext b6 r6 =>
+                cases r6 with
+                | seqNext b7 bumpRun =>
+                  exact ⟨_,_,_,_,_,_,_,_, _,_,_,_,_,_,_,_,_, rfl,
+                    b0,b1,b2,b3,b4,b5,b6,b7,bumpRun⟩
+                | seqStop t _ => exact absurd rfl t
+              | seqStop t _ => exact absurd rfl t
+            | seqStop t _ => exact absurd rfl t
+          | seqStop t _ => exact absurd rfl t
+        | seqStop t _ => exact absurd rfl t
+      | seqStop t _ => exact absurd rfl t
+    | seqStop t _ => exact absurd rfl t
+  | seqStop t _ => exact absurd rfl t
+
+/-- Actual aligned 8-byte copy iteration: one word store plus bump. -/
+theorem candidateMemcpyWhile8_trace {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s (.seq memcpyStoreWord0 memcpyBump8) none post events) :
+    ∃ (mid : PanSemStateFiniteExact 64 F) (storeEvents bumpEvents : List WorkEvent),
+      events = storeEvents ++ bumpEvents ∧
+      StatementRun fn s memcpyStoreWord0 none mid storeEvents ∧
+      StatementRun fn mid memcpyBump8 none post bumpEvents := by
+  cases run with
+  | seqNext storeRun bumpRun => exact ⟨_, _, _, rfl, storeRun, bumpRun⟩
+  | seqStop t _ => exact absurd rfl t
+
+/-- Actual byte-loop iteration: one byte store plus bump. -/
+theorem candidateMemcpyWhileByte_trace {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s (.seq memcpyStoreByte0 memcpyBump1) none post events) :
+    ∃ (mid : PanSemStateFiniteExact 64 F) (storeEvents bumpEvents : List WorkEvent),
+      events = storeEvents ++ bumpEvents ∧
+      StatementRun fn s memcpyStoreByte0 none mid storeEvents ∧
+      StatementRun fn mid memcpyBump1 none post bumpEvents := by
+  cases run with
+  | seqNext storeRun bumpRun => exact ⟨_, _, _, rfl, storeRun, bumpRun⟩
+  | seqStop t _ => exact absurd rfl t
+
+/-- Actual score of the aligned 8-byte iteration is additive. -/
+theorem candidateMemcpyWhile8_score {F : Type} (coeff : Work)
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s (.seq memcpyStoreWord0 memcpyBump8) none post events) :
+    ∃ storeEvents bumpEvents : List WorkEvent,
+      events = storeEvents ++ bumpEvents ∧
+      coeff.score (executionWork events) =
+        coeff.score (executionWork storeEvents) +
+        coeff.score (executionWork bumpEvents) := by
+  obtain ⟨_, storeEvents, bumpEvents, rfl, _, _⟩ := candidateMemcpyWhile8_trace run
+  exact ⟨storeEvents, bumpEvents, rfl, executionWork_score_append coeff _ _⟩
+
+/-- Actual score of the byte-loop iteration is additive. -/
+theorem candidateMemcpyWhileByte_score {F : Type} (coeff : Work)
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s (.seq memcpyStoreByte0 memcpyBump1) none post events) :
+    ∃ storeEvents bumpEvents : List WorkEvent,
+      events = storeEvents ++ bumpEvents ∧
+      coeff.score (executionWork events) =
+        coeff.score (executionWork storeEvents) +
+        coeff.score (executionWork bumpEvents) := by
+  obtain ⟨_, storeEvents, bumpEvents, rfl, _, _⟩ := candidateMemcpyWhileByte_trace run
+  exact ⟨storeEvents, bumpEvents, rfl, executionWork_score_append coeff _ _⟩
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateMemcpyStep32_trace
 #print axioms BoundedTableExperiment.candidateMemcpyStep32_score
+#print axioms BoundedTableExperiment.candidateMemcpyStep8Bytes_trace
+#print axioms BoundedTableExperiment.candidateMemcpyWhile8_trace
+#print axioms BoundedTableExperiment.candidateMemcpyWhileByte_trace
+#print axioms BoundedTableExperiment.candidateMemcpyWhile8_score
+#print axioms BoundedTableExperiment.candidateMemcpyWhileByte_score
