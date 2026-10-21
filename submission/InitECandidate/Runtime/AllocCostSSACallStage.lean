@@ -83,6 +83,63 @@ theorem wec_call_returning_result_unfold {C F : Type}
   simp only [hdu]; try dsimp only
   rfl
 
+/-- **Direct exception-branch decomposition.**  When the callee raises at the
+declared handler label and the raised environment unions consistently, the call
+cost is the node price plus the callee-body run plus the return-handler code run
+on `setVar reg value middle`.  The handler payload is destructed explicitly by
+taking the handler as `some (reg, handlerCode, h1, h2)`, and the callee entry
+state appears as an explicit parameter so the premise stays readable. -/
+theorem wec_call_returning_exception_unfold {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (s entry : WordSemStateFiniteExact 64 C F) (vals0 : List (WordLocW 64))
+    (args1 : List (WordLocW 64)) (prog : WordLangProgHOL (BitVec 64)) (ss : Option Nat)
+    (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (location value : WordLocW 64)
+    (middle : WordSemStateFiniteExact 64 C F)
+    (hget : getVars args s = some vals0)
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hfind : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) vals0) s.code s.stackSize =
+        some (args1, prog, ss))
+    (hdom : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcut : wordSemCutEnvs names s.locals = some envs)
+    (hz : s.clock ≠ 0)
+    (hentry : entry = WordSemStateFiniteExact.callEnv args1 ss
+      (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s)))
+    (hrun : fixClock entry (evaluate prog entry) =
+      (some (.exception location value), middle))
+    (hloc : location = .loc h1 h2)
+    (hdu : sptDomainEqUnion middle.locals envs.1 envs.2) :
+    wordExecutionCost price
+        (.call (some (values, names, retCode, l1, l2)) dest args
+          (some (reg, handlerCode, h1, h2))) s =
+      price (.call (some (values, names, retCode, l1, l2)) dest args
+          (some (reg, handlerCode, h1, h2))) s +
+        wordExecutionCost price prog
+          (WordSemStateFiniteExact.callEnv args1 ss
+            (pushEnv envs (some (reg, handlerCode, h1, h2)) (decClock s))) +
+        wordExecutionCost price handlerCode
+          (WordSemStateFiniteExact.setVar reg value middle) := by
+  have hcond : ¬ (location ≠ .loc h1 h2) := by simp [hloc]
+  rw [wordExecutionCost]
+  generalize hLocal : price (.call (some (values, names, retCode, l1, l2)) dest args
+    (some (reg, handlerCode, h1, h2))) s = localPrice
+  rw [hget]; try dsimp only
+  rw [hbad]; try dsimp only
+  rw [hfind]; try dsimp only
+  simp only [hdom]; try dsimp only
+  rw [hcut]; try dsimp only [wordSemCutEnvs]
+  rw [dif_neg hz]; try dsimp only
+  rw [← hentry]
+  rw [hrun]; try dsimp only
+  simp only [hcond]; try dsimp only
+  simp only [hdu]; try dsimp only
+  rfl
+
 /-- **Returning-call stage decomposition at the allocator relation.**
 
 For source and allocated call states related by `SsaAllocRel` (the original
@@ -173,6 +230,7 @@ theorem ssaCall_continuation_stage {C F : Type}
     (WordSemStateFiniteExact.setVars values returned popped) ys hval' hne
 
 #print axioms wec_call_returning_result_unfold
+#print axioms wec_call_returning_exception_unfold
 #print axioms ssaCall_returning_cost_stage
 #print axioms ssaCall_body_stage
 #print axioms ssaCall_continuation_stage
