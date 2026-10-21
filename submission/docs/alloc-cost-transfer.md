@@ -405,3 +405,38 @@ recursive induction hypothesis for the callee program, so the pass-level
 induction plugs straight in and no whole-call cost transfer is assumed.  The
 zero-budget variant `ssaBody_call_returning_no_body_oracle` remains useful only
 as the stack-permutation sub-case documented above.
+
+## Executed-cost inspection: fine model (`AllocCostSSAStackSwapWork`)
+
+The stage above is stated in `wordPathWork`.  The fine executed model
+`InitECandidate.Runtime.FineCost.wordExecutionCost` (per-node price, real
+`MustTerminate` body cost) now carries the same kind of local invariance, with
+no whole-budget hypothesis:
+
+- `wec_stack_variant_dispatch`: for an arbitrary price and *only* the explicit
+  local price hypothesis `hprice` (`price q {t with stack := ys} = price q t`
+  for value-equal stacks), every program satisfies
+  `wordExecutionCost price p {s with stack := xs} = wordExecutionCost price p s`
+  from a value-equal stack and a top-level non-error hypothesis.  All
+  constructors are covered, including `MustTerminate` (body charged at the reset
+  clock and decremented term depth, with the body non-error transported), `seq`
+  at the reached middle state, `ite`, `loop` (cut state, body and stop tail) and
+  the full `call` clause.
+- `wordCallReturned_stack`: the concrete `loopWordPrice` is state dependent only
+  through `wordCallReturned`; its callee `.result` witness is preserved by a
+  value-equal stack swap (`sValEq` symmetry, `decClock`/`pushEnv`/`callEnv`
+  entry transport, result location/values/arity), so the price itself is
+  invariant.
+- `wordExecutionCost_loopWordPrice_stack_variant`: the actual model theorem for
+  `loopWordPrice`, including the corrected returning-call price
+  `1 + |args| + (returned arity when the callee returns that many values)`.
+- Downstream transfer shapes consumed by the allocation call stage:
+  `wordExecutionCost_callBody_transfer` (callee body cost at the stack-swapped
+  `callEnv`/`pushEnv`/`decClock` entry equals the source entry cost — the
+  `calleeWork` obligation) and `wordExecutionCost_returnContinuation_transfer`
+  (the return-handler continuation cost on an `sValEq`-valued popped target
+  stack).
+
+These are executed-cost statements at the actual reached states; no AST,
+code-table or bitmap multiplier appears, and the axiom closure stays
+`propext`, `Classical.choice`, `Quot.sound`.
