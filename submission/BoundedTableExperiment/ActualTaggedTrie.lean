@@ -141,3 +141,45 @@ end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.ReachableInternal.of_store_other
 #print axioms BoundedTableExperiment.TaggedTrieInv.store_other
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- Actual child selection plus tagged live-edge ordering.  A leaf child has no
+route obligation; the route conclusion is only for an internal child. -/
+theorem candidateFindLeafChild_descent_tagged {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    {root cap node left right route b m : BitVec 64} {keyLen : Nat}
+    (trie : TaggedTrieInv s root cap keyLen)
+    (reach : ReachableInternal s cap root node)
+    (hint : IsInternal cap node)
+    (run : StatementRun fn s candidateFindLeafChild none post events)
+    (inv : NodeLinkInv s node left right route)
+    (nodeLocal : s.locals.lookup (ofString "node") = some (.val (.word node)))
+    (bLocal : s.locals.lookup (ofString "b") = some (.val (.word b)))
+    (mLocal : s.locals.lookup (ofString "m") = some (.val (.word m)))
+    {child : BitVec 64} {cl cr childRoute : BitVec 64}
+    (childLink : NodeLinkInv s child cl cr childRoute)
+    (childEq : child = if b &&& m = 0 then left else right) :
+    post.locals.lookup (ofString "node") = some (.val (.word child)) ∧
+      (IsInternal cap child → routeBit route < routeBit childRoute) := by
+  obtain ⟨flag, guardEvents, branchEvents, eventsEq, guard, flagEq, nodeLookup,
+    memEq, domRight, domLeft⟩ :=
+    candidateFindLeafChild_links run inv nodeLocal bLocal mLocal
+  have hc : child = left ∨ child = right := by
+    by_cases hz : b &&& m = 0
+    · exact Or.inl (by rw [childEq]; exact if_pos (by simpa using hz))
+    · exact Or.inr (by rw [childEq]; exact if_neg (by simpa using hz))
+  refine ⟨by simpa [childEq] using nodeLookup, ?_⟩
+  intro hchildInt
+  exact (trie.step reach hint inv hc hchildInt childLink).2
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidateFindLeafChild_descent_tagged
