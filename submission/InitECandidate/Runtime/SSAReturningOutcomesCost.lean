@@ -130,7 +130,7 @@ theorem ssa_returning_outcomes_cost {C F : Type}
       · refine ⟨returned.permute, ?_⟩
         rw [Flapjack.WordAlloc.callRetTail_result_err _ _ _ _ _ _ _ _ _ badReturn]
         exact Or.inl rfl
-      · have success := ssa_returning_success_cost SP TP bodyEntry body callee source target targetPrices ssa counter
+      · have success := ssa_returning_success_cost SP TP bodyEntry none none body callee source target targetPrices ssa counter
           firstNames secondNames first second targetFirst targetSecond args size returns l1 l2 tables
           retMove moveMap moveNext renamed retMap retNext compiled finalMap finalNext
           moveProduced renameProduced bodyProduced frame valid stackClass firstDomain secondDomain mapped cutBounds
