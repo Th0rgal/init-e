@@ -12,7 +12,7 @@ theorem popEnv_with_code {C F : Type} (source : WordSemStateFiniteExact 64 C F)
   dsimp only
   split <;> rfl
 
-/-- Actual returning calls without an exception handler, through the
+/-- Actual returning calls, including exception handlers, through the
 concrete optimized table. Both the callee and the selected continuation use
 strictly smaller execution clocks. All final state and cost alignment is
 proved from those guarded instances and the local optimizer theorem. -/
@@ -20,22 +20,26 @@ theorem postSSACodeTable_return_execution {C F : Type}
     (config : Compiler.Encoders.Asm.AsmConfigExact 64)
     (values : List Nat) (names : WordLangCutsetsHOL)
     (continuation : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
-    (destination : Option Nat) (arguments : List Nat) (source : WordSemStateFiniteExact 64 C F)
+    (destination : Option Nat) (arguments : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (source : WordSemStateFiniteExact 64 C F)
     (codeFree : WordProps.noInstallCode source.code) (codeFlat : PostSSAFlatCode source.code)
     (free : noInstallSubprogsHOL continuation = true)
+    (handlerFree : ∀ reg code h1 h2, handler = some (reg, code, h1, h2) →
+      noInstallSubprogsHOL code = true)
     (safe : (evaluate (.call (some (values, names, continuation, l1, l2))
-      destination arguments none) source).1 ≠ some .error)
+      destination arguments handler) source).1 ≠ some .error)
     (ih : PostSSACodeTransportIH (C := C) (F := F) source.termdep source.clock) :
-    evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments none)
+    evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments handler)
         {source with code := postSSACodeTable source.code} =
-      ((evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments none) source).1,
-        {(evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments none) source).2 with
+      ((evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments handler) source).1,
+        {(evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments handler) source).2 with
           code := postSSACodeTable source.code}) ∧
     wordExecutionCost wordOptimizerLocalPrice
-        (.call (some (values, names, continuation, l1, l2)) destination arguments none)
+        (.call (some (values, names, continuation, l1, l2)) destination arguments handler)
         {source with code := postSSACodeTable source.code} ≤
       wordExecutionCost wordOptimizerLocalPrice
-        (.call (some (values, names, continuation, l1, l2)) destination arguments none) source := by
+        (.call (some (values, names, continuation, l1, l2)) destination arguments handler) source := by
   rw [WordToWord.evaluate_call_eq] at safe
   rcases hg : getVars arguments source with _ | xs
   · simp only [hg] at safe
@@ -70,9 +74,9 @@ theorem postSSACodeTable_return_execution {C F : Type}
     rfl
   have targetCut : wordSemCutEnvs names target.locals = some envs := cut
   have targetClock : target.clock = source.clock := rfl
-  change evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments none) target = _ ∧
+  change evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments handler) target = _ ∧
     wordExecutionCost wordOptimizerLocalPrice
-      (.call (some (values, names, continuation, l1, l2)) destination arguments none) target ≤ _
+      (.call (some (values, names, continuation, l1, l2)) destination arguments handler) target ≤ _
   by_cases zero : source.clock = 0
   · constructor
     · rw [WordToWord.evaluate_call_eq, targetVars]
@@ -80,18 +84,18 @@ theorem postSSACodeTable_return_execution {C F : Type}
         targetCut, targetClock, zero, if_true]
       rw [WordToWord.evaluate_call_eq, hg]
       simp only [good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found, badNames, cut, zero, if_true]
-      rfl
+      rcases handler with _ | ⟨reg, code, h1, h2⟩ <;> rfl
     · rw [wordExecutionCost, wordExecutionCost]
       simp only [targetVars, hg, good, Bool.false_eq_true, if_false, wordSemAddRetLoc,
         targetFound, found, badNames, targetCut, cut, targetClock, zero, dif_pos rfl]
       simpa only [dif_pos True.intro] using
         le_of_eq (wordOptimizerLocalPrice_state_independent
-          (.call (some (values, names, continuation, l1, l2)) destination arguments none) target source)
+          (.call (some (values, names, continuation, l1, l2)) destination arguments handler) target source)
   simp only [zero, if_false] at safe
-  let entry := WordSemStateFiniteExact.callEnv actualArguments size (pushEnv envs none (decClock source))
+  let entry := WordSemStateFiniteExact.callEnv actualArguments size (pushEnv envs handler (decClock source))
   rcases actual : evaluate body entry with ⟨result, post⟩
   have entryRun : evaluate body (WordSemStateFiniteExact.callEnv actualArguments size
-      (pushEnv envs none (decClock source))) = (result, post) := actual
+      (pushEnv envs handler (decClock source))) = (result, post) := actual
   rw [entryRun] at safe
   have resultSafe : result ≠ some .error := by
     intro badResult
@@ -112,47 +116,51 @@ theorem postSSACodeTable_return_execution {C F : Type}
   obtain ⟨label, arity, lookup⟩ := WordProps.findCode_lookup source.code destination (.loc l1 l2 :: xs)
     source.stackSize actualArguments body size found
   have bodyFlat := codeFlat label arity body lookup
+  have entryCode : entry.code = source.code := (WordToWord.pushEnv_fields envs handler (decClock source)).1
+  have entryFree : WordProps.noInstallCode entry.code := entryCode.symm ▸ codeFree
+  have entryFlat : PostSSAFlatCode entry.code := entryCode.symm ▸ codeFlat
   obtain ⟨transported, transportCost⟩ := ih body entry post result smaller bodyFree
-    codeFree codeFlat actual resultSafe
+    entryFree entryFlat actual resultSafe
   obtain ⟨optimized, optimizeCost⟩ := postSSAOptimize_terminal_execution config body
     {entry with code := postSSACodeTable entry.code}
     {post with code := postSSACodeTable entry.code} result bodyFlat transported resultSafe terminal
   have targetEntry : WordSemStateFiniteExact.callEnv actualArguments size
-      (pushEnv envs none (decClock target)) = {entry with code := postSSACodeTable entry.code} := rfl
+      (pushEnv envs handler (decClock target)) = {entry with code := postSSACodeTable entry.code} := by
+    rcases handler with _ | ⟨reg, code, h1, h2⟩ <;> rfl
   have targetRun : evaluate (postSSAOptimize body)
-      (WordSemStateFiniteExact.callEnv actualArguments size (pushEnv envs none (decClock target))) =
+      (WordSemStateFiniteExact.callEnv actualArguments size (pushEnv envs handler (decClock target))) =
         (result, {post with code := postSSACodeTable source.code}) := by
     rw [targetEntry]
-    exact optimized
+    simpa only [entryCode] using optimized
   have sourceEq := WordToWord.evaluate_call_eq source
-    (some (values, names, continuation, l1, l2)) none destination arguments
+    (some (values, names, continuation, l1, l2)) handler destination arguments
   simp only [hg, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, found,
     badNames, cut, zero, entryRun] at sourceEq
   have targetEq := WordToWord.evaluate_call_eq target
-    (some (values, names, continuation, l1, l2)) none destination arguments
+    (some (values, names, continuation, l1, l2)) handler destination arguments
   simp only [targetVars, good, Bool.false_eq_true, if_false, wordSemAddRetLoc, targetFound,
     badNames, targetCut, targetClock, zero, targetRun] at targetEq
   have costSource := ret_call_cost wordOptimizerLocalPrice values names continuation l1 l2
-    destination arguments none source xs hg good actualArguments body size found badNames envs cut
+    destination arguments handler source xs hg good actualArguments body size found badNames envs cut
     zero result post entryRun
   have costTarget := ret_call_cost wordOptimizerLocalPrice values names continuation l1 l2
-    destination arguments none target xs targetVars good actualArguments (postSSAOptimize body) size
+    destination arguments handler target xs targetVars good actualArguments (postSSAOptimize body) size
     targetFound badNames envs targetCut zero result {post with code := postSSACodeTable source.code} targetRun
   have bodyCost : wordExecutionCost wordOptimizerLocalPrice (postSSAOptimize body)
-      (WordSemStateFiniteExact.callEnv actualArguments size (pushEnv envs none (decClock target))) ≤
+      (WordSemStateFiniteExact.callEnv actualArguments size (pushEnv envs handler (decClock target))) ≤
         wordExecutionCost wordOptimizerLocalPrice body entry := by
     rw [targetEntry]
     exact optimizeCost.trans transportCost
   have headEq := wordOptimizerLocalPrice_state_independent
-    (.call (some (values, names, continuation, l1, l2)) destination arguments none) target source
+    (.call (some (values, names, continuation, l1, l2)) destination arguments handler) target source
   suffices after :
-      evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments none) target =
-        ((evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments none) source).1,
-          {(evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments none) source).2 with
+      evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments handler) target =
+        ((evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments handler) source).1,
+          {(evaluate (.call (some (values, names, continuation, l1, l2)) destination arguments handler) source).2 with
             code := postSSACodeTable source.code}) ∧
-      retCont wordOptimizerLocalPrice values continuation l1 l2 none envs result
+      retCont wordOptimizerLocalPrice values continuation l1 l2 handler envs result
           {post with code := postSSACodeTable source.code} ≤
-        retCont wordOptimizerLocalPrice values continuation l1 l2 none envs result post by
+        retCont wordOptimizerLocalPrice values continuation l1 l2 handler envs result post by
     refine ⟨after.1, ?_⟩
     rw [costTarget, costSource, headEq]
     exact Nat.add_le_add (Nat.add_le_add_left bodyCost _) after.2
@@ -176,9 +184,9 @@ theorem postSSACodeTable_return_execution {C F : Type}
         have restoredFields := WordToWord.popEnv_fields popped
         have bodyClock := evaluate_clock body entry (some (.result location returned)) post actual
         have postCode : post.code = source.code := by
-          have h := code_evaluate body entry bodyFree codeFree
+          have h := code_evaluate body entry bodyFree entryFree
           rw [actual] at h
-          exact h
+          exact h.trans entryCode
         have restoredCode : restored.code = source.code := restoredFields.1.trans postCode
         have nextCode : (setVars values returned restored).code = source.code := restoredCode
         have nextSmaller : Prod.Lex (· < ·) (· < ·)
@@ -215,7 +223,56 @@ theorem postSSACodeTable_return_execution {C F : Type}
     | «break» label => exact (terminal.2.1 label rfl).elim
     | «continue» label => exact (terminal.2.2 label rfl).elim
     | error => exact (resultSafe rfl).elim
-    | exception _ _ | timeOut | notEnoughSpace | finalFfi _ =>
+    | exception location payload =>
+      rcases handlerEq : handler with _ | ⟨reg, handlerCode, h1, h2⟩
+      · rw [handlerEq] at sourceEq targetEq
+        constructor
+        · rw [sourceEq, targetEq]
+        · simp only [retCont, handlerEq, Nat.le_refl]
+      · rw [handlerEq] at sourceEq targetEq
+        have selectedSafe := safe
+        try simp only [handlerEq] at selectedSafe
+        by_cases invalid : location ≠ .loc h1 h2
+        · rw [if_pos invalid] at selectedSafe
+          exact (selectedSafe rfl).elim
+        simp only [invalid, if_false] at selectedSafe
+        by_cases domain : sptDomainEqUnion post.locals envs.1 envs.2
+        · simp only [domain, if_true] at selectedSafe
+          rcases nextRun : evaluate handlerCode (setVar reg payload post) with ⟨nextResult, nextPost⟩
+          have nextSafe : nextResult ≠ some .error := by simpa only [nextRun] using selectedSafe
+          have bodyClock := evaluate_clock body entry (some (.exception location payload)) post actual
+          have postCode : post.code = source.code := by
+            have h := code_evaluate body entry bodyFree entryFree
+            rw [actual] at h
+            exact h.trans entryCode
+          have nextCode : (setVar reg payload post).code = source.code := postCode
+          have nextSmaller : Prod.Lex (· < ·) (· < ·)
+              ((setVar reg payload post).termdep, (setVar reg payload post).clock)
+              (source.termdep, source.clock) := by
+            simp only [entry, WordSemStateFiniteExact.callEnv, pushEnv_termdep, pushEnv_clock, decClock] at bodyClock
+            simp only [setVar]
+            rw [bodyClock.2]
+            apply Prod.Lex.right
+            omega
+          have nextFree : WordProps.noInstallCode (setVar reg payload post).code := nextCode.symm ▸ codeFree
+          have nextFlat : PostSSAFlatCode (setVar reg payload post).code := nextCode.symm ▸ codeFlat
+          obtain ⟨nextTargetRun, nextCost⟩ := ih handlerCode (setVar reg payload post)
+            nextPost nextResult nextSmaller (handlerFree reg handlerCode h1 h2 handlerEq)
+            nextFree nextFlat nextRun nextSafe
+          have nextEntry : setVar reg payload {post with code := postSSACodeTable source.code} =
+              {(setVar reg payload post) with code := postSSACodeTable ((setVar reg payload post).code)} := by
+            rw [nextCode]
+            rfl
+          constructor
+          · rw [sourceEq, targetEq]
+            simp only [handlerEq, invalid, if_false, domain, if_true]
+            rw [nextEntry, nextTargetRun, nextRun, nextCode]
+          · simp only [retCont, handlerEq, invalid, if_false, domain, if_true]
+            rw [nextEntry]
+            exact nextCost
+        · simp only [domain, if_false] at selectedSafe
+          exact (selectedSafe rfl).elim
+    | timeOut | notEnoughSpace | finalFfi _ =>
       constructor
       · rw [sourceEq, targetEq]
       · simp only [retCont, Nat.le_refl]
