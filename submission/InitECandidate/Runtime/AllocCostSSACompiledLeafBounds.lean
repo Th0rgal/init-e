@@ -720,4 +720,29 @@ theorem call_arg_prefix_charge {C F : Type} (ssa : Spt Nat) (args : List Nat)
   wec_move_seq_charge 1 _ tail s mid hfix
 
 #print axioms call_arg_prefix_charge
+
+/-- Charge at the live-name stack move of a returning call.  By
+`listNextVarRenameMove_shape` that node is `.move 0 ((listNextVarRename ls ssa n).1.zip
+(ls.map (optionLookup ssa)))`, so charging it gives exactly `certifiedMoveCharge` of the
+live-name list and the continuation at the reached state. -/
+theorem stack_live_move_prefix_charge {C F : Type}
+    (ssa : Spt Nat) (n : Nat) (ls : List Nat)
+    (tail : WordLangProgHOL (BitVec 64))
+    (s mid : WordSemStateFiniteExact 64 C F)
+    (hfix : fixClock s (evaluate (.move 0
+      ((listNextVarRename ls ssa n).1.zip (ls.map (optionLookup ssa)))) s) =
+      (none, mid)) :
+    wordExecutionCost nativeWordPrice
+      (.seq (.move 0 ((listNextVarRename ls ssa n).1.zip
+        (ls.map (optionLookup ssa)))) tail) s =
+      nativeWordPrice
+        (.seq (.move 0 ((listNextVarRename ls ssa n).1.zip
+          (ls.map (optionLookup ssa)))) tail) s +
+      certifiedMoveCharge ((listNextVarRename ls ssa n).1.zip
+        (ls.map (optionLookup ssa))) +
+      wordExecutionCost nativeWordPrice tail mid :=
+  wec_move_seq_charge 0 _ tail s mid hfix
+
+#print axioms stack_live_move_prefix_charge
+
 end InitECandidate.Runtime.FineCost
