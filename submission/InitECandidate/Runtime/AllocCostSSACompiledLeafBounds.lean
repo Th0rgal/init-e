@@ -745,4 +745,27 @@ theorem stack_live_move_prefix_charge {C F : Type}
 
 #print axioms stack_live_move_prefix_charge
 
+
+/-- Price-generic move charge: a move node costs exactly its own price. -/
+theorem wec_move_generic {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (pri : Nat) (moves : List (Nat × Nat)) (s : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost price (.move pri moves) s = price (.move pri moves) s := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+
+/-- Price-generic fall-through split for `seq`. -/
+theorem wec_seq_none_split_generic {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (f g : WordLangProgHOL (BitVec 64)) (s mid : WordSemStateFiniteExact 64 C F)
+    (h : fixClock s (evaluate f s) = (none, mid)) :
+    wordExecutionCost price (.seq f g) s =
+      price (.seq f g) s + wordExecutionCost price f s +
+        wordExecutionCost price g mid := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+  rw [h]
+
+#print axioms wec_move_generic
+#print axioms wec_seq_none_split_generic
 end InitECandidate.Runtime.FineCost
