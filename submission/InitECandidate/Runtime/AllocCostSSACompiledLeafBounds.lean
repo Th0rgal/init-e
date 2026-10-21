@@ -1931,4 +1931,41 @@ theorem seq_suffix_transfer {C F : Type}
           omega
 
 #print axioms seq_suffix_transfer
+/-- A compiled branch: the body's transfer composes with the allocator suffix, whose two facts come
+from the shape certificate rather than from hypotheses on the suffix's behaviour. -/
+theorem compiled_branch_transfer {C F : Type}
+    (first bodyC suf : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (extra : Nat) (s0 : WordSemStateFiniteExact 64 C F)
+    (hwf : ∀ (pri : Nat) (moves : List (Nat × Nat)),
+      (moves.map Prod.fst).Nodup ∧ ∀ (s : WordSemStateFiniteExact 64 C F), WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none)
+    (hinst : ∀ (i : WordLangInst (BitVec 64)) (s : WordSemStateFiniteExact 64 C F),
+      (fixClock s (WordSemStateFiniteExact.evaluate (.inst i) s)).1 = none)
+    (hsuf : AllocOnly suf)
+    (hbody : quantTransfer (C := C) (F := F) first bodyC source target extra) :
+    quantTransfer (C := C) (F := F) first (.seq bodyC suf) source target
+      (extra + wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice suf s0) :=
+  seq_suffix_transfer first bodyC suf source target extra s0
+    (allocOnly_fallthrough hwf hinst suf hsuf)
+    (allocOnly_cost_independent hwf hinst suf hsuf) hbody
+
+/-- The same, for the concrete suffix `fixInconsistencies` appends to a branch: its shape is
+certified by fixInconsistencies_allocOnly, so no hypothesis about it remains. -/
+theorem fixInconsistencies_suffix_transfer {C F : Type}
+    (first bodyC : WordLangProgHOL (BitVec 64))
+    (prio : Option (Unit ⊕ Unit)) (ssaL ssaR : Spt Nat) (na : Nat)
+    (source target : WordSemStateFiniteExact 64 C F) (extra : Nat) (s0 : WordSemStateFiniteExact 64 C F)
+    (hwf : ∀ (pri : Nat) (moves : List (Nat × Nat)),
+      (moves.map Prod.fst).Nodup ∧ ∀ (s : WordSemStateFiniteExact 64 C F), WordSemStateFiniteExact.getVars (moves.map Prod.snd) s ≠ none)
+    (hinst : ∀ (i : WordLangInst (BitVec 64)) (s : WordSemStateFiniteExact 64 C F),
+      (fixClock s (WordSemStateFiniteExact.evaluate (.inst i) s)).1 = none)
+    (hbody : quantTransfer (C := C) (F := F) first bodyC source target extra) :
+    quantTransfer (C := C) (F := F) first
+      (.seq bodyC (Flapjack.Compiler.Backend.WordAlloc.fixInconsistencies (width := 64) prio ssaL ssaR na).1)
+      source target
+      (extra + wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (Flapjack.Compiler.Backend.WordAlloc.fixInconsistencies (width := 64) prio ssaL ssaR na).1 s0) :=
+  compiled_branch_transfer first bodyC _ source target extra s0 hwf hinst
+    (fixInconsistencies_allocOnly prio ssaL ssaR na) hbody
+
+#print axioms compiled_branch_transfer
+#print axioms fixInconsistencies_suffix_transfer
 end InitECandidate.Runtime.FineCost
