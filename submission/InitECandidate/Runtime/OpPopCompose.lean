@@ -33,9 +33,9 @@ theorem StatementRun.declareCallReturn_cont
     StatementRun s (.decCall name shape function arguments continuation) result
       { post with locals := HolFiniteMapExact.resVarEq post.locals (name, s.locals.lookup name) }
       (.statement :: (expressionListEvents s arguments ++
-        [.copy (values.flatMap flattenHOL).length, .frame values.length,
-          .frame (sizeOfShapeWithContextHOL s.structs shape)] ++ bodyEvents ++
-        [.copy (flattenHOL value).length] ++ continuationEvents ++
+        [.cost (callOverhead (values.flatMap flattenHOL).length +
+          slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
+        [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents ++
         [.copy (((s.locals.lookup name).map
           (fun old => (flattenHOL old).length)).getD 0)])) :=
   StatementRun.declareCallReturn args lookup clock bodyRun shapeMatch continuationRun
