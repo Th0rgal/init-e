@@ -5981,3 +5981,19 @@ theorem sourceSlackBound_four : SourceSlackBound 4 := by
 #print axioms sourceSlackBound_four
 
 end InitECandidate.Runtime.NativePadding
+
+namespace InitECandidate.Runtime.NativePadding
+
+open Flapjack.Compiler.Backend.LabToTarget in
+/-- Final arithmetic glue: if the emitted payload is a prefix-extension of the
+opcode by at most four bytes, the segment pays at most four bytes of padding. -/
+theorem seg_padding_le_four (seg : PadSeg 64)
+    (hpre : lineBytes seg.source <+: lineBytes seg.emitted)
+    (hlen : (lineBytes seg.emitted).length - (lineBytes seg.source).length ≤ 4) :
+    seg.paddingLen ≤ 4 := by
+  rw [seg.paddingLen_eq_of_prefix hpre]
+  omega
+
+#print axioms seg_padding_le_four
+
+end InitECandidate.Runtime.NativePadding
