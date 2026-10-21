@@ -639,3 +639,13 @@ At the 33.55M entry bound, the table fits only with average depth at most 4
 count is about 21M, so either the reachable operation count must be bounded
 below 33.55M or the average path depth must be proved small. These are
 diagnostics, not the score theorem.
+
+## 23. Path split uniqueness (checked)
+
+`PathInvariant.lean` now proves `splitIndex_eq_of_take_drop`: for a strictly
+increasing path, any index whose prefix routes are `<= d` and whose suffix
+routes are `> d` must equal `splitIndex`. Axioms are only `propext` and
+`Quot.sound`. `bsearchList` is the recursive divide-and-conquer form of the
+loop; executable checks on several paths return the same index as
+`splitIndex`. The iterative loop-to-`splitIndex` refinement is still not
+mechanized.
