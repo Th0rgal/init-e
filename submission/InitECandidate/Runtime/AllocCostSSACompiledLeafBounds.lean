@@ -3875,6 +3875,106 @@ theorem ssaCcTrans_loop_quant {C F : Type}
 #print axioms loop_quantTransfer
 #print axioms ssaCcTrans_loop_quant
 
+/-! ## The loop at the compiler's LITERAL output shape
+
+`ssaCcTrans_loop_output` says the compiler's loop compiles to
+`.seq setup (.loop names bodyC exitNames)`: the setup program is INSERTED and runs before the loop,
+so the source side has no `seq` partner to charge it against.  The composition is therefore
+asymmetric - the compiled side is a `seq`, the source side is the bare loop - and it is exactly the
+`seq` constructor's fall-through accounting with an inserted first half: the compiled run continues
+into the loop at the `fixClock`ed post-setup state, and the two charges add. -/
+theorem seq_inserted_prefix_quantTransfer {C F : Type}
+    (srcProg compiledProg setup : WordLangProgHOL (BitVec 64))
+    (source target post : WordSemStateFiniteExact 64 C F)
+    (extraSetup extraLoop : Nat)
+    (hT : fixClock target (WordSemStateFiniteExact.evaluate setup target) = (none, post))
+    (hs : quantTransfer (C := C) (F := F) srcProg compiledProg source post extraLoop)
+    (hc : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice setup target ≤
+      extraSetup) :
+    quantTransfer (C := C) (F := F) srcProg (.seq setup compiledProg) source target
+      (extraSetup + extraLoop) := by
+  obtain ⟨⟨rS, sS, rT, sT, hrunS, hrunT, hout⟩, hcost⟩ := hs
+  refine ⟨⟨rS, sS, rT, sT, hrunS, ?_, hout⟩, ?_⟩
+  · rw [evaluate_seq_none setup compiledProg target post hT, hrunT]
+  · rw [wec_seq_none_split_generic InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      setup compiledProg target post hT, refinedWordLocalPrice_seq_zero]
+    omega
+
+#print axioms seq_inserted_prefix_quantTransfer
+
+/-- **The loop's `quantSsaSimulation` at the compiler's literal output.**  The semantic conjunct is
+the compiler's own loop correctness (`ssaCcTransCorrectLoop`, bundle mirrored verbatim as in
+`ssaCcTrans_loop_quant`); the quantitative conjuncts are `loop_quantTransfer` - the loop's transfer
+at the post-setup pair, budget `B * loopIterCount` in EXECUTED iterations - composed with the
+inserted setup's run and charge by `seq_inserted_prefix_quantTransfer`, and then transported through
+the compiled program's shape, exactly the way `ssaCcTrans_ite_quant_then` consumes its `hshape`.
+The setup's two facts are the `seq` constructor's own inputs (a fall-through run at the `fixClock`ed
+middle, and the first half's charge); the source-to-post relation is the counterpart of the seq
+constructor's universal second IH, which a state-specific loop constructor cannot supply through a
+universal quantifier, so it is stated at the one pair the run uses. -/
+theorem ssaCcTrans_loop_seq_quant {C F : Type}
+    (names exitNames : WordLangNumSetHOL) (body bodyC setup : WordLangProgHOL (BitVec 64))
+    (source target post : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (B extraSetup : Nat)
+    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (map : Spt Nat) (na : Nat)
+      (lt : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel st ct ∧
+      ssaLocalsRel na map st.locals ct.locals ∧ isAllocVar na ∧
+      everyVarHOL (fun key => decide (key < na)) body = true ∧
+      ssaMapOK na map ∧ ltOK lt → ssaSimulation body st ct map na lt)
+    (hinv : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun key => decide (key < next)) (.loop names body exitNames) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables)
+    (hshape : (ssaCcTrans (.loop names body exitNames) ssa next tables).1 =
+      .seq setup (.loop names bodyC exitNames))
+    (hsetup : fixClock target (WordSemStateFiniteExact.evaluate setup target) = (none, post))
+    (hsetupCost : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice setup
+      target ≤ extraSetup)
+    (hrelPost : Flapjack.WordAlloc.wordStateEqRel source post)
+    (hbody : LoopBodyTransfer (C := C) (F := F) body bodyC B)
+    (hloc : LoopLocalsDomAgrees (C := C) (F := F)) :
+    quantSsaSimulation (C := C) (F := F) (.loop names body exitNames) source target ssa next tables
+      (extraSetup + B * loopIterCount (C := C) (F := F) names body source) := by
+  obtain ⟨⟨rS, sS, rT, sT, hrunS, hrunT, hout⟩, hcost⟩ :=
+    seq_inserted_prefix_quantTransfer (.loop names body exitNames) (.loop names bodyC exitNames)
+      setup source target post extraSetup
+      (B * loopIterCount (C := C) (F := F) names body source) hsetup
+      (loop_quantTransfer names exitNames body bodyC source post B hbody hloc hrelPost) hsetupCost
+  refine ⟨ssaCcTransCorrectLoop names exitNames body source target ssa next tables bodyIH hinv,
+    ⟨rS, sS, rT, sT, hrunS, ?_, hout⟩, ?_⟩
+  · rw [hshape]
+    exact hrunT
+  · rw [hshape]
+    exact hcost
+
+#print axioms ssaCcTrans_loop_seq_quant
+
+/-- The literal output of the compiler's loop clause, in exactly the shape
+`ssaCcTrans_loop_seq_quant` consumes - the first component of `ssaCcTrans_loop_output`, derived
+here directly from the compiler's loop clause unfolding (that module's import is not compatible
+with this file's environment: the two branches declare the same helper names). -/
+theorem ssaCcTrans_loop_output_shape
+    (names exits : Spt Unit) (body setup bodyOut back bodyFinal : WordLangProgHOL (BitVec 64))
+    (ssa : Spt Nat) (next : Nat) (ssaRefreshed : Spt Nat) (nextRefreshed : Nat)
+    (ssaNames ssaExit : Spt Unit) (ssa' : Spt Nat) (nextBody : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (setupEq : loopSetup names exits ssa next = (setup, ssaRefreshed, nextRefreshed))
+    (namesEq : ssaNames = Flapjack.WordAlloc.applyNummapKey (optionLookup ssaRefreshed) names)
+    (exitsEq : ssaExit = Flapjack.WordAlloc.applyNummapKey (optionLookup ssaRefreshed) exits)
+    (bodyEq : ssaCcTrans (width := 64) body (sptInter ssaRefreshed names) nextRefreshed
+      ((ssaRefreshed, names, exits) :: tables) = (bodyOut, ssa', nextBody))
+    (bodyFinalEq : (match ssaReconcile (width := 64) ssa' ssaRefreshed names with
+      | .skip => bodyOut
+      | _ => bodyOut.seq (ssaReconcile (width := 64) ssa' ssaRefreshed names)) = bodyFinal) :
+    (ssaCcTrans (width := 64) (.loop names body exits) ssa next tables).1 =
+      .seq setup (.loop ssaNames bodyFinal ssaExit) := by
+  simp only [ssaCcTrans, setupEq, bodyEq, namesEq, exitsEq]
+  split <;> simp_all
+
+#print axioms ssaCcTrans_loop_output_shape
+
 /-- **The locals-domain agreement cannot be derived from the compiler's invariant bundle.**  A
 state pair related by `wordStateEqRel` may still have locals with DIFFERENT domains: the relation
 lists 21 fields and `locals` is deliberately absent, and `ssaLocalsRel` reads only the entries the

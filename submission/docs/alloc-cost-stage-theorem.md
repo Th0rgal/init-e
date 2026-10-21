@@ -879,3 +879,83 @@ recursion itself is structural).
 One trap worth keeping: the count's match must be REDUCED, not rewritten - `rw [loopIterCountAux_succ,
 hs]` leaves the `match some cutS with ...` unreduced (the pattern variable shadows), while
 `simp only [loopIterCountAux_succ, hs, hRunS, hc]` performs the iota steps.
+
+## The loop at the compiler's literal output shape (`.seq setup (.loop ...)`)
+
+`ssaCcTrans_loop_output` settles what the loop clause really emits: the setup program is INSERTED and
+runs BEFORE the loop, so the compiled program is `.seq setup (.loop ssaNames bodyFinal ssaExit)`
+while the source is the bare loop node.  The composition is therefore ASYMMETRIC - the compiled side
+is a `seq`, the source side has no partner for the setup to charge against - so it is done once in the
+program-parametric `quantTransfer` language and then transported through the shape, exactly the way
+`ssaCcTrans_ite_quant_then` consumes its `hshape`.  All green at
+`wordExecutionCost refinedWordLocalPrice`; axioms `propext` / `Classical.choice` / `Quot.sound`
+(`ssaCcTrans_loop_output_shape`: `propext` / `Quot.sound`).
+
+    theorem seq_inserted_prefix_quantTransfer
+        (hT   : fixClock target (evaluate setup target) = (none, post))  -- the setup falls through
+        (hs   : quantTransfer srcProg compiledProg source post extraLoop)  -- the loop at the post-setup pair
+        (hc   : wordExecutionCost setup target <= extraSetup)             -- the setup's own charge
+        : quantTransfer srcProg (.seq setup compiledProg) source target (extraSetup + extraLoop)
+
+    theorem ssaCcTrans_loop_seq_quant
+        (bodyIH) (hinv)                                  -- the loop's semantic half, bundle unchanged
+        (hshape : (ssaCcTrans (.loop names body exitNames) ssa next tables).1 =
+                    .seq setup (.loop names bodyC exitNames))
+        (hsetup : fixClock target (evaluate setup target) = (none, post))
+        (hsetupCost : wordExecutionCost setup target <= extraSetup)
+        (hrelPost : wordStateEqRel source post)
+        (hbody : LoopBodyTransfer body bodyC B) (hloc : LoopLocalsDomAgrees) :
+        quantSsaSimulation (.loop names body exitNames) source target ssa next tables
+          (extraSetup + B * loopIterCount names body source)
+
+    theorem ssaCcTrans_loop_output_shape                     -- the compiler's literal output, as a shape
+        (setupEq : loopSetup names exits ssa next = (setup, ssaRefreshed, nextRefreshed))
+        (namesEq : ssaNames = applyNummapKey (optionLookup ssaRefreshed) names)
+        (exitsEq : ssaExit = applyNummapKey (optionLookup ssaRefreshed) exits)
+        (bodyEq : ssaCcTrans body (sptInter ssaRefreshed names) nextRefreshed
+                    ((ssaRefreshed, names, exits) :: tables) = (bodyOut, ssa', nextBody))
+        (bodyFinalEq : (match ssaReconcile ssa' ssaRefreshed names with
+                        | .skip => bodyOut | _ => bodyOut.seq (ssaReconcile ssa' ssaRefreshed names))
+                       = bodyFinal) :
+        (ssaCcTrans (.loop names body exits) ssa next tables).1 =
+          .seq setup (.loop ssaNames bodyFinal ssaExit)
+
+### The budget, and each input's role
+
+| input | role | where it comes from |
+| --- | --- | --- |
+| setup run `(none, post)` | the `seq` evaluator's fall-through premise | the semantic side's `loopSetupCorrect` `setupRun` |
+| setup charge `<= extraSetup` | the first half of the `seq` price split | the setup's own quantitative transfer / node-cost bound |
+| `wordStateEqRel source post` | the loop's transfer needs a RELATE pair | the counterpart of the seq constructor's universal second IH |
+| `hshape` | the compiled program | `ssaCcTrans_loop_output_shape` |
+| `LoopBodyTransfer`, `LoopLocalsDomAgrees` | unchanged from the previous section | - |
+
+Budget: `extraSetup + B * loopIterCount names body source`.  The loop's own part is still `B` per
+EXECUTED iteration - no fuel, no constant factor, no new price - and the setup's charge is added
+once, as a prefix, never per iteration.  Nothing is assumed twice: the run halves, the outcome
+agreement and both charges are all DERIVED from `hsetup`/`hsetupCost` and `loop_quantTransfer`.
+
+### Why not literally `ssaCcTrans_seq_quant_none`
+
+That constructor's second IH is `forall src tgt s2 n2, quantSsaSimulation second src tgt s2 n2 tables
+extra2` - universally quantified OVER STATES, which is the shape the program induction supplies but
+NOT the shape of the loop constructor, whose `hinv` pins `source`/`target`.  Instantiating it would
+mean assuming the loop's `quantSsaSimulation` for every state pair, i.e. assuming the conclusion.
+`seq_inserted_prefix_quantTransfer` therefore performs the same accounting the `seq` constructor does
+(`evaluate_seq_none`, `wec_seq_none_split_generic`, `refinedWordLocalPrice_seq_zero`, `omega`) once,
+at the one reached post-setup pair, and both the loop constructor and future inserted-prefix
+compositions reuse it.
+
+### Two notes for whoever continues
+
+1. `AllocCostSSABodyWork` CANNOT be imported here: `mergeMoves_length_le` is declared both in
+   `WordOptimizerMoveCost` (pulled in by that module) and in `AllocCostReconcile` (already in this
+   file's closure), so the import fails with "environment already contains".  Hence
+   `ssaCcTrans_loop_output_shape` restates `ssaCcTrans_loop_output`'s first component with its own
+   two-line unfolding (`simp only [ssaCcTrans, setupEq, bodyEq, namesEq, exitsEq]` then
+   `split <;> simp_all`) instead of `congrArg Prod.fst`.
+2. The RENAMING is still separate, and `hshape` says so: the compiled loop node keeps the SOURCE
+   cutsets `names`/`exitNames`, because a loop's `quantTransfer` runs BOTH halves at the same cutset
+   names (the evaluator reads `locals` by name at the cut).  Matching `.loop ssaNames bodyFinal
+   ssaExit` therefore needs the source loop indexed by the renamed cutsets as well, which is the
+   renaming step already flagged as remaining - not something this constructor can absorb.
