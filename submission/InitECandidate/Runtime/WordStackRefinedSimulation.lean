@@ -173,6 +173,18 @@ theorem refinedExecutedSimulation_move {F : Type} (ac : AsmConfigExact 64)
   simp only [compNative]
   exact wordStack_move_refined_cost moves (k,f,frame) small target
 
+/-- Actual scheduler length, including physical-register coalescing. -/
+theorem refinedExecutedSimulation_scheduled_move {F : Type} (ac : AsmConfigExact 64)
+    (priority : Nat) (moves : List (Nat × Nat))
+    (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) :
+    RefinedExecutedSimulation ac (.move priority moves) source
+      (12 * (Parmove.parmove (moves.map (fun move => (move.1/2,move.2/2)))).length) := by
+  apply executedSimulationFor_of_fragment (refinedRemovalLocalPrice 6 riscvConfig.addrOffset)
+    ac (.move priority moves) source _ (MoveFull.compCorrectMove ac priority moves source)
+  intro k f frame bs n target small
+  simp only [compNative]
+  exact wordStack_move_scheduled_refined_cost moves (k,f,frame) small target
+
 theorem refinedExecutedSimulation_singleton_move {F : Type}
     (ac : AsmConfigExact 64) (priority dst src : Nat)
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F) :
@@ -196,5 +208,6 @@ theorem refinedExecutedSimulation_singleton_move {F : Type}
 #print axioms refinedExecutedSimulation_ffi
 #print axioms refinedExecutedSimulation_native_instruction
 #print axioms refinedExecutedSimulation_move
+#print axioms refinedExecutedSimulation_scheduled_move
 #print axioms refinedExecutedSimulation_singleton_move
 end InitECandidate.Runtime.WordToStack

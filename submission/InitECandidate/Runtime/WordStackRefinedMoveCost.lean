@@ -54,8 +54,23 @@ theorem wordStack_move_aux_refined_cost {F : Type} (moves : List (Sum Nat Nat ×
       simpa only [wMoveAuxNative, List.length_cons, Nat.mul_add, Nat.mul_one,
         Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using bound
 
+/-- Price the actual emitted scheduler list, preserving coalescing and
+self-move elimination instead of charging every input pair. -/
+theorem wordStack_move_scheduled_refined_cost {F : Type} (moves : List (Nat × Nat))
+    (kf : Nat × Nat × Nat) (small : kf.2.1 ≤ 92)
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
+    stackExecutionCost (fun p _ => refinedRemovalLocalPrice 6 riscvConfig.addrOffset p)
+      (wMoveNative moves kf) source ≤
+      12 * (Parmove.parmove (moves.map (fun move => (move.1/2,move.2/2)))).length := by
+  unfold wMoveNative
+  have bound := wordStack_move_aux_refined_cost
+    ((Parmove.parmove (moves.map (fun move => (move.1/2,move.2/2)))).map
+      (fun move => (WordToStackRegFormat.formatVar kf.1 move.1,
+        WordToStackRegFormat.formatVar kf.1 move.2))) kf small source
+  simpa only [List.length_map] using bound
+
 /-- The actual scheduler emits at most twice the source move count; each
-emitted stack-to-stack move costs at most fourteen. -/
+emitted stack-to-stack move costs at most twelve. -/
 theorem wordStack_move_refined_cost {F : Type} (moves : List (Nat × Nat))
     (kf : Nat × Nat × Nat) (small : kf.2.1 ≤ 92)
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
@@ -85,6 +100,7 @@ theorem wordStack_singleton_move_refined_cost {F : Type} (dst src : Nat)
         (WordToStackRegFormat.formatVar kf.1 (some (dst/2)),
           WordToStackRegFormat.formatVar kf.1 (some (src/2))) kf small source
 
+#print axioms wordStack_move_scheduled_refined_cost
 #print axioms wordStack_move_refined_cost
 #print axioms wordStack_singleton_move_refined_cost
 end InitECandidate.Runtime.WordToStack

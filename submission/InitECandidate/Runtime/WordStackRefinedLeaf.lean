@@ -12,8 +12,7 @@ def refinedWordStackLeafBudget : WordLangProgHOL (BitVec 64) → Option Nat
   | .tick => some 6
   | .break _ => some 2
   | .inst i => some (refinedNativeInstructionPrice (HolInst.ofWordLangInst i))
-  | .move _ [_] => some 12
-  | .move _ moves => some (24*moves.length)
+  | .move _ moves => some (12*(Parmove.parmove (moves.map (fun move => (move.1/2,move.2/2)))).length)
   | .get _ _ | .set _ _ => some 12
   | .locValue _ _ => some 14
   | .return _ _ => some 15
@@ -32,21 +31,8 @@ theorem refinedExecutedSimulation_leaf {F : Type} (ac : AsmConfigExact 64)
   case tick => subst budget; exact refinedExecutedSimulation_tick ac source
   case inst instruction => subst budget; exact refinedExecutedSimulation_native_instruction ac instruction source
   case move priority moves =>
-    cases moves with
-    | nil =>
-      simp only [refinedWordStackLeafBudget,Option.some.injEq] at priced
-      subst budget
-      exact refinedExecutedSimulation_move ac priority [] source
-    | cons pair rest =>
-      cases rest with
-      | nil =>
-        simp only [refinedWordStackLeafBudget,Option.some.injEq] at priced
-        subst budget
-        exact refinedExecutedSimulation_singleton_move ac priority pair.1 pair.2 source
-      | cons next rest =>
-        simp only [refinedWordStackLeafBudget,Option.some.injEq] at priced
-        subst budget
-        exact refinedExecutedSimulation_move ac priority (pair::next::rest) source
+    subst budget
+    exact refinedExecutedSimulation_scheduled_move ac priority moves source
   case get register name => subst budget; exact refinedExecutedSimulation_get ac register name source
   case set name expression => subst budget; exact refinedExecutedSimulation_set ac name expression source
   case locValue register location => subst budget; exact refinedExecutedSimulation_locValue ac register location source
