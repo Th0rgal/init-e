@@ -903,3 +903,18 @@ in the address domain and `depth < 2^61`:
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. This is an actual PNK
 heap/path preservation lemma; it is not yet connected to a full `htab_set` run
 decomposition.
+
+## 39. Actual Patricia link-write invariants
+
+`ActualLinkMemoryInvariant.lean` defines `NodeLinkInv s node left right route`
+for a 24-byte internal node: memory at `node`, `node+8`, `node+16` holds the
+left child, right child, and route words. It proves:
+
+- `NodeLinkInv.setLeft`: an actual one-word `panMemStoresHOL` at `node`
+  updates the left child and preserves the right child and route;
+- `NodeLinkInv.setRight`: an actual one-word store at `node+8` updates the
+  right child and preserves the left child and route.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. These are actual
+semantics link-write preservation lemmas; linking them into the full
+`htab_set` run remains open.
