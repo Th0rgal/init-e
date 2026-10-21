@@ -1,6 +1,10 @@
 import InitECandidate.Runtime.GuestCostChargeFamily
 import InitECandidate.Runtime.GasFrameExpressions
 namespace InitECandidate.Runtime.FineCost
+
+theorem pcAdd_score_cost (coeff : Work) (n : Nat) :
+    coeff.score (WorkEvent.cost n).units = coeff.nativeCost * n := by
+  simp [Work.score, WorkEvent.units]
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
@@ -77,7 +81,7 @@ theorem pcAdd_return_run (s : PanSemStateFiniteExact 64 F) :
     StatementRun s (.return (.const 0)) (some (.returned (.val (.word 0))))
       (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const 0) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
   StatementRun.returnValue (expression := .const (0 : BitVec 64))
     (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
     (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
@@ -91,7 +95,7 @@ noncomputable def pcAddEvents (s : PanSemStateFiniteExact 64 F) (frame value n :
     (expressionEvents s pcAddAddress ++ expressionEvents s pcAddValue ++
       [.memory (flattenHOL (.val (.word (value + n)))).length] ++
       (.statement :: (expressionEvents stored (.const 0) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])))
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])))
 
 /-- The actual installed `pc_add` helper runs on the fetched program counter. -/
 theorem pcAdd_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVec 64)
@@ -118,11 +122,12 @@ theorem pcAddEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
         coeff.memoryAccesses * (flattenHOL (.val (.word (value + n)))).length +
         expressionCost coeff { s with memory := writeWordMemory s (frame + 0) (value + n) }
           (.const 0) +
-        coeff.movedWords * (flattenHOL (.val (.word (0 : BitVec 64)))).length := by
+        coeff.movedWords * (flattenHOL (.val (.word (0 : BitVec 64)))).length +
+        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)).units := by
   unfold pcAddEvents expressionCost
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
     guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
-    executionWork_nil_score, List.append_nil]
+    executionWork_nil_score, List.append_nil, pcAdd_score_cost]
   omega
 
 #print axioms source_pcAdd_body
