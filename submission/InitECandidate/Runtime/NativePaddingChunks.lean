@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.NativePaddingScan
+import InitECandidate.Proofs.BackendStages.Final
 
 import InitECandidate.Proofs.BackendStages.FinalChunk528_543
 import InitECandidate.Proofs.BackendStages.FinalChunk336_351
@@ -5935,3 +5936,16 @@ theorem padded0_sections_slack : forall s, s ∈ padded0 -> (List.filter InitECa
   · exact padded1_sections_slack s h
 
 end InitECandidate.Proofs.BackendStages.Final
+
+namespace InitECandidate.Runtime.NativePadding
+
+/-- Every instruction of the padded artifact's source list has recorded span at
+most four bytes beyond its byte length. -/
+theorem padded0_insts_slack :
+    (insts InitECandidate.Proofs.BackendStages.Final.padded0).all (padSlackOK (width := 64) 4) = true :=
+  insts_all_of_sections 4 InitECandidate.Proofs.BackendStages.Final.padded0
+    (InitECandidate.Proofs.BackendStages.Final.padded0_sections_slack)
+
+#print axioms padded0_insts_slack
+
+end InitECandidate.Runtime.NativePadding
