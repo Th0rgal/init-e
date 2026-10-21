@@ -847,4 +847,503 @@ theorem wordPathWork_call_returning_exception_union_false {C F : Type}
 #print axioms wordPathWork_call_none_variant
 #print axioms wordPathWork_call_returning_result_variant
 
+set_option maxHeartbeats 2000000 in
+/-- `decClock` commutes syntactically with the oracle/stack substitution. -/
+theorem decClock_stack_permute {C F : Type} (s : WordSemStateFiniteExact 64 C F)
+    (k : Nat → Nat → Nat) (xs : List (WordSemStackFrame 64)) :
+    decClock ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F) =
+      ({ decClock s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F) := rfl
+
+set_option maxHeartbeats 2000000 in
+/-- **`PERM_STACK` executed-work driver (run transport).**  Replacing the
+permutation oracle and the stack roots by a `PERM_STACK`-related stack does not
+change the executed work of any program whose subprograms are allocation- and
+installation-free and whose code map is.  Each constructor transports the actual
+`evaluate` run of its subprograms (`swap_aux`) and consumes the corresponding
+checked step lemma at the transported intermediate states; the sub-run equations
+are the ones the real program produces, so no evaluation premise is assumed. -/
+theorem wordPathWork_permStack_variant {C F : Type} :
+    ∀ (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+      (k : Nat → Nat → Nat) (xs : List (WordSemStackFrame 64)),
+      List.Forall₂ permStack xs s.stack →
+      noAllocSubprogsHOL p = true → noInstallSubprogsHOL p = true →
+      WordProps.noAllocCode s.code → WordProps.noInstallCode s.code →
+      wordPathWork p ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F) =
+        wordPathWork p s
+  | .mustTerminate q, s, k, xs, _, _, _, _, _ => wordPathWork_mustTerminate_variant q s k xs
+  | .seq c1 c2, s, k, xs, hxs, hna, hni, hca, hci => by
+      simp only [noAllocSubprogsHOL, noInstallSubprogsHOL, notCreatedSubprogsWithMemOp,
+        Bool.and_eq_true] at hna hni
+      obtain ⟨k1, xs1, he, hrel⟩ := swap_aux c1 s k xs hxs hna.1 hni.1 hca hci
+      have hcode := code_evaluate c1 s hni.1 hci
+      rcases h1 : evaluate c1 s with ⟨r1, s1⟩
+      have hfix : fixClock s (evaluate c1 s) = (r1, s1) := by
+        simpa only [h1] using fix_clock_evaluate s c1
+      have hdecR : s1.clock ≤ s.clock := (fixClock_IMP_LESS_EQ s r1 s1 _ hfix).1
+      have hdecT : s1.termdep = s.termdep := (fixClock_IMP_LESS_EQ s r1 s1 _ hfix).2
+      rw [h1] at he hrel hcode
+      simp only [Prod.fst, Prod.snd] at he
+      exact wordPathWork_seq_variant c1 c2 s k xs r1 s1 k1 xs1 h1 he
+        (wordPathWork_permStack_variant c1 s k xs hxs hna.1 hni.1 hca hci)
+        (wordPathWork_permStack_variant c2 s1 k1 xs1 hrel hna.2 hni.2 (hcode ▸ hca) (hcode ▸ hci))
+  | .ite cmp reg operand c1 c2, s, k, xs, hxs, hna, hni, hca, hci => by
+      simp only [noAllocSubprogsHOL, noInstallSubprogsHOL, notCreatedSubprogsWithMemOp,
+        Bool.and_eq_true] at hna hni
+      exact wordPathWork_ite_variant cmp reg operand c1 c2 s k xs
+        (wordPathWork_permStack_variant c1 s k xs hxs hna.1 hni.1 hca hci)
+        (wordPathWork_permStack_variant c2 s k xs hxs hna.2 hni.2 hca hci)
+  | .loop names body exitNames, s, k, xs, hxs, hna0, hni0, hca, hci => by
+      have hna := hna0
+      have hni := hni0
+      simp only [noAllocSubprogsHOL, noInstallSubprogsHOL, notCreatedSubprogsWithMemOp,
+        Bool.and_eq_true] at hna hni
+      rcases hcs : cutState (names, .ln) s with _ | cs
+      · have hcsT : cutState (names, .ln) ({ s with permute := k, stack := xs } :
+            WordSemStateFiniteExact 64 C F) = none := by
+          rw [cutState_swap s k xs (names, .ln), hcs]; rfl
+        rw [wordPathWork, wordPathWork, hcsT, hcs]
+      · obtain ⟨l, rfl⟩ := cutStateConst (names, .ln) s cs hcs
+        have hcsT : cutState (names, .ln) ({ s with permute := k, stack := xs } :
+            WordSemStateFiniteExact 64 C F) =
+            some ({ { s with locals := l } with permute := k, stack := xs } :
+              WordSemStateFiniteExact 64 C F) := by
+          rw [cutState_swap s k xs (names, .ln), hcs]; rfl
+        obtain ⟨k1, xs1, he, hrel⟩ := swap_aux body { s with locals := l } k xs hxs hna hni hca hci
+        have hcode := code_evaluate body { s with locals := l } hni hci
+        rcases hb : evaluate body { s with locals := l } with ⟨rb, s1⟩
+        have hfix : fixClock { s with locals := l }
+            (evaluate body { s with locals := l }) = (rb, s1) := by
+          simpa only [hb] using fix_clock_evaluate { s with locals := l } body
+        have hdecR : s1.clock ≤ s.clock := by
+          have hbR := (fixClock_IMP_LESS_EQ { s with locals := l } rb s1 _ hfix).1
+          have hstep : ({ s with locals := l } : WordSemStateFiniteExact 64 C F).clock = s.clock := rfl
+          omega
+        have hdecT : s1.termdep = s.termdep := by
+          have hbT := (fixClock_IMP_LESS_EQ { s with locals := l } rb s1 _ hfix).2
+          have hstep : ({ s with locals := l } : WordSemStateFiniteExact 64 C F).termdep = s.termdep := rfl
+          omega
+        rw [hb] at he hrel hcode
+        simp only [Prod.fst, Prod.snd] at he
+        exact wordPathWork_loop_variant names body exitNames s k xs { s with locals := l }
+          hcs hcsT rb s1 k1 xs1 hb he
+          (wordPathWork_permStack_variant body { s with locals := l } k xs hxs hna hni hca hci)
+          (fun _ => wordPathWork_permStack_variant (.loop names body exitNames) (decClock s1)
+            k1 xs1 hrel hna0 hni0 (hcode ▸ hca) (hcode ▸ hci))
+  | .skip, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .move a b, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .inst a, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .assign a b, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .get a b, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .set a b, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .store a b, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .tick, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .storeConsts a b c d e, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .return a b, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .raise a, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .break a, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .continue a, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .opCurrHeap a b c, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .locValue a b, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .install a b c d e, s, k, xs, _, _, hni, _, _ => by
+      simp [noInstallSubprogsHOL, notCreatedSubprogsWithMemOp] at hni
+  | .codeBufferWrite a b, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .dataBufferWrite a b, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .ffi a b c d e f, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .shareInst a b c, s, k, xs, _, _, _, _, _ => by rw [wordPathWork, wordPathWork]; all_goals simp
+  | .alloc a b, s, k, xs, _, hna, _, _, _ => by
+      simp [noAllocSubprogsHOL, notCreatedSubprogsWithMemOp] at hna
+  | .call ret dest args handler, s, k, xs, hxs, hna, hni, hca, hci => by
+      classical
+      have hgetT : getVars args ({ s with permute := k, stack := xs } :
+          WordSemStateFiniteExact 64 C F) = getVars args s := getVars_swap s k xs args
+      rcases hg : getVars args s with _ | vals0
+      · rw [wordPathWork_call_getVars_none ret dest args handler s hg,
+            wordPathWork_call_getVars_none ret dest args handler
+              ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F)
+              (by rw [hgetT]; exact hg)]
+      · by_cases hbad : wordSemBadDestArgs dest args = true
+        · rw [wordPathWork_call_badDest ret dest args handler s vals0 hg hbad,
+              wordPathWork_call_badDest ret dest args handler
+                ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F) vals0
+                (by rw [hgetT]; exact hg) hbad]
+        · have hbad' : wordSemBadDestArgs dest args = false := by
+            cases h : wordSemBadDestArgs dest args <;> simp_all
+          rcases hf : wordSemFindCode dest (wordSemAddRetLoc ret vals0) s.code s.stackSize with
+            _ | ⟨args1, prog, ss⟩
+          · rw [wordPathWork_call_findCode_none ret dest args handler s vals0 hg hbad' hf,
+                wordPathWork_call_findCode_none ret dest args handler
+                  ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F) vals0
+                  (by rw [hgetT]; exact hg) hbad' hf]
+          · have hpa := WordProps.noAllocFindCode s.code dest _ _ _ prog _ ⟨hf, hca⟩
+            have hpi := WordProps.noInstallFindCode s.code dest _ _ _ prog _ ⟨hci, hf⟩
+            cases ret with
+            | none =>
+                cases handler with
+                | some hh =>
+                    rw [wordPathWork_call_none_handler dest args hh s hg hbad' hf,
+                        wordPathWork_call_none_handler dest args hh
+                          ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F)
+                          (by rw [hgetT]; exact hg) hbad' hf]
+                | none =>
+                    by_cases hz : s.clock = 0
+                    · rw [wordPathWork_call_none_clock_zero dest args s hg hbad' hf hz,
+                          wordPathWork_call_none_clock_zero dest args
+                            ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F)
+                            (by rw [hgetT]; exact hg) hbad' hf hz]
+                    · have hrel0 : List.Forall₂ permStack xs (callEnv args1 ss (decClock s)).stack := by
+                        rw [show (callEnv args1 ss (decClock s)).stack = s.stack from rfl]; exact hxs
+                      have hentry : callEnv args1 ss (decClock ({ s with permute := k, stack := xs } :
+                          WordSemStateFiniteExact 64 C F)) =
+                          { callEnv args1 ss (decClock s) with permute := k, stack := xs } := by
+                        rw [show decClock ({ s with permute := k, stack := xs } :
+                              WordSemStateFiniteExact 64 C F) =
+                              { decClock s with permute := k, stack := xs } from rfl,
+                          callEnv_swap (decClock s) k xs hrel0 args1 ss]
+                      have hdecR : (callEnv args1 ss (decClock s)).clock < s.clock := by
+                        have h2 : (callEnv args1 ss (decClock s)).clock = (decClock s).clock := rfl
+                        have h3 : (decClock s).clock = s.clock - 1 := rfl
+                        omega
+                      have hdecT : (callEnv args1 ss (decClock s)).termdep = s.termdep := by
+                        have h2 : (callEnv args1 ss (decClock s)).termdep = (decClock s).termdep := rfl
+                        have h3 : (decClock s).termdep = s.termdep := rfl
+                        omega
+                      have ihB : wordPathWork prog (callEnv args1 ss (decClock
+                          ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F))) =
+                          wordPathWork prog (callEnv args1 ss (decClock s)) := by
+                        rw [hentry]
+                        exact wordPathWork_permStack_variant prog (callEnv args1 ss (decClock s))
+                          k xs hrel0 hpa hpi hca hci
+                      rw [wordPathWork_call_none_body_eq dest args s vals0 args1 prog ss hg hbad' hf hz,
+                        wordPathWork_call_none_body_eq dest args
+                          ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F)
+                          vals0 args1 prog ss (by rw [hgetT]; exact hg) hbad' hf hz, ihB]
+            | some rv =>
+                obtain ⟨values, names, retCode, l1, l2⟩ := rv
+                have hra : noAllocSubprogsHOL retCode = true := noAlloc_call_ret hna
+                have hri : noInstallSubprogsHOL retCode = true := noInstall_call_ret hni
+                by_cases hdom : sptDomainEmpty names.1 ∨ ¬ values.Nodup
+                · rw [wordPathWork_call_returning_dom values names retCode l1 l2 dest args handler s
+                      vals0 args1 prog ss hg hbad' hf hdom,
+                    wordPathWork_call_returning_dom values names retCode l1 l2 dest args handler
+                      ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F) vals0
+                      args1 prog ss (by rw [hgetT]; exact hg) hbad' hf hdom]
+                · have hdom1 : ¬ sptDomainEmpty names.1 := fun h => hdom (Or.inl h)
+                  have hnodup : values.Nodup := by
+                    by_contra h; exact hdom (Or.inr h)
+                  rcases hc : wordSemCutEnvs names s.locals with _ | envs
+                  · rw [wordPathWork_call_returning_cut_none values names retCode l1 l2 dest args
+                        handler s vals0 args1 prog ss hg hbad' hf hdom1 hnodup hc,
+                      wordPathWork_call_returning_cut_none values names retCode l1 l2 dest args
+                        handler ({ s with permute := k, stack := xs } :
+                          WordSemStateFiniteExact 64 C F) vals0 args1 prog ss
+                        (by rw [hgetT]; exact hg) hbad' hf hdom1 hnodup hc]
+                  · by_cases hz : s.clock = 0
+                    · rw [wordPathWork_call_returning_clock_zero values names retCode l1 l2 dest args
+                          handler s vals0 envs args1 prog ss hg hbad' hf hdom1 hnodup hc hz,
+                        wordPathWork_call_returning_clock_zero values names retCode l1 l2 dest args
+                          handler ({ s with permute := k, stack := xs } :
+                            WordSemStateFiniteExact 64 C F) vals0 envs args1 prog ss
+                          (by rw [hgetT]; exact hg) hbad' hf hdom1 hnodup hc hz]
+                    · obtain ⟨k1, xs1, hpe, hrel1⟩ := pushEnv_swap (decClock s) k xs hxs envs handler
+                      have hpush : pushEnv envs handler (decClock ({ s with permute := k, stack := xs } :
+                          WordSemStateFiniteExact 64 C F)) =
+                          { pushEnv envs handler (decClock s) with permute := k1, stack := xs1 } := by
+                        rw [decClock_stack_permute]
+                        exact hpe
+                      have hentry : callEnv args1 ss (pushEnv envs handler (decClock
+                          ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F))) =
+                          { callEnv args1 ss (pushEnv envs handler (decClock s)) with
+                            permute := k1, stack := xs1 } := by
+                        rw [hpush]
+                        exact callEnv_swap (pushEnv envs handler (decClock s)) k1 xs1 hrel1 args1 ss
+                      have hcpre : (callEnv args1 ss (pushEnv envs handler (decClock s))).code =
+                          s.code := code_pushEnv envs handler _
+                      have hdecR : (callEnv args1 ss (pushEnv envs handler (decClock s))).clock <
+                          s.clock := by
+                        have h1 : (pushEnv envs handler (decClock s)).clock = (decClock s).clock :=
+                          pushEnv_clock _ _ _
+                        have h2 : (callEnv args1 ss (pushEnv envs handler (decClock s))).clock =
+                            (pushEnv envs handler (decClock s)).clock := rfl
+                        have h3 : (decClock s).clock = s.clock - 1 := rfl
+                        omega
+                      have hdecT : (callEnv args1 ss (pushEnv envs handler (decClock s))).termdep =
+                          s.termdep := by
+                        have h1 : (pushEnv envs handler (decClock s)).termdep =
+                            (decClock s).termdep := pushEnv_termdep _ _ _
+                        have h2 : (callEnv args1 ss (pushEnv envs handler (decClock s))).termdep =
+                            (pushEnv envs handler (decClock s)).termdep := rfl
+                        have h3 : (decClock s).termdep = s.termdep := rfl
+                        omega
+                      have ihB : wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock
+                          ({ s with permute := k, stack := xs } :
+                            WordSemStateFiniteExact 64 C F)))) =
+                          wordPathWork prog (callEnv args1 ss (pushEnv envs handler (decClock s))) := by
+                        rw [hentry]
+                        exact wordPathWork_permStack_variant prog
+                          (callEnv args1 ss (pushEnv envs handler (decClock s))) k1 xs1 hrel1 hpa hpi
+                          (hcpre ▸ hca) (hcpre ▸ hci)
+                      obtain ⟨k2, xs2, hrun, hrel2⟩ := swap_aux prog
+                        (callEnv args1 ss (pushEnv envs handler (decClock s))) k1 xs1 hrel1 hpa hpi
+                        (hcpre ▸ hca) (hcpre ▸ hci)
+                      have hcode2 := code_evaluate prog
+                        (callEnv args1 ss (pushEnv envs handler (decClock s))) hpi (hcpre ▸ hci)
+                      rcases hcv : evaluate prog
+                        (callEnv args1 ss (pushEnv envs handler (decClock s))) with ⟨rc, s2⟩
+                      rw [hcv] at hrun hrel2 hcode2
+                      simp only [Prod.fst, Prod.snd] at hrun
+                      have hfixS : fixClock (callEnv args1 ss (pushEnv envs handler (decClock s)))
+                          (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock s)))) =
+                          (rc, s2) := by
+                        simpa only [hcv] using fix_clock_evaluate
+                          (callEnv args1 ss (pushEnv envs handler (decClock s))) prog
+                      have hrunT : evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock
+                          ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F)))) =
+                          (rc, ({ s2 with permute := k2, stack := xs2 } :
+                            WordSemStateFiniteExact 64 C F)) := by
+                        rw [hentry]; exact hrun
+                      have hfixT : fixClock (callEnv args1 ss (pushEnv envs handler (decClock
+                          ({ s with permute := k, stack := xs } : WordSemStateFiniteExact 64 C F))))
+                          (evaluate prog (callEnv args1 ss (pushEnv envs handler (decClock
+                            ({ s with permute := k, stack := xs } :
+                              WordSemStateFiniteExact 64 C F))))) =
+                          (rc, ({ s2 with permute := k2, stack := xs2 } :
+                            WordSemStateFiniteExact 64 C F)) := by
+                        simpa only [hrunT] using fix_clock_evaluate (callEnv args1 ss (pushEnv envs
+                          handler (decClock ({ s with permute := k, stack := xs } :
+                            WordSemStateFiniteExact 64 C F)))) prog
+                      have hdecR2 : s2.clock < s.clock := by
+                        have h1 := (fixClock_IMP_LESS_EQ
+                          (callEnv args1 ss (pushEnv envs handler (decClock s))) rc s2 _ hfixS).1
+                        have h2 : (callEnv args1 ss (pushEnv envs handler (decClock s))).clock =
+                            (decClock s).clock := by
+                          rw [show (callEnv args1 ss (pushEnv envs handler (decClock s))).clock =
+                              (pushEnv envs handler (decClock s)).clock from rfl, pushEnv_clock]
+                        have h3 : (decClock s).clock = s.clock - 1 := rfl
+                        omega
+                      have hdecT2 : s2.termdep = s.termdep := by
+                        have h1 := (fixClock_IMP_LESS_EQ
+                          (callEnv args1 ss (pushEnv envs handler (decClock s))) rc s2 _ hfixS).2
+                        omega
+                      cases rc with
+                      | none =>
+                          rw [wordPathWork_call_returning_other_variant values names retCode l1 l2
+                              dest args handler s k xs vals0 args1 prog ss envs
+                              (none : Option (WordSemResult 64)) s2
+                              ({ s2 with permute := k2, stack := xs2 } :
+                                WordSemStateFiniteExact 64 C F) hg hbad' hf hdom1 hnodup hc hz hcv
+                              (fun l r h => by cases h) (fun l v h => by cases h) hrunT ihB]
+                      | some rc =>
+                       cases rc with
+                        | result location returned =>
+                            by_cases hfall : location ≠ .loc l1 l2 ∨
+                                returned.length ≠ values.length
+                            · rw [wordPathWork_call_returning_result_fall values names retCode l1 l2
+                                  dest args handler s s2 vals0 envs args1 prog ss location returned hg
+                                  hbad' hf hdom1 hnodup hc hz hfixS hfall,
+                                wordPathWork_call_returning_result_fall values names retCode l1 l2
+                                  dest args handler
+                                  ({ s with permute := k, stack := xs } :
+                                    WordSemStateFiniteExact 64 C F)
+                                  ({ s2 with permute := k2, stack := xs2 } :
+                                    WordSemStateFiniteExact 64 C F) vals0 envs args1 prog ss
+                                  location returned (by rw [hgetT]; exact hg) hbad' hf hdom1 hnodup hc
+                                  hz hfixT hfall, ihB]
+                            · have hlocEq : location = .loc l1 l2 := by
+                                by_contra h; exact hfall (Or.inl h)
+                              have hlenEq : returned.length = values.length := by
+                                by_contra h; exact hfall (Or.inr h)
+                              rcases hpop : popEnv s2 with _ | popped
+                              · have hpopT : popEnv ({ s2 with permute := k2, stack := xs2 } :
+                                    WordSemStateFiniteExact 64 C F) = none :=
+                                  (popEnv_swap s2 k2 xs2 hrel2).1 hpop
+                                rw [wordPathWork_call_returning_result_pop_none values names retCode
+                                      l1 l2 dest args handler s s2 vals0 envs args1 prog ss location
+                                      returned hg hbad' hf hdom1 hnodup hc hz hfixS hpop hlocEq hlenEq,
+                                    wordPathWork_call_returning_result_pop_none values names retCode
+                                      l1 l2 dest args handler
+                                      ({ s with permute := k, stack := xs } :
+                                        WordSemStateFiniteExact 64 C F)
+                                      ({ s2 with permute := k2, stack := xs2 } :
+                                        WordSemStateFiniteExact 64 C F) vals0 envs args1 prog ss
+                                      location returned (by rw [hgetT]; exact hg) hbad' hf hdom1
+                                      hnodup hc hz hfixT hpopT hlocEq hlenEq, ihB]
+                              · obtain ⟨xs3, hpopT, hrel3⟩ :=
+                                  (popEnv_swap s2 k2 xs2 hrel2).2 popped hpop
+                                by_cases hdu : sptDomainEqUnion popped.locals envs.1 envs.2
+                                · have hretR : (setVars values returned popped).clock < s.clock := by
+                                    have h1 : (setVars values returned popped).clock = popped.clock := rfl
+                                    have h2 : popped.clock = s2.clock := popEnv_clock s2 popped hpop
+                                    omega
+                                  have hretT : (setVars values returned popped).termdep = s.termdep := by
+                                    have h1 : (setVars values returned popped).termdep =
+                                        popped.termdep := rfl
+                                    have h2 : popped.termdep = s2.termdep :=
+                                      popEnv_termdep s2 popped hpop
+                                    omega
+                                  have hpopCode : popped.code = s2.code := by
+                                    have h2 := hpop
+                                    unfold popEnv at h2
+                                    split at h2 <;> (try cases h2) <;> rfl
+                                  have hentryCode :
+                                      (callEnv args1 ss (pushEnv envs handler (decClock s))).code =
+                                        s.code := by
+                                    rw [show (callEnv args1 ss (pushEnv envs handler (decClock s))).code =
+                                        (pushEnv envs handler (decClock s)).code from rfl,
+                                      code_pushEnv]
+                                    rfl
+                                  have hretCode : (setVars values returned popped).code = s.code := by
+                                    rw [show (setVars values returned popped).code = popped.code from rfl]
+                                    exact (hpopCode.trans hcode2).trans hentryCode
+                                  have ihRet : wordPathWork retCode ({ setVars values returned popped with
+                                      permute := k2, stack := xs3 } :
+                                        WordSemStateFiniteExact 64 C F) =
+                                      wordPathWork retCode (setVars values returned popped) :=
+                                    wordPathWork_permStack_variant retCode
+                                      (setVars values returned popped) k2 xs3 hrel3 hra hri
+                                      (hretCode ▸ hca) (hretCode ▸ hci)
+                                  exact wordPathWork_call_returning_result_variant values names retCode
+                                    l1 l2 dest args handler s k xs vals0 args1 prog ss envs location
+                                    returned s2 ({ s2 with permute := k2, stack := xs2 } :
+                                      WordSemStateFiniteExact 64 C F) popped k2 xs3 hg hbad' hf hdom1
+                                    hnodup hc hz hcv hpop hlocEq hlenEq hdu hrunT hpopT ihB ihRet
+                                · rw [wordPathWork_call_returning_result_union_false values names
+                                      retCode l1 l2 dest args handler s s2 popped vals0 envs args1 prog
+                                      ss location returned hg hbad' hf hdom1 hnodup hc hz hfixS hpop
+                                      hlocEq hlenEq hdu,
+                                    wordPathWork_call_returning_result_union_false values names
+                                      retCode l1 l2 dest args handler
+                                      ({ s with permute := k, stack := xs } :
+                                        WordSemStateFiniteExact 64 C F)
+                                      ({ s2 with permute := k2, stack := xs2 } :
+                                        WordSemStateFiniteExact 64 C F)
+                                      ({ popped with permute := k2, stack := xs3 } :
+                                        WordSemStateFiniteExact 64 C F) vals0 envs args1 prog ss
+                                      location returned (by rw [hgetT]; exact hg) hbad' hf hdom1
+                                      hnodup hc hz hfixT hpopT hlocEq hlenEq (by simpa using hdu),
+                                    ihB]
+                        | exception location value =>
+                            cases handler with
+                            | none =>
+                                rw [wordPathWork_call_returning_exception_unhandled values names
+                                      retCode l1 l2 dest args none s s2 vals0 envs args1 prog ss
+                                      location value hg hbad' hf hdom1 hnodup hc hz hfixS rfl,
+                                    wordPathWork_call_returning_exception_unhandled values names
+                                      retCode l1 l2 dest args none
+                                      ({ s with permute := k, stack := xs } :
+                                        WordSemStateFiniteExact 64 C F)
+                                      ({ s2 with permute := k2, stack := xs2 } :
+                                        WordSemStateFiniteExact 64 C F) vals0 envs args1 prog ss
+                                      location value (by rw [hgetT]; exact hg) hbad' hf hdom1 hnodup
+                                      hc hz hfixT rfl, ihB]
+                            | some hh =>
+                                obtain ⟨reg, handlerCode, h1, h2⟩ := hh
+                                have hha : noAllocSubprogsHOL handlerCode = true :=
+                                  noAlloc_call_handler hna
+                                have hhi : noInstallSubprogsHOL handlerCode = true :=
+                                  noInstall_call_handler hni
+                                by_cases hloc : location = .loc h1 h2
+                                · by_cases hdu : sptDomainEqUnion s2.locals envs.1 envs.2
+                                  · have hhandR : (setVar reg value s2).clock < s.clock := by
+                                      have h1 : (setVar reg value s2).clock = s2.clock := rfl
+                                      omega
+                                    have hhandT : (setVar reg value s2).termdep = s.termdep := by
+                                      have h1 : (setVar reg value s2).termdep = s2.termdep := rfl
+                                      omega
+                                    have hhandCode : (setVar reg value s2).code = s.code := by
+                                      rw [show (setVar reg value s2).code = s2.code from rfl]
+                                      exact hcode2
+                                    have ihHand : wordPathWork handlerCode ({ setVar reg value s2 with
+                                        permute := k2, stack := xs2 } :
+                                          WordSemStateFiniteExact 64 C F) =
+                                        wordPathWork handlerCode (setVar reg value s2) :=
+                                      wordPathWork_permStack_variant handlerCode (setVar reg value s2)
+                                        k2 xs2 hrel2 hha hhi (hhandCode ▸ hca) (hhandCode ▸ hci)
+                                    exact wordPathWork_call_returning_exception_variant values names
+                                      retCode l1 l2 dest args (some (reg, handlerCode, h1, h2)) s k xs vals0 args1 prog ss envs
+                                      location value s2 k2 xs2 reg handlerCode h1 h2 hg hbad' hf
+                                      hdom1 hnodup hc hz hcv rfl hloc hdu hrunT ihB ihHand
+                                  · rw [wordPathWork_call_returning_exception_union_false values names
+                                        retCode l1 l2 dest args (some (reg, handlerCode, h1, h2)) s s2 vals0 envs args1 prog ss
+                                        location value reg handlerCode h1 h2 hg hbad' hf hdom1 hnodup
+                                        hc hz hfixS rfl hloc hdu,
+                                      wordPathWork_call_returning_exception_union_false values names
+                                        retCode l1 l2 dest args (some (reg, handlerCode, h1, h2))
+                                        ({ s with permute := k, stack := xs } :
+                                          WordSemStateFiniteExact 64 C F)
+                                        ({ s2 with permute := k2, stack := xs2 } :
+                                          WordSemStateFiniteExact 64 C F) vals0 envs args1 prog ss
+                                        location value reg handlerCode h1 h2 (by rw [hgetT]; exact hg)
+                                        hbad' hf hdom1 hnodup hc hz hfixT rfl hloc
+                                        (by simpa using hdu), ihB]
+                                · rw [wordPathWork_call_returning_exception_fall values names retCode
+                                      l1 l2 dest args (some (reg, handlerCode, h1, h2)) s s2 vals0 envs args1 prog ss location
+                                      value reg handlerCode h1 h2 hg hbad' hf hdom1 hnodup hc hz
+                                      hfixS rfl hloc,
+                                    wordPathWork_call_returning_exception_fall values names retCode
+                                      l1 l2 dest args (some (reg, handlerCode, h1, h2))
+                                      ({ s with permute := k, stack := xs } :
+                                        WordSemStateFiniteExact 64 C F)
+                                      ({ s2 with permute := k2, stack := xs2 } :
+                                        WordSemStateFiniteExact 64 C F) vals0 envs args1 prog ss
+                                      location value reg handlerCode h1 h2 (by rw [hgetT]; exact hg)
+                                      hbad' hf hdom1 hnodup hc hz hfixT rfl hloc, ihB]
+                        | «break» label =>
+                            rw [wordPathWork_call_returning_other_variant values names retCode l1 l2
+                                dest args handler s k xs vals0 args1 prog ss envs (some (.break label))
+                                s2 ({ s2 with permute := k2, stack := xs2 } :
+                                  WordSemStateFiniteExact 64 C F) hg hbad' hf hdom1 hnodup hc hz hcv
+                                (fun l r h => by cases h) (fun l v h => by cases h) hrunT ihB]
+                        | «continue» label =>
+                            rw [wordPathWork_call_returning_other_variant values names retCode l1 l2
+                                dest args handler s k xs vals0 args1 prog ss envs (some (.continue label))
+                                s2 ({ s2 with permute := k2, stack := xs2 } :
+                                  WordSemStateFiniteExact 64 C F) hg hbad' hf hdom1 hnodup hc hz hcv
+                                (fun l r h => by cases h) (fun l v h => by cases h) hrunT ihB]
+                        | timeOut =>
+                            rw [wordPathWork_call_returning_other_variant values names retCode l1 l2
+                                dest args handler s k xs vals0 args1 prog ss envs (some .timeOut) s2
+                                ({ s2 with permute := k2, stack := xs2 } :
+                                  WordSemStateFiniteExact 64 C F) hg hbad' hf hdom1 hnodup hc hz hcv
+                                (fun l r h => by cases h) (fun l v h => by cases h) hrunT ihB]
+                        | notEnoughSpace =>
+                            rw [wordPathWork_call_returning_other_variant values names retCode l1 l2
+                                dest args handler s k xs vals0 args1 prog ss envs
+                                (some .notEnoughSpace) s2 ({ s2 with permute := k2, stack := xs2 } :
+                                  WordSemStateFiniteExact 64 C F) hg hbad' hf hdom1 hnodup hc hz hcv
+                                (fun l r h => by cases h) (fun l v h => by cases h) hrunT ihB]
+                        | finalFfi ev =>
+                            rw [wordPathWork_call_returning_other_variant values names retCode l1 l2
+                                dest args handler s k xs vals0 args1 prog ss envs
+                                (some (.finalFfi ev)) s2 ({ s2 with permute := k2, stack := xs2 } :
+                                  WordSemStateFiniteExact 64 C F) hg hbad' hf hdom1 hnodup hc hz hcv
+                                (fun l r h => by cases h) (fun l v h => by cases h) hrunT ihB]
+                        | error =>
+                            rw [wordPathWork_call_returning_other_variant values names retCode l1 l2
+                                dest args handler s k xs vals0 args1 prog ss envs (some .error) s2
+                                ({ s2 with permute := k2, stack := xs2 } :
+                                  WordSemStateFiniteExact 64 C F) hg hbad' hf hdom1 hnodup hc hz hcv
+                                (fun l r h => by cases h) (fun l v h => by cases h) hrunT ihB]
+
+  termination_by p s k xs => (s.termdep, s.clock, sizeOf p)
+  decreasing_by
+    all_goals
+      simp_wf
+      apply wordSemLex
+      try (have h1 := hdecR)
+      try (have h2 := hdecT)
+      try (have h3 := hdecR2)
+      try (have h4 := hdecT2)
+      try (have h5 := hretR)
+      try (have h6 := hretT)
+      try (have h7 := hhandR)
+      try (have h8 := hhandT)
+      try (have hfc := fixClock_IMP_LESS_EQ _ _ _ _ _h)
+      try (have hcs := cutState_clock_termdep _ _ _ _hs)
+      try (have hpc := popEnv_clock _ _ _hp)
+      try (have hpt := popEnv_termdep _ _ _hp)
+      try simp only [Flapjack.WordSemStateFiniteExact.callEnv,
+        Flapjack.WordSemStateFiniteExact.decClock, Flapjack.WordSemStateFiniteExact.setVars,
+        Flapjack.WordSemStateFiniteExact.setVar, pushEnv_clock, pushEnv_termdep,
+        wordSemSTOP, true_and] at *
+      omega
 end InitECandidate.Runtime.FineCost
