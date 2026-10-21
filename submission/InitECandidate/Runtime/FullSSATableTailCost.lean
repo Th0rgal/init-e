@@ -32,14 +32,13 @@ def FullSSATableFunctionAt {C F : Type}
 
 def FullSSATableFunctionIH {C F : Type} (SP TP : WordLangProgHOL (BitVec 64) → Nat)
     (depth clock : Nat) : Prop :=
-  ∀ (body : WordLangProgHOL (BitVec 64)) (arguments : List (WordLocW 64))
-    (size : Option Nat) (base : WordSemStateFiniteExact 64 C F),
-    Prod.Lex (· < ·) (· < ·) ((callEnv arguments size base).termdep,(callEnv arguments size base).clock)
-      (depth,clock) →
-    noInstallSubprogsHOL body = true → WordProps.noInstallCode base.code →
-    (let setup := setupSSA (outputWidth := 64) arguments.length (limitVar body) body;
+  ∀ (body : WordLangProgHOL (BitVec 64)) (count : Nat) (entry : WordSemStateFiniteExact 64 C F),
+    Prod.Lex (· < ·) (· < ·) (entry.termdep,entry.clock) (depth,clock) →
+    noInstallSubprogsHOL body = true → WordProps.noInstallCode entry.code →
+    sptDomain entry.locals = (fun key => key ∈ evenList count) →
+    (let setup := setupSSA (outputWidth := 64) count (limitVar body) body;
       ssaCostFits SP TP body setup.2.1 setup.2.2 []) →
-    FullSSATableFunctionAt SP TP body arguments.length (callEnv arguments size base)
+    FullSSATableFunctionAt SP TP body count entry
 
 /-- A tail call through the actual full-SSA table. The only callee execution
 hypothesis is guarded by a strictly smaller clock/depth pair. Static funding
@@ -132,8 +131,8 @@ theorem fullSSATable_tail_cost {C F : Type}
         have bodyFree := WordProps.noInstallFindCode source.code destination inputs source.stackSize
           actualArguments body size ⟨codeFree,found⟩
         have bodyFits := fits inputs actualArguments body size found
-        obtain ⟨permutation,post⟩ := ih body actualArguments size base smaller bodyFree codeFree
-          bodyFits
+        obtain ⟨permutation,post⟩ := ih body actualArguments.length entry smaller bodyFree codeFree
+          (sptDomainFromList2 actualArguments) bodyFits
         let sourceState := {source with permute := permutation}
         have sourceRead : getVars arguments sourceState = some inputs := by
           rw [getVars_withPermute]
