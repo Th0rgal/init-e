@@ -26,7 +26,7 @@ theorem u256Lt_run_limb3_less (s : PanSemStateFiniteExact 64 F)
   have ret1 : StatementRun s (.return (.const (1 : BitVec 64)))
       (some (.returned (.val (.word (1 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (1 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (1 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (1 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (1 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
@@ -35,9 +35,9 @@ theorem u256Lt_run_limb3_less (s : PanSemStateFiniteExact 64 F)
           (.rfield 3 (.var VarKind.local (ofString "b"))))
         (.return (.const (1 : BitVec 64))) .skip)
       (some (.returned (.val (.word (1 : BitVec 64))))) (emptyLocalsHOLFinite s)
-      (.statement :: (expressionEvents s _ ++
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++
         (.statement :: (expressionEvents s (.const (1 : BitVec 64)) ++
-          [.copy (flattenHOL (.val (.word (1 : BitVec 64)))).length])))) :=
+          [.cost (returnOverhead (flattenHOL (.val (.word (1 : BitVec 64)))).length)])))) :=
     StatementRun.iteYes (costedExpression_events s _ _ ltGuard) (by decide) ret1
   have limb3Yes : StatementRun s
       (.seq (.ite (.cmp Cmp.lower (.rfield 3 (.var VarKind.local (ofString "a")))
@@ -78,7 +78,7 @@ theorem u256Lt_run_limb3_greater (s : PanSemStateFiniteExact 64 F)
   have ret0 : StatementRun s (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (0 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (0 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
@@ -86,7 +86,7 @@ theorem u256Lt_run_limb3_greater (s : PanSemStateFiniteExact 64 F)
       (.ite (.cmp Cmp.lower (.rfield 3 (.var VarKind.local (ofString "a")))
           (.rfield 3 (.var VarKind.local (ofString "b"))))
         (.return (.const (1 : BitVec 64))) .skip) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _ ltGuard) (StatementRun.skip s)
   have limb3Yes : StatementRun s
       (.seq (.ite (.cmp Cmp.lower (.rfield 3 (.var VarKind.local (ofString "a")))
@@ -119,19 +119,19 @@ theorem u256Lt_run_limb2_less (s : PanSemStateFiniteExact 64 F)
   have hb3 := eval_rfield_four_three s (ofString "b") b0 b1 b2 b3 hB
   have eqGuard := eval_cmp_word_ne_false s _ _ a3 b3 ha3 hb3 h3
   have topIte : StatementRun s (u256LtLimb 3) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _ eqGuard) (StatementRun.skip s)
   have ret0 : StatementRun s (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (0 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (0 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   have ret1 : StatementRun s (.return (.const (1 : BitVec 64)))
       (some (.returned (.val (.word (1 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (1 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (1 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (1 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (1 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
@@ -180,25 +180,25 @@ theorem u256Lt_run_limb1_less (s : PanSemStateFiniteExact 64 F)
   have hb3 := eval_rfield_four_three s (ofString "b") b0 b1 b2 b3 hB
   have eqGuard3 := eval_cmp_word_ne_false s _ _ a3 b3 ha3 hb3 h3
   have skip3 : StatementRun s (u256LtLimb 3) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _ eqGuard3) (StatementRun.skip s)
   have ha2 := eval_rfield_four_two s (ofString "a") a0 a1 a2 a3 hA
   have hb2 := eval_rfield_four_two s (ofString "b") b0 b1 b2 b3 hB
   have eqGuard2 := eval_cmp_word_ne_false s _ _ a2 b2 ha2 hb2 h2
   have skip2 : StatementRun s (u256LtLimb 2) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _ eqGuard2) (StatementRun.skip s)
   have ret0 : StatementRun s (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (0 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (0 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   have ret1 : StatementRun s (.return (.const (1 : BitVec 64)))
       (some (.returned (.val (.word (1 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (1 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (1 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (1 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (1 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
@@ -250,33 +250,33 @@ theorem u256Lt_run_limb0_less (s : PanSemStateFiniteExact 64 F)
   have ret0 : StatementRun s (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (0 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (0 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   have ret1 : StatementRun s (.return (.const (1 : BitVec 64)))
       (some (.returned (.val (.word (1 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (1 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (1 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (1 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (1 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   have ha3 := eval_rfield_four_three s (ofString "a") a0 a1 a2 a3 hA
   have hb3 := eval_rfield_four_three s (ofString "b") b0 b1 b2 b3 hB
   have skip3 : StatementRun s (u256LtLimb 3) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _
       (eval_cmp_word_ne_false s _ _ a3 b3 ha3 hb3 h3)) (StatementRun.skip s)
   have ha2 := eval_rfield_four_two s (ofString "a") a0 a1 a2 a3 hA
   have hb2 := eval_rfield_four_two s (ofString "b") b0 b1 b2 b3 hB
   have skip2 : StatementRun s (u256LtLimb 2) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _
       (eval_cmp_word_ne_false s _ _ a2 b2 ha2 hb2 h2)) (StatementRun.skip s)
   have ha1 := eval_rfield_four_one s (ofString "a") a0 a1 a2 a3 hA
   have hb1 := eval_rfield_four_one s (ofString "b") b0 b1 b2 b3 hB
   have skip1 : StatementRun s (u256LtLimb 1) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _
       (eval_cmp_word_ne_false s _ _ a1 b1 ha1 hb1 h1)) (StatementRun.skip s)
   have ha0 := eval_rfield_four_zero s (ofString "a") a0 a1 a2 a3 hA
@@ -324,7 +324,7 @@ theorem u256Lt_limb_greater_run (s : PanSemStateFiniteExact 64 F) (index : Nat)
   have ret0 : StatementRun s (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (0 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (0 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
@@ -332,7 +332,7 @@ theorem u256Lt_limb_greater_run (s : PanSemStateFiniteExact 64 F) (index : Nat)
       (.ite (.cmp Cmp.lower (.rfield index (.var VarKind.local (ofString "a")))
           (.rfield index (.var VarKind.local (ofString "b"))))
         (.return (.const (1 : BitVec 64))) .skip) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _ ltGuard) (StatementRun.skip s)
   have yes : StatementRun s
       (.seq (.ite (.cmp Cmp.lower (.rfield index (.var VarKind.local (ofString "a")))
@@ -358,7 +358,7 @@ theorem u256Lt_run_limb2_greater (s : PanSemStateFiniteExact 64 F)
   have ha3 := eval_rfield_four_three s (ofString "a") a0 a1 a2 a3 hA
   have hb3 := eval_rfield_four_three s (ofString "b") b0 b1 b2 b3 hB
   have skip3 : StatementRun s (u256LtLimb 3) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _
       (eval_cmp_word_ne_false s _ _ a3 b3 ha3 hb3 h3)) (StatementRun.skip s)
   have ha2 := eval_rfield_four_two s (ofString "a") a0 a1 a2 a3 hA
@@ -390,13 +390,13 @@ theorem u256Lt_run_limb1_greater (s : PanSemStateFiniteExact 64 F)
   have ha3 := eval_rfield_four_three s (ofString "a") a0 a1 a2 a3 hA
   have hb3 := eval_rfield_four_three s (ofString "b") b0 b1 b2 b3 hB
   have skip3 : StatementRun s (u256LtLimb 3) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _
       (eval_cmp_word_ne_false s _ _ a3 b3 ha3 hb3 h3)) (StatementRun.skip s)
   have ha2 := eval_rfield_four_two s (ofString "a") a0 a1 a2 a3 hA
   have hb2 := eval_rfield_four_two s (ofString "b") b0 b1 b2 b3 hB
   have skip2 : StatementRun s (u256LtLimb 2) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _
       (eval_cmp_word_ne_false s _ _ a2 b2 ha2 hb2 h2)) (StatementRun.skip s)
   have ha1 := eval_rfield_four_one s (ofString "a") a0 a1 a2 a3 hA
@@ -428,26 +428,26 @@ theorem u256Lt_run_limb0_not_less (s : PanSemStateFiniteExact 64 F)
   have ret0 : StatementRun s (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const (0 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (0 : BitVec 64))
       (costedExpression_events s _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
   have ha3 := eval_rfield_four_three s (ofString "a") a0 a1 a2 a3 hA
   have hb3 := eval_rfield_four_three s (ofString "b") b0 b1 b2 b3 hB
   have skip3 : StatementRun s (u256LtLimb 3) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _
       (eval_cmp_word_ne_false s _ _ a3 b3 ha3 hb3 h3)) (StatementRun.skip s)
   have ha2 := eval_rfield_four_two s (ofString "a") a0 a1 a2 a3 hA
   have hb2 := eval_rfield_four_two s (ofString "b") b0 b1 b2 b3 hB
   have skip2 : StatementRun s (u256LtLimb 2) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _
       (eval_cmp_word_ne_false s _ _ a2 b2 ha2 hb2 h2)) (StatementRun.skip s)
   have ha1 := eval_rfield_four_one s (ofString "a") a0 a1 a2 a3 hA
   have hb1 := eval_rfield_four_one s (ofString "b") b0 b1 b2 b3 hB
   have skip1 : StatementRun s (u256LtLimb 1) none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _
       (eval_cmp_word_ne_false s _ _ a1 b1 ha1 hb1 h1)) (StatementRun.skip s)
   have ha0 := eval_rfield_four_zero s (ofString "a") a0 a1 a2 a3 hA
@@ -460,7 +460,7 @@ theorem u256Lt_run_limb0_not_less (s : PanSemStateFiniteExact 64 F)
     rw [ltValue]
     simp [hnotlt]
   have finalRun : StatementRun s u256LtFinal none s
-      (.statement :: (expressionEvents s _ ++ [.statement])) :=
+      (.statement :: .cost statementUnit :: (expressionEvents s _ ++ [.statement])) :=
     StatementRun.iteNo (costedExpression_events s _ _ ltGuard) (StatementRun.skip s)
   have finalSeq : StatementRun s (.seq u256LtFinal (.return (.const (0 : BitVec 64))))
       (some (.returned (.val (.word (0 : BitVec 64))))) (emptyLocalsHOLFinite s) _ :=
