@@ -1872,4 +1872,63 @@ theorem fixInconsistencies_allocOnly (prio : Option (Unit ⊕ Unit))
   exact AllocOnly.seq _ _ (AllocOnly.move _ _) (fakeMoves_allocOnly prio _ _ _ _)
 
 #print axioms fixInconsistencies_allocOnly
+/-! ## Appending the allocator suffix to a compiled branch
+
+The quantitative transfer of `first` against `bodyC` lifts to `first` against `bodyC` FOLLOWED BY the
+inconsistency-fixing suffix, at the cost of one extra charge: the suffix's own cost, which is a
+constant by state independence (`hsufCost`).  The suffix's fall-through (`hsufFall`) is what makes the
+composite run keep the outcome - the suffix cannot escape, so the composite's result is the body's
+result, which is already equal to the source's by the body's transfer.
+
+This is the exact shape a compiled ite/loop/call branch has (`ssaCcTrans_ite_shape` wraps each branch
+as `.seq body suffix`), so the constructor cases reduce to instantiating it. -/
+theorem seq_suffix_transfer {C F : Type}
+    (first bodyC suf : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (extra : Nat)
+    (s0 : WordSemStateFiniteExact 64 C F)
+    (hsufFall : ∀ (s : WordSemStateFiniteExact 64 C F), (fixClock s (WordSemStateFiniteExact.evaluate suf s)).1 = none)
+    (hsufCost : ∀ (s t : WordSemStateFiniteExact 64 C F), wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice suf s = wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice suf t)
+    (hbody : quantTransfer (C := C) (F := F) first bodyC source target extra) :
+    quantTransfer (C := C) (F := F) first (.seq bodyC suf) source target
+      (extra + wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice suf s0) := by
+  obtain ⟨⟨rS, sS, rT, sT, hrunS, hrunT, hout⟩, hcost⟩ := hbody
+  have hpres : ∀ (res : Option (WordSemResult 64)) (mid : WordSemStateFiniteExact 64 C F),
+      fixClock target (WordSemStateFiniteExact.evaluate bodyC target) = (res, mid) → res = rT := by
+    intro res mid h
+    have h1 := fixClock_fst target (WordSemStateFiniteExact.evaluate bodyC target)
+    rw [h] at h1
+    rw [hrunT] at h1
+    simpa using h1
+  cases hfx : fixClock target (WordSemStateFiniteExact.evaluate bodyC target) with
+  | mk res mid =>
+    have hres : res = rT := hpres res mid hfx
+    cases res with
+    | none =>
+        have hrT : rT = none := hres.symm
+        have hcomp : WordSemStateFiniteExact.evaluate (.seq bodyC suf) target = WordSemStateFiniteExact.evaluate suf mid :=
+          evaluate_seq_none bodyC suf target mid hfx
+        refine ⟨⟨none, sS, (WordSemStateFiniteExact.evaluate suf mid).1, (WordSemStateFiniteExact.evaluate suf mid).2, ?_, ?_, ?_⟩, ?_⟩
+        · rw [hrunS, hout, hrT]
+        · rw [hcomp]
+        · rw [← fixClock_fst mid (WordSemStateFiniteExact.evaluate suf mid), hsufFall mid]
+        · rw [wec_seq_none_split_generic InitECandidate.Runtime.WordToStack.refinedWordLocalPrice bodyC suf target mid hfx,
+              refinedWordLocalPrice_seq_zero bodyC suf target]
+          have hs := hsufCost mid s0
+          omega
+    | some v =>
+        have hnone : (fixClock target (WordSemStateFiniteExact.evaluate bodyC target)).1 = none → False := by
+          intro h
+          rw [hfx] at h
+          cases h
+        have hcomp : WordSemStateFiniteExact.evaluate (.seq bodyC suf) target = (some v, mid) :=
+          evaluate_seq_escape bodyC suf target mid (some v) hfx (by intro h; cases h)
+        refine ⟨⟨rS, sS, some v, mid, ?_, ?_, ?_⟩, ?_⟩
+        · exact hrunS
+        · exact hcomp
+        · exact hout.trans hres.symm
+        · rw [wec_seq_some_split_generic InitECandidate.Runtime.WordToStack.refinedWordLocalPrice bodyC suf target hnone,
+              refinedWordLocalPrice_seq_zero bodyC suf target]
+          omega
+
+#print axioms seq_suffix_transfer
 end InitECandidate.Runtime.FineCost
