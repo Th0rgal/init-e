@@ -586,4 +586,34 @@ theorem seq_transfer_escape {C F : Type}
   omega
 
 #print axioms seq_transfer_escape
+
+/-- `ite` stage transfer.  Both `ssaCcTrans` branches on the condition, so the run-side
+shape is: the node costs its own price plus the selected branch's cost (that is the
+`.ite` clause of the counter, instantiated at each side's own selection).  Given those
+two branch selections and the branch transfer, the whole-`ite` transfer holds with the
+certified node-price overhead on the source side only.  The selected branches `bS`,
+`bT` are the compiled branches `(ssaCcTrans e2 ssa na lt).1` / `(ssaCcTrans e3 ssa na lt).1`
+wrapped by the merge suffix `fixInconsistencies ...` that `ssaCcTrans_ite_shape` emits. -/
+theorem ite_transfer_of_branch {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 : WordLangProgHOL (BitVec 64))
+    (bS bT : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (extraNode extra1 : Nat)
+    (hdecS : wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) source =
+      nativeWordPrice (.ite cmp r1 ri e2 e3) source +
+        wordExecutionCost nativeWordPrice bS source)
+    (hdecT : wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) target =
+      nativeWordPrice (.ite cmp r1 ri e2 e3) target +
+        wordExecutionCost nativeWordPrice bT target)
+    (hnode : nativeWordPrice (.ite cmp r1 ri e2 e3) target <=
+      nativeWordPrice (.ite cmp r1 ri e2 e3) source + extraNode)
+    (hb : wordExecutionCost nativeWordPrice bT target <=
+      wordExecutionCost nativeWordPrice bS source + extra1) :
+    wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) target <=
+      wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) source + extraNode + extra1 := by
+  rw [hdecS, hdecT]
+  omega
+
+#print axioms ite_transfer_of_branch
 end InitECandidate.Runtime.FineCost
