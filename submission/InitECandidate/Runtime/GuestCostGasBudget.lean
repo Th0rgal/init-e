@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.PanCostTotal
+set_option maxHeartbeats 1000000
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -80,7 +81,7 @@ def GasAmortizedBody (coeff : Work) (condition : ExpHOL 64) (loopBody : ProgHOL 
   (∀ (state : PanSemStateFiniteExact 64 F) (value : Option (ValueHOL 64))
       (events : List WorkEvent),
       I state → CostedExpressionRun state condition value events →
-        coeff.score (executionWork (WorkEvent.statement :: events)) ≤ D)
+        coeff.score (executionWork (WorkEvent.statement :: .cost whileOverhead :: events)) ≤ D)
 
 /-- Program-indexed loop budget: the amortized statement for a loop program, and
 `True` for every other constructor. Indexing the budget by the program is what
@@ -128,9 +129,17 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
     have guardBound := guards _ _ _ initial guard
-    have splitGuard := executionWork_score_cons coeff .statement guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    rw [splitGuardPrefix, splitGuardCost] at guardBound
+    have guardTotal : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead :: guardEvents)) =
+        coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            coeff.score (executionWork guardEvents)) := by
+      rw [splitGuardPrefix, splitGuardCost]
     refine ⟨?_, Nat.le_refl _⟩
-    rw [Nat.sub_self, Nat.mul_zero]
+    rw [Nat.sub_self, Nat.mul_zero, guardTotal]
     omega
   | @whileNext state condition body value guardEvents middle result post bodyEvents restEvents
       guard nonzero clock one rest ihOne ihRest =>
@@ -142,16 +151,58 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
     simp only [clockInvariant] at stepMono stepProgress stepCost
     have progress : μ state + 1 ≤ μ middle := stepProgress (by simp)
     have guardBound := guards _ _ _ initial guard
-    have splitGuard := executionWork_score_cons coeff .statement guardEvents
-    have splitStatement := executionWork_score_cons coeff .statement (guardEvents ++ bodyEvents ++ restEvents)
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    rw [splitGuardPrefix, splitGuardCost] at guardBound
+    have splitStatement := executionWork_score_cons coeff .statement
+      (.cost whileOverhead :: (guardEvents ++ (bodyEvents ++ restEvents)))
+    have splitCost := executionWork_score_cons coeff (.cost whileOverhead)
+      (guardEvents ++ (bodyEvents ++ restEvents))
     have splitFirst := executionWork_score_append coeff guardEvents (bodyEvents ++ restEvents)
     have splitSecond := executionWork_score_append coeff bodyEvents restEvents
     have arithmetic := gas_budget_continue_arith (start := μ state) (middle := μ middle)
       (post := μ post) (C := C) (B := B) (D := D) (by omega) progress
     refine ⟨?_, by omega⟩
-    rw [splitStatement, List.append_assoc, splitFirst, splitSecond]
-    refine Nat.le_trans ?_ arithmetic
-    omega
+    have htotal : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead ::
+          (guardEvents ++ (bodyEvents ++ restEvents)))) =
+        coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            (coeff.score (executionWork guardEvents) +
+              (coeff.score (executionWork bodyEvents) +
+                coeff.score (executionWork restEvents)))) := by
+      rw [splitStatement, splitCost, splitFirst, splitSecond]
+    have hprefix : coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            coeff.score (executionWork guardEvents)) ≤ D := guardBound
+    have hbody : coeff.score (executionWork bodyEvents) ≤
+        C * (μ middle - μ state) + B := stepCost
+    have hrest : coeff.score (executionWork restEvents) ≤
+        (C + B + D) * (μ post - μ middle) + (B + D) := restBound
+    have jbound : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead ::
+          (guardEvents ++ (bodyEvents ++ restEvents)))) ≤
+        C * (μ middle - μ state) +
+          ((C + B + D) * (μ post - μ middle) + (B + D)) + D + B := by
+      have hsum := Nat.add_le_add (Nat.add_le_add hprefix hbody) hrest
+      calc
+        coeff.score (executionWork
+            (WorkEvent.statement :: .cost whileOverhead ::
+              (guardEvents ++ (bodyEvents ++ restEvents)))) =
+            (coeff.score WorkEvent.statement.units +
+              (coeff.score (WorkEvent.cost whileOverhead).units +
+                coeff.score (executionWork guardEvents))) +
+              coeff.score (executionWork bodyEvents) +
+              coeff.score (executionWork restEvents) := by
+            simpa only [Nat.add_assoc] using htotal
+        _ ≤ D + (C * (μ middle - μ state) + B) +
+              ((C + B + D) * (μ post - μ middle) + (B + D)) := by
+            simpa only [Nat.add_assoc] using hsum
+        _ = C * (μ middle - μ state) +
+              ((C + B + D) * (μ post - μ middle) + (B + D)) + D + B := by omega
+    simp only [List.append_assoc]
+    refine Nat.le_trans jbound ?_
+    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using arithmetic
   | @whileContinue state condition body value guardEvents middle result post bodyEvents restEvents
       guard nonzero clock one rest ihOne ihRest =>
     simp only [LoopBudget]
@@ -162,16 +213,58 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
     simp only [clockInvariant] at stepMono stepProgress stepCost
     have progress : μ state + 1 ≤ μ middle := stepProgress (by simp)
     have guardBound := guards _ _ _ initial guard
-    have splitGuard := executionWork_score_cons coeff .statement guardEvents
-    have splitStatement := executionWork_score_cons coeff .statement (guardEvents ++ bodyEvents ++ restEvents)
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    rw [splitGuardPrefix, splitGuardCost] at guardBound
+    have splitStatement := executionWork_score_cons coeff .statement
+      (.cost whileOverhead :: (guardEvents ++ (bodyEvents ++ restEvents)))
+    have splitCost := executionWork_score_cons coeff (.cost whileOverhead)
+      (guardEvents ++ (bodyEvents ++ restEvents))
     have splitFirst := executionWork_score_append coeff guardEvents (bodyEvents ++ restEvents)
     have splitSecond := executionWork_score_append coeff bodyEvents restEvents
     have arithmetic := gas_budget_continue_arith (start := μ state) (middle := μ middle)
       (post := μ post) (C := C) (B := B) (D := D) (by omega) progress
     refine ⟨?_, by omega⟩
-    rw [splitStatement, List.append_assoc, splitFirst, splitSecond]
-    refine Nat.le_trans ?_ arithmetic
-    omega
+    have htotal : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead ::
+          (guardEvents ++ (bodyEvents ++ restEvents)))) =
+        coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            (coeff.score (executionWork guardEvents) +
+              (coeff.score (executionWork bodyEvents) +
+                coeff.score (executionWork restEvents)))) := by
+      rw [splitStatement, splitCost, splitFirst, splitSecond]
+    have hprefix : coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            coeff.score (executionWork guardEvents)) ≤ D := guardBound
+    have hbody : coeff.score (executionWork bodyEvents) ≤
+        C * (μ middle - μ state) + B := stepCost
+    have hrest : coeff.score (executionWork restEvents) ≤
+        (C + B + D) * (μ post - μ middle) + (B + D) := restBound
+    have jbound : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead ::
+          (guardEvents ++ (bodyEvents ++ restEvents)))) ≤
+        C * (μ middle - μ state) +
+          ((C + B + D) * (μ post - μ middle) + (B + D)) + D + B := by
+      have hsum := Nat.add_le_add (Nat.add_le_add hprefix hbody) hrest
+      calc
+        coeff.score (executionWork
+            (WorkEvent.statement :: .cost whileOverhead ::
+              (guardEvents ++ (bodyEvents ++ restEvents)))) =
+            (coeff.score WorkEvent.statement.units +
+              (coeff.score (WorkEvent.cost whileOverhead).units +
+                coeff.score (executionWork guardEvents))) +
+              coeff.score (executionWork bodyEvents) +
+              coeff.score (executionWork restEvents) := by
+            simpa only [Nat.add_assoc] using htotal
+        _ ≤ D + (C * (μ middle - μ state) + B) +
+              ((C + B + D) * (μ post - μ middle) + (B + D)) := by
+            simpa only [Nat.add_assoc] using hsum
+        _ = C * (μ middle - μ state) +
+              ((C + B + D) * (μ post - μ middle) + (B + D)) + D + B := by omega
+    simp only [List.append_assoc]
+    refine Nat.le_trans jbound ?_
+    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using arithmetic
   | @whileBreak state condition body value guardEvents post bodyEvents guard nonzero clock one =>
     simp only [LoopBudget]
     obtain ⟨steps, guards⟩ := amortized _ _ rfl
@@ -179,31 +272,73 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
       steps _ _ _ _ (clockStep state initial) one
     simp only [clockInvariant] at stepMono stepCost
     have guardBound := guards _ _ _ initial guard
-    have splitGuard := executionWork_score_cons coeff .statement guardEvents
-    have splitStatement := executionWork_score_cons coeff .statement (guardEvents ++ bodyEvents)
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    rw [splitGuardPrefix, splitGuardCost] at guardBound
+    have splitStatement := executionWork_score_cons coeff .statement
+      (.cost whileOverhead :: (guardEvents ++ bodyEvents))
+    have splitCost := executionWork_score_cons coeff (.cost whileOverhead)
+      (guardEvents ++ bodyEvents)
     have splitFirst := executionWork_score_append coeff guardEvents bodyEvents
     have arithmetic := gas_budget_terminal_arith (start := μ state) (post := μ post)
       (C := C) (B := B) (D := D) (by omega)
     refine ⟨?_, by omega⟩
-    rw [splitStatement, splitFirst]
-    refine Nat.le_trans ?_ arithmetic
-    omega
+    have htotal : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) =
+        coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            (coeff.score (executionWork guardEvents) +
+              coeff.score (executionWork bodyEvents))) := by
+      rw [splitStatement, splitCost, splitFirst]
+    have hprefix : coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            coeff.score (executionWork guardEvents)) ≤ D := guardBound
+    have hbody : coeff.score (executionWork bodyEvents) ≤
+        C * (μ post - μ state) + B := stepCost
+    have hbound : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) ≤
+        C * (μ post - μ state) + B + D := by
+      have hsum := Nat.add_le_add hprefix hbody
+      calc
+        coeff.score (executionWork
+            (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) =
+            (coeff.score WorkEvent.statement.units +
+              (coeff.score (WorkEvent.cost whileOverhead).units +
+                coeff.score (executionWork guardEvents))) +
+              coeff.score (executionWork bodyEvents) := by
+            simpa only [Nat.add_assoc] using htotal
+        _ ≤ D + (C * (μ post - μ state) + B) := by
+            simpa only [Nat.add_assoc] using hsum
+        _ = C * (μ post - μ state) + B + D := by omega
+    refine Nat.le_trans hbound ?_
+    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using arithmetic
   | @whileTimeout state condition body value guardEvents guard nonzero clock =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
     have guardBound := guards _ _ _ initial guard
-    have splitGuard := executionWork_score_cons coeff .statement guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    rw [splitGuardPrefix, splitGuardCost] at guardBound
+    have guardTotal : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead :: guardEvents)) =
+        coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            coeff.score (executionWork guardEvents)) := by
+      rw [splitGuardPrefix, splitGuardCost]
     refine ⟨?_, by simpa only [resetInvariant] using Nat.le_refl (μ state)⟩
     simp only [resetInvariant]
-    rw [Nat.sub_self, Nat.mul_zero]
+    rw [Nat.sub_self, Nat.mul_zero, guardTotal]
     omega
   | @whileMissingGuard state condition body guardEvents guard =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
     have guardBound := guards _ _ _ initial guard
-    have splitGuard := executionWork_score_cons coeff .statement guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    rw [splitGuardPrefix, splitGuardCost] at guardBound
+    have splitOld := executionWork_score_cons coeff .statement guardEvents
     refine ⟨?_, Nat.le_refl _⟩
-    rw [Nat.sub_self, Nat.mul_zero]
+    rw [Nat.sub_self, Nat.mul_zero, splitOld]
     omega
   | @whilePropagate state condition body value guardEvents post bodyEvents result
       guard nonzero clock notBreak notContinue one =>
@@ -213,15 +348,46 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
       steps _ _ _ _ (clockStep state initial) one
     simp only [clockInvariant] at stepMono stepCost
     have guardBound := guards _ _ _ initial guard
-    have splitGuard := executionWork_score_cons coeff .statement guardEvents
-    have splitStatement := executionWork_score_cons coeff .statement (guardEvents ++ bodyEvents)
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    rw [splitGuardPrefix, splitGuardCost] at guardBound
+    have splitStatement := executionWork_score_cons coeff .statement
+      (.cost whileOverhead :: (guardEvents ++ bodyEvents))
+    have splitCost := executionWork_score_cons coeff (.cost whileOverhead)
+      (guardEvents ++ bodyEvents)
     have splitFirst := executionWork_score_append coeff guardEvents bodyEvents
     have arithmetic := gas_budget_terminal_arith (start := μ state) (post := μ post)
       (C := C) (B := B) (D := D) (by omega)
     refine ⟨?_, by omega⟩
-    rw [splitStatement, splitFirst]
-    refine Nat.le_trans ?_ arithmetic
-    omega
+    have htotal : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) =
+        coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            (coeff.score (executionWork guardEvents) +
+              coeff.score (executionWork bodyEvents))) := by
+      rw [splitStatement, splitCost, splitFirst]
+    have hprefix : coeff.score WorkEvent.statement.units +
+          (coeff.score (WorkEvent.cost whileOverhead).units +
+            coeff.score (executionWork guardEvents)) ≤ D := guardBound
+    have hbody : coeff.score (executionWork bodyEvents) ≤
+        C * (μ post - μ state) + B := stepCost
+    have hbound : coeff.score (executionWork
+        (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) ≤
+        C * (μ post - μ state) + B + D := by
+      have hsum := Nat.add_le_add hprefix hbody
+      calc
+        coeff.score (executionWork
+            (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) =
+            (coeff.score WorkEvent.statement.units +
+              (coeff.score (WorkEvent.cost whileOverhead).units +
+                coeff.score (executionWork guardEvents))) +
+              coeff.score (executionWork bodyEvents) := by
+            simpa only [Nat.add_assoc] using htotal
+        _ ≤ D + (C * (μ post - μ state) + B) := by
+            simpa only [Nat.add_assoc] using hsum
+        _ = C * (μ post - μ state) + B + D := by omega
+    refine Nat.le_trans hbound ?_
+    simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using arithmetic
   | assignValue _ _ => trivial
   | assignInvalid _ _ => trivial
   | assignFailure _ => trivial
@@ -260,9 +426,12 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
     have guardBound := guards _ _ _ initial guard
-    have splitGuard := executionWork_score_cons coeff .statement events
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: events)
+    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) events
+    rw [splitGuardPrefix, splitGuardCost] at guardBound
+    have splitOld := executionWork_score_cons coeff .statement events
     refine ⟨?_, Nat.le_refl _⟩
-    rw [Nat.sub_self, Nat.mul_zero]
+    rw [Nat.sub_self, Nat.mul_zero, splitOld]
     omega
   | storeInvalidAddress _ _ => trivial
   | store32InvalidAddress _ _ => trivial
