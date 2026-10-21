@@ -926,4 +926,15 @@ theorem label_not_mem_insts {width : Nat} [NeZero width] (a b l : Nat)
       · exact ih h
 
 
+
+/-- A padded line pays exactly the source line's slack, so a source slack of at
+most four bytes is a padding of at most four bytes. -/
+theorem pad_line_bytes_le {width : Nat} [NeZero width] (nop : List (BitVec 8))
+    (hne : nop ≠ []) (a : AsmOrCbw (HolAsm width) HolMemop (HolAddr width))
+    (bytes : List (BitVec 8)) (len : Nat)
+    (h : lineSlack (.asm a bytes len) ≤ 4) :
+    (lineBytes (.asm a (padBytes bytes len nop) len)).length - bytes.length ≤ 4 := by
+  have hp := (padSection_asm_padding nop hne a bytes len).1
+  omega
+
 end InitECandidate.Runtime.NativePadding
