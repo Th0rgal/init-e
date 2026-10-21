@@ -285,6 +285,24 @@ theorem wec_seq_none_split {C F : Type}
   try dsimp only
   try rfl
 
+/-- **Outcome companion of the suffix correspondence.**  On a non-fall-through
+outcome (error, break, continue, exception) the `seq` charges only its node price
+and the first half; an inserted merge suffix is not charged on that outcome. -/
+theorem wec_seq_some_split {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (h : (fixClock s (evaluate f s)).1 ≠ none) :
+    wordExecutionCost nativeWordPrice (.seq f g) s =
+      nativeWordPrice (.seq f g) s + wordExecutionCost nativeWordPrice f s := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+  generalize hfix : fixClock s (evaluate f s) = pair at h ⊢
+  obtain ⟨res, mid⟩ := pair
+  simp only [Prod.fst, Prod.snd] at h ⊢
+  cases res with
+  | none => exact absurd rfl h
+  | some r => simp only [Nat.add_zero]
+
+#print axioms wec_seq_some_split
 #print axioms wec_seq_none_split
 #print axioms nativeWordPrice_move_eq_certified
 #print axioms certifiedMoveCharge_single
