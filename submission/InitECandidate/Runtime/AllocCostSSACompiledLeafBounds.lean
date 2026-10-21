@@ -3951,6 +3951,39 @@ theorem ssaCcTrans_loop_seq_quant {C F : Type}
 
 #print axioms ssaCcTrans_loop_seq_quant
 
+/-- The same construction with the setup's budget taken to be the setup's OWN executed charge, so
+that nothing at all is assumed about the setup beyond the fall-through run: the budget is
+`cost setup target + B * loopIterCount`, the prefix's exact charge plus `B` per executed iteration. -/
+theorem ssaCcTrans_loop_seq_quant_self {C F : Type}
+    (names exitNames : WordLangNumSetHOL) (body bodyC setup : WordLangProgHOL (BitVec 64))
+    (source target post : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (B : Nat)
+    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (map : Spt Nat) (na : Nat)
+      (lt : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel st ct ∧
+      ssaLocalsRel na map st.locals ct.locals ∧ isAllocVar na ∧
+      everyVarHOL (fun key => decide (key < na)) body = true ∧
+      ssaMapOK na map ∧ ltOK lt → ssaSimulation body st ct map na lt)
+    (hinv : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun key => decide (key < next)) (.loop names body exitNames) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables)
+    (hshape : (ssaCcTrans (.loop names body exitNames) ssa next tables).1 =
+      .seq setup (.loop names bodyC exitNames))
+    (hsetup : fixClock target (WordSemStateFiniteExact.evaluate setup target) = (none, post))
+    (hrelPost : Flapjack.WordAlloc.wordStateEqRel source post)
+    (hbody : LoopBodyTransfer (C := C) (F := F) body bodyC B)
+    (hloc : LoopLocalsDomAgrees (C := C) (F := F)) :
+    quantSsaSimulation (C := C) (F := F) (.loop names body exitNames) source target ssa next tables
+      (wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice setup target +
+        B * loopIterCount (C := C) (F := F) names body source) :=
+  ssaCcTrans_loop_seq_quant names exitNames body bodyC setup source target post ssa next tables B
+    (wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice setup target)
+    bodyIH hinv hshape hsetup (le_refl _) hrelPost hbody hloc
+
+#print axioms ssaCcTrans_loop_seq_quant_self
+
 /-- The literal output of the compiler's loop clause, in exactly the shape
 `ssaCcTrans_loop_seq_quant` consumes - the first component of `ssaCcTrans_loop_output`, derived
 here directly from the compiler's loop clause unfolding (that module's import is not compatible

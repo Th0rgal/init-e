@@ -935,6 +935,16 @@ EXECUTED iteration - no fuel, no constant factor, no new price - and the setup's
 once, as a prefix, never per iteration.  Nothing is assumed twice: the run halves, the outcome
 agreement and both charges are all DERIVED from `hsetup`/`hsetupCost` and `loop_quantTransfer`.
 
+The setup-charge hypothesis can also be dropped entirely: with `extraSetup` set to the setup's own
+executed charge (`le_refl`), the same construction proves
+
+    theorem ssaCcTrans_loop_seq_quant_self
+        (bodyIH) (hinv) (hshape) (hsetup) (hrelPost) (hbody) (hloc) :
+        quantSsaSimulation (.loop names body exitNames) source target ssa next tables
+          (wordExecutionCost setup target + B * loopIterCount names body source)
+
+so nothing at all is assumed about the setup beyond its fall-through run.
+
 ### Why not literally `ssaCcTrans_seq_quant_none`
 
 That constructor's second IH is `forall src tgt s2 n2, quantSsaSimulation second src tgt s2 n2 tables
