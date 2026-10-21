@@ -51,6 +51,7 @@ theorem executedSimulation_raise {F : Type} (ac : AsmConfigExact 64) (name : Nat
   obtain ⟨clock, final, output, run, related⟩ := Raise.compCorrectRaise ac name source
     k f frame post target result bs bsPost n nPost compiled lens premises
   refine ⟨clock, final, output, run, related, ?_⟩
+  intro actualRegisters
   have programEq := congrArg Prod.fst premises.2.2.2.2.2.1
   simp only [compNative] at programEq
   rw [← programEq]

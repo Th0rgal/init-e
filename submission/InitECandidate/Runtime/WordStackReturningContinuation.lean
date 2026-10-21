@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.WordStackRegisteredSimulation
 import InitECandidate.Runtime.WordStackReturningMotive
 import InitECandidate.Runtime.WordStackReturnCopyRunCost
 namespace InitECandidate.Runtime.WordToStack.ExecutedReturning
@@ -115,7 +116,8 @@ theorem executeReturningContinuation (calleeBudget returnBudget : Nat) {F : Type
     (copyRun : StackSemEvaluate.evaluate
       (copyRetNative false false (k, f, frame) values .skip, target) = (none, restored))
     (frameSmall : f ≤ 92)
-    (returnsSmall : Flapjack.Compiler.Backend.WordToStack.numStackRet k values ≤ 92) :
+    (returnsSmall : Flapjack.Compiler.Backend.WordToStack.numStackRet k values ≤ 92)
+    (actualRegisters : k = 22) :
     ∃ (extraClock : Nat) (targetPost : StackSemStateFiniteExact 64 LabToTarget.Config F)
       (targetResult : Option (StackSemResult 64)),
       StackSemEvaluate.evaluate
@@ -127,9 +129,9 @@ theorem executeReturningContinuation (calleeBudget returnBudget : Nat) {F : Type
         {target with clock := target.clock + extraClock} ≤
         21 * Flapjack.Compiler.Backend.WordToStack.numStackRet k values + returnBudget := by
   obtain ⟨extraClock, targetPost, targetResult, continuationRun, conclusion, continuationCost⟩ :=
-    ih k f frame sourcePost restored result bs bsPost n nPost compiled lens
+    ih.registered k f frame sourcePost restored result bs bsPost n nPost compiled lens
       ⟨sourceRun, notError, related, conventions, flat, compilation, lengthBound,
-        bitmapBound, bitmapPrefix, labels, maximum⟩ frameSmall
+        bitmapBound, bitmapPrefix, labels, maximum⟩ frameSmall actualRegisters
   have clockFree := returnCopyClockFree (width := 64) (C := LabToTarget.Config) (F := F) k f frame values
   have sameClock := clockFree target target.clock
   rw [show {target with clock := target.clock} = target from rfl, copyRun] at sameClock
@@ -212,7 +214,8 @@ theorem simulateReturningContinuationFromHistory (calleeBudget returnBudget : Na
         clock := (StackSemStateOps.decClock moved).clock + bodyExtraClock}) =
       (some (.result location), target))
     (frameSmall : callerSize ≤ 92)
-    (returnsSmall : Flapjack.Compiler.Backend.WordToStack.numStackRet k values ≤ 92) :
+    (returnsSmall : Flapjack.Compiler.Backend.WordToStack.numStackRet k values ≤ 92)
+    (actualRegisters : k = 22) :
     ∃ (popped : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
       (restored : StackSemStateFiniteExact 64 LabToTarget.Config F)
       (extraClock : Nat) (targetPost : StackSemStateFiniteExact 64 LabToTarget.Config F)
@@ -253,7 +256,7 @@ theorem simulateReturningContinuationFromHistory (calleeBudget returnBudget : Na
       savedBitmaps finalBitmaps savedIndex finalIndex returnCode lens continuationIH
       sourceContinuation notError restoredRelation retConventions retFlat returnCompile retLength
       (retBitmapBound.trans bitmapGrowth.length_le)
-      (retBitmapPrefix.trans (bitmapGrowth.drop _)) restoredLabels retMaximum copyRun frameSmall returnsSmall
+      (retBitmapPrefix.trans (bitmapGrowth.drop _)) restoredLabels retMaximum copyRun frameSmall returnsSmall actualRegisters
   obtain ⟨gc, tail, sourceFrame, _, _, sourceHandler, _, _⟩ :=
     returnedCallerFrame prog source bodyPost envs args1 ss location returned bodyRun
   have poppedHandler : popped.handler = bodyPost.handler := by

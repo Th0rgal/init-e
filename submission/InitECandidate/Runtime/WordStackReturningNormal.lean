@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.WordStackRegisteredSimulation
 import InitECandidate.Runtime.WordStackReturningCallee
 import InitECandidate.Runtime.WordStackReturningContinuation
 import InitECandidate.Runtime.StackReturningCallComposeCost
@@ -79,7 +80,8 @@ theorem normalCompiledCallFromHistory (calleeBudget returnBudget : Nat) {F : Typ
     (returnsSmall : Flapjack.Compiler.Backend.WordToStack.numStackRet k values ≤ 92)
     (calleeCost : stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
       callee {StackSemStateOps.setVar 0 (.loc l1 l2) (StackSemStateOps.decClock moved) with
-        clock := (StackSemStateOps.decClock moved).clock + bodyExtraClock} ≤ 25+calleeBudget) :
+        clock := (StackSemStateOps.decClock moved).clock + bodyExtraClock} ≤ 25+calleeBudget)
+    (actualRegisters : k = 22) :
     ∃ (extraClock : Nat) (targetPost : StackSemStateFiniteExact 64 LabToTarget.Config F)
       (targetResult : Option (StackSemResult 64)),
       StackSemEvaluate.evaluate (compiled, {initial with clock := initial.clock + extraClock}) =
@@ -103,7 +105,7 @@ theorem normalCompiledCallFromHistory (calleeBudget returnBudget : Nat) {F : Typ
     ih nonzero execution notError bodyRun bodyConclusion initial moved bs savedBitmaps finalBitmaps
     n savedIndex finalIndex destinationCode savedCode returnCode compiled callee destination
     bodyExtraClock flat destinationCompile savedCompile returnCompile compilation lengthBound
-    bitmapBound bitmapPrefix labels preludeRun argumentsRun calleeRun frameSmall returnsSmall
+    bitmapBound bitmapPrefix labels preludeRun argumentsRun calleeRun frameSmall returnsSmall actualRegisters
   have argumentClock := stackArgumentsClockFree (C := LabToTarget.Config) (F := F) k callerSize frame
     destination (args.length + 1) saved saved.clock
   change StackSemEvaluate.evaluate

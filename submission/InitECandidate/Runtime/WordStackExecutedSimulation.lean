@@ -11,7 +11,9 @@ open InitECandidate.Runtime.StackToLab
 /-- Quantitative Word-to-Stack simulation. The budget is a bound to prove,
 not an assumed target run or an additional-clock allowance. All original
 compiler correctness premises and result/resource postconditions remain.
-The frame limit specializes the proof to the concrete small-frame guest. -/
+The frame limit and quantitative register guard specialize the cost proof to
+the concrete guest (22 allocatable registers). Original semantic witnesses
+remain available for every register count. -/
 def ExecutedSimulation {F : Type} (ac : AsmConfigExact 64)
     (program : WordLangProgHOL (BitVec 64))
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
@@ -37,8 +39,8 @@ def ExecutedSimulation {F : Type} (ac : AsmConfigExact 64)
       StackSemEvaluate.evaluate (compiled, {target with clock := target.clock + extraClock}) =
         (targetResult, targetPost) ∧
       compCorrectResult ac k f frame source sourcePost targetPost result targetResult lens ∧
-      stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
-        compiled {target with clock := target.clock + extraClock} ≤ budget
+      (k = 22 → stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+        compiled {target with clock := target.clock + extraClock} ≤ budget)
 
 theorem ExecutedSimulation.mono {F : Type} {ac : AsmConfigExact 64}
     {program : WordLangProgHOL (BitVec 64)}
@@ -48,7 +50,7 @@ theorem ExecutedSimulation.mono {F : Type} {ac : AsmConfigExact 64}
   intro k f frame post target result bs bsPost n nPost compiled lens premises small
   obtain ⟨clock, final, output, run, related, cost⟩ :=
     simulation k f frame post target result bs bsPost n nPost compiled lens premises small
-  exact ⟨clock, final, output, run, related, cost.trans bound⟩
+  exact ⟨clock, final, output, run, related, fun actualRegisters => (cost actualRegisters).trans bound⟩
 
 /-- The original instruction correctness witness now also carries a bound
 on the actual reached target fragment, including spill reads and writes. -/
@@ -61,6 +63,7 @@ theorem executedSimulation_inst {F : Type} (ac : AsmConfigExact 64)
     Flapjack.WordToStackProofs.CompCorrect.Inst.compCorrectInst ac instruction source
       k f frame post target result bs bsPost n nPost compiled lens premises
   refine ⟨clock, final, output, run, related, ?_⟩
+  intro actualRegisters
   have programEq := congrArg Prod.fst premises.2.2.2.2.2.1
   simp only [compNative] at programEq
   rw [← programEq]

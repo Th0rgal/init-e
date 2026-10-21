@@ -26,6 +26,7 @@ theorem executedSimulation_of_fragment {F : Type} (ac : AsmConfigExact 64)
   obtain ⟨clock, final, output, run, related⟩ :=
     simulation k f frame post target result bs bsPost n nPost compiled lens premises
   refine ⟨clock, final, output, run, related, ?_⟩
+  intro actualRegisters
   have programEq := congrArg Prod.fst premises.2.2.2.2.2.1
   dsimp only at programEq
   rw [← programEq]

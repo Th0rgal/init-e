@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.WordStackExecutedSimulation
+import InitECandidate.Runtime.WordStackRegisteredSimulation
 import InitECandidate.Runtime.WordStackPrepareConditionCost
 import Flapjack.Compiler.Backend.WordToStack.Proofs.CompCorrect.If
 namespace InitECandidate.Runtime.WordToStack.ExecutedIf
@@ -78,7 +78,8 @@ theorem compCorrectIf (budget : Nat) {F : Type}
     (source : WordSemStateFiniteExact 64 (Nat × LabToTarget.Config) F)
     (ih : OriginalInductionHypotheses budget ac comparison register operand first second source) :
     ExecutedSimulation ac (.ite comparison register operand first second) source (budget + 30) := by
-  intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small
+  apply executedSimulation_of_registers
+  intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small actualRegisters
   rcases premises with ⟨execution, notError, related, conventions, flat,
     compilation, lengthBound, bitmapBound, bitmapPrefix, labels, maxBound⟩
   obtain ⟨x,y,value,left,right,compared,selectedRun,selectedIH⟩ :=
@@ -155,6 +156,7 @@ theorem compCorrectIf (budget : Nat) {F : Type}
       (if value then q1 else q2) lens
       ⟨selectedRun,notError,loadedRel,selectedConventions,selectedFlat,selectedCompile,
         selectedLength,selectedBitmapBound,selectedPrefix,selectedLabels,selectedMax⟩ small
+  have selectedCost := selectedCost actualRegisters
   refine ⟨extraClock,post,targetResult,?_,conclusion,?_⟩
   · rw [routing q1 q2 (target.clock+extraClock),sameClock]
     exact targetRun

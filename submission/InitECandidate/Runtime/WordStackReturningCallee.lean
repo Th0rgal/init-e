@@ -1,3 +1,4 @@
+import InitECandidate.Runtime.WordStackRegisteredSimulation
 import InitECandidate.Runtime.WordStackReturningMotive
 import InitECandidate.Runtime.StackCallRunCost
 import InitECandidate.Runtime.WordCodeFrameBounds
@@ -59,7 +60,7 @@ theorem simulateCalleeBodyAt (calleeBudget returnBudget : Nat) {F : Type}
     (argumentBound : args1.length - k ≤ calleeFrame)
     (bodyMaximum : maxVarHOL prog < 2 * calleeFrame + 2 * k)
     (space : calleeSize ≤ saved.stackSpace)
-    (calleeSmall : calleeSize ≤ 92) :
+    (calleeSmall : calleeSize ≤ 92) (actualRegisters : k = 22) :
     ∃ (moved entry : StackSemStateFiniteExact 64 LabToTarget.Config F)
           (extraClock : Nat) (targetPost : StackSemStateFiniteExact 64 LabToTarget.Config F)
           (targetResult : Option (StackSemResult 64)),
@@ -113,11 +114,11 @@ theorem simulateCalleeBodyAt (calleeBudget returnBudget : Nat) {F : Type}
     sourcePost bodyPost result bodyResult xs args1 prog ss envs guards nonzero execution
     notError bodyRun
   obtain ⟨extraClock, targetPost, targetResult, targetRun, conclusion, bodyCost⟩ :=
-    ih.2 xs args1 prog ss envs ⟨guards, nonzero⟩ k calleeSize calleeFrame bodyPost entry
+    (ih.2 xs args1 prog ss envs ⟨guards, nonzero⟩).registered k calleeSize calleeFrame bodyPost entry
       bodyResult bs bsPost n nPost body (callerFrame :: lens)
       ⟨bodyRun, bodyNotError, entryRelation, bodyConventions, bodyFlat, bodyCompile,
         bitmapLength, bitmapBound.trans bitmapGrowth.length_le,
-        bitmapPrefix.trans (bitmapGrowth.drop _), labels, bodyMaximum⟩ calleeSmall
+        bitmapPrefix.trans (bitmapGrowth.drop _), labels, bodyMaximum⟩ calleeSmall actualRegisters
   have allocationClock : ∀ extra : Nat,
       StackSemEvaluate.evaluate
         (.stackAlloc (calleeSize - (args1.length - k)),
@@ -184,7 +185,7 @@ theorem simulatePreparedCalleeBody (calleeBudget returnBudget : Nat) {F : Type}
         (WordSemStateFiniteExact.pushEnv envs none (WordSemStateFiniteExact.decClock source))) =
       (bodyResult, bodyPost))
     (space : Compiler.Backend.WordToStack.stackArgCount destination (args.length + 1) k ≤ target.stackSpace)
-    (covered : CodeFramesBounded source.code source.stackSize 92) :
+    (covered : CodeFramesBounded source.code source.stackSize 92) (actualRegisters : k = 22) :
     ∃ (destinationTarget saved moved : StackSemStateFiniteExact 64 LabToTarget.Config F)
       (location calleeSize calleeFrame : Nat) (body : HolProg 64)
       (calleeBs calleeBsPost : AppList (BitVec 64)) (calleeIndex calleeIndexPost : Nat),
@@ -273,7 +274,7 @@ theorem simulatePreparedCalleeBody (calleeBudget returnBudget : Nat) {F : Type}
       calleeIndex calleeIndexPost savedLookup bodyCompile bodyConventions bodyFlat
       calleeBitmapLength (calleeBitmapBound.trans bitmapGrowth.length_le)
       (calleeBitmapPrefix.trans (bitmapGrowth.drop _)) calleeLocalsSize calleeShape
-      calleeArgumentBound bodyMaximum (by rwa [savedSpace]) calleeSmall
+      calleeArgumentBound bodyMaximum (by rwa [savedSpace]) calleeSmall actualRegisters
   have movedEq : movedAgain = moved := congrArg Prod.snd (moveAgain.symm.trans moveRun)
   subst movedAgain
   exact ⟨entry, extraClock, targetPost, targetResult, allocationRun, targetRun, calleeRun,

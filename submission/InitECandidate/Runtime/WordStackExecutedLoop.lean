@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.WordStackExecutedSimulation
+import InitECandidate.Runtime.WordStackRegisteredSimulation
 import InitECandidate.Runtime.StackExecutionCostAddClock
 import InitECandidate.Runtime.StackRemoveExecutedLoop
 import Flapjack.Compiler.Backend.WordToStack.Proofs.CompCorrect.Loop
@@ -45,7 +45,7 @@ theorem enterBody (bodyBudget recursiveBudget : Nat) {F : Type}
     (bitmapPrefix : List.IsPrefix (appListAppend bsPost) (target.bitmaps.drop (n-(appListAppend bs).length)))
     (labels : ∀ loc, StackSem.getLabelsExact compiled loc → StackSem.locCheckExact target.code loc)
     (maxBound : maxVarHOL (.loop names body exitNames) < 2*frame+2*k)
-    (small : f ≤ 92) :
+    (small : f ≤ 92) (actualRegisters : k = 22) :
     ∃ compiledBody ck targetPost targetResult,
       compiled = .loop compiledBody ∧
       StackSemEvaluate.evaluate (compiledBody,{target with clock := target.clock+ck}) = (targetResult,targetPost) ∧
@@ -71,7 +71,7 @@ theorem enterBody (bodyBudget recursiveBudget : Nat) {F : Type}
     bodyResult bs bsPost n nPost compiledBody lens
     ⟨execution,notError,cutRel,bodyConventions,bodyFlat,compilationBody,
       lengthBound,bitmapBound,bitmapPrefix,bodyLabels,bodyBound⟩ small
-  exact ⟨compiledBody,ck,post,res,rfl,actual,resultRel,cost⟩
+  exact ⟨compiledBody,ck,post,res,rfl,actual,resultRel,cost actualRegisters⟩
 
 theorem enterRecursive (bodyBudget recursiveBudget : Nat) {F : Type}
     (ac : AsmConfigExact 64) (names exitNames : Spt Unit)
@@ -101,7 +101,7 @@ theorem enterRecursive (bodyBudget recursiveBudget : Nat) {F : Type}
     (bitmapPrefix : (appListAppend bsPost).IsPrefix (target.bitmaps.drop (n-(appListAppend bs).length)))
     (labels : ∀ loc, StackSem.getLabelsExact (.loop compiledBody) loc → StackSem.locCheckExact target.code loc)
     (maxBound : maxVarHOL (.loop names body exitNames) < 2*frame+2*k)
-    (small : f ≤ 92) :
+    (small : f ≤ 92) (actualRegisters : k = 22) :
     ∃ clock targetPost result,
       StackSemEvaluate.evaluate (.loop compiledBody,
         {StackSemStateOps.decClock targetBody with clock := (StackSemStateOps.decClock targetBody).clock+clock}) =
@@ -115,8 +115,8 @@ theorem enterRecursive (bodyBudget recursiveBudget : Nat) {F : Type}
   have metadata := recursiveMetadata compiledBody target targetBody (bodyResult.map compileResult)
     bodyClock (n-(appListAppend bs).length) (appListAppend bsPost) targetRun bitmapBound bitmapPrefix labels
   have relation := recursiveRelation ac k f frame cutSource bodyPost targetBody lens bodyResult continues bodyConclusion
-  apply recursiveIH k f frame finalSource (StackSemStateOps.decClock targetBody)
-    finalResult bs bsPost n nPost (.loop compiledBody) lens ?_ small
+  apply recursiveIH.registered k f frame finalSource (StackSemStateOps.decClock targetBody)
+    finalResult bs bsPost n nPost (.loop compiledBody) lens ?_ small actualRegisters
   simpa only [wordSemSTOP,StackSemStateOps.decClock] using
     (show WordSemStateFiniteExact.evaluate (.loop names body exitNames)
       (WordSemStateFiniteExact.decClock bodyPost) = (finalResult,finalSource) ∧
@@ -139,7 +139,8 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
     (ih : InductionHypotheses bodyBudget recursiveBudget ac names exitNames body source) :
     ExecutedSimulation ac (.loop names body exitNames) source (2 + bodyBudget + recursiveBudget) := by
   classical
-  intro k f frame finalSource target finalResult bs bsPost n nPost compiled lens premises small
+  apply executedSimulation_of_registers
+  intro k f frame finalSource target finalResult bs bsPost n nPost compiled lens premises small actualRegisters
   rcases premises with ⟨sourceLoop,notError,related,conventions,flat,compilation,
     lengthBound,bitmapBound,bitmapPrefix,labels,maxBound⟩
   cases cut : WordSemStateFiniteExact.cutState (names,.ln) source with
@@ -154,7 +155,7 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
     obtain ⟨compiledBody,bodyClock,targetBody,targetResult,compiledEq,targetRun,bodyConclusion,bodyCost⟩ :=
       enterBody bodyBudget recursiveBudget ac names exitNames body source cutSource bodyPost target k f frame lens
         bs bsPost n nPost compiled bodyResult ih cut sourceBody bodyError related conventions
-        flat compilation lengthBound bitmapBound bitmapPrefix labels maxBound small
+        flat compilation lengthBound bitmapBound bitmapPrefix labels maxBound small actualRegisters
     subst compiled
     by_cases mismatch : bodyResult.map compileResult ≠ targetResult
     · have overflow := bodyOverflow ac k f frame names exitNames body source cutSource bodyPost
@@ -202,7 +203,7 @@ theorem compCorrectLoop (bodyBudget recursiveBudget : Nat) {F : Type}
             enterRecursive bodyBudget recursiveBudget ac names exitNames body source cutSource bodyPost finalSource target targetBody
               k f frame lens bs bsPost n nPost bodyClock compiledBody bodyResult finalResult ih cut sourceBody
               continues zero (by simpa [wordSemSTOP] using tailRun) notError targetRun bodyConclusion
-              conventions flat compilation lengthBound bitmapBound bitmapPrefix labels maxBound small
+              conventions flat compilation lengthBound bitmapBound bitmapPrefix labels maxBound small actualRegisters
           have targetNonzero : targetBody.clock ≠ 0 := by omega
           have actual := runLoopRecursive compiledBody {target with clock := target.clock+bodyClock}
             targetBody post (bodyResult.map compileResult) res recursiveClock targetRun targetContinues

@@ -1,4 +1,4 @@
-import InitECandidate.Runtime.WordStackExecutedSimulation
+import InitECandidate.Runtime.WordStackRegisteredSimulation
 import InitECandidate.Runtime.StackExecutionCostAddClock
 import Flapjack.Compiler.Backend.WordToStack.Proofs.CompCorrect.Seq
 namespace InitECandidate.Runtime.WordToStack.ExecutedSeq
@@ -16,7 +16,8 @@ theorem compCorrectSeqFirstNonNone (firstBudget : Nat) {F : Type}
     (ih : ExecutedSimulation ac first source firstBudget)
     (firstNonNone : (WordSemStateFiniteExact.evaluate first source).1 ≠ none) :
     ExecutedSimulation ac (.seq first second) source firstBudget := by
-  intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small
+  apply executedSimulation_of_registers
+  intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small actualRegisters
   rcases premises with ⟨execution, notError, related, conventions, flat,
     compilation, lengthBound, bitmapBound, bitmapPrefix, labels, maxBound⟩
   rcases firstCompile : compNative ac false first (bs, n) (k, f, frame) with
@@ -59,6 +60,7 @@ theorem compCorrectSeqFirstNonNone (firstBudget : Nat) {F : Type}
         firstCode lens ⟨firstRun, notError, related, firstConventions, firstFlat,
           firstCompile, lengthBound, bitmapBound, firstPrefix.trans bitmapPrefix,
           firstLabels, firstMax⟩ small
+    have firstCost := firstCost actualRegisters
     have targetNonNone : targetResult ≠ none := by
       intro eq
       subst targetResult
@@ -86,7 +88,8 @@ theorem compCorrectSeqFirstNone (firstBudget secondBudget : Nat) {F : Type}
     (firstNone : (WordSemStateFiniteExact.evaluate first source).1 = none) :
     ExecutedSimulation ac (.seq first second) source (firstBudget + secondBudget) := by
   classical
-  intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small
+  apply executedSimulation_of_registers
+  intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small actualRegisters
   rcases premises with ⟨execution, notError, related, conventions, flat,
     compilation, lengthBound, bitmapBound, bitmapPrefix, labels, maxBound⟩
   rcases firstCompile : compNative ac false first (bs, n) (k, f, frame) with
@@ -136,6 +139,7 @@ theorem compCorrectSeqFirstNone (firstBudget secondBudget : Nat) {F : Type}
         firstCode lens ⟨firstRun, by simp, related, firstConventions, firstFlat,
           firstCompile, lengthBound, bitmapBound, firstPrefix.trans bitmapPrefix,
           firstLabels, firstMax⟩ small
+    have firstCost := firstCost actualRegisters
     cases firstTargetResult with
     | some value =>
       simp [compCorrectResult] at firstConclusion
@@ -199,6 +203,7 @@ theorem compCorrectSeqFirstNone (firstBudget secondBudget : Nat) {F : Type}
           secondCode lens ⟨execution, notError, firstConclusion, secondConventions,
             secondFlat, secondCompile, accounting.1, secondBitmapBound, secondPrefix,
             secondLabels, secondMax⟩ small
+      have secondCost := secondCost actualRegisters
       have extendedFirst := Flapjack.Compiler.Backend.StackProps.evaluateAddClock
         secondClock firstCode {target with clock := target.clock + clock}
         none targetMiddle ⟨targetRun, by simp⟩

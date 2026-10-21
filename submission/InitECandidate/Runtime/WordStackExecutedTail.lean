@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.StackCallRunCost
-import InitECandidate.Runtime.WordStackExecutedSimulation
+import InitECandidate.Runtime.WordStackRegisteredSimulation
 import InitECandidate.Runtime.WordCodeFrameBounds
 import Flapjack.Compiler.Backend.WordToStack.Proofs.CompCorrect.CallTail
 namespace InitECandidate.Runtime.WordToStack.ExecutedTail
@@ -30,7 +30,8 @@ theorem executedSimulation_tailCall (budget : Nat) {F : Type}
       ExecutedSimulation ac prog
         (WordSemStateFiniteExact.callEnv args1 ss (WordSemStateFiniteExact.decClock source)) budget)
     : ExecutedSimulation ac (.call none dest args handler) source (budget + 41) := by
-  intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small
+  apply executedSimulation_of_registers
+  intro k f frame sourcePost target result bs bsPost n nPost compiled lens premises small actualRegisters
   obtain ⟨execution, notError, related, conventions, flat, compilation, hbsn, hbsl, hpre,
     labels, maxVar⟩ := premises
   simp only [compNative] at compilation
@@ -387,6 +388,7 @@ theorem executedSimulation_tailCall (budget : Nat) {F : Type}
         k fs svc s' t5 res' bs0 bs2 i0 i2 body lens
         ⟨hbody, notError, hrelC, hpa, hflatp, hbc, hb1, by rw [hbm4]; exact hb2,
           by rw [hbm4]; exact hb3, hlabels, hmaxv⟩ fsSmall
+      have bodyCost := bodyCost actualRegisters
       have hbadT : StackSemControl.badFunReturn tres = false := by
         unfold compCorrectResult at hresb
         split_ifs at hresb with hne
