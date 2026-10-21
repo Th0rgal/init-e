@@ -4,6 +4,7 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 variable {F : Type}
+variable {fn : MlS}
 
 /-- Score of one statement-entry event: the statement coefficient only. -/
 theorem score_statement_event (coeff : Work) :
@@ -73,7 +74,7 @@ def GasAmortizedBody (coeff : Work) (condition : ExpHOL 64) (loopBody : ProgHOL 
     (μ : PanSemStateFiniteExact 64 F → Nat) (C B D : Nat) : Prop :=
   (∀ (state middle : PanSemStateFiniteExact 64 F)
       (result : Option (PanSemResultExact 64)) (events : List WorkEvent),
-      I state → StatementRun state loopBody result middle events →
+      I state → StatementRun fn state loopBody result middle events →
         μ state ≤ μ middle ∧
         (result = none ∨ result = some .continue → μ state + 1 ≤ μ middle) ∧
         (result = none ∨ result = some .continue → I middle) ∧
@@ -81,7 +82,7 @@ def GasAmortizedBody (coeff : Work) (condition : ExpHOL 64) (loopBody : ProgHOL 
   (∀ (state : PanSemStateFiniteExact 64 F) (value : Option (ValueHOL 64))
       (events : List WorkEvent),
       I state → CostedExpressionRun state condition value events →
-        coeff.score (executionWork (WorkEvent.statement :: .cost whileOverhead :: events)) ≤ D)
+        coeff.score (executionWork (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) :: events)) ≤ D)
 
 /-- Program-indexed loop budget: the amortized statement for a loop program, and
 `True` for every other constructor. Indexing the budget by the program is what
@@ -112,10 +113,10 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
       μ (emptyLocalsHOLFinite state) = μ state)
     {s : PanSemStateFiniteExact 64 F} {p : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F}
-    {events : List WorkEvent} (run : StatementRun s p r post events)
+    {events : List WorkEvent} (run : StatementRun fn s p r post events)
     (initial : I s)
     (amortized : ∀ (condition : ExpHOL 64) (body : ProgHOL 64), p = .while condition body →
-      GasAmortizedBody coeff condition body I μ C B D) :
+      GasAmortizedBody (fn := fn) coeff condition body I μ C B D) :
     LoopBudget coeff μ C B D s post events p := by
   induction run with
   | skip => trivial
@@ -125,23 +126,23 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
   | iteNo _ _ => trivial
   | breakStmt => trivial
   | continueStmt => trivial
-  | @whileFalse state condition body guardEvents guard =>
+  | @whileFalse fn state condition body guardEvents guard =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
     have guardBound := guards _ _ _ initial guard
-    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
-    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost (whileOverhead + loopMoves fn) :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn)) guardEvents
     rw [splitGuardPrefix, splitGuardCost] at guardBound
     have guardTotal : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead :: guardEvents)) =
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) :: guardEvents)) =
         coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             coeff.score (executionWork guardEvents)) := by
       rw [splitGuardPrefix, splitGuardCost]
     refine ⟨?_, Nat.le_refl _⟩
     rw [Nat.sub_self, Nat.mul_zero, guardTotal]
     omega
-  | @whileNext state condition body value guardEvents middle result post bodyEvents restEvents
+  | @whileNext fn state condition body value guardEvents middle result post bodyEvents restEvents
       guard nonzero clock one rest ihOne ihRest =>
     simp only [LoopBudget]
     obtain ⟨steps, guards⟩ := amortized _ _ rfl
@@ -151,12 +152,12 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
     simp only [clockInvariant] at stepMono stepProgress stepCost
     have progress : μ state + 1 ≤ μ middle := stepProgress (by simp)
     have guardBound := guards _ _ _ initial guard
-    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
-    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost (whileOverhead + loopMoves fn) :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn)) guardEvents
     rw [splitGuardPrefix, splitGuardCost] at guardBound
     have splitStatement := executionWork_score_cons coeff .statement
-      (.cost whileOverhead :: (guardEvents ++ (bodyEvents ++ restEvents)))
-    have splitCost := executionWork_score_cons coeff (.cost whileOverhead)
+      (.cost (whileOverhead + loopMoves fn) :: (guardEvents ++ (bodyEvents ++ restEvents)))
+    have splitCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn))
       (guardEvents ++ (bodyEvents ++ restEvents))
     have splitFirst := executionWork_score_append coeff guardEvents (bodyEvents ++ restEvents)
     have splitSecond := executionWork_score_append coeff bodyEvents restEvents
@@ -164,33 +165,33 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
       (post := μ post) (C := C) (B := B) (D := D) (by omega) progress
     refine ⟨?_, by omega⟩
     have htotal : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead ::
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) ::
           (guardEvents ++ (bodyEvents ++ restEvents)))) =
         coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             (coeff.score (executionWork guardEvents) +
               (coeff.score (executionWork bodyEvents) +
                 coeff.score (executionWork restEvents)))) := by
       rw [splitStatement, splitCost, splitFirst, splitSecond]
     have hprefix : coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             coeff.score (executionWork guardEvents)) ≤ D := guardBound
     have hbody : coeff.score (executionWork bodyEvents) ≤
         C * (μ middle - μ state) + B := stepCost
     have hrest : coeff.score (executionWork restEvents) ≤
         (C + B + D) * (μ post - μ middle) + (B + D) := restBound
     have jbound : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead ::
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) ::
           (guardEvents ++ (bodyEvents ++ restEvents)))) ≤
         C * (μ middle - μ state) +
           ((C + B + D) * (μ post - μ middle) + (B + D)) + D + B := by
       have hsum := Nat.add_le_add (Nat.add_le_add hprefix hbody) hrest
       calc
         coeff.score (executionWork
-            (WorkEvent.statement :: .cost whileOverhead ::
+            (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) ::
               (guardEvents ++ (bodyEvents ++ restEvents)))) =
             (coeff.score WorkEvent.statement.units +
-              (coeff.score (WorkEvent.cost whileOverhead).units +
+              (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
                 coeff.score (executionWork guardEvents))) +
               coeff.score (executionWork bodyEvents) +
               coeff.score (executionWork restEvents) := by
@@ -203,7 +204,7 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
     simp only [List.append_assoc]
     refine Nat.le_trans jbound ?_
     simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using arithmetic
-  | @whileContinue state condition body value guardEvents middle result post bodyEvents restEvents
+  | @whileContinue fn state condition body value guardEvents middle result post bodyEvents restEvents
       guard nonzero clock one rest ihOne ihRest =>
     simp only [LoopBudget]
     obtain ⟨steps, guards⟩ := amortized _ _ rfl
@@ -213,12 +214,12 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
     simp only [clockInvariant] at stepMono stepProgress stepCost
     have progress : μ state + 1 ≤ μ middle := stepProgress (by simp)
     have guardBound := guards _ _ _ initial guard
-    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
-    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost (whileOverhead + loopMoves fn) :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn)) guardEvents
     rw [splitGuardPrefix, splitGuardCost] at guardBound
     have splitStatement := executionWork_score_cons coeff .statement
-      (.cost whileOverhead :: (guardEvents ++ (bodyEvents ++ restEvents)))
-    have splitCost := executionWork_score_cons coeff (.cost whileOverhead)
+      (.cost (whileOverhead + loopMoves fn) :: (guardEvents ++ (bodyEvents ++ restEvents)))
+    have splitCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn))
       (guardEvents ++ (bodyEvents ++ restEvents))
     have splitFirst := executionWork_score_append coeff guardEvents (bodyEvents ++ restEvents)
     have splitSecond := executionWork_score_append coeff bodyEvents restEvents
@@ -226,33 +227,33 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
       (post := μ post) (C := C) (B := B) (D := D) (by omega) progress
     refine ⟨?_, by omega⟩
     have htotal : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead ::
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) ::
           (guardEvents ++ (bodyEvents ++ restEvents)))) =
         coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             (coeff.score (executionWork guardEvents) +
               (coeff.score (executionWork bodyEvents) +
                 coeff.score (executionWork restEvents)))) := by
       rw [splitStatement, splitCost, splitFirst, splitSecond]
     have hprefix : coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             coeff.score (executionWork guardEvents)) ≤ D := guardBound
     have hbody : coeff.score (executionWork bodyEvents) ≤
         C * (μ middle - μ state) + B := stepCost
     have hrest : coeff.score (executionWork restEvents) ≤
         (C + B + D) * (μ post - μ middle) + (B + D) := restBound
     have jbound : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead ::
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) ::
           (guardEvents ++ (bodyEvents ++ restEvents)))) ≤
         C * (μ middle - μ state) +
           ((C + B + D) * (μ post - μ middle) + (B + D)) + D + B := by
       have hsum := Nat.add_le_add (Nat.add_le_add hprefix hbody) hrest
       calc
         coeff.score (executionWork
-            (WorkEvent.statement :: .cost whileOverhead ::
+            (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) ::
               (guardEvents ++ (bodyEvents ++ restEvents)))) =
             (coeff.score WorkEvent.statement.units +
-              (coeff.score (WorkEvent.cost whileOverhead).units +
+              (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
                 coeff.score (executionWork guardEvents))) +
               coeff.score (executionWork bodyEvents) +
               coeff.score (executionWork restEvents) := by
@@ -265,45 +266,45 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
     simp only [List.append_assoc]
     refine Nat.le_trans jbound ?_
     simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using arithmetic
-  | @whileBreak state condition body value guardEvents post bodyEvents guard nonzero clock one =>
+  | @whileBreak fn state condition body value guardEvents post bodyEvents guard nonzero clock one =>
     simp only [LoopBudget]
     obtain ⟨steps, guards⟩ := amortized _ _ rfl
     obtain ⟨stepMono, stepProgress, stepPreserve, stepCost⟩ :=
       steps _ _ _ _ (clockStep state initial) one
     simp only [clockInvariant] at stepMono stepCost
     have guardBound := guards _ _ _ initial guard
-    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
-    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost (whileOverhead + loopMoves fn) :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn)) guardEvents
     rw [splitGuardPrefix, splitGuardCost] at guardBound
     have splitStatement := executionWork_score_cons coeff .statement
-      (.cost whileOverhead :: (guardEvents ++ bodyEvents))
-    have splitCost := executionWork_score_cons coeff (.cost whileOverhead)
+      (.cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents))
+    have splitCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn))
       (guardEvents ++ bodyEvents)
     have splitFirst := executionWork_score_append coeff guardEvents bodyEvents
     have arithmetic := gas_budget_terminal_arith (start := μ state) (post := μ post)
       (C := C) (B := B) (D := D) (by omega)
     refine ⟨?_, by omega⟩
     have htotal : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) =
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents))) =
         coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             (coeff.score (executionWork guardEvents) +
               coeff.score (executionWork bodyEvents))) := by
       rw [splitStatement, splitCost, splitFirst]
     have hprefix : coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             coeff.score (executionWork guardEvents)) ≤ D := guardBound
     have hbody : coeff.score (executionWork bodyEvents) ≤
         C * (μ post - μ state) + B := stepCost
     have hbound : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) ≤
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents))) ≤
         C * (μ post - μ state) + B + D := by
       have hsum := Nat.add_le_add hprefix hbody
       calc
         coeff.score (executionWork
-            (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) =
+            (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents))) =
             (coeff.score WorkEvent.statement.units +
-              (coeff.score (WorkEvent.cost whileOverhead).units +
+              (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
                 coeff.score (executionWork guardEvents))) +
               coeff.score (executionWork bodyEvents) := by
             simpa only [Nat.add_assoc] using htotal
@@ -312,35 +313,35 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
         _ = C * (μ post - μ state) + B + D := by omega
     refine Nat.le_trans hbound ?_
     simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using arithmetic
-  | @whileTimeout state condition body value guardEvents guard nonzero clock =>
+  | @whileTimeout fn state condition body value guardEvents guard nonzero clock =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
     have guardBound := guards _ _ _ initial guard
-    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
-    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost (whileOverhead + loopMoves fn) :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn)) guardEvents
     rw [splitGuardPrefix, splitGuardCost] at guardBound
     have guardTotal : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead :: guardEvents)) =
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) :: guardEvents)) =
         coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             coeff.score (executionWork guardEvents)) := by
       rw [splitGuardPrefix, splitGuardCost]
     refine ⟨?_, by simpa only [resetInvariant] using Nat.le_refl (μ state)⟩
     simp only [resetInvariant]
     rw [Nat.sub_self, Nat.mul_zero, guardTotal]
     omega
-  | @whileMissingGuard state condition body guardEvents guard =>
+  | @whileMissingGuard fn state condition body guardEvents guard =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
     have guardBound := guards _ _ _ initial guard
-    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
-    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost (whileOverhead + loopMoves fn) :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn)) guardEvents
     rw [splitGuardPrefix, splitGuardCost] at guardBound
     have splitOld := executionWork_score_cons coeff .statement guardEvents
     refine ⟨?_, Nat.le_refl _⟩
     rw [Nat.sub_self, Nat.mul_zero, splitOld]
     omega
-  | @whilePropagate state condition body value guardEvents post bodyEvents result
+  | @whilePropagate fn state condition body value guardEvents post bodyEvents result
       guard nonzero clock notBreak notContinue one =>
     simp only [LoopBudget]
     obtain ⟨steps, guards⟩ := amortized _ _ rfl
@@ -348,38 +349,38 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
       steps _ _ _ _ (clockStep state initial) one
     simp only [clockInvariant] at stepMono stepCost
     have guardBound := guards _ _ _ initial guard
-    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: guardEvents)
-    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) guardEvents
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost (whileOverhead + loopMoves fn) :: guardEvents)
+    have splitGuardCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn)) guardEvents
     rw [splitGuardPrefix, splitGuardCost] at guardBound
     have splitStatement := executionWork_score_cons coeff .statement
-      (.cost whileOverhead :: (guardEvents ++ bodyEvents))
-    have splitCost := executionWork_score_cons coeff (.cost whileOverhead)
+      (.cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents))
+    have splitCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn))
       (guardEvents ++ bodyEvents)
     have splitFirst := executionWork_score_append coeff guardEvents bodyEvents
     have arithmetic := gas_budget_terminal_arith (start := μ state) (post := μ post)
       (C := C) (B := B) (D := D) (by omega)
     refine ⟨?_, by omega⟩
     have htotal : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) =
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents))) =
         coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             (coeff.score (executionWork guardEvents) +
               coeff.score (executionWork bodyEvents))) := by
       rw [splitStatement, splitCost, splitFirst]
     have hprefix : coeff.score WorkEvent.statement.units +
-          (coeff.score (WorkEvent.cost whileOverhead).units +
+          (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
             coeff.score (executionWork guardEvents)) ≤ D := guardBound
     have hbody : coeff.score (executionWork bodyEvents) ≤
         C * (μ post - μ state) + B := stepCost
     have hbound : coeff.score (executionWork
-        (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) ≤
+        (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents))) ≤
         C * (μ post - μ state) + B + D := by
       have hsum := Nat.add_le_add hprefix hbody
       calc
         coeff.score (executionWork
-            (WorkEvent.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))) =
+            (WorkEvent.statement :: .cost (whileOverhead + loopMoves fn) :: (guardEvents ++ bodyEvents))) =
             (coeff.score WorkEvent.statement.units +
-              (coeff.score (WorkEvent.cost whileOverhead).units +
+              (coeff.score (WorkEvent.cost (whileOverhead + loopMoves fn)).units +
                 coeff.score (executionWork guardEvents))) +
               coeff.score (executionWork bodyEvents) := by
             simpa only [Nat.add_assoc] using htotal
@@ -422,12 +423,12 @@ theorem while_gas_budget_core (coeff : Work) (μ : PanSemStateFiniteExact 64 F �
   | tickTimeout _ => trivial
   | annotation => trivial
   | iteInvalidGuard _ _ => trivial
-  | @whileInvalidGuard state condition body value events guard invalid =>
+  | @whileInvalidGuard fn state condition body value events guard invalid =>
     simp only [LoopBudget]
     obtain ⟨_, guards⟩ := amortized _ _ rfl
     have guardBound := guards _ _ _ initial guard
-    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost whileOverhead :: events)
-    have splitGuardCost := executionWork_score_cons coeff (.cost whileOverhead) events
+    have splitGuardPrefix := executionWork_score_cons coeff .statement (.cost (whileOverhead + loopMoves fn) :: events)
+    have splitGuardCost := executionWork_score_cons coeff (.cost (whileOverhead + loopMoves fn)) events
     rw [splitGuardPrefix, splitGuardCost] at guardBound
     have splitOld := executionWork_score_cons coeff .statement events
     refine ⟨?_, Nat.le_refl _⟩
@@ -458,9 +459,9 @@ theorem while_gas_budget (coeff : Work) (μ : PanSemStateFiniteExact 64 F → Na
       μ (emptyLocalsHOLFinite state) = μ state)
     {s : PanSemStateFiniteExact 64 F} {condition : ExpHOL 64} {body : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F}
-    {events : List WorkEvent} (run : StatementRun s (.while condition body) r post events)
+    {events : List WorkEvent} (run : StatementRun fn s (.while condition body) r post events)
     (initial : I s)
-    (amortized : GasAmortizedBody coeff condition body I μ C B D) :
+    (amortized : GasAmortizedBody (fn := fn) coeff condition body I μ C B D) :
     coeff.score (executionWork events) ≤ (C + B + D) * (μ post - μ s) + (B + D) ∧
     μ s ≤ μ post :=
   while_gas_budget_core coeff μ I C B D clockStep clockInvariant resetInvariant run initial
@@ -487,9 +488,9 @@ theorem while_gas_budget_memory {σ : Type} [NeZero 64] (coeff : Work)
     {s : PanSemStateFiniteExact 64 σ} {condition : ExpHOL 64} {body : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 σ}
     {events : List WorkEvent}
-    (run : StatementRun s (.while condition body) r post events)
+    (run : StatementRun fn s (.while condition body) r post events)
     (initial : I s)
-    (amortized : @GasAmortizedBody σ coeff condition body I (fun state => read state.memory) C B D) :
+    (amortized : @GasAmortizedBody σ fn coeff condition body I (fun state => read state.memory) C B D) :
     coeff.score (executionWork events) ≤
       (C + B + D) * (read post.memory - read s.memory) + (B + D) ∧
     read s.memory ≤ read post.memory :=
@@ -509,9 +510,9 @@ theorem while_gas_ceiling (coeff : Work) (μ : PanSemStateFiniteExact 64 F → N
       μ (emptyLocalsHOLFinite state) = μ state)
     {s : PanSemStateFiniteExact 64 F} {condition : ExpHOL 64} {body : ProgHOL 64}
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 F}
-    {events : List WorkEvent} (run : StatementRun s (.while condition body) r post events)
+    {events : List WorkEvent} (run : StatementRun fn s (.while condition body) r post events)
     (initial : I s)
-    (amortized : GasAmortizedBody coeff condition body I μ C B D)
+    (amortized : GasAmortizedBody (fn := fn) coeff condition body I μ C B D)
     (budget : μ post ≤ G) (ceiling : (C + B + D) * G + (B + D) ≤ N) :
     coeff.score (executionWork events) ≤ N := by
   obtain ⟨bound, mono⟩ := while_gas_budget coeff μ I C B D clockStep clockInvariant
