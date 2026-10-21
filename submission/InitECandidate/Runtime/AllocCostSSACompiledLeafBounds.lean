@@ -2388,4 +2388,33 @@ theorem wec_call_none_success {C F : Type}
   simp only [refinedWordLocalPrice_call_none]
 
 #print axioms wec_call_none_success
+/-- The call node's transfer, in its final form: if the two programs' call sites look up their frames
+(the original's callee and the transformed one's) and the transformed callee charges at most the
+original's plus a budget AT THE ENVIRONMENTS THE CALLS CONSTRUCT, then the whole call node transfers
+within the same budget.  The callee hypothesis is exactly what transformedCalleeRel.spec supplies, and
+the two frames are exactly what findCode_some_lookup supplies. -/
+theorem wec_call_none_callee_transfer {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (s s' : WordSemStateFiniteExact 64 C F) (xs xs' : List (WordLocW 64))
+    (args1 args1' : List (WordLocW 64)) (prog progC : WordLangProgHOL (BitVec 64))
+    (ss ss' : Option Nat) (budget : Nat)
+    (hgv : WordSemStateFiniteExact.getVars args s = some xs)
+    (hgv' : WordSemStateFiniteExact.getVars args s' = some xs')
+    (hbad : wordSemBadDestArgs dest args = false)
+    (hbad' : wordSemBadDestArgs dest args = false)
+    (hfc : wordSemFindCode dest xs s.code s.stackSize = some (args1, prog, ss))
+    (hfc' : wordSemFindCode dest xs' s'.code s'.stackSize = some (args1', progC, ss'))
+    (hclk : s.clock = 0 → False) (hclk' : s'.clock = 0 → False)
+    (hcallee :
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice progC (Flapjack.WordSemStateFiniteExact.callEnv args1' ss'
+          (Flapjack.WordSemStateFiniteExact.decClock s')) ≤
+        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice prog (Flapjack.WordSemStateFiniteExact.callEnv args1 ss
+          (Flapjack.WordSemStateFiniteExact.decClock s)) + budget) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none dest args none) s' ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none dest args none) s + budget := by
+  rw [wec_call_none_success dest args s xs args1 prog ss hgv hbad hfc hclk,
+    wec_call_none_success dest args s' xs' args1' progC ss' hgv' hbad' hfc' hclk']
+  omega
+
+#print axioms wec_call_none_callee_transfer
 end InitECandidate.Runtime.FineCost
