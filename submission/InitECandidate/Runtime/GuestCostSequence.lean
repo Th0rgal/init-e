@@ -8,6 +8,7 @@ theorem sequence_score_cost (coeff : Work) (n : Nat) :
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
 variable {F : Type}
+variable {fn : MlS}
 
 /-- Price additivity for a sequence: a straight-line prefix and its suffix each
 keep their traced events and their prices add. The structural `seq` node emits
@@ -15,12 +16,12 @@ no event of its own, so association never changes cost. -/
 theorem seq_statement_cost (coeff : Work) {s middle post : PanSemStateFiniteExact 64 F}
     {first second : ProgHOL 64} {r : Option (PanSemResultExact 64)}
     {left right : List WorkEvent} (A B : Nat)
-    (one : StatementRun s first none middle left) (two : StatementRun middle second r post right)
+    (one : StatementRun fn s first none middle left) (two : StatementRun fn middle second r post right)
     (oneCost : coeff.score (executionWork left) ≤ A)
     (twoCost : coeff.score (executionWork right) ≤ B) :
-    StatementRun s (.seq first second) r post (left ++ right) ∧
+    StatementRun fn s (.seq first second) r post (left ++ right) ∧
     coeff.score (executionWork (left ++ right)) ≤ A + B := by
-  refine ⟨StatementRun.seqNext one two, ?_⟩
+  refine ⟨StatementRun.seqNext (fn := fn) one two, ?_⟩
   rw [executionWork_score_append]
   omega
 
@@ -29,15 +30,15 @@ theorem ite_statement_cost (coeff : Work) {s post : PanSemStateFiniteExact 64 F}
     {condition : ExpHOL 64} {yes no : ProgHOL 64} {r : Option (PanSemResultExact 64)}
     {value : BitVec 64} {guardEvents bodyEvents : List WorkEvent} (G B : Nat)
     (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
-    (nonzero : value ≠ 0) (body : StatementRun s yes r post bodyEvents)
+    (nonzero : value ≠ 0) (body : StatementRun fn s yes r post bodyEvents)
     (guardCost : coeff.score (executionWork (.statement :: guardEvents)) ≤ G)
     (bodyCost : coeff.score (executionWork bodyEvents) ≤ B) :
-    StatementRun s (.ite condition yes no) r post
-      (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents)) ∧
+    StatementRun fn s (.ite condition yes no) r post
+      (.statement :: .cost (statementUnit + branchMoves fn) :: (guardEvents ++ bodyEvents)) ∧
     coeff.score (executionWork
-      (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents))) ≤
-      G + B + coeff.score (WorkEvent.cost statementUnit).units := by
-  refine ⟨StatementRun.iteYes guard nonzero body, ?_⟩
+      (.statement :: .cost (statementUnit + branchMoves fn) :: (guardEvents ++ bodyEvents))) ≤
+      G + B + coeff.score (WorkEvent.cost (statementUnit + branchMoves fn)).units := by
+  refine ⟨StatementRun.iteYes (fn := fn) guard nonzero body, ?_⟩
   have splitGuard := executionWork_score_cons coeff .statement guardEvents
   rw [splitGuard] at guardCost
   simp only [executionWork_score_cons, executionWork_score_append, sequence_score_cost]
@@ -55,7 +56,7 @@ theorem store_statement_cost (coeff : Work) {s : PanSemStateFiniteExact 64 F}
       (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = some memory)
     (dstCost : coeff.score (executionWork addressEvents) ≤ D)
     (srcCost : coeff.score (executionWork valueEvents) ≤ S) :
-    StatementRun s (.store destination source) none { s with memory := memory }
+    StatementRun fn s (.store destination source) none { s with memory := memory }
       (.statement :: (addressEvents ++ valueEvents ++
         [.memory (flattenHOL stored).length,
           .cost (storeOverhead (flattenHOL stored).length)])) ∧
@@ -65,7 +66,7 @@ theorem store_statement_cost (coeff : Work) {s : PanSemStateFiniteExact 64 F}
             .cost (storeOverhead (flattenHOL stored).length)]))) ≤
       coeff.statements + D + S + coeff.memoryAccesses * (flattenHOL stored).length +
         coeff.score (WorkEvent.cost (storeOverhead (flattenHOL stored).length)).units := by
-  refine ⟨StatementRun.storeValue dst src write, ?_⟩
+  refine ⟨StatementRun.storeValue (fn := fn) dst src write, ?_⟩
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
     score_singleton, guest_score_memory, sequence_score_cost, executionWork_nil_score]
   omega
@@ -78,19 +79,15 @@ theorem dec_statement_cost (coeff : Work) {s post : PanSemStateFiniteExact 64 F}
     {r : Option (PanSemResultExact 64)} (I B : Nat)
     (init : CostedExpressionRun s initializer (some value) initEvents)
     (shapeMatch : shapeEqHOL shape (shapeOfHOLExact value) = true)
-    (bodyRun : StatementRun (setVarHOLFinite name value s) body r post bodyEvents)
+    (bodyRun : StatementRun fn (setVarHOLFinite name value s) body r post bodyEvents)
     (initCost : coeff.score (executionWork initEvents) ≤ I)
     (bodyCost : coeff.score (executionWork bodyEvents) ≤ B) :
     coeff.score (executionWork
-        (.statement :: (initEvents ++ [.copy (flattenHOL value).length, .frame 1] ++
-          bodyEvents ++ [.copy (((s.locals.lookup name).map
-            (fun previous => (flattenHOL previous).length)).getD 0)]))) ≤
-      coeff.statements + I + coeff.movedWords * (flattenHOL value).length + coeff.frameSlots +
-        B + coeff.movedWords * (((s.locals.lookup name).map
-          (fun previous => (flattenHOL previous).length)).getD 0) := by
+        (.statement :: (initEvents ++ [.frame 1] ++ bodyEvents))) ≤
+      coeff.statements + I + coeff.frameSlots + B := by
   rw [executionWork_score_cons, score_statement]
-  rw [executionWork_score_append, executionWork_score_append, executionWork_score_append]
-  rw [score_pair, guest_score_copy, score_frame, score_singleton, guest_score_copy]
+  rw [executionWork_score_append, executionWork_score_append]
+  simp only [executionWork_score_cons, executionWork_nil_score, score_frame]
   omega
 
 #print axioms seq_statement_cost
