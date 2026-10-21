@@ -230,8 +230,40 @@ theorem ssaCall_continuation_stage {C F : Type}
     (WordSemStateFiniteExact.setVars values returned popped) ys hval' hne
 
 #print axioms wec_call_returning_result_unfold
+
+/-- **Return-handler stage leg at the allocator relation.**  The exception
+branch of a returning call obeys the same stage inequality: for
+`SsaAllocRel`-related states the allocated call costs no more than the source
+call as soon as the node price, the callee-body run and the handler-code run
+compare locally.  This is the return-handler counterpart of
+`ssaCall_returning_cost_stage`. -/
+theorem ssaCall_exception_cost_stage {C F : Type}
+    (ssa : Spt Nat) (next : Nat)
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (reg : Nat) (handlerCode : WordLangProgHOL (BitVec 64)) (h1 h2 : Nat)
+    (s t : WordSemStateFiniteExact 64 C F) (rel : SsaAllocRel ssa next s t)
+    (nodeT nodeS bodyT bodyS contT contS : Nat)
+    (hcallT : wordExecutionCost nativeWordPrice
+      (.call (some (values, names, retCode, l1, l2)) dest args
+        (some (reg, handlerCode, h1, h2))) t = nodeT + bodyT + contT)
+    (hcallS : wordExecutionCost nativeWordPrice
+      (.call (some (values, names, retCode, l1, l2)) dest args
+        (some (reg, handlerCode, h1, h2))) s = nodeS + bodyS + contS)
+    (hnode : nodeT ≤ nodeS) (hbody : bodyT ≤ bodyS) (hcont : contT ≤ contS) :
+    wordExecutionCost nativeWordPrice
+        (.call (some (values, names, retCode, l1, l2)) dest args
+          (some (reg, handlerCode, h1, h2))) t ≤
+      wordExecutionCost nativeWordPrice
+        (.call (some (values, names, retCode, l1, l2)) dest args
+          (some (reg, handlerCode, h1, h2))) s := by
+  rw [hcallT, hcallS]
+  omega
+
 #print axioms wec_call_returning_exception_unfold
 #print axioms ssaCall_returning_cost_stage
+#print axioms ssaCall_exception_cost_stage
 #print axioms ssaCall_body_stage
 #print axioms ssaCall_continuation_stage
 
