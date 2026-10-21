@@ -1027,3 +1027,22 @@ surrounding loop/guard trace and the binary-search/link tail remain open.
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. The loop driver
 (multiple iterations, guard early exit, endpoint tail) and the binary-search/
 link/growth parts remain open.
+
+## 47. Actual search-loop unfolding
+
+`CandidateFindLeafLoopTrace.lean` proves that any actual successful
+`StatementRun` of `candidateFindLeafLoop` is one of:
+
+- stop: guard evaluated to `0`, events
+  `.statement :: .cost (whileOverhead + loopMoves fn) :: guardEvents`;
+- continue iteration: a `whileNext` run with a `none`-result body step and a
+  rest loop run, events `prefix ++ (guardEvents ++ bodyEvents ++ restEvents)`;
+- break exit: a `whileBreak` run;
+- continue exit: a `whileContinue` run.
+
+All branches carry the actual guard/body/rest `StatementRun`s. Axioms are
+`propext`, `Classical.choice`, `Quot.sound`.
+
+This is the loop-driver unfolding step; recursively applying it to the rest
+run yields the finite iteration list, after which the endpoint tail must be
+composed.
