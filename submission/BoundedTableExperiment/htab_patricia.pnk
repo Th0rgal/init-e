@@ -163,13 +163,15 @@ fun 1 htab_free_internal(1 t, 1 node) {
 /* Leaf reached by the key's branching path, or 0. */
 fun 1 htab_find_leaf(1 t, 1 key) {
   var cap = lds 1 (t + HT_CAP);
+  var nbase = lds 1 (t + HT_NODES);
   var node = lds 1 (t + HT_ROOT);
   while node != 0 {
     if node <=+ cap { return node; }
-    var np = htab_node_ptr(t, node);
+    var np = nbase + (node - cap - 1) * 24;
     var bit = lds 1 (np + 16);
-    var side = htab_bit(key, bit);
-    if side != 0 { node = lds 1 (np + 8); }
+    var b = ld8 (key + (bit >> 3));
+    var m = 128 >> (bit & 7);
+    if (b & m) != 0 { node = lds 1 (np + 8); }
     else { node = lds 1 np; }
   }
   return 0;
@@ -238,15 +240,17 @@ fun 1 htab_set(1 t, 1 key, 1 value) {
   var parent = 0;
   var dir = 0;
   var cur = lds 1 (t + HT_ROOT);
+  var nbase = lds 1 (t + HT_NODES);
   while cur != 0 {
     if cur <=+ cap { break; }
-    var np = htab_node_ptr(t, cur);
+    var np = nbase + (cur - cap - 1) * 24;
     var bit = lds 1 (np + 16);
     if bit >+ d { break; }
     parent = cur;
-    dir = htab_bit(key, bit);
-    if dir != 0 { cur = lds 1 (np + 8); }
-    else { cur = lds 1 np; }
+    var b = ld8 (key + (bit >> 3));
+    var m = 128 >> (bit & 7);
+    if (b & m) != 0 { dir = 1; cur = lds 1 (np + 8); }
+    else { dir = 0; cur = lds 1 np; }
   }
   var nip = htab_node_ptr(t, new_int);
   var side = htab_bit(key, d);

@@ -332,7 +332,7 @@ by the guest. No resize/copy/truncate path is bypassed in these runs.
 ## 10. Pinned compile/source record
 
 - candidate source: `submission/BoundedTableExperiment/htab_patricia.pnk`
-  sha256 `7c10739a25f47721672c56de0e890e9167e88e177489f8dac91639050a482ae7`
+  sha256 `ff85be313987b3be8b1727ccf0c401fa001a369b99f7d1540caeb3f7ac5fce62`
 - semantic model: `submission/BoundedTableExperiment/prototype.py`
   sha256 `ad8b1bdea4186f3da088bea6a6c421e9745cca1fb74c49a1affc5ef83edce64d`
 - order/ownership proof: `ReachableOrderInvariant.lean`
@@ -388,13 +388,48 @@ model.
 
 | key length | keys | model max internal visits | Spike steps | result |
 |---|---:|---:|---:|---|
-| 20 | 160 | 159 | 130,585,772 | match |
-| 32 | 256 | 255 | 323,581,062 | match |
-| 60 | 480 | 479 | 1,130,341,474 | match |
+| 20 | 160 | 159 | 36,489,664 | match |
+| 32 | 256 | 255 | 86,012,042 | match |
+| 60 | 480 | 479 | 295,571,647 | match |
 
 The observed maximum visits are exactly one less than the key-bit bound
-(`8*key_len`): 159/160, 255/256, 479/480. This is the worst-path measurement the
-projected score lacked; it still does not by itself prove the source-tick
-budget, because the full-input path also includes nodedb construction and
-gas-independent witness work. It does show the table itself has no
-collision-cluster amplification at any supported key length.
+(`8*key_len`): 159/160, 255/256, 479/480. Before the routing optimization below
+the same runs took 130,585,772 / 323,581,062 / 1,130,341,474 steps.
+
+## 13. Routing-cost optimization and conservative budget check
+
+`htab_find_leaf` previously called `htab_node_ptr` and `htab_bit` at every
+internal node; each call reloaded table header fields and recomputed the node
+base. The candidate now caches `HT_NODES` once per walk, addresses
+`nbase + (node - cap - 1)*24` inline, and computes the bit mask inline:
+`ld8 (key + (bit >> 3))` and `128 >> (bit & 7)`. The same inlining is used in
+the second insertion walk. Parse/type still passes (1,559 assembly lines), and
+all linked checksums still match.
+
+Measured effect on the worst path:
+
+| key length | before | after | speedup | steps per lookup | steps per internal visit |
+|---|---:|---:|---:|---:|---:|
+| 20 | 130,585,772 | 36,489,664 | 3.58x | 2,281 | 14.3 |
+| 32 | 323,581,062 | 86,012,042 | 3.76x | 3,360 | 13.2 |
+| 60 | 1,130,341,474 | 295,571,647 | 3.82x | 6,158 | 12.9 |
+
+Conservative full-input arithmetic using the KL32 coefficients:
+
+- `htab_set` for a new key traverses twice (reachable leaf, then insertion
+  point), so ~`2 * 256 * 13.2 = 6,758` steps.
+- `33.55M * 6,758 = 2.27e11` for one insert per input entry at the adversarial
+  depth-256 shape.
+- one read per entry adds `33.55M * 3,360 = 1.13e11`, total ~`3.40e11`.
+- `htab_copy` at N=5,000 is unchanged by the routing change: 523,075 steps,
+  ~105/entry, or `3.5e9` at 33.55M entries.
+- growth reinsertion is bounded by one extra insertion per key on average over
+  doubling, so a coarse `2.27e11` allowance gives ~`5.7e11` before nodedb,
+  transcript, and other guest work.
+
+That is below `9e11`, but the margin is not a proof and is sensitive to the
+source-tick/native-step ratio. The honest status is: the previous random-depth
+projection is unsafe, the optimized traversal removes most of the per-node
+coefficient, and the remaining full-input budget must be checked with the
+actual source-event accounting and the adversarial shape. This is not yet a
+certificate claim.
