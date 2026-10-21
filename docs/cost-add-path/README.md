@@ -81,3 +81,40 @@ Not included: the `stack_push` growth path (realloc and `memcpy`).
 Each script is elaborated with the source build's `LEAN_PATH` (the
 `finite-score-build` packages plus `cost-source-build`), using `lean
 --root=submission <file>`.
+
+## Crep-level expression prices (source charge retune)
+
+`CrepAddPathWalk.lean` walks the same ADD iteration through the pinned Crep
+code (`FrontendStages.Crep.outputs`, functions looked up by name). Every
+comparison evaluated consumes one recorded decision. Every function uses
+exactly its decision count. Each evaluated Crep expression is priced at three
+node costs:
+
+- `loopK`: the default-Loop prices, `loopNodePrice`.
+- `selK`: the selector prices, `selNodePrice`.
+- `srcK`: the source charge, the pointwise maximum of the two.
+
+Statements are charged their `CrepWorkS` unit, call and loop prices.
+
+| Per ADD | Expressions | Statements | Crep work |
+|---|---|---|---|
+| before (`loopK`) | 10,639 | 4,466 | 15,105 |
+| selector only (`selK`) | 13,277 | 4,466 | 17,743 |
+| after (`srcK`) | 13,648 | 4,466 | 18,114 |
+
+Nodes evaluated per ADD:
+
+| const | var | topAddr | load | load32/byte | op with 2 args | crepOp | cmp |
+|---|---|---|---|---|---|---|---|
+| 122 | 86 | 27 | 56 | 1 | 79 | 9 | 14 |
+
+Source charge delta (`srcK` − `loopK`) per ADD:
+
+| Node | Count × delta | Total |
+|---|---|---|
+| const | 122 × 5 | 610 |
+| var | 86 × 10 | 860 |
+| topAddr | 27 × 43 | 1,161 |
+| load | 56 × 3 | 168 |
+| cmp | 14 × 15 | 210 |
+| **all** | | **3,009** |

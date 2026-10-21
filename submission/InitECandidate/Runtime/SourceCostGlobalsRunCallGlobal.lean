@@ -54,13 +54,13 @@ theorem globals_temp_store_events (B : Nat) {F : Type} {u : PanSemStateFiniteExa
     (bound : u.locals.lookup globalsTemp = some value) :
     sharpSourceScore B (.statement :: (aev ++ vev ++ [.memory (flattenHOL value').length,
       .cost (storeOverhead (flattenHOL value').length)])) ≤
-      globalAddressPrice + 156 * (flattenHOL value).length := by
+      globalAddressPrice srcK + 166 * (flattenHOL value).length := by
   have read : expressionValue u (.var .local globalsTemp) = some value := by
     simpa [expressionValue, evalHOLExact] using bound
   have hv : value' = value := Option.some.inj (src.sound.symm.trans read)
   subst hv
   have addr := globals_address_events B dst
-  have price : sourcePrice u (.var .local globalsTemp) = 14 * (flattenHOL value').length := by
+  have price : sourcePrice u (.var .local globalsTemp) = 24 * (flattenHOL value').length := by
     simp [sourcePrice, sourcePrices, exprPrices, valueInfo, bound]; omega
   rw [src.events_eq, srcScore_statement, sharpSourceScore_append, sharpSourceScore_append,
     srcScore_expressionEvents, price]
@@ -72,7 +72,7 @@ theorem globals_temp_store_score (B : Nat) {F : Type} {u post : PanSemStateFinit
     {address : BitVec 64} {r ev} {value : ValueHOL 64}
     (run : StatementRun fn u (.store (.op .sub [.topAddr, .const address]) (.var .local globalsTemp)) r post ev)
     (ok : r ≠ some .error) (bound : u.locals.lookup globalsTemp = some value) :
-    sharpSourceScore B ev ≤ globalAddressPrice + 156 * (flattenHOL value).length := by
+    sharpSourceScore B ev ≤ globalAddressPrice srcK + 166 * (flattenHOL value).length := by
   cases run
   case storeValue => exact globals_temp_store_events B (by assumption) (by assumption) bound
   all_goals exact absurd rfl ok
@@ -167,7 +167,7 @@ theorem globals_callDone_global (B : Nat) {F : Type} {s post : PanSemStateFinite
       rw [← hreturn, hshape, sizeT, sizeS, ← hsize]
       simp only [callExitOverhead, callPayloadWords, Option.map_none, Option.getD_none]
       gsimp
-      simp only [globalAddressPrice] at cont
+      simp only [globalAddressPrice, srcK_top, srcK_cst, srcK_op] at cont
       omega
     case declareCallStopped =>
       rename_i vs body' callee' rs' br' bp' bev' terminal' clock' lookup' bodyRun' args'

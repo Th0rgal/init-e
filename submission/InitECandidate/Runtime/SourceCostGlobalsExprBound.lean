@@ -28,16 +28,16 @@ by its `TopAddr`-relative load, which is exactly what `pan_globals` emits. -/
 theorem globals_exprPrices_eq {F : Type} {context : PanGlobalsContextExact 64}
     {s t : PanSemStateFiniteExact 64 F} (rel : panGlobalsStateRelHOLExact true context s t) :
     ∀ e : ExpHOL 64, globalsReadyExp e = true → expressionValue s e ≠ none →
-      exprPrices (valueInfo s.locals) (valueInfo t.globals) (compileExpExactHOL context e) =
-        exprPrices (valueInfo s.locals) (valueInfo s.globals) e := by
+      exprPrices srcK (valueInfo s.locals) (valueInfo t.globals) (compileExpExactHOL context e) =
+        exprPrices srcK (valueInfo s.locals) (valueInfo s.globals) e := by
   refine ExpHOL.rec
     (motive_1 := fun e => globalsReadyExp e = true → expressionValue s e ≠ none →
-      exprPrices (valueInfo s.locals) (valueInfo t.globals) (compileExpExactHOL context e) =
-        exprPrices (valueInfo s.locals) (valueInfo s.globals) e)
+      exprPrices srcK (valueInfo s.locals) (valueInfo t.globals) (compileExpExactHOL context e) =
+        exprPrices srcK (valueInfo s.locals) (valueInfo s.globals) e)
     (motive_2 := fun es => globalsReadyExps es = true →
       @evalListHOLExact 64 F _ s.toExact (fun a => Classical.propDecidable (s.memaddrs a)) es ≠ none →
-      exprListPrices (valueInfo s.locals) (valueInfo t.globals) (compileExpExactHOLList context es) =
-        exprListPrices (valueInfo s.locals) (valueInfo s.globals) es)
+      exprListPrices srcK (valueInfo s.locals) (valueInfo t.globals) (compileExpExactHOLList context es) =
+        exprListPrices srcK (valueInfo s.locals) (valueInfo s.globals) es)
     (motive_3 := fun _ => True) (motive_4 := fun _ => True)
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
   · intro value _ _
@@ -52,7 +52,7 @@ theorem globals_exprPrices_eq {F : Type} {context : PanGlobalsContextExact 64}
       obtain ⟨address, entry, wf⟩ := globalsRel_global rel found
       have length := flattenHOL_length_eq_sizeOfShapeHOL value wf
       simp only [compileExpExactHOL, entry]
-      simp [exprPrices, exprListPrices, cexpHeads, valueInfo, found, globalAddressPrice, length]
+      simp [exprPrices, exprListPrices, cexpHeads, valueInfo, found, globalAddressPrice, srcK_top, srcK_cst, srcK_op, length]
   · intro fields ih ready ok
     have children : @evalListHOLExact 64 F _ s.toExact
         (fun a => Classical.propDecidable (s.memaddrs a)) fields ≠ none := by

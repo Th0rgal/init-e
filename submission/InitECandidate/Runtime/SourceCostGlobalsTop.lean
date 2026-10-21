@@ -16,7 +16,7 @@ at most the source entry run plus a one-time initialiser cost. -/
 slots, exit with at most an exception's re-raise check and the payload copy)
 and the constant initialiser stores. -/
 def globalsTopInit (returnShape : ShapeHOL) (globalCount payload : Nat) : Nat :=
-  343 + 19 * sizeOfShapeHOL returnShape + 212 * globalCount + 49 * payload
+  343 + 24 * sizeOfShapeHOL returnShape + 265 * globalCount + 49 * payload
 
 theorem callExitOverhead_le (r : Option (PanSemResultExact 64)) :
     callExitOverhead r ≤ 147 + 49 * callPayloadWords r := by

@@ -59,7 +59,7 @@ theorem source_loop_sharp_work {F : Type}
 theorem sharpScore_eq (ev : List WorkEvent) :
     sharpScore ev = (executionWork ev).nativeCost + 14 * (executionWork ev).movedWords +
       37 * (executionWork ev).nativeEvents +
-      128 * (executionWork ev).globalAccesses + 156 * (executionWork ev).globalWords := by
+      176 * (executionWork ev).globalAccesses + 166 * (executionWork ev).globalWords := by
   simp only [sharpScore, sharpSourceScore, sharpSourceWeights, Work.score]
   omega
 

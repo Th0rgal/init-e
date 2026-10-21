@@ -99,7 +99,7 @@ theorem srcScore_cost (B n : Nat) (rest : List WorkEvent) :
   simp only [sharpSourceScore_cons, sharpSource_cost]
 
 theorem srcScore_global (B n : Nat) (rest : List WorkEvent) :
-    sharpSourceScore B (.globalAccess n :: rest) = 128 + 156 * n + sharpSourceScore B rest := by
+    sharpSourceScore B (.globalAccess n :: rest) = 176 + 166 * n + sharpSourceScore B rest := by
   simp only [sharpSourceScore_cons, sharpSource_global]
 
 theorem srcScore_expressionEvents (B : Nat) {F : Type} (s : PanSemStateFiniteExact 64 F) (e : ExpHOL 64) :
@@ -116,9 +116,9 @@ macro "gsimp" loc:(Lean.Parser.Tactic.location)? : tactic =>
 
 /-- The `TopAddr`-relative global address costs its native price. -/
 theorem globals_address_score {F : Type} (B : Nat) (t : PanSemStateFiniteExact 64 F) (address : BitVec 64) :
-    sharpSourceScore B (expressionEvents t (.op .sub [.topAddr, .const address])) = globalAddressPrice := by
+    sharpSourceScore B (expressionEvents t (.op .sub [.topAddr, .const address])) = globalAddressPrice srcK := by
   rw [srcScore_expressionEvents]
-  simp [sourcePrice, sourcePrices, exprPrices, exprListPrices, cexpHeads, globalAddressPrice]
+  simp [sourcePrice, sourcePrices, exprPrices, exprListPrices, cexpHeads, globalAddressPrice, srcK_top, srcK_cst, srcK_op]
 
 theorem sharp_size_nil : ∀ shape : ShapeHOL,
     sizeOfShapeWithContextHOL [] shape = sizeOfShapeHOL shape := by
