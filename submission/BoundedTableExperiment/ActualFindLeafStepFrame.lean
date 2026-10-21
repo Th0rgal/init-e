@@ -1,5 +1,6 @@
 import CandidateFindLeafStepTrace
 import CandidateFindLeafPush
+import InitECandidate.Runtime.RlpPutBeMemoryWindow
 
 namespace BoundedTableExperiment
 
@@ -48,3 +49,35 @@ end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateFindLeafGuard_skip
 #print axioms BoundedTableExperiment.candidateFindLeafPush_preserves_node
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- The depth bump changes only the depth local; the node local is untouched. -/
+theorem candidateFindLeafBump_preserves_node {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    {node : BitVec 64}
+    (run : StatementRun fn s candidateFindLeafBump none post events)
+    (nodeLocal : s.locals.lookup (ofString "node") = some (.val (.word node))) :
+    post.locals.lookup (ofString "node") = s.locals.lookup (ofString "node") := by
+  change StatementRun fn s
+    (.assign .local (ofString "depth")
+      (.op .add [.var .local (ofString "depth"),.const (BitVec.ofNat 64 1)]))
+    none post events at run
+  cases run with
+  | assignValue expr valid =>
+      show (setVarHOLFinite (ofString "depth") _ s).locals.lookup (ofString "node") =
+        s.locals.lookup (ofString "node")
+      rw [nodeLocal]
+      exact lookup_setVar_ne s (ofString "depth") (ofString "node") _ _
+        (by decide) nodeLocal
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidateFindLeafBump_preserves_node
