@@ -989,3 +989,22 @@ actual push address: an actual one-word store at an address equal to
 `candidateFindLeafPush = store (path + depth*8) node` from section 43.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 45. Actual path-push `StatementRun` event/cost composition
+
+`CandidateFindLeafPush.lean` proves, for the candidate statement
+`push = store (path + depth*8) node`:
+
+- `candidateFindLeafPush_run`: an actual `CostedExpressionRun` for the address
+  expression and a `.val (.word node)` for the source produces the actual
+  `StatementRun.storeValue` rule for `candidateFindLeafPush`, with events
+  `.statement :: (addressEvents ++ valueEvents ++ [.memory 1, .cost (storeOverhead 1)])`;
+- `candidateFindLeafPush_score`: the actual score of those events is
+  `statements + addressEvents + valueEvents + memoryAccesses +
+  nativeCost * storeOverhead 1`;
+- `candidateFindLeafPush_preserves`: the same actual one-word store advances
+  `PathMemoryInv` to `depth+1` at `pathAddr base depth`.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. This composes the actual
+candidate push statement with the actual store rule and path invariant; the
+surrounding loop/guard trace and the binary-search/link tail remain open.
