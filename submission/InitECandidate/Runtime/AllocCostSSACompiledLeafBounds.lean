@@ -123,6 +123,38 @@ theorem ssaCcTrans_seq_shape {width : Nat} [NeZero width]
           (ssaCcTrans s1 ssa na lt).2.2 lt).1 := by
   simp only [ssaCcTrans]
 
+/-- **Actual compiled fragment of `ite`.**  Both branches are compiled at the
+incoming map (the second at the first's threaded next variable), and the two
+merge programs from `fixInconsistencies` are appended to the branches:
+`(.seq e2' e2Cons)` and `(.seq e3' e3Cons)`.  This is where the live moves are
+inserted, so their cost is the cost of those `e2Cons`/`e3Cons` merge programs. -/
+theorem ssaCcTrans_ite_shape {width : Nat} [NeZero width]
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec width))
+    (e2 e3 : WordLangProgHOL (BitVec width)) (ssa : Spt Nat) (na : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit)) :
+    (ssaCcTrans (.ite cmp r1 ri e2 e3) ssa na lt).1 =
+      .ite cmp (optionLookup ssa r1)
+        (match ri with
+          | .reg r => .reg (optionLookup ssa r)
+          | .imm v => .imm v)
+        (.seq (ssaCcTrans e2 ssa na lt).1
+          (fixInconsistencies
+            (mkPrio (ssaCcTrans e2 ssa na lt).1
+              (ssaCcTrans e3 ssa (ssaCcTrans e2 ssa na lt).2.2 lt).1)
+            (ssaCcTrans e2 ssa na lt).2.1
+            (ssaCcTrans e3 ssa (ssaCcTrans e2 ssa na lt).2.2 lt).2.1
+            (ssaCcTrans e3 ssa (ssaCcTrans e2 ssa na lt).2.2 lt).2.2).1)
+        (.seq (ssaCcTrans e3 ssa (ssaCcTrans e2 ssa na lt).2.2 lt).1
+          (fixInconsistencies
+            (mkPrio (ssaCcTrans e2 ssa na lt).1
+              (ssaCcTrans e3 ssa (ssaCcTrans e2 ssa na lt).2.2 lt).1)
+            (ssaCcTrans e2 ssa na lt).2.1
+            (ssaCcTrans e3 ssa (ssaCcTrans e2 ssa na lt).2.2 lt).2.1
+            (ssaCcTrans e3 ssa (ssaCcTrans e2 ssa na lt).2.2 lt).2.2).2.1) := by
+  simp only [ssaCcTrans]
+  cases ri <;> rfl
+
+#print axioms ssaCcTrans_ite_shape
 #print axioms ssaCcTrans_seq_shape
 #print axioms merge_overhead_bound
 #print axioms ssaCcTrans_inst_shape
