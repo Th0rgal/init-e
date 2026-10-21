@@ -885,3 +885,21 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`. This is the actual
 memory-semantics preservation half of the path-store invariant; it still needs
 to be instantiated at the candidate's concrete path addresses and combined with
 the search/push/link run decomposition.
+
+## 38. Actual path-memory push invariant
+
+`ActualPathMemoryInvariant.lean` defines the concrete path slot address
+`pathAddr base i = base + 8*i` and the actual-state invariant
+`PathMemoryInv s base depth routes`: every slot below `depth` holds its route
+word in `s.memory`.
+
+`PathMemoryInv.push` proves that an actual one-word `panMemStoresHOL` at
+`pathAddr base depth` extends the invariant to depth `+1`, provided the slot is
+in the address domain and `depth < 2^61`:
+
+- old slots are unchanged by `actual_one_word_store_frame`;
+- the new slot reads back the stored route via `panMemStoreHOL_hit`.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. This is an actual PNK
+heap/path preservation lemma; it is not yet connected to a full `htab_set` run
+decomposition.
