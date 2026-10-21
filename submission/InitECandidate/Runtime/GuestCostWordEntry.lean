@@ -4,6 +4,7 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact Flapjack.LoopSemStateFiniteExact
 open Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect Flapjack.Compiler.Encoders.Asm
 open InitE InitECandidate.Proofs.FrontendStages
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! The pinned Word entry. `pan_to_word`'s `state_rel_imp_semantics` runs
 `Call NONE (SOME firstLoopName) [0] NONE` from the Word target state. That
@@ -82,7 +83,7 @@ theorem guest_word_entry (input : Guest.InputBlob) {C : Type}
       (Guest.guestAst.map declToHOL) = some s1)
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 Guest.HostMemory}
     {ev : List WorkEvent}
-    (run : StatementRun { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
+    (run : StatementRun fn { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
       r post ev)
     (ok : r ≠ some .error) :
     ∃ entryClock,

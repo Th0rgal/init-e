@@ -4,6 +4,7 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact Flapjack.LoopSemStateFiniteExact
 open Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect Flapjack.Compiler.Encoders.Asm
 open InitE InitECandidate.Proofs.FrontendStages
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! The guest's source → Word transfer: the installed Loop entry of
 `guest_source_loop`, compiled by `loop_to_word`, run from any Word state
@@ -25,7 +26,7 @@ theorem guest_source_word (input : Guest.InputBlob) {C : Type} (W : Type)
       (Guest.guestAst.map declToHOL) = some s1)
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 Guest.HostMemory}
     {ev : List WorkEvent}
-    (run : StatementRun { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
+    (run : StatementRun fn { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
       r post ev)
     (ok : r ≠ some .error) :
     let start := Flapjack.Basis.Pure.MlString.ofString "main"

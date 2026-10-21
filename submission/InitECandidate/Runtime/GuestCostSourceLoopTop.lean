@@ -6,6 +6,7 @@ namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact Flapjack.LoopSemStateFiniteExact
 open Flapjack.Pancake.CrepToLoop.Proofs.NCompileCorrect Flapjack.Compiler.Encoders.Asm
 open InitE InitECandidate.Proofs.FrontendStages
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! The guest's end-to-end source → Loop transfer: the original `main` run
 after the authoritative declarations (`Guest.guestAst.map declToHOL` from
@@ -19,7 +20,7 @@ theorem guest_entry_payload {s1 post : PanSemStateFiniteExact 64 Guest.HostMemor
     (hs1 : @evaluateDeclsHOLFinite 64 Guest.HostMemory _ { sourceInitialState input with structs := [] }
       (fun a => Classical.propDecidable ((sourceInitialState input).memaddrs a)) InitE.sourceDeclarations =
         some s1)
-    {r ev} (run : StatementRun { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
+    {r ev} (run : StatementRun fn { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
       r post ev) (ok : r ≠ some .error) : callPayloadWords r ≤ 1 := by
   have hcode := @evaluateDeclsHOLFinite_functions 64 Guest.HostMemory _ _
     (fun a => Classical.propDecidable _) _ s1 hs1
@@ -54,7 +55,7 @@ theorem guest_source_loop (input : Guest.InputBlob) {C : Type}
       (Guest.guestAst.map declToHOL) = some s1)
     {r : Option (PanSemResultExact 64)} {post : PanSemStateFiniteExact 64 Guest.HostMemory}
     {ev : List WorkEvent}
-    (run : StatementRun { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
+    (run : StatementRun fn { s1 with clock := clock } (.call none (Flapjack.Basis.Pure.MlString.ofString "main") [])
       r post ev)
     (ok : r ≠ some .error) :
     let start := Flapjack.Basis.Pure.MlString.ofString "main"
@@ -98,17 +99,27 @@ theorem guest_source_loop (input : Guest.InputBlob) {C : Type}
     rw [guest_entry_program] at mem
     obtain ⟨f, hf, rfl⟩ := guest_mem_functions mem
     exact List.all_eq_true.1 guest_pass2_sharp_sites _ hf
+  have hfresh : newMainNameHOL (panSimpDeclsHOL InitE.sourceDeclarations) = freshEntryName := by
+    rw [guest_simplified_eq_pass1]; kernel_rfl
+  have hlabels : LabelInvariant (Flapjack.Basis.Pure.MlString.ofString "main")
+      (newMainNameHOL (panSimpDeclsHOL InitE.sourceDeclarations)) := by
+    rw [hfresh]; exact labelInvariant_entry
+  have entryMoves : callMoves (Flapjack.Basis.Pure.MlString.ofString "main")
+      (newMainNameHOL (panSimpDeclsHOL InitE.sourceDeclarations)) = 0 := by
+    rw [hfresh]; decide +kernel
   obtain ⟨T, hT, extra, wl, work, bound, rel, loopOk⟩ := source_loop_initial (sourceInitialState input) target arch
     InitE.sourceDeclarations start guestGlobalsSize clock hmem hnolabels guest_source_struct_context rfl
     hmdomain guest_source_distinct (guest_source_aligned input) (source_globals_allocatable input)
     rfl rfl rfl guest_source_eids rfl (Or.inr rfl)
-    (compileTop_structFree _ guest_simplified_struct_free) body rshape hmain ready constGlobals noInline
+    (compileTop_structFree _ guest_simplified_struct_free) body rshape hmain hlabels ready constGlobals noInline
     sites hs1' run ok
   refine ⟨T, hT, extra, wl, work, ?_, rel, loopOk⟩
   have payload := guest_entry_payload hs1' run ok
   have count : ((panSimpDeclsHOL InitE.sourceDeclarations).filter isDeclHOL).length = 93 := by
     rw [guest_simplified_eq_pass1]; exact guest_pass1_global_count
   rw [count] at bound
+  have entryMoves' : callMoves start (newMainNameHOL (panSimpDeclsHOL InitE.sourceDeclarations)) = 0 :=
+    entryMoves
   simp only [globalsTopInit, hsz] at bound
   omega
 
