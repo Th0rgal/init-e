@@ -92,17 +92,23 @@ theorem fLT_le_fL (e : HolLoopExp 64) : fLT c e ≤ fL e := by
     · obtain ⟨a, w, rfl⟩ := hs
       have ha := ih a (by show sizeOf a < _; simp; omega)
       have := immC_ge c .add (-w)
-      rw [fLT.eq_6, fLT.eq_10]; rw [fLT.eq_10] at hx
+      rw [fLT.eq_6, fLT.eq_11]; rw [fLT.eq_11] at hx
       simp only [fL, fLs] at hx ⊢
       split_ifs <;> simp at hx ⊢ <;> omega
-    · rw [fLT.eq_7 c x (fun a w h => hs ⟨a, w, h⟩)]; simp only [fL]; omega
+    · by_cases hd : ∃ a w, x = .op .add [a, .const w]
+      · obtain ⟨a, w, rfl⟩ := hd
+        have ha := ih a (by show sizeOf a < _; simp; omega)
+        rw [fLT.eq_7]
+        simp only [fL, fLs] at hx ⊢
+        split_ifs <;> simp at hx ⊢ <;> omega
+      · rw [fLT.eq_8 c x (fun a w h => hs ⟨a, w, h⟩) (fun a w h => hd ⟨a, w, h⟩)]; simp only [fL]; omega
   | shift s a b =>
     have ha := ih a (by show sizeOf a < _; simp; omega)
     by_cases hb : ∃ n, b = .const n
     · obtain ⟨n, rfl⟩ := hb
-      rw [fLT.eq_8]; simp only [fL]; split_ifs <;> omega
+      rw [fLT.eq_9]; simp only [fL]; split_ifs <;> omega
     · have hb' := ih b (by show sizeOf b < _; simp)
-      rw [fLT.eq_9 c s a b (fun n h => hb ⟨n, h⟩)]; simp only [fL]; omega
+      rw [fLT.eq_10 c s a b (fun n h => hb ⟨n, h⟩)]; simp only [fL]; omega
   | op o ls =>
     rcases ls with _ | ⟨a, _ | ⟨b, _ | ⟨d, rest⟩⟩⟩
     · rw [fLT_op_other c o [] (by simp)]
@@ -113,17 +119,17 @@ theorem fLT_le_fL (e : HolLoopExp 64) : fLT c e ≤ fL e := by
         by_cases hb : ∃ w, b = .const w
         · obtain ⟨w, rfl⟩ := hb
           have := immC_ge c .add (-w)
-          rw [fLT.eq_10]; simp [fL, fLs]; omega
+          rw [fLT.eq_11]; simp [fL, fLs]; omega
         · have hbb := ih b (by show sizeOf b < _; simp; omega)
-          rw [fLT.eq_11 c a b (fun w h => hb ⟨w, h⟩)]; simp [fL, fLs]; omega
+          rw [fLT.eq_12 c a b (fun w h => hb ⟨w, h⟩)]; simp [fL, fLs]; omega
       · by_cases hb : ∃ w, b = .const w
         · obtain ⟨w, rfl⟩ := hb
           have := immC_ge c o w
-          rw [fLT.eq_12 c o a w ho]; split_ifs
+          rw [fLT.eq_13 c o a w ho]; split_ifs
           · simp [fL, fLs]; omega
           · exact Nat.le_refl _
         · have hbb := ih b (by show sizeOf b < _; simp; omega)
-          rw [fLT.eq_13 c o a b (fun w _ h => hb ⟨w, h⟩) ho (fun w h => hb ⟨w, h⟩)]; split_ifs
+          rw [fLT.eq_14 c o a b (fun w _ h => hb ⟨w, h⟩) ho (fun w h => hb ⟨w, h⟩)]; split_ifs
           · simp [fL, fLs]; omega
           · exact Nat.le_refl _
     · rw [fLT_op_other c o _ (by simp)]
@@ -184,6 +190,8 @@ def nodeT (c : Compiler.Encoders.Asm.AsmConfigExact 64) : CrepExpHOL 64 → Nat
   | .topAddr => 72
   | .load (.op .sub [a, .const w]) =>
       if WordInst.addrOffsetOk c (-w) then nodeT c a + 24 else nodeT c (.op .sub [a, .const w]) + 24
+  | .load (.op .add [a, .const w]) =>
+      if safeC .add a && WordInst.addrOffsetOk c w then nodeT c a + 24 else nodeT c (.op .add [a, .const w]) + 24
   | .load a => nodeT c a + 24
   | .load32 a | .loadByte a => nodeT c a + 48
   | .shift _ a (.const _) => nodeT c a + 24
@@ -285,8 +293,16 @@ theorem comp_value_safe (tmp : Nat) (live : NumSet) (o : BinOp) (e : CrepExpHOL 
 theorem fLT_load_le (v : HolLoopExp 64) : fLT c (.load v) ≤ fLT c v + 24 := by
   by_cases hs : ∃ a w, v = .op .sub [a, .const w]
   · obtain ⟨a, w, rfl⟩ := hs
-    rw [fLT.eq_6, fLT.eq_10]; split_ifs <;> omega
-  · rw [fLT.eq_7 c v (fun a w h => hs ⟨a, w, h⟩)]
+    rw [fLT.eq_6, fLT.eq_11]; split_ifs <;> omega
+  · by_cases hd : ∃ a w, v = .op .add [a, .const w]
+    · obtain ⟨a, w, rfl⟩ := hd
+      have h1 : fLT c a ≤ fLT c (.op .add [a, .const w]) := by
+        rw [fLT.eq_13 c .add a w (by decide)]
+        split_ifs
+        · omega
+        · have := fLT_le_fL c a; simp [fL, fLs]; omega
+      rw [fLT.eq_7]; split_ifs <;> omega
+    · rw [fLT.eq_8 c v (fun a w h => hs ⟨a, w, h⟩) (fun a w h => hd ⟨a, w, h⟩)]
 
 theorem tight_fallback (tmp : Nat) (live : NumSet) (e : CrepExpHOL 64) :
     ∃ cost, (tightAllowance c).works (compileExpHOLExact ctxt tmp live e).1 = some cost ∧
@@ -317,16 +333,38 @@ theorem crep_to_loop_T_work (e : CrepExpHOL 64) : ∀ (tmp : Nat) (live : NumSet
     by_cases hs : ∃ a w, x = .op .sub [a, .const w]
     · obtain ⟨a, w, rfl⟩ := hs
       obtain ⟨ka, hka, hba⟩ := ih a (by show sizeOf a < _; simp; omega) tmp live
-      rw [nodeT.eq_6, nodeT.eq_12]
+      rw [nodeT.eq_6, nodeT.eq_13]
       simp only [compileExpHOLExact, comp_two] at hka hba ⊢
       rcases hc : compileExpHOLExact ctxt tmp live a with ⟨ca, va, na, la⟩
       rw [hc] at hka hba
       try simp only [] at hka hba ⊢
       refine ⟨ka, by simpa [compileExpHOLExact] using hka, ?_⟩
-      rw [fLT.eq_6, fLT.eq_10]
+      rw [fLT.eq_6, fLT.eq_11]
       split_ifs <;> omega
-    · obtain ⟨k, hk, hb⟩ := hx
-      rw [nodeT.eq_7 c x (fun a w h => hs ⟨a, w, h⟩)]
+    · by_cases hd : ∃ a w, x = .op .add [a, .const w]
+      · obtain ⟨a, w, rfl⟩ := hd
+        obtain ⟨k, hk, hb⟩ := hx
+        rw [nodeT.eq_7]
+        split_ifs with hcond
+        · simp only [Bool.and_eq_true] at hcond
+          obtain ⟨hsafe, hok⟩ := hcond
+          obtain ⟨ka, hka, hba⟩ := ih a (by show sizeOf a < _; simp; omega) tmp live
+          have hsv := comp_value_safe ctxt tmp live .add a hsafe
+          rcases hc : compileExpHOLExact ctxt tmp live a with ⟨ca, va, na, la⟩
+          rw [hc] at hka hba hsv
+          try simp only [] at hka hba hsv
+          refine ⟨ka, by simpa [compileExpHOLExact, comp_two, hc] using hka, ?_⟩
+          simp only [compileExpHOLExact, comp_two, hc]
+          rw [fLT.eq_7, if_pos (by simp [hsv, hok])]; omega
+        · rcases hc : compileExpHOLExact ctxt tmp live (.op .add [a, .const w]) with ⟨cx, vx, nx, lx⟩
+          rw [hc] at hk hb
+          try simp only [] at hk hb
+          refine ⟨k, by rw [compileExpHOLExact, hc]; exact hk, ?_⟩
+          rw [compileExpHOLExact, hc]
+          simp only []
+          have := fLT_load_le c vx; omega
+      obtain ⟨k, hk, hb⟩ := hx
+      rw [nodeT.eq_8 c x (fun a w h => hs ⟨a, w, h⟩) (fun a w h => hd ⟨a, w, h⟩)]
       rcases hc : compileExpHOLExact ctxt tmp live x with ⟨cx, vx, nx, lx⟩
       rw [hc] at hk hb
       simp only [] at hk hb
@@ -335,7 +373,7 @@ theorem crep_to_loop_T_work (e : CrepExpHOL 64) : ∀ (tmp : Nat) (live : NumSet
       have := fLT_load_le c vx; omega
   | load32 x | loadByte x =>
     obtain ⟨k, hk, hb⟩ := ih x (by show sizeOf x < _; simp) tmp live
-    first | rw [nodeT.eq_8] | rw [nodeT.eq_9]
+    first | rw [nodeT.eq_9] | rw [nodeT.eq_10]
     rcases hc : compileExpHOLExact ctxt tmp live x with ⟨cx, vx, nx, lx⟩
     rw [hc] at hk hb
     simp only [] at hk hb
@@ -358,17 +396,17 @@ theorem crep_to_loop_T_work (e : CrepExpHOL 64) : ∀ (tmp : Nat) (live : NumSet
     · obtain ⟨n, rfl⟩ := hc
       simp only [compileExpHOLExact] at hcb
       cases hcb
-      rw [fLT.eq_8, nodeT.eq_10]
+      rw [fLT.eq_9, nodeT.eq_11]
       have : kb = 0 := by simpa [tightWorks_nil] using hkb.symm
       split_ifs <;> omega
     · have hvb : ∀ n, vb ≠ .const n := by
         have := comp_value_nonconst ctxt na la b (fun n h => hc ⟨n, h⟩); rw [hcb] at this; exact this
-      rw [fLT.eq_9 c s va vb (fun n h => hvb n h), nodeT.eq_11 c s a b (fun n h => hc ⟨n, h⟩)]
+      rw [fLT.eq_10 c s va vb (fun n h => hvb n h), nodeT.eq_12 c s a b (fun n h => hc ⟨n, h⟩)]
       omega
   | op o ls =>
     rcases ls with _ | ⟨a, _ | ⟨b, _ | ⟨d, rest⟩⟩⟩
-    · rw [nodeT.eq_16] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
-    · rw [nodeT.eq_16] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
+    · rw [nodeT.eq_17] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
+    · rw [nodeT.eq_17] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
     · obtain ⟨ka, hka, hba⟩ := ih a (by show sizeOf a < _; simp; omega) tmp live
       rcases hca : compileExpHOLExact ctxt tmp live a with ⟨ca, va, na, la⟩
       rw [hca] at hka hba
@@ -389,34 +427,34 @@ theorem crep_to_loop_T_work (e : CrepExpHOL 64) : ∀ (tmp : Nat) (live : NumSet
         by_cases ho : o = .sub
         · subst ho
           refine ⟨ka + kb, hcode, ?_⟩
-          rw [hval, fLT.eq_10, nodeT.eq_12]; omega
-        · rw [nodeT.eq_14 c o a w ho]
+          rw [hval, fLT.eq_11, nodeT.eq_13]; omega
+        · rw [nodeT.eq_15 c o a w ho]
           split_ifs with hs
           · have hsv := comp_value_safe ctxt tmp live o a hs
             rw [hca] at hsv
             refine ⟨ka + kb, hcode, ?_⟩
-            rw [hval, fLT.eq_12 c o va w ho, if_pos hsv]; omega
+            rw [hval, fLT.eq_13 c o va w ho, if_pos hsv]; omega
           · exact tight_fallback c ctxt tmp live _
       · have hvb : ∀ w, vb ≠ .const w := by
           have := comp_value_nonconst ctxt na la b (fun w h => hc ⟨w, h⟩); rw [hcb] at this; exact this
         by_cases ho : o = .sub
         · subst ho
           refine ⟨ka + kb, hcode, ?_⟩
-          rw [hval, fLT.eq_11 c va vb (fun w h => hvb w h), nodeT.eq_13 c a b (fun w h => hc ⟨w, h⟩)]
+          rw [hval, fLT.eq_12 c va vb (fun w h => hvb w h), nodeT.eq_14 c a b (fun w h => hc ⟨w, h⟩)]
           omega
-        · rw [nodeT.eq_15 c o a b (fun w _ h => hc ⟨w, h⟩) ho (fun w h => hc ⟨w, h⟩)]
+        · rw [nodeT.eq_16 c o a b (fun w _ h => hc ⟨w, h⟩) ho (fun w h => hc ⟨w, h⟩)]
           split_ifs with hs
           · simp only [Bool.and_eq_true] at hs
             have hsa := comp_value_safe ctxt tmp live o a hs.1
             have hsb := comp_value_safe ctxt na la o b hs.2
             rw [hca] at hsa; rw [hcb] at hsb
             refine ⟨ka + kb, hcode, ?_⟩
-            rw [hval, fLT.eq_13 c o va vb (fun w _ h => hvb w h) ho (fun w h => hvb w h)]
+            rw [hval, fLT.eq_14 c o va vb (fun w _ h => hvb w h) ho (fun w h => hvb w h)]
             simp [hsa, hsb]; omega
           · exact tight_fallback c ctxt tmp live _
-    · rw [nodeT.eq_16] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
-  | crepOp o xs => rw [nodeT.eq_16] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
-  | cmp o x y => rw [nodeT.eq_16] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
+    · rw [nodeT.eq_17] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
+  | crepOp o xs => rw [nodeT.eq_17] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
+  | cmp o x y => rw [nodeT.eq_17] <;> first | exact tight_fallback c ctxt tmp live _ | (intros; simp_all)
 
 end Crep
 

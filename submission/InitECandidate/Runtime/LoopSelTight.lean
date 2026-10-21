@@ -237,6 +237,8 @@ def fLT (c : Compiler.Encoders.Asm.AsmConfigExact 64) : HolLoopExp 64 → Nat
   | .topAddr => 72
   | .load (.op .sub [a, .const w]) =>
       if WordInst.addrOffsetOk c (-w) then fLT c a + 24 else fLT c (.op .sub [a, .const w]) + 24
+  | .load (.op .add [a, .const w]) =>
+      if safeL .add a && WordInst.addrOffsetOk c w then fLT c a + 24 else fLT c (.op .add [a, .const w]) + 24
   | .load a => fLT c a + 24
   | .shift _ a (.const n) => if n.toNat < 64 then fLT c a + 24 else 24
   | .shift _ a b => fLT c a + fLT c b + 28
@@ -258,7 +260,7 @@ theorem fL_ge (e : HolLoopExp 64) : 24 ≤ fL e := by
 /-- Side conditions of the catch-all `fLT` equation for an operator of arity other than two. -/
 theorem fLT_op_other (c : Compiler.Encoders.Asm.AsmConfigExact 64) (o : BinOp) (ls : List (HolLoopExp 64))
     (h : ls.length ≠ 2) : fLT c (.op o ls) = fL (.op o ls) := by
-  rw [fLT.eq_14] <;> intros <;> simp_all
+  rw [fLT.eq_15] <;> intros <;> simp_all
 
 theorem fLT_ge (c : Compiler.Encoders.Asm.AsmConfigExact 64) (e : HolLoopExp 64) : 24 ≤ fLT c e := by
   refine (measure (sizeOf : HolLoopExp 64 → Nat)).wf.induction (C := fun e => 24 ≤ fLT c e) e ?_
@@ -273,12 +275,15 @@ theorem fLT_ge (c : Compiler.Encoders.Asm.AsmConfigExact 64) (e : HolLoopExp 64)
     by_cases hs : ∃ a w, x = .op .sub [a, .const w]
     · obtain ⟨a, w, rfl⟩ := hs
       rw [fLT.eq_6]; split_ifs <;> omega
-    · rw [fLT.eq_7 c x (fun a w h => hs ⟨a, w, h⟩)]; omega
+    · by_cases hd : ∃ a w, x = .op .add [a, .const w]
+      · obtain ⟨a, w, rfl⟩ := hd
+        rw [fLT.eq_7]; split_ifs <;> omega
+      · rw [fLT.eq_8 c x (fun a w h => hs ⟨a, w, h⟩) (fun a w h => hd ⟨a, w, h⟩)]; omega
   | shift s a b =>
     by_cases hb : ∃ n, b = .const n
     · obtain ⟨n, rfl⟩ := hb
-      rw [fLT.eq_8]; split_ifs <;> omega
-    · rw [fLT.eq_9 c s a b (fun n h => hb ⟨n, h⟩)]; omega
+      rw [fLT.eq_9]; split_ifs <;> omega
+    · rw [fLT.eq_10 c s a b (fun n h => hb ⟨n, h⟩)]; omega
   | op o ls =>
     rcases ls with _ | ⟨a, _ | ⟨b, _ | ⟨d, rest⟩⟩⟩
     · rw [fLT_op_other c o [] (by simp)]; exact fL_ge _
@@ -289,14 +294,14 @@ theorem fLT_ge (c : Compiler.Encoders.Asm.AsmConfigExact 64) (e : HolLoopExp 64)
       · subst ho
         by_cases hb : ∃ w, b = .const w
         · obtain ⟨w, rfl⟩ := hb
-          rw [fLT.eq_10]; have := immC_ge c .add (-w); omega
-        · rw [fLT.eq_11 c a b (fun w h => hb ⟨w, h⟩)]; omega
+          rw [fLT.eq_11]; have := immC_ge c .add (-w); omega
+        · rw [fLT.eq_12 c a b (fun w h => hb ⟨w, h⟩)]; omega
       · by_cases hb : ∃ w, b = .const w
         · obtain ⟨w, rfl⟩ := hb
-          rw [fLT.eq_12 c o a w ho]; have := immC_ge c o w; split_ifs
+          rw [fLT.eq_13 c o a w ho]; have := immC_ge c o w; split_ifs
           · omega
           · exact fL_ge _
-        · rw [fLT.eq_13 c o a b (fun w _ h => hb ⟨w, h⟩) ho (fun w h => hb ⟨w, h⟩)]; split_ifs
+        · rw [fLT.eq_14 c o a b (fun w _ h => hb ⟨w, h⟩) ho (fun w h => hb ⟨w, h⟩)]; split_ifs
           · omega
           · exact fL_ge _
     · rw [fLT_op_other c o _ (by simp)]; exact fL_ge _
@@ -362,8 +367,8 @@ theorem selT_le_fLT (e : HolLoopExp 64) : selT c (LoopToWord.compExpHOL ctxt e) 
       have hsub := ih (.op .sub [a, .const w]) (by show sizeOf _ < _; simp)
       have ga := fLT_ge c a
       have gi := immC_ge c .add (-w)
-      rw [fLT.eq_10] at hsub
-      rw [LoopToWord.compExpHOL, pull_load, flat_load, fLT.eq_6, fLT.eq_10]
+      rw [fLT.eq_11] at hsub
+      rw [LoopToWord.compExpHOL, pull_load, flat_load, fLT.eq_6, fLT.eq_11]
       rcases subc_cases ctxt a w with ⟨w', h⟩ | h
       · rw [h, iselT.eq_2 c _ (fun _ _ h => by cases h), iselT_const]
         split_ifs <;> omega
@@ -374,17 +379,36 @@ theorem selT_le_fLT (e : HolLoopExp 64) : selT c (LoopToWord.compExpHOL ctxt e) 
           have := iselT_op_const c .add (NL a) (-w)
           omega
     · have hx := ih x (by show sizeOf x < _; simp)
-      rw [LoopToWord.compExpHOL, pull_load, flat_load, fLT.eq_7 c x (fun a w h => hs ⟨a, w, h⟩)]
-      have := iselT_load_le c (NL x); omega
+      by_cases hd : ∃ a w, x = .op .add [a, .const w]
+      · obtain ⟨a, w, rfl⟩ := hd
+        have ha := ih a (by show sizeOf a < _; simp; omega)
+        rw [LoopToWord.compExpHOL, pull_load, flat_load, fLT.eq_7]
+        split_ifs with hcond
+        · simp only [Bool.and_eq_true] at hcond
+          obtain ⟨hsafe, hok⟩ := hcond
+          obtain ⟨hc, hno⟩ := safe_shape ctxt .add a hsafe
+          rw [comp_op2, comp_const, pull_op2 .add (by decide), pull_const,
+            pullOps_two .add _ _ hno (by intro ls h; cases h), optimize_const .add (by decide) _ w hc]
+          unfold WordInst.reduceConst
+          split_ifs
+          · simp only []
+            have := iselT_load_le c (NL a); omega
+          all_goals first
+            | (rw [flat_op2 .add (by decide), flat_const, iselT_load_offset c _ _ hok]; omega)
+            | (exfalso; simp_all)
+        · have := iselT_load_le c (NL (.op .add [a, .const w])); omega
+      · rw [LoopToWord.compExpHOL, pull_load, flat_load,
+          fLT.eq_8 c x (fun a w h => hs ⟨a, w, h⟩) (fun a w h => hd ⟨a, w, h⟩)]
+        have := iselT_load_le c (NL x); omega
   | shift s a b =>
     have ha := ih a (by show sizeOf a < _; simp; omega)
     rw [LoopToWord.compExpHOL, pull_shift, flat_shift]
     by_cases hb : ∃ n, b = .const n
     · obtain ⟨n, rfl⟩ := hb
-      rw [comp_const, pull_const, flat_const, iselT_shift_const, fLT.eq_8]
+      rw [comp_const, pull_const, flat_const, iselT_shift_const, fLT.eq_9]
       split_ifs <;> omega
     · have hb' := ih b (by show sizeOf b < _; simp)
-      rw [fLT.eq_9 c s a b (fun n h => hb ⟨n, h⟩)]
+      rw [fLT.eq_10 c s a b (fun n h => hb ⟨n, h⟩)]
       have := iselT_shift_le c s (NL a) (NL b); omega
   | op o ls =>
     rcases ls with _ | ⟨a, _ | ⟨b, _ | ⟨d, rest⟩⟩⟩
@@ -397,13 +421,13 @@ theorem selT_le_fLT (e : HolLoopExp 64) : selT c (LoopToWord.compExpHOL ctxt e) 
         by_cases hb : ∃ w, b = .const w
         · obtain ⟨w, rfl⟩ := hb
           have gi := immC_ge c .add (-w)
-          rw [fLT.eq_10]
+          rw [fLT.eq_11]
           rcases subc_cases ctxt a w with ⟨w', h⟩ | h
           · rw [h, iselT_const]; omega
           · rw [h]; have := iselT_op_const c .add (NL a) (-w); omega
         · have hbb := ih b (by show sizeOf b < _; simp; omega)
           have gb := fLT_ge c b
-          rw [fLT.eq_11 c a b (fun w h => hb ⟨w, h⟩), comp_op2, pull_sub2]
+          rw [fLT.eq_12 c a b (fun w h => hb ⟨w, h⟩), comp_op2, pull_sub2]
           rcases convertSub_two (PL a) (PL b) with ⟨w', h⟩ | ⟨w', hw, h⟩ | ⟨_, h⟩
           · rw [h, flat_const, iselT_const]; omega
           · rw [h, flat_op2 .add (by decide), flat_const]
@@ -413,7 +437,7 @@ theorem selT_le_fLT (e : HolLoopExp 64) : selT c (LoopToWord.compExpHOL ctxt e) 
             have := iselT_op_le c .sub (NL a) (NL b); omega
       · by_cases hb : ∃ w, b = .const w
         · obtain ⟨w, rfl⟩ := hb
-          rw [fLT.eq_12 c o a w ho]
+          rw [fLT.eq_13 c o a w ho]
           split_ifs with hs
           · obtain ⟨hc, hno⟩ := safe_shape ctxt o a hs
             have gi := immC_ge c o w
@@ -429,7 +453,7 @@ theorem selT_le_fLT (e : HolLoopExp 64) : selT c (LoopToWord.compExpHOL ctxt e) 
             · rw [flat_op2 o ho, flat_const]; have := iselT_op_const c o (NL a) w; omega
             · rw [flat_op2 o ho, flat_const]; have := iselT_op_const c o (NL a) w; omega
           · exact selT_le_fL c ctxt _
-        · rw [fLT.eq_13 c o a b (fun w _ h => hb ⟨w, h⟩) ho (fun w h => hb ⟨w, h⟩)]
+        · rw [fLT.eq_14 c o a b (fun w _ h => hb ⟨w, h⟩) ho (fun w h => hb ⟨w, h⟩)]
           split_ifs with hs
           · simp only [Bool.and_eq_true] at hs
             have hbb := ih b (by show sizeOf b < _; simp; omega)
