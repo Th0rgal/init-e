@@ -678,3 +678,118 @@ Notes for whoever continues:
   `fixClock_IMP_LESS_EQ` (`midS.clock <= cutS.clock = s.clock`) and the fact that a live middle has a positive
   clock; the arithmetic `B + B * (k + 1) = B * (k + 2) <= B * (n + 1)` is `Nat.mul_succ` plus `omega` (plain
   `omega` on the product alone fails, it needs the product as an atom plus an explicit `Nat.mul_le_mul_left`).
+
+## The loop constructor: both hypotheses of the clock induction are DISCHARGED
+
+`wec_loop_transfer_clock` took `LoopBodyStep` and `LoopCutAgrees` explicitly.  The constructor in
+`AllocCostSSACompiledLeafBounds.lean` now DERIVES both, from a body hypothesis and one domain fact, and
+composes the run half and the cost half into a `quantTransfer` (and a `quantSsaSimulation`) case.  All
+green; axioms `propext` / `Classical.choice` / `Quot.sound` throughout (`sptSubsetLive_congr`: none).
+
+### The two inputs
+
+    noncomputable def LoopBodyTransfer (body bodyC : prog) (B : Nat) : Prop :=
+      forall st ct, wordStateEqRel st ct ->
+        (exists rS sS rT sT,
+          evaluate body st  = (rS, sS) /\
+          evaluate bodyC ct = (rT, sT) /\
+          rS = rT /\                              -- same OUTCOME
+          wordStateEqRel sS sT) /\                -- related REACHED states
+        cost bodyC ct <= cost body st + B
+
+    def LoopLocalsDomAgrees : Prop :=
+      forall st ct, wordStateEqRel st ct -> forall key, sptMem key st.locals <-> sptMem key ct.locals
+
+`LoopBodyTransfer` is the quantitative analogue of the universal body premise of
+`ssaCcTransCorrectLoop` (`ssaSimulation body st ct map na lt` at every related pair): same universality
+over `wordStateEqRel`-related pairs, plus the cost quantifier and, crucially, the run components.
+`LoopLocalsDomAgrees` is the sharper form of the information `wordStateEqRel` deliberately omits (`it
+lists 21 fields; locals and permutation are absent`): it is the *whole* missing fact about `locals`,
+not just one cutset's worth.
+
+### What is derived (nothing is assumed twice)
+
+| derived | from |
+| --- | --- |
+| `LoopBodyStep names body bodyC B` | `LoopBodyTransfer` + `wordStateEqRel_cutState` + `fix_clock_evaluate` |
+| `LoopCutAgrees names` | `LoopLocalsDomAgrees` + `cutState_exists_iff` (any cutset, not just `names`) |
+| loop run agreement | `LoopBodyTransfer` + `LoopLocalsDomAgrees` (clock induction) |
+| loop cost bound `B * (s.clock + 1)` | `wec_loop_transfer_clock` at the two derived hypotheses |
+
+Support: `sptSubsetLive_congr` (subset-liveness is a domain property), `cutState_exists_iff`
+(`cutState cs s` succeeds iff both name sets are live in `s.locals`), `cutState_exists_congr` (hence
+cutability agrees whenever the domains do), `loopBodyStep_of_transfer`, `loopCutAgrees_of_localsDom`,
+and the run shapes `evaluate_loop_cut_none` / `evaluate_loop_cont_done` / `evaluate_loop_break` (the
+`break 0` case the `evaluate_loop_stop` shape excludes, because the evaluator routes it through the
+EXIT cutset).
+
+### The delivered statements
+
+    theorem loop_quantTransfer
+        (hbody : LoopBodyTransfer body bodyC B) (hloc : LoopLocalsDomAgrees)
+        (hrel  : wordStateEqRel source target) :
+        quantTransfer (.loop names body liveOut) (.loop names bodyC liveOut) source target
+          (B * (source.clock + 1))
+
+    theorem ssaCcTrans_loop_quant
+        (bodyIH : forall st ct map na lt, wordStateEqRel st ct /\ ssaLocalsRel na map st.locals ct.locals /\
+           isAllocVar na /\ everyVarHOL (fun key => decide (key < na)) body = true /\
+           ssaMapOK na map /\ ltOK lt -> ssaSimulation body st ct map na lt)
+        (hinv  : <the loop's own six-conjunct premise, as in ssaCcTransCorrectLoop>)
+        (hshape : (ssaCcTrans (.loop names body exitNames) ssa next tables).1 =
+                    .loop names bodyC exitNames)
+        (hbody : LoopBodyTransfer body bodyC B) (hloc : LoopLocalsDomAgrees) :
+        quantSsaSimulation (.loop names body exitNames) source target ssa next tables
+          (B * (source.clock + 1))
+
+`ssaCcTrans_loop_quant` mirrors `ssaCcTransCorrectLoop`'s bundle verbatim (`bodyIH` + the six premises)
+for the semantic conjunct, and transports the quantitative conjuncts of `loop_quantTransfer` through
+`hshape`, exactly the way `ssaCcTrans_ite_quant_then` consumes its `hshape`.  It needs the new import
+`Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticLoop`.
+
+### What does NOT discharge: the locals-domain agreement, and the real loop output shape
+
+1. **`LoopLocalsDomAgrees` is not derivable from the invariant bundle, and must not be weakened away.**
+   `wordStateEqRel` does not constrain `locals` at all, and `ssaLocalsRel` reads only the source side's
+   entries, so a related pair can have locals with different domains.  This is machine-checked, not
+   asserted: `loopLocalsDomAgrees_refuted` proves
+
+       not (forall st ct, wordStateEqRel st ct -> ssaLocalsRel 0 Spt.ln st.locals ct.locals ->
+              forall key, sptMem key st.locals <-> sptMem key ct.locals)
+
+   by exhibiting the pair `st.locals = Spt.ln`, `ct.locals = sptInsert 0 (.word 0) Spt.ln` (the SSA
+   relation holds vacuously because the source side has no entries).  Composing with the PROVED
+   `cutState_exists_iff` gives the precise missing conjunct: cutability, i.e. `sptSubsetLive`, i.e.
+   `forall key in names, sptMem key locals`, and `sptMem 0` differs across that pair.  That is why the
+   failing goal, at the point where the induction needs it, is exactly
+
+       forall key : Nat, sptMem key st.locals <-> sptMem key ct.locals
+
+   with only `hrel : wordStateEqRel st ct` in context - no field of the relation mentions `locals`.
+   The hypothesis is therefore kept explicit and *sharper* than before: one domain fact per related
+   pair replaces the per-cutset `LoopCutAgrees`.
+2. The literal `ssaCcTrans` output for a loop is NOT a `.loop` node: it is
+   `.seq setup (.loop (renamed names) (body ++ reconcile moves) (renamed exits))`
+   (`ssaCcTrans_loop_output` in `AllocCostSSABodyWork.lean`), and the setup program runs BEFORE the
+   loop.  Hence `hshape` is an interface hypothesis, as the ite constructor's is; composing with the
+   setup's cost and with the renamed cutset's cutability on the post-setup state is the remaining
+   (separate) setup/renaming step, not a gap in this constructor.
+
+### Proof notes for whoever continues
+
+- `fix_clock_evaluate : fixClock s (evaluate p s) = evaluate p s` - a run's own result is already clock
+  fixed, so on a run hypothesis `evaluate p s = (r, s1)` the `fixClock`-shaped hypothesis of
+  `LoopBodyStep` is just `rw [fix_clock_evaluate s p]; exact hrunS`.  Do NOT try to rewrite
+  `fixClock s (r, s1)` with it : after the `rw [hrunS]` the pattern is gone.
+- the evaluator's loop clause is a DEPENDENT match on `cutState`, so `rw [evaluate]` then `split` yields
+  the two cut branches; in the failing branch the goal is closed by `rw [hs] at hnone; cases hnone`,
+  and in the succeeding branch the goal still contains `match _h : cutSource.fixClock (evaluate body
+  cutSource)` - rewrite with the run hypothesis, `dsimp only`, then the `dite` on the clock.
+- `break 0`: `cases hbrk` (`hbrk : result = some (.break 0)`) substitutes the result everywhere, which
+  is what reduces both the `wordSemContLoop` test and the following result match; then
+  `rw [if_neg (by decide)]` and `rw [hcut]` followed by `rfl` (the match on `some s2` needs the final
+  `rfl`, not a `dsimp`, which reports "no progress").
+- `t; u` vs `t` newline `u`: `;` applies `u` to EVERY goal `t` produced - writing
+  `rw [hs] at hnone; cases hnone` in a branch is fine, but the same tactic closed a second branch's
+  goals in an earlier draft, producing a spurious "unsolved goals".  Use newlines inside `next`
+  branches of a `split`.

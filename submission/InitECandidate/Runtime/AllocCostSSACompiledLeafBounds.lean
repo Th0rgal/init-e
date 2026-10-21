@@ -7,6 +7,7 @@ import InitECandidate.Runtime.AllocMoveTable
 import InitECandidate.Runtime.WordRefinedLocalPrice
 import InitECandidate.Runtime.WordStackRefinedLeaf
 import InitECandidate.Runtime.WordOptimizerPrice
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticLoop
 
 /-!
 # Compile-output bounds for leaf constructors
@@ -3212,4 +3213,394 @@ theorem wec_call_none_callee_transfer_of_code_some {C F : Type}
 #print axioms findCode_some_of_frame
 #print axioms findCode_destNone_of_frame
 #print axioms wec_call_none_callee_transfer_of_code
+
+/-! ### The loop constructor: discharging the two explicit hypotheses
+
+`wec_loop_transfer_clock` takes `LoopBodyStep` and `LoopCutAgrees` explicitly.  This
+section DERIVES both from a quantitative hypothesis on the body alone:
+
+* `LoopBodyTransfer body bodyC B` - the body transfers at EVERY pair of states the
+  compiler's `wordStateEqRel` relates: the two runs agree on the outcome, they reach
+  RELATED states, and the compiled body costs at most the source body plus `B`.  This is
+  the quantitative analogue of the universal body premise of
+  `ssaCcTransCorrectLoop` (there: `ssaSimulation body st ct map na lt` at every related
+  pair), with the cost and run quantifiers added.
+* `LoopLocalsDomAgrees` - related states have locals with the same DOMAIN.  This is the
+  only information `wordStateEqRel` deliberately leaves out (it ignores `locals`
+  entirely), and it is exactly what cutability reads, so it cannot be derived from the
+  relation; from it `LoopCutAgrees` follows for EVERY cutset, not just the loop's.
+-/
+
+/-- The body's quantitative transfer at every pair of states the compiler relates: same
+outcome, related reached states, and the compiled body's cost within `B`. -/
+noncomputable def LoopBodyTransfer {C F : Type}
+    (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat) : Prop :=
+  ∀ (st ct : WordSemStateFiniteExact 64 C F),
+    Flapjack.WordAlloc.wordStateEqRel st ct →
+    (∃ (rS : Option (WordSemResult 64)) (sS : WordSemStateFiniteExact 64 C F)
+       (rT : Option (WordSemResult 64)) (sT : WordSemStateFiniteExact 64 C F),
+      WordSemStateFiniteExact.evaluate body st = (rS, sS) ∧
+      WordSemStateFiniteExact.evaluate bodyC ct = (rT, sT) ∧ rS = rT ∧
+      Flapjack.WordAlloc.wordStateEqRel sS sT) ∧
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice bodyC ct ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body st + B
+
+/-- Related states have locals with the same domain.  `wordStateEqRel` ignores `locals`,
+so this is information the relation cannot supply; it is exactly what cutability reads. -/
+def LoopLocalsDomAgrees {C F : Type} : Prop :=
+  ∀ (st ct : WordSemStateFiniteExact 64 C F), Flapjack.WordAlloc.wordStateEqRel st ct →
+    ∀ key, sptMem key st.locals ↔ sptMem key ct.locals
+
+/-- Subset-liveness depends only on the domain of the environment. -/
+theorem sptSubsetLive_congr {α β : Type} {left : Spt α} {e1 e2 : Spt β}
+    (h : ∀ key, sptMem key e1 ↔ sptMem key e2) :
+    Flapjack.LoopSemStateFiniteExact.sptSubsetLive left e1 ↔
+      Flapjack.LoopSemStateFiniteExact.sptSubsetLive left e2 :=
+  ⟨fun hs key hk => (h key).mp (hs key hk), fun hs key hk => (h key).mpr (hs key hk)⟩
+
+/-- `cutState` succeeds at a cutset exactly when both of its name sets are live in the
+state's locals. -/
+theorem cutState_exists_iff {C F : Type} (cs : WordLangCutsetsHOL)
+    (s : WordSemStateFiniteExact 64 C F) :
+    (∃ s', cutState cs s = some s') ↔
+      Flapjack.LoopSemStateFiniteExact.sptSubsetLive cs.1 s.locals ∧
+      Flapjack.LoopSemStateFiniteExact.sptSubsetLive cs.2 s.locals := by
+  simp only [cutState, wordSemCutEnv, wordSemCutEnvs, wordSemCutNames]
+  by_cases h1 : Flapjack.LoopSemStateFiniteExact.sptSubsetLive cs.1 s.locals
+  · by_cases h2 : Flapjack.LoopSemStateFiniteExact.sptSubsetLive cs.2 s.locals
+    · simp [h1, h2]
+    · simp [h1, h2]
+  · by_cases h2 : Flapjack.LoopSemStateFiniteExact.sptSubsetLive cs.2 s.locals
+    · simp [h1, h2]
+    · simp [h1, h2]
+
+/-- `cutState`'s success is determined by the domain of `locals`. -/
+theorem cutState_exists_congr {C F : Type} (cs : WordLangCutsetsHOL)
+    {st ct : WordSemStateFiniteExact 64 C F}
+    (hdom : ∀ key, sptMem key st.locals ↔ sptMem key ct.locals) :
+    (∃ s', cutState cs st = some s') ↔ (∃ s', cutState cs ct = some s') := by
+  rw [cutState_exists_iff cs st, cutState_exists_iff cs ct,
+    sptSubsetLive_congr (left := cs.1) hdom, sptSubsetLive_congr (left := cs.2) hdom]
+
+/-- **`LoopCutAgrees` is DERIVED** from `LoopLocalsDomAgrees`, for the loop's live set:
+cutability reads only the domain of `locals`, which `LoopLocalsDomAgrees` pins down. -/
+theorem loopCutAgrees_of_localsDom {C F : Type}
+    (h : LoopLocalsDomAgrees (C := C) (F := F)) (names : WordLangNumSetHOL) :
+    LoopCutAgrees (C := C) (F := F) names := by
+  intro st ct hrel
+  exact cutState_exists_congr (names, (Spt.ln : Spt Unit)) (h st ct hrel)
+
+/-- **`LoopBodyStep` is DERIVED** from the body's quantitative transfer at related pairs:
+the cut states are related (`wordStateEqRel_cutState`), the body's run and cost come from
+`LoopBodyTransfer` at that pair, and `fixClock` is the identity on a run's own result
+(`fix_clock_evaluate`), so the reached middles are related states. -/
+theorem loopBodyStep_of_transfer {C F : Type}
+    (names : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat)
+    (hbody : LoopBodyTransfer (C := C) (F := F) body bodyC B) :
+    LoopBodyStep (C := C) (F := F) names body bodyC B := by
+  intro st ct cutS cutT resultS midS resultT midT hrel hs ht hS hT
+  have hrelCut : Flapjack.WordAlloc.wordStateEqRel cutS cutT :=
+    wordStateEqRel_cutState (names, .ln) hrel hs ht
+  obtain ⟨⟨rS, sS, rT, sT, hrunS, hrunT, hout, hreach⟩, hcost⟩ := hbody cutS cutT hrelCut
+  have hS' : (resultS, midS) = (rS, sS) := by
+    rw [← hrunS, ← fix_clock_evaluate cutS body]
+    exact hS.symm
+  have hT' : (resultT, midT) = (rT, sT) := by
+    rw [← hrunT, ← fix_clock_evaluate cutT bodyC]
+    exact hT.symm
+  injection hS' with hres hmid
+  injection hT' with hres' hmid'
+  refine ⟨?_, ?_, ?_⟩
+  · rw [hres, hres', hout]
+  · rw [hmid, hmid']
+    exact hreach
+  · exact hcost
+
+/-- A loop whose live set is NOT cuttable charges nothing and returns `error` at the same state. -/
+theorem evaluate_loop_cut_none {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = none) :
+    WordSemStateFiniteExact.evaluate (.loop names body liveOut) s = (some .error, s) := by
+  rw [evaluate]
+  split
+  · rfl
+  · next cs hsome => rw [hs] at hsome; cases hsome
+
+/-- The live-continuing run at an EXHAUSTED clock: the evaluator returns `timeOut` at the flushed
+middle instead of recursing (`if _hc : s1.clock = 0`), the run shape matching
+`wec_loop_cont_done_transfer`. -/
+theorem evaluate_loop_cont_done {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s cutSource : WordSemStateFiniteExact 64 C F)
+    (result : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cutSource)
+    (h : fixClock cutSource (WordSemStateFiniteExact.evaluate body cutSource) = (result, middle))
+    (hc : wordSemContLoop result = true) (hclk : middle.clock = 0) :
+    WordSemStateFiniteExact.evaluate (.loop names body liveOut) s =
+      (some .timeOut, flushState true middle) := by
+  rw [evaluate]
+  split
+  · next hnone =>
+    rw [hs] at hnone
+    cases hnone
+  · next cs hsome =>
+    rw [hs] at hsome
+    cases hsome
+    rw [h]
+    dsimp only
+    rw [if_pos (by rw [hc])]
+    split
+    · next hz =>
+      rfl
+    · next hz =>
+      exact absurd hclk hz
+
+/-- The `break 0` run shapes: the evaluator routes `break 0` through the EXIT cutset, so the loop
+either falls through to the exit state (cut succeeds) or returns `error` at the middle (cut fails). -/
+theorem evaluate_loop_break {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s cutSource : WordSemStateFiniteExact 64 C F)
+    (result : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cutSource)
+    (h : fixClock cutSource (WordSemStateFiniteExact.evaluate body cutSource) = (result, middle))
+    (hnc : wordSemContLoop result = false) (hbrk : result = some (.break 0)) :
+    (∀ s2, cutState (liveOut, .ln) middle = some s2 →
+        WordSemStateFiniteExact.evaluate (.loop names body liveOut) s = (none, s2)) ∧
+      (cutState (liveOut, .ln) middle = none →
+        WordSemStateFiniteExact.evaluate (.loop names body liveOut) s = (some .error, middle)) := by
+  constructor
+  · intro s2 hcut
+    rw [evaluate]
+    split
+    · next hnone =>
+      rw [hs] at hnone
+      cases hnone
+    · next cs hsome =>
+      rw [hs] at hsome
+      cases hsome
+      rw [h]
+      dsimp only
+      cases hbrk
+      rw [if_neg (by decide : ¬ (wordSemContLoop (some (.break 0)) = true))]
+      rw [hcut]
+      rfl
+  · intro hcut
+    rw [evaluate]
+    split
+    · next hnone =>
+      rw [hs] at hnone
+      cases hnone
+    · next cs hsome =>
+      rw [hs] at hsome
+      cases hsome
+      rw [h]
+      dsimp only
+      cases hbrk
+      rw [if_neg (by decide : ¬ (wordSemContLoop (some (.break 0)) = true))]
+      rw [hcut]
+      rfl
+
+/-- **The loop's run agrees, by induction on its clock.**  One iteration at a time: the two cut
+states are related, the body's transfer at that related pair supplies the two body runs, the same
+continuation test, and related middles; the middles' clock decides between the `timeOut` shape, the
+recursion at `decClock`, and - in the stopping shape - the exit-cutset branch, whose cutability
+agrees because the middles are related.  The base case is a zero clock, where the evaluator never
+recurses. -/
+theorem evaluate_loop_outcome_agree {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64)) (B : Nat)
+    (hbody : LoopBodyTransfer (C := C) (F := F) body bodyC B)
+    (hloc : LoopLocalsDomAgrees (C := C) (F := F)) :
+    ∀ (n : Nat) (s t : WordSemStateFiniteExact 64 C F), s.clock ≤ n →
+      Flapjack.WordAlloc.wordStateEqRel s t →
+      ∃ (rS : Option (WordSemResult 64)) (sS : WordSemStateFiniteExact 64 C F)
+        (rT : Option (WordSemResult 64)) (sT : WordSemStateFiniteExact 64 C F),
+        WordSemStateFiniteExact.evaluate (.loop names body liveOut) s = (rS, sS) ∧
+        WordSemStateFiniteExact.evaluate (.loop names bodyC liveOut) t = (rT, sT) ∧ rS = rT := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | h n ih =>
+    intro s t hle hrel
+    have hcut := loopCutAgrees_of_localsDom hloc names s t hrel
+    cases hs : cutState (names, .ln) s with
+    | none =>
+        have hnoneS : ¬ ∃ cs, cutState (names, .ln) s = some cs := by
+          rintro ⟨cs, hcs⟩
+          rw [hs] at hcs
+          cases hcs
+        have hnoneT : ¬ ∃ ct, cutState (names, .ln) t = some ct :=
+          fun h => hnoneS ((hcut).mpr h)
+        have ht : cutState (names, .ln) t = none := by
+          cases htt : cutState (names, .ln) t with
+          | none => rfl
+          | some ct => exact absurd ⟨ct, htt⟩ hnoneT
+        exact ⟨some .error, s, some .error, t,
+          evaluate_loop_cut_none names liveOut body s hs,
+          evaluate_loop_cut_none names liveOut bodyC t ht, rfl⟩
+    | some cutS =>
+        obtain ⟨cutT, ht⟩ := hcut.mp ⟨cutS, hs⟩
+        have hrelCut : Flapjack.WordAlloc.wordStateEqRel cutS cutT :=
+          wordStateEqRel_cutState (names, .ln) hrel hs ht
+        obtain ⟨⟨rS, sS, rT, sT, hrunS, hrunT, hout, hreach⟩, -⟩ := hbody cutS cutT hrelCut
+        have hforS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) = (rS, sS) := by
+          rw [fix_clock_evaluate cutS body]
+          exact hrunS
+        have hforT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) = (rT, sT) := by
+          rw [fix_clock_evaluate cutT bodyC]
+          exact hrunT
+        have hmidBound : sS.clock ≤ n := by
+          have h1 : sS.clock ≤ cutS.clock :=
+            (fixClock_IMP_LESS_EQ cutS rS sS (WordSemStateFiniteExact.evaluate body cutS) hforS).1
+          have h2 : cutS.clock = s.clock := (cutState_clock_termdep (names, .ln) s cutS hs).1
+          omega
+        have hclkEq : sT.clock = sS.clock := wordStateEqRel_clock hreach
+        cases hc : wordSemContLoop rS with
+        | false =>
+            have hcT : wordSemContLoop rT = false := by rw [← hout]; exact hc
+            by_cases hbrk : rS = some (.break 0)
+            · have hbrkT : rT = some (.break 0) := by rw [← hout]; exact hbrk
+              obtain ⟨hSshape, hTshape⟩ :=
+                evaluate_loop_break names liveOut body s cutS rS sS hs hforS hc hbrk
+              obtain ⟨hSshapeC, hTshapeC⟩ :=
+                evaluate_loop_break names liveOut bodyC t cutT rT sT ht hforT hcT hbrkT
+              cases hx : cutState (liveOut, .ln) sS with
+              | none =>
+                  have hxT : cutState (liveOut, .ln) sT = none := by
+                    cases hy : cutState (liveOut, .ln) sT with
+                    | none => rfl
+                    | some s2 =>
+                        have hcongr := (cutState_exists_congr (liveOut, .ln)
+                          (hloc sS sT hreach)).mpr ⟨s2, hy⟩
+                        rw [hx] at hcongr
+                        exact absurd hcongr (by rintro ⟨x, hxx⟩; cases hxx)
+                  exact ⟨some .error, sS, some .error, sT, hTshape hx, hTshapeC hxT, rfl⟩
+              | some s2 =>
+                  obtain ⟨s2', hxT⟩ := (cutState_exists_congr (liveOut, .ln)
+                    (hloc sS sT hreach)).mp ⟨s2, hx⟩
+                  exact ⟨none, s2, none, s2', hSshape s2 hx, hSshapeC s2' hxT, rfl⟩
+            · have hbrkT : rT = some (.break 0) → False := by
+                intro h
+                exact hbrk (hout ▸ h)
+              obtain ⟨hSrun, hTrun⟩ :=
+                evaluate_loop_stop_pair names liveOut body bodyC s t cutS cutT rS sS rT sT
+                  hs ht hforS hforT hc hcT hbrk hbrkT
+              exact ⟨wordSemExitLoop rS, sS, wordSemExitLoop rT, sT, hSrun, hTrun,
+                by rw [hout]⟩
+        | true =>
+            have hcT : wordSemContLoop rT = true := by rw [← hout]; exact hc
+            by_cases hzS : sS.clock = 0
+            · have hzT : sT.clock = 0 := by omega
+              exact ⟨some .timeOut, flushState true sS, some .timeOut, flushState true sT,
+                evaluate_loop_cont_done names liveOut body s cutS rS sS hs hforS hc hzS,
+                evaluate_loop_cont_done names liveOut bodyC t cutT rT sT ht hforT hcT hzT, rfl⟩
+            · have hzT : sT.clock = 0 → False := by omega
+              have hdecLt : (Flapjack.WordSemStateFiniteExact.decClock sS).clock < n := by
+                show sS.clock - 1 < n
+                omega
+              obtain ⟨rS', sS', rT', sT', hrunS', hrunT', hout'⟩ :=
+                ih (Flapjack.WordSemStateFiniteExact.decClock sS).clock hdecLt
+                  (Flapjack.WordSemStateFiniteExact.decClock sS)
+                  (Flapjack.WordSemStateFiniteExact.decClock sT) (le_refl _)
+                  (wordStateEqRel_decClock hreach)
+              have hcontS := evaluate_loop_cont names liveOut body s cutS hs rS sS hforS hc hzS
+              have hcontT := evaluate_loop_cont names liveOut bodyC t cutT ht rT sT hforT hcT hzT
+              exact ⟨rS', sS', rT', sT', by rw [hcontS]; exact hrunS',
+                by rw [hcontT]; exact hrunT', hout'⟩
+
+/-- **The loop's quantitative transfer.**  From the body's quantitative transfer at every pair of
+states the compiler relates (`LoopBodyTransfer`) and the locals-domain agreement the compiler
+relation deliberately omits (`LoopLocalsDomAgrees`), the loop node transfers with `B` per executed
+iteration, of which there are at most `source.clock + 1`: the runs agree
+(`evaluate_loop_outcome_agree`) and the executed cost bound is `wec_loop_transfer_clock`, whose two
+explicit hypotheses are derived above (`loopBodyStep_of_transfer`, `loopCutAgrees_of_localsDom`). -/
+theorem loop_quantTransfer {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (B : Nat)
+    (hbody : LoopBodyTransfer (C := C) (F := F) body bodyC B)
+    (hloc : LoopLocalsDomAgrees (C := C) (F := F))
+    (hrel : Flapjack.WordAlloc.wordStateEqRel source target) :
+    quantTransfer (C := C) (F := F) (.loop names body liveOut) (.loop names bodyC liveOut)
+      source target (B * (source.clock + 1)) := by
+  refine ⟨evaluate_loop_outcome_agree names liveOut body bodyC B hbody hloc source.clock
+    source target (le_refl _) hrel, ?_⟩
+  exact wec_loop_transfer_clock names liveOut body bodyC B
+    (loopBodyStep_of_transfer names body bodyC B hbody)
+    (loopCutAgrees_of_localsDom hloc names) source target hrel
+
+/-- **The loop's `quantSsaSimulation` constructor.**  The semantic conjunct is the compiler's own
+loop correctness (`ssaCcTransCorrectLoop`), whose hypothesis bundle is mirrored verbatim: the
+universal body IH, the invariant bundle at the loop's entry, and the compiled program's shape.
+The quantitative conjuncts are `loop_quantTransfer`, transported through that shape. -/
+theorem ssaCcTrans_loop_quant {C F : Type}
+    (names exitNames : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (B : Nat)
+    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (map : Spt Nat) (na : Nat)
+      (lt : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel st ct ∧
+      ssaLocalsRel na map st.locals ct.locals ∧ isAllocVar na ∧
+      everyVarHOL (fun key => decide (key < na)) body = true ∧
+      ssaMapOK na map ∧ ltOK lt → ssaSimulation body st ct map na lt)
+    (hinv : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun key => decide (key < next)) (.loop names body exitNames) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables)
+    (hshape : (ssaCcTrans (.loop names body exitNames) ssa next tables).1 =
+      .loop names bodyC exitNames)
+    (hbody : LoopBodyTransfer (C := C) (F := F) body bodyC B)
+    (hloc : LoopLocalsDomAgrees (C := C) (F := F)) :
+    quantSsaSimulation (C := C) (F := F) (.loop names body exitNames) source target ssa next tables
+      (B * (source.clock + 1)) := by
+  obtain ⟨⟨rS, sS, rT, sT, hrunS, hrunT, hout⟩, hcost⟩ :=
+    loop_quantTransfer names exitNames body bodyC source target B hbody hloc hinv.1
+  refine ⟨?_, ⟨rS, sS, rT, sT, hrunS, ?_, hout⟩, ?_⟩
+  · exact ssaCcTransCorrectLoop names exitNames body source target ssa next tables bodyIH hinv
+  · rw [hshape]
+    exact hrunT
+  · rw [hshape]
+    exact hcost
+
+#print axioms sptSubsetLive_congr
+#print axioms cutState_exists_iff
+#print axioms cutState_exists_congr
+#print axioms loopCutAgrees_of_localsDom
+#print axioms loopBodyStep_of_transfer
+#print axioms evaluate_loop_cut_none
+#print axioms evaluate_loop_cont_done
+#print axioms evaluate_loop_break
+#print axioms evaluate_loop_outcome_agree
+#print axioms loop_quantTransfer
+#print axioms ssaCcTrans_loop_quant
+
+/-- **The locals-domain agreement cannot be derived from the compiler's invariant bundle.**  A
+state pair related by `wordStateEqRel` may still have locals with DIFFERENT domains: the relation
+lists 21 fields and `locals` is deliberately absent, and `ssaLocalsRel` reads only the entries the
+source side has.  Here the pair is explicitly built with the source's locals empty and the target's
+holding `0`, so `ssaLocalsRel 0 Spt.ln` holds vacuously while `sptMem 0` differs.  Hence the domain
+agreement - and with it cutability - is a genuine hypothesis, never a derived fact. -/
+theorem loopLocalsDomAgrees_refuted {C F : Type} (s : WordSemStateFiniteExact 64 C F) :
+    ¬ (∀ (st ct : WordSemStateFiniteExact 64 C F),
+        Flapjack.WordAlloc.wordStateEqRel st ct →
+        ssaLocalsRel 0 (Spt.ln : Spt Nat) st.locals ct.locals →
+        ∀ key, sptMem key st.locals ↔ sptMem key ct.locals) := by
+  intro h
+  let src : WordSemStateFiniteExact 64 C F := { s with locals := (Spt.ln : Spt (WordLocW 64)) }
+  let tgt : WordSemStateFiniteExact 64 C F :=
+    { s with locals := sptInsert 0 (.word (0 : BitVec 64)) (Spt.ln : Spt (WordLocW 64)) }
+  have hrel : Flapjack.WordAlloc.wordStateEqRel src tgt := by
+    simp [Flapjack.WordAlloc.wordStateEqRel, src, tgt]
+  have hlocals : ssaLocalsRel 0 (Spt.ln : Spt Nat) src.locals tgt.locals := by
+    refine ⟨?_, ?_⟩
+    · intro x y hx
+      simp only [src, sptLookup_ln] at hx
+      cases hx
+    · intro x y hx
+      simp only [src, sptLookup_ln] at hx
+      cases hx
+  have := h src tgt hrel hlocals 0
+  simp only [src, tgt, sptMem_sptInsert, sptMem_ln] at this
+  exact this.mpr (Or.inl trivial)
+
+#print axioms loopLocalsDomAgrees_refuted
 end InitECandidate.Runtime.FineCost
