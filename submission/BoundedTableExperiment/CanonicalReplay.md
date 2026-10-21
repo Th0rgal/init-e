@@ -33,10 +33,17 @@ Generated tree: `submission/CandidateGuestStaging/` (git-ignored)
 14. `ActualWordSepFrame.lean` (canonical WordSep node-cell frame, no-wrap disjointness)
 15. `ActualSlabPathFrame.lean` (slab cells below path)
 16. `ActualCandidateHeap.lean` (candidate heap invariant and push preservation)
+17. `ActualCandidateAllocSeq.lean` (frozen candidate allocation call order and arguments)
+18. `ActualCandidateScratchContract.lean` (lookup-parameterized scratch_alloc success contract)
+19. `ActualCandidateCodePrefix.lean` (generic lookup prefix skip)
+20. `ActualCandidateCodeNames.lean` (body-free names; absence reduction)
+21. `ActualCandidateCode.lean` (candidateRuntimeCode and scratch_alloc lookup)
 
 Latest checked commits: `08ee26dd5`, `4513efed8`, `69fd41bfe`, `12a59902b`,
 `254cf589b`, `3f4990b6c`, `6be500f0d`, `5560cba5c`, `97bdde03e`,
-`41be50a52`, `5e4fb84e0`, `33fe26cf9`.
+`41be50a52`, `5e4fb84e0`, `33fe26cf9`, `13ef3caa5`, `9a0ec6c9f`,
+`a75b79af4`, `a50053ca0`, `ebeedaea8`, `b3aab0765`, `6b95640af`,
+`3a5977275`.
 
 ## Replay
 
