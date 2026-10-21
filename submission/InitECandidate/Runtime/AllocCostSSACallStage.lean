@@ -256,9 +256,86 @@ theorem ssaCall_exception_cost_stage {C F : Type}
   rw [hcallT, hcallS]
   omega
 
+/-- **Whole returning-call stage transfer from reached facts.**  Both the
+source and the allocated call are decomposed by the checked direct unfold at
+their actual reached states, so the two call-cost equations are *derived*
+rather than assumed; what remains is the local comparison of the node price, the
+callee body and the return-handler continuation.  `SsaAllocRel` supplies the
+machine-field agreement (and hence the `sValEq` entry condition through
+`stage_sValEq` / `ssaCall_body_stage`), and no target-run budget is assumed. -/
+theorem ssaCall_returning_cost_stage_full {C F : Type}
+    (ssa : Spt Nat) (next : Nat)
+    (values : List Nat) (names : WordLangCutsetsHOL)
+    (retCode : WordLangProgHOL (BitVec 64)) (l1 l2 : Nat)
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s t : WordSemStateFiniteExact 64 C F) (rel : SsaAllocRel ssa next s t)
+    (valsS : List (WordLocW 64)) (argsLS : List (WordLocW 64))
+    (progS : WordLangProgHOL (BitVec 64)) (ssOS : Option Nat)
+    (envsS : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (locS : WordLocW 64) (retS : List (WordLocW 64))
+    (midS popS : WordSemStateFiniteExact 64 C F)
+    (hgetS : getVars args s = some valsS)
+    (hbadS : wordSemBadDestArgs dest args = false)
+    (hfindS : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) valsS) s.code s.stackSize =
+        some (argsLS, progS, ssOS))
+    (hdomS : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcutS : wordSemCutEnvs names s.locals = some envsS)
+    (hzS : s.clock ≠ 0)
+    (hrunS : fixClock
+      (WordSemStateFiniteExact.callEnv argsLS ssOS (pushEnv envsS handler (decClock s)))
+      (evaluate progS
+        (WordSemStateFiniteExact.callEnv argsLS ssOS (pushEnv envsS handler (decClock s)))) =
+          (some (.result locS retS), midS))
+    (hlocS : locS = .loc l1 l2)
+    (hlenS : retS.length = values.length)
+    (hpopS : popEnv midS = some popS)
+    (hduS : sptDomainEqUnion popS.locals envsS.1 envsS.2)
+    (valsT : List (WordLocW 64)) (argsLT : List (WordLocW 64))
+    (progT : WordLangProgHOL (BitVec 64)) (ssOT : Option Nat)
+    (envsT : Spt (WordLocW 64) × Spt (WordLocW 64))
+    (locT : WordLocW 64) (retT : List (WordLocW 64))
+    (midT popT : WordSemStateFiniteExact 64 C F)
+    (hgetT : getVars args t = some valsT)
+    (hbadT : wordSemBadDestArgs dest args = false)
+    (hfindT : wordSemFindCode dest
+      (wordSemAddRetLoc (some (values, names, retCode, l1, l2)) valsT) t.code t.stackSize =
+        some (argsLT, progT, ssOT))
+    (hdomT : ¬ (sptDomainEmpty names.1 ∨ ¬ values.Nodup))
+    (hcutT : wordSemCutEnvs names t.locals = some envsT)
+    (hzT : t.clock ≠ 0)
+    (hrunT : fixClock
+      (WordSemStateFiniteExact.callEnv argsLT ssOT (pushEnv envsT handler (decClock t)))
+      (evaluate progT
+        (WordSemStateFiniteExact.callEnv argsLT ssOT (pushEnv envsT handler (decClock t)))) =
+          (some (.result locT retT), midT))
+    (hlocT : locT = .loc l1 l2)
+    (hlenT : retT.length = values.length)
+    (hpopT : popEnv midT = some popT)
+    (hduT : sptDomainEqUnion popT.locals envsT.1 envsT.2)
+    (hnode : nativeWordPrice (.call (some (values, names, retCode, l1, l2)) dest args handler) t ≤ nativeWordPrice (.call (some (values, names, retCode, l1, l2)) dest args handler) s)
+    (hbody : wordExecutionCost nativeWordPrice progT
+        (WordSemStateFiniteExact.callEnv argsLT ssOT (pushEnv envsT handler (decClock t))) ≤
+      wordExecutionCost nativeWordPrice progS
+        (WordSemStateFiniteExact.callEnv argsLS ssOS (pushEnv envsS handler (decClock s))))
+    (hcont : wordExecutionCost nativeWordPrice retCode
+        (WordSemStateFiniteExact.setVars values retT popT) ≤
+      wordExecutionCost nativeWordPrice retCode
+        (WordSemStateFiniteExact.setVars values retS popS)) :
+    wordExecutionCost nativeWordPrice (.call (some (values, names, retCode, l1, l2)) dest args handler) t ≤
+      wordExecutionCost nativeWordPrice (.call (some (values, names, retCode, l1, l2)) dest args handler) s := by
+  have hT := wec_call_returning_result_unfold nativeWordPrice values names retCode l1 l2
+    dest args handler t valsT argsLT progT ssOT envsT locT retT midT popT hgetT hbadT hfindT hdomT hcutT hzT hrunT hlocT hlenT hpopT hduT
+  have hS := wec_call_returning_result_unfold nativeWordPrice values names retCode l1 l2
+    dest args handler s valsS argsLS progS ssOS envsS locS retS midS popS hgetS hbadS hfindS hdomS hcutS hzS hrunS hlocS hlenS hpopS hduS
+  rw [hT, hS]
+  omega
+
 #print axioms wec_call_returning_exception_unfold
 #print axioms ssaCall_returning_cost_stage
 #print axioms ssaCall_exception_cost_stage
+#print axioms ssaCall_returning_cost_stage_full
 #print axioms ssaCall_body_stage
 #print axioms ssaCall_continuation_stage
 
