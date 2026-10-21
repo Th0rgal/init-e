@@ -373,3 +373,24 @@ The remaining key lengths are now linked-tested too:
 
 All of these are Spike machine steps, not source-price ticks; the certificate
 still needs the generated `StatementRun` events and coefficient calibration.
+
+## 12. Worst-depth path test
+
+`worstpath_spike.sh` inserts one key per bit position
+(`key[j]` has only bit `j` set) in MSB-first order. This forces the Patricia
+spine to the deterministic `8*key_len` depth instead of the shallow random
+tree. It then repeats all lookups 100 times and compares the checksum with the
+model.
+
+| key length | keys | model max internal visits | Spike steps | result |
+|---|---:|---:|---:|---|
+| 20 | 160 | 159 | 130,585,772 | match |
+| 32 | 256 | 255 | 323,581,062 | match |
+| 60 | 480 | 479 | 1,130,341,474 | match |
+
+The observed maximum visits are exactly one less than the key-bit bound
+(`8*key_len`): 159/160, 255/256, 479/480. This is the worst-path measurement the
+projected score lacked; it still does not by itself prove the source-tick
+budget, because the full-input path also includes nodedb construction and
+gas-independent witness work. It does show the table itself has no
+collision-cluster amplification at any supported key length.
