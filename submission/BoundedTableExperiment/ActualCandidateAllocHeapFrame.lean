@@ -53,3 +53,45 @@ theorem candidate_alloc_skip_heap {F : Type} (state : PanSemStateFiniteExact 64 
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidate_alloc_skip_heap
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open InitECandidate.Runtime.FineCost
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.PanSemStateFiniteExact
+open Flapjack.Basis.Pure.MlString
+
+/-- After a completed scratch allocation the global scratch pointer names the
+new (aligned) allocation end; this is the pointer fact a heap invariant needs. -/
+theorem candidate_alloc_skip_heap_pointer {F : Type} (state : PanSemStateFiniteExact 64 F)
+    (name : MlS) (argument : ExpHOL 64) (size : BitVec 64)
+    (pointer frame : BitVec 64)
+    (arguments : evalListHOLFinite state
+      (h := fun address => Classical.propDecidable (state.memaddrs address))
+      [argument] = some [.val (.word size)])
+    (installed : state.code.lookup (ofString "scratch_alloc") =
+      some ([(ofString "n",.one)],sourceFunctionBody Guest.guestFn_scratch_alloc,.one))
+    (clock : state.clock ≠ 0)
+    (scratchGlobal : state.globals.lookup (ofString "scratch_ptr") =
+      some (.val (.word pointer)))
+    (frameGlobal : state.globals.lookup (ofString "frame_mem_ptr") =
+      some (.val (.word frame)))
+    (request : size ≤ pointer - frame)
+    (finishBound : frame ≤ scratchAllocationEnd pointer size) :
+    ∃ final, evaluateHOLFiniteState state
+        (.decCall name .one (ofString "scratch_alloc") [argument] .skip) = (none, final) ∧
+      final.memory = state.memory ∧
+      final.globals.lookup (ofString "scratch_ptr") =
+        some (.val (.word (scratchAllocationEnd pointer size))) := by
+  obtain ⟨final, run, memory, globals⟩ :=
+    candidate_alloc_skip_heap state name argument size pointer frame
+      arguments installed clock scratchGlobal frameGlobal request finishBound
+  refine ⟨final, run, memory, ?_⟩
+  rw [globals]
+  simp [setGlobalHOLFinite, FUPDATE, HolFiniteMapExact.lookup_updateEq]
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.candidate_alloc_skip_heap_pointer
