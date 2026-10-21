@@ -1,6 +1,7 @@
 import InitECandidate.Runtime.AllocCostSSAStageCases
 import Flapjack.Compiler.Backend.WordAlloc.SSACcTrans
 import Flapjack.Compiler.Backend.WordUnreach.Proofs
+import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticSeq
 import InitECandidate.Runtime.AllocMoveTable
 import InitECandidate.Runtime.WordRefinedLocalPrice
 import InitECandidate.Runtime.WordStackRefinedLeaf
@@ -1104,4 +1105,59 @@ theorem canonical_move_price_le_nonself {C F : Type} (pri : Nat) (pairs : List (
 
 #print axioms canonical_move_price_le_table
 #print axioms canonical_move_price_le_nonself
+
+/-- **The `seq` constructor: actual target execution together with the counter bound.**
+Uses the compiler's own recursive case (`ssaCcTransCorrectSeq`, SSASemanticSeq.lean:51) with
+the legitimate smaller-body simulation IHs and the original SSA invariants
+(`wordStateEqRel`, `ssaLocalsRel`, `isAllocVar`, `everyVarHOL`, `ssaMapOK`, `ltOK`) to get
+the target run, and the canonical-price `seq` composition for the counter bound.  Nothing
+about the final target run or a target cost is assumed: the simulation is produced by the
+compiler's theorem and the cost by the reached-state split. -/
+theorem ssaCcTrans_seq_transfer {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (firstIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
+      (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) first = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation first source target ssa next tables)
+    (secondIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
+      (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) second = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation second source target ssa next tables)
+    (h : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) (.seq first second) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables)
+    (midS midT : WordSemStateFiniteExact 64 C F)
+    (extraNode extra1 extra2 : Nat)
+    (hS : fixClock source (evaluate first source) = (none, midS))
+    (hT : fixClock target (evaluate first target) = (none, midT))
+    (hnode : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq first second) target <=
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq first second) source + extraNode)
+    (h1 : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      first target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        first source + extra1)
+    (h2 : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      second midT <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        second midS + extra2) :
+    ssaSimulation (.seq first second) source target ssa next tables ∧
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq first second) target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq first second) source + extraNode + extra1 + extra2 :=
+  ⟨ssaCcTransCorrectSeq first second source target ssa next tables firstIH secondIH h,
+   seq_transfer_refined first second source target midS midT hS hT
+     extraNode extra1 extra2 hnode h1 h2⟩
+
+#print axioms ssaCcTrans_seq_transfer
 end InitECandidate.Runtime.FineCost
