@@ -1046,3 +1046,25 @@ All branches carry the actual guard/body/rest `StatementRun`s. Axioms are
 This is the loop-driver unfolding step; recursively applying it to the rest
 run yields the finite iteration list, after which the endpoint tail must be
 composed.
+
+## 48. Actual `htab_set` leaf-body structure
+
+`CandidateHtabSetLeafShape.lean` pins the exact body passed to
+`decCall "leaf" htab_find_leaf_path` and peels it into literal subterms:
+
+- `candidateHtabSetLeaf_body`: duplicate-check prefix followed by the
+  insertion tail;
+- `candidateHtabSetLeaf_growth`: `cap < (count+1)*2` branch calling
+  `htab_grow`, reloading `cap`, and re-running `htab_find_leaf_path` into
+  `leaf`;
+- `candidateHtabSetLeaf_bsearch`: the `while lo < hi` binary-search loop,
+  including the double-load `mr = load ((load (path + mid*8)) + 16)`;
+- `candidateHtabSetLeaf_sideStores`: `store nip cur` / `store (nip+8)
+  new_leaf` and the mirrored side;
+- `candidateHtabSetLeaf_link`: root `t+72` store or parent left/right store by
+  `dir`;
+- `candidateHtabSetLeaf_posSeq`: order array, order_pos, count update, return.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. These are actual AST
+equations, not an abstract model. Their `StatementRun`/cost composition is the
+remaining step.
