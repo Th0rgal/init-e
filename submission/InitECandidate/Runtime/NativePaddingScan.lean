@@ -905,4 +905,25 @@ theorem insts_all_of_sections {width : Nat} [NeZero width] (b : Nat) :
              ih (by intro s hs; exact h s (by simp [hs]))⟩
 
 
+
+/-- Labels never appear in a section's instruction stream. -/
+theorem label_not_mem_insts {width : Nat} [NeZero width] (a b l : Nat)
+    (secs : List (NativeCode width)) :
+    (Line.label a b l : NativeLine width) ∉ insts secs := by
+  induction secs with
+  | nil =>
+      intro h
+      simp only [insts, List.map_nil, List.flatten_nil, List.not_mem_nil] at h
+  | cons sec rest ih =>
+      obtain ⟨sid, lines⟩ := sec
+      intro h
+      rw [insts_cons] at h
+      rw [List.mem_append] at h
+      rcases h with h | h
+      · obtain ⟨-, hn⟩ := List.mem_filter.mp h
+        simp only [notLabel, isLabelHOL] at hn
+        exact Bool.noConfusion hn
+      · exact ih h
+
+
 end InitECandidate.Runtime.NativePadding
