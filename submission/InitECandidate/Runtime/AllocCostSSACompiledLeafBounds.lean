@@ -268,6 +268,24 @@ theorem certifiedMoveCharge_single (dst src : Nat) :
 /-- The empty certified list charges nothing (no self-moves, no insertions). -/
 theorem certifiedMoveCharge_nil : certifiedMoveCharge [] = 0 := rfl
 
+/-- **Step correspondence at an inserted suffix (merge sites).**  When the first
+half falls through, a `seq` costs its node price plus the first half's cost plus
+the suffix's cost at the reached middle state.  The allocator's merge insertion
+`(.seq branch mergeProg)` has exactly this shape, so the certified merge program is
+charged at the state the branch actually reaches. -/
+theorem wec_seq_none_split {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64)) (s mid : WordSemStateFiniteExact 64 C F)
+    (h : fixClock s (evaluate f s) = (none, mid)) :
+    wordExecutionCost nativeWordPrice (.seq f g) s =
+      nativeWordPrice (.seq f g) s + wordExecutionCost nativeWordPrice f s +
+        wordExecutionCost nativeWordPrice g mid := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+  rw [h]
+  try dsimp only
+  try rfl
+
+#print axioms wec_seq_none_split
 #print axioms nativeWordPrice_move_eq_certified
 #print axioms certifiedMoveCharge_single
 #print axioms ssaCcTrans_call_some_arg_move_length
