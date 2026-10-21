@@ -256,6 +256,7 @@ theorem candidateFindLeafByte_dec_split {F : Type} {fn : MlS}
         (.loadByte (.op .add [.var .local (ofString "key"),
           .shift .asr (.var .local (ofString "route")) (.const (BitVec.ofNat 64 8))]))
         (some value) initEvents ∧
+      shapeEqHOL .one (shapeOfHOLExact value) = true ∧
       post = { bodyPost with locals :=
         (HolFiniteMapExact.resVarEq bodyPost.locals
           (ofString "b", s.locals.lookup (ofString "b"))) } ∧
@@ -268,7 +269,7 @@ theorem candidateFindLeafByte_dec_split {F : Type} {fn : MlS}
       candidateFindLeafMask) none post events at run
   cases run with
   | declareValue init shapeMatch bodyRun =>
-      exact ⟨_, _, _, _, rfl, init, rfl, bodyRun⟩
+      exact ⟨_, _, _, _, rfl, init, shapeMatch, rfl, bodyRun⟩
 
 /-- Concrete `.dec` split of `candidateFindLeafMask`. -/
 theorem candidateFindLeafMask_dec_split {F : Type} {fn : MlS}
@@ -280,6 +281,7 @@ theorem candidateFindLeafMask_dec_split {F : Type} {fn : MlS}
       CostedExpressionRun s
         (.op .xor [.var .local (ofString "route"),.const (BitVec.ofNat 64 255)])
         (some value) initEvents ∧
+      shapeEqHOL .one (shapeOfHOLExact value) = true ∧
       post = { bodyPost with locals :=
         (HolFiniteMapExact.resVarEq bodyPost.locals
           (ofString "m", s.locals.lookup (ofString "m"))) } ∧
@@ -291,7 +293,7 @@ theorem candidateFindLeafMask_dec_split {F : Type} {fn : MlS}
       candidateFindLeafChild) none post events at run
   cases run with
   | declareValue init shapeMatch bodyRun =>
-      exact ⟨_, _, _, _, rfl, init, rfl, bodyRun⟩
+      exact ⟨_, _, _, _, rfl, init, shapeMatch, rfl, bodyRun⟩
 
 end BoundedTableExperiment
 
