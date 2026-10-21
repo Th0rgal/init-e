@@ -5949,3 +5949,14 @@ theorem padded0_insts_slack :
 #print axioms padded0_insts_slack
 
 end InitECandidate.Runtime.NativePadding
+
+namespace InitECandidate.Runtime.NativePadding
+
+/-- The source instruction list `Final.final0` carries the same span bound, so
+the slack that `padSection` turns into padding is at most four bytes. -/
+theorem final0_insts_slack :
+    (insts InitECandidate.Proofs.BackendStages.Final.final0).all (padSlackOK (width := 64) 4) = true :=
+  insts_all_of_sections 4 InitECandidate.Proofs.BackendStages.Final.final0
+    (InitECandidate.Proofs.BackendStages.Final.final0_sections_slack)
+
+end InitECandidate.Runtime.NativePadding
