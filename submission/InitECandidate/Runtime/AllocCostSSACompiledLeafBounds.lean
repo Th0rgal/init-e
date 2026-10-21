@@ -1670,4 +1670,31 @@ theorem refinedWordLocalPrice_call_some {C F : Type}
     InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
 
 #print axioms refinedWordLocalPrice_call_some
+/-! ## The call node's failure paths charge only the node price
+
+`wordExecutionCost`'s `.call` clause (WordExecutionCost.lean:44) charges `price p s` whenever the
+argument registers are not all present, the destination/argument list is invalid, or the code
+lookup fails.  Those are exactly the paths the transfer must charge as a flat 41, so they are
+isolated here. -/
+theorem wec_call_none_getVars_none {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F)
+    (hgv : getVars args s = none) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none dest args handler) s = 41 := by
+  rw [wordExecutionCost]
+  simp only [hgv, refinedWordLocalPrice_call_none]
+
+theorem wec_call_none_badDest {C F : Type}
+    (dest : Option Nat) (args : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F)
+    (xs : List (WordLocW 64))
+    (hgv : getVars args s = some xs)
+    (hbad : wordSemBadDestArgs dest args = true) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none dest args handler) s = 41 := by
+  simp [wordExecutionCost, hgv, hbad, refinedWordLocalPrice_call_none]
+
+#print axioms wec_call_none_getVars_none
+#print axioms wec_call_none_badDest
 end InitECandidate.Runtime.FineCost
