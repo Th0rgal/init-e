@@ -3,6 +3,7 @@ import Flapjack.Compiler.Backend.WordAlloc.SSACcTrans
 import Flapjack.Compiler.Backend.WordUnreach.Proofs
 import InitECandidate.Runtime.AllocMoveTable
 import InitECandidate.Runtime.WordRefinedLocalPrice
+import InitECandidate.Runtime.WordStackRefinedLeaf
 
 /-!
 # Compile-output bounds for leaf constructors
@@ -951,4 +952,18 @@ theorem call_site_transfer_refined {C F : Type} (ssa : Spt Nat) (args : List Nat
   omega
 
 #print axioms call_site_transfer_refined
+
+/-- **The canonical price of a move node is the exact scheduler length.**  From root's
+checked leaf table (WordStackRefinedLeaf.lean:15)
+  refinedWordStackLeafBudget (.move _ moves)
+    = some (12 * (Parmove.parmove (moves.map (fun m => (m.1/2, m.2/2)))).length),
+so `refinedWordLocalPrice (.move pri pairss) s` is 12 times the physical scheduler length
+- the exact number, not the legacy 14/28 per-pair overestimate. -/
+theorem refinedWordLocalPrice_move (pri : Nat) (pairs : List (Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.move pri pairs) s =
+      12 * (Flapjack.Compiler.Backend.Parmove.parmove (physPairs pairs)).length := by
+  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
+    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget, physPairs]
+#print axioms refinedWordLocalPrice_move
 end InitECandidate.Runtime.FineCost
