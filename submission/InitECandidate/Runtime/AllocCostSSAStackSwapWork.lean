@@ -2790,24 +2790,15 @@ theorem wordPathWork_stop_tail {C F : Type} (p : WordLangProgHOL (BitVec 64))
   · rw [dif_neg hc, dif_neg hc, decClock_swap_stack]
     exact ihStop
 
-/-! ### The guarded well-founded driver
+/-! ### The well-founded driver (no hypotheses)
 
-`.call` is supplied as the explicit hypothesis `hcall` (the one remaining
-obligation); every other constructor is discharged here, including the
-`cutState`-guarded `.loop` case and the `fixClock`-guarded `.seq`/`.ite`
-cases, with every recursive call made at the reached child state.
+Every constructor is discharged here, including the `cutState`-guarded `.loop`
+case, the `fixClock`-guarded `.seq`/`.ite` cases and the full `.call` case
+(per-arm unfolded lemmas transporting the reached body/handler state), with
+every recursive call made at the reached child state.
 -/
 
-theorem wordPathWork_stack_variant_dispatch {C F : Type}
-    (hcall : ∀ (ret : Option (List Nat × WordLangCutsetsHOL ×
-        WordLangProgHOL (BitVec 64) × Nat × Nat))
-      (dest : Option Nat) (args : List Nat)
-      (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
-      (s : WordSemStateFiniteExact 64 C F) (xs : List (WordSemStackFrame 64)),
-      WordSemStackEq.sValEq s.stack xs →
-      (evaluate (.call ret dest args handler) s).1 ≠ some WordSemResult.error →
-      wordPathWork (.call ret dest args handler) { s with stack := xs } =
-        wordPathWork (.call ret dest args handler) s) :
+theorem wordPathWork_stack_variant_dispatch {C F : Type} :
     ∀ (p : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
       (xs : List (WordSemStackFrame 64)),
       WordSemStackEq.sValEq s.stack xs →
@@ -2827,7 +2818,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
         intro hc
         exact hne (evaluate_seq_error_fst first second s hc)
       have ihF : wordPathWork first { s with stack := xs } = wordPathWork first s :=
-        wordPathWork_stack_variant_dispatch hcall first s xs hval hneF
+        wordPathWork_stack_variant_dispatch first s xs hval hneF
       cases res with
       | none =>
           obtain ⟨st, hevT, hvalT⟩ :=
@@ -2843,7 +2834,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
               (by rw [hfe']; exact hc))
           have ihS_raw : wordPathWork second { middle with stack := st } =
               wordPathWork second middle :=
-            wordPathWork_stack_variant_dispatch hcall second middle st hvalT hneS
+            wordPathWork_stack_variant_dispatch second middle st hvalT hneS
           have ihS : wordPathWork second
               { (fixClock s ((none : Option (WordSemResult 64)), middle)).2 with stack := st } =
               wordPathWork second (fixClock s ((none : Option (WordSemResult 64)), middle)).2 := by
@@ -2912,13 +2903,13 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                       have hne1 : (evaluate first s).1 ≠ some WordSemResult.error := by
                         intro h
                         exact hne (evaluate_ite_error_true cmp reg operand first second s x y hx hy hc h)
-                      rw [wordPathWork_stack_variant_dispatch hcall first s xs hval hne1]
+                      rw [wordPathWork_stack_variant_dispatch first s xs hval hne1]
                   | false =>
                       simp only [hx, hy, hc]
                       have hne2 : (evaluate second s).1 ≠ some WordSemResult.error := by
                         intro h
                         exact hne (evaluate_ite_error_false cmp reg operand first second s x y hx hy hc h)
-                      rw [wordPathWork_stack_variant_dispatch hcall second s xs hval hne2]
+                      rw [wordPathWork_stack_variant_dispatch second s xs hval hne2]
   | .loop names body exitNames, s, xs, hval, hne =>
       rw [wordPathWork, wordPathWork]
       cases hs : cutState (names, .ln) s with
@@ -2952,7 +2943,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
             intro hc
             exact hne (evaluate_loop_error_body names body exitNames s cs hs hc)
           have ihB : wordPathWork body { cs with stack := xs } = wordPathWork body cs :=
-            wordPathWork_stack_variant_dispatch hcall body cs xs hvalCs hneB
+            wordPathWork_stack_variant_dispatch body cs xs hvalCs hneB
           cases res with
           | none =>
               obtain ⟨st, hevT, hvalT⟩ :=
@@ -2966,7 +2957,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                 have ihStop : wordPathWork (wordSemSTOP (.loop names body exitNames))
                     { decClock s1 with stack := st } =
                     wordPathWork (wordSemSTOP (.loop names body exitNames)) (decClock s1) := by
-                  refine wordPathWork_stack_variant_dispatch hcall
+                  refine wordPathWork_stack_variant_dispatch
                     (wordSemSTOP (.loop names body exitNames)) (decClock s1) st ?_ ?_
                   · rw [show (decClock s1).stack = s1.stack from rfl]; exact hvalT
                   · intro hc
@@ -3021,7 +3012,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                       have ihStop : wordPathWork (wordSemSTOP (.loop names body exitNames))
                           { decClock s1 with stack := st } =
                           wordPathWork (wordSemSTOP (.loop names body exitNames)) (decClock s1) := by
-                        refine wordPathWork_stack_variant_dispatch hcall
+                        refine wordPathWork_stack_variant_dispatch
                           (wordSemSTOP (.loop names body exitNames)) (decClock s1) st ?_ ?_
                         · rw [show (decClock s1).stack = s1.stack from rfl]; exact hvalT
                         · intro hc
@@ -3088,7 +3079,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                       wordPathWork prog
                         (WordSemStateFiniteExact.callEnv args1 ss
                           (Flapjack.WordSemStateFiniteExact.decClock s)) :=
-                    wordPathWork_stack_variant_dispatch hcall prog _ xs
+                    wordPathWork_stack_variant_dispatch prog _ xs
                       (by
                         rw [show (WordSemStateFiniteExact.callEnv args1 ss
                           (Flapjack.WordSemStateFiniteExact.decClock s)).stack = s.stack from rfl]
@@ -3158,7 +3149,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                           (WordSemStateFiniteExact.callEnv args1 ss
                             (pushEnv envs handler (decClock s))) := by
                       rw [hfr2]
-                      exact wordPathWork_stack_variant_dispatch hcall prog _ (fr :: xs) hvalEntry
+                      exact wordPathWork_stack_variant_dispatch prog _ (fr :: xs) hvalEntry
                         hneBody
                     cases res with
                     | none =>
@@ -3327,7 +3318,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                                 (WordSemStateFiniteExact.callEnv args1 ss
                                   (pushEnv envs handler (decClock s))) := by
                             rw [hfr2T]
-                            exact wordPathWork_stack_variant_dispatch hcall prog _ (fr' :: xs)
+                            exact wordPathWork_stack_variant_dispatch prog _ (fr' :: xs)
                               hvalEntryT hneBody
                           have hfixT : fixClock
                               (WordSemStateFiniteExact.callEnv args1 ss
@@ -3398,7 +3389,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                                       stack := u } =
                                     wordPathWork retCode
                                       (WordSemStateFiniteExact.setVars values returned popped) :=
-                                  wordPathWork_stack_variant_dispatch hcall retCode _ u hvalRet hneRet
+                                  wordPathWork_stack_variant_dispatch retCode _ u hvalRet hneRet
                                 exact wordPathWork_call_result_at dest args values names retCode l1 l2
                                   handler prog args1 ss s xs locs envs location returned middle middleT
                                   popped u hget hbv hfind hnd hcut hz hfixB hfixT hnl hpop hpopT' hdom
@@ -3484,7 +3475,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                                       (pushEnv envs (some (reg, handlerCode, h1, h2))
                                         (decClock s))) := by
                                 rw [hfr2T]
-                                exact wordPathWork_stack_variant_dispatch hcall prog _ (fr' :: xs)
+                                exact wordPathWork_stack_variant_dispatch prog _ (fr' :: xs)
                                   hvalEntryT hneBody
                               have hfixT : fixClock
                                   (WordSemStateFiniteExact.callEnv args1 ss
@@ -3514,7 +3505,7 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
                                   { WordSemStateFiniteExact.setVar reg value middle with stack := st } =
                                   wordPathWork handlerCode
                                     (WordSemStateFiniteExact.setVar reg value middle) :=
-                                wordPathWork_stack_variant_dispatch hcall handlerCode _ st hvalHand
+                                wordPathWork_stack_variant_dispatch handlerCode _ st hvalHand
                                   hneHand
                               exact wordPathWork_call_exception_at dest args values names retCode l1 l2
                                 (some (reg, handlerCode, h1, h2)) reg handlerCode h1 h2 prog args1 ss s xs
@@ -3582,4 +3573,6 @@ theorem wordPathWork_stack_variant_dispatch {C F : Type}
         Flapjack.WordSemStateFiniteExact.decClock, Flapjack.WordSemStateFiniteExact.setVars,
         Flapjack.WordSemStateFiniteExact.setVar, pushEnv_clock, pushEnv_termdep, true_and] at *
       omega
+#print axioms wordPathWork_stack_variant_dispatch
+
 end InitECandidate.Runtime.WordToStack
