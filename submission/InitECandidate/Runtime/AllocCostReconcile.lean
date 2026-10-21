@@ -64,7 +64,7 @@ theorem ssaReconcile_nodeCost_le (cur target : Spt Nat) {β : Type} (names : Spt
     exact Nat.add_le_add_left bound 1
 
 /-- Both lists produced by `mergeMoves` are bounded by the name list. -/
-theorem mergeMoves_length_le (names : List Nat) (left right : Spt Nat) (next : Nat) :
+theorem ssaMergeMoves_length_le (names : List Nat) (left right : Spt Nat) (next : Nat) :
     (mergeMoves names left right next).1.length ≤ names.length ∧
       (mergeMoves names left right next).2.1.length ≤ names.length := by
   induction names generalizing left right next with
@@ -110,7 +110,7 @@ theorem fixInconsistencies_nodeCost_le (priority : Option (Unit ⊕ Unit))
     ⟨leftMoves, rightMoves, next', leftMap, rightMap⟩
   rcases hfake : fakeMoves (width := 64) priority ((sptToAList (sptUnion left right)).map Prod.fst)
     leftMap rightMap next' with ⟨leftSeq, rightSeq, next'', leftMap', rightMap'⟩
-  have mergeBound := mergeMoves_length_le
+  have mergeBound := ssaMergeMoves_length_le
     ((sptToAList (sptUnion left right)).map Prod.fst) left right next
   rw [hmerge] at mergeBound
   dsimp only at mergeBound
@@ -185,7 +185,7 @@ theorem loopSetup_nodeCost_le (names exitNames : Spt Unit) (ssa : Spt Nat) (next
 #print axioms loopSetup_nodeCost_le
 #print axioms fixInconsistencies_nodeCost_le
 #print axioms fakeMoves_nodeCost_le
-#print axioms mergeMoves_length_le
+#print axioms ssaMergeMoves_length_le
 #print axioms ssaReconcile_nodeCost_le
 #print axioms listNextVarRenameMove_nodeCost
 end InitECandidate.Runtime.FineCost
