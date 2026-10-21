@@ -1108,3 +1108,17 @@ binary-search iteration at its `mid` and `mr` declarations. Each split carries
 the actual initializer events, the declaration frame event, and the actual
 body run, with the declaration's local-environment post-state recorded
 explicitly. Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 53. Actual binary-search branch and event scores
+
+`CandidateHtabSetBsearchStepTrace.lean` also proves:
+
+- `candidateHtabSetBsearchStep_branch`: an actual `d < mr` branch run is the
+  `hi := mid` arm or the `lo := mid+1` arm, with the actual guard and branch
+  events;
+- `bsearchDecl_score`: actual declaration event score
+  `statements + init + frameSlots + body`;
+- `bsearchBranch_score`: actual branch event score
+  `statements + nativeCost*(statementUnit + branchMoves fn) + guard + branch`.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
