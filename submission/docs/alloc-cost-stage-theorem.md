@@ -1849,15 +1849,45 @@ convention.
 ### What is still open
 
 The loop-level inequality
-`wec (.loop (renCut refreshed names) bodyFinalF (renCut refreshed exits)) target
-   ≤ wec (.loop names body exits) source + loopSetupCharge names exits ssa next + B * loopIterCount …`
-is NOT yet proved.  Its per-iteration step is fully assembled from existing lemmas
-(`wordStateEqRel_cutState_any`, `ssaLocalsRel_cutPair` + `strong_of_ssaLocalsRel` for the entry pair,
-`wordSemContLoop`/`wordSemExitLoop` for the escape, `evaluate_bodyFinalF` to append the back-edge
-reconcile, `wec_loop_stop_transfer_ren` / `wec_loop_cont_done_transfer_ren` /
-`wec_loop_cont_live_transfer_ren`), but the iteration induction still needs the per-iteration entry
-pair at `(refreshed, nextRefreshed)`: the source cut `cutState (names,.ln) st` must be shown to succeed
-at every iteration head (it follows from safety through `cut_exists_of_loop_safe` at the first head),
-and the target cut for iteration `k>0` needs the frame/locals relation at `midT` that
-`LoopResultLocalsF` supplies only *strong* at the label-`0` branch; converting that back into the
-`ssaLocalsRel`-style pair at the refreshed map is the remaining gap.
+
+```
+wec (.loop (renCut refreshed names) (bodyFinalF body names exits refreshed nextRefreshed lt)
+      (renCut refreshed exits)) after
+  ≤ wec (.loop names body exits) source + loopSetupCharge names exits ssa next
+      + B * loopIterCount names body source
+```
+
+is NOT yet proved here.  What exists for it: `wordStateEqRel_cutState_any` (frames at the two cuts),
+`ssaLocalsRel_cutPair` (cut pairs at `sptInter map names`), `wordSemContLoop`/`wordSemExitLoop` values
+(`some .error`/`break`/time-out STOP, `none` and `some (.continue 0)` continue), `evaluate_seq_none` /
+`evaluate_seq_escape` (appending the back-edge reconcile to the target body run),
+`wec_loop_stop_transfer_ren` / `wec_loop_cont_done_transfer_ren` / `wec_loop_cont_live_transfer_ren`
+(the three loop-cost cases with budget `extra`) and `loopSetup_charge_le` (the setup's charge).
+
+Still to be built, with the exact shapes needed:
+
+* `strongLocalsRel_of_ssaLocalsRel : (∀ key, sptDomain names key → sptDomain map key) →
+  ssaLocalsRel na map s.locals t.locals →
+  strongLocalsRel (optionLookup map) (sptDomain names) s.locals t.locals` (the entry head of the pin,
+  `SSALoopIteration.lean:190-234`, from the refreshed-pair relation);
+* `ssaLocalsRel_cutPairStrong`: from `strongLocalsRel` at the two pre-cut states, names mapped and
+  names below the counter, and successful source/target cuts, conclude
+  `ssaLocalsRel na (sptInter map names) cutS.locals cutT.locals` — the bundle
+  `LoopBodyTransferF` takes.  Its conjunct 1 needs, for a source key `x` found in the source cut,
+  the register `optionLookup map x` to lie in `renCut map names` (`renCut_domain_of_lookup`) and the
+  strong relation at `t.locals`; conjunct 2 needs `sptLookup x map = some (optionLookup map x)` (which
+  holds because `optionLookup` is `Option.getD`, not a match on `sptLookup`), and the third conjunct is
+  the FUNCTION type `isAllocVar x = true → x < na`, so `hbound x hx` must be passed as
+  `fun _ => hbound x hx` (passing it directly is rejected: "`isAllocVar x = true → x < na` is not an
+  inductive type");
+* `loop_body_nonerror`: source body run non-error, from `(evaluate (.loop names body exits) st).1 ≠
+  some .error` via `evaluate_loop_stop` at `result = some .error`
+  (`wordSemContLoop (some .error) = false`, `some .error ≠ some (.break 0)`, `wordSemExitLoop` identity);
+* `evaluate_bodyFinalF`: `evaluate (bodyF …).1 before = (rS, after) → evaluate (bodyFinalF …) before =
+  (match rS with | none => evaluate (ssaReconcile (bodyF …).2.1 map names) after | some v =>
+  (some v, after))`, by cases on the reconcile value with `evaluate_seq_none`/`evaluate_seq_escape`
+  (the `skip` branch needs `evaluate .skip s = (none, s)`), and the resulting
+  `strongLocalsRel`/`ssaLocalsRel` at `midT` from the pin's `LoopResultLocalsF` label-`0` branch;
+* then the iteration induction over `loopIterCountAux`, exactly as
+  `wec_loop_transfer_iters_generic` does it, with the step instantiated at
+  `(refreshed, nextRefreshed)` from `loopSetupCorrect`.
