@@ -2297,4 +2297,33 @@ theorem transformedCalleeRelAt.spec {C F : Type}
 #print axioms wec_move_optimizer
 #print axioms wec_seq_none_split_optimizer
 #print axioms transformedCalleeRelAt.spec
+/-! ### The optimizer price against the certified coalescing table
+
+The optimizer price charges 24 per move PAIR, while the certified table charges 12 per emitted move and
+its budget is 24 per NON-self pair.  Those two are not comparable per pair: a swap of two locals emits
+two moves, so at 24 per pair the optimizer price can be twice the table's charge for the same node.
+The honest certificate is therefore the doubled one (and it is what composes: a factor two on the
+inserted-move charge, which is what the upstream optimizer's own price is documented to pay). -/
+
+/-- At the optimizer price an inserted move node is paid by twice the certified table charge. -/
+theorem optimizer_move_price_le_double_table {C F : Type} (pri : Nat)
+    (pairs : List (Nat × Nat)) (before : Nat) (s : WordSemStateFiniteExact 64 C F)
+    (ok : (goSeq before (.move pri pairs)).1 = true) :
+    24 * (Flapjack.Compiler.Backend.Parmove.parmove (physPairs pairs)).length ≤
+      2 * allocMovePrice pairs := by
+  have h := goSeq_move ok
+  omega
+
+/-- The same bound in the form the scheduler states its budget. -/
+theorem optimizer_move_price_le_nonself {C F : Type} (pri : Nat)
+    (pairs : List (Nat × Nat)) (before : Nat) (s : WordSemStateFiniteExact 64 C F)
+    (ok : (goSeq before (.move pri pairs)).1 = true) :
+    24 * (Flapjack.Compiler.Backend.Parmove.parmove (physPairs pairs)).length ≤
+      56 * nonselfCount pairs := by
+  have h := goSeq_move ok
+  have h2 := allocMovePrice_le pairs
+  omega
+
+#print axioms optimizer_move_price_le_double_table
+#print axioms optimizer_move_price_le_nonself
 end InitECandidate.Runtime.FineCost
