@@ -15,7 +15,7 @@ the first word reads the address, each further word adds its offset. -/
 def loadPrices (p : Nat) (offset : BitVec 64) : Nat → List Nat
   | 0 => []
   | count + 1 =>
-      (if offset == 0 then p + 21 else p + 98) ::
+      (if offset == 0 then p + 21 else p + 68) ::
         loadPrices p (offset + BitVec.ofNat 64 (64 / 8)) count
 
 /-- `comp_field` on prices: the slice of field `index`. -/
@@ -26,7 +26,7 @@ def fieldPrices (index : Nat) : List ShapeHOL → List Nat → List Nat × Shape
       else fieldPrices (index - 1) shapes (prices.drop (sizeOfShapeHOL shape))
 
 /-- Price of the `TopAddr - c` address of a global. -/
-def globalAddressPrice : Nat := 81 + 19 + 28 * 2 + 2
+def globalAddressPrice : Nat := 81 + 19 + 28
 
 mutual
   /-- Word prices and shape of the Crep code `pan_to_crep` emits for `e`. -/
@@ -61,7 +61,7 @@ mutual
         | _ => ([19], .one)
     | .op _ arguments =>
         match cexpHeads ((exprListPrices L G arguments).map Prod.fst) with
-        | some heads => ([heads.sum + 28 * heads.length + 19 * (1 - heads.length) + 2], .one)
+        | some heads => ([heads.sum + 28 * (heads.length - 1) + 19 * (1 - (heads.length - 1))], .one)
         | none => ([19], .one)
     | .panop _ arguments =>
         match cexpHeads ((exprListPrices L G arguments).map Prod.fst) with

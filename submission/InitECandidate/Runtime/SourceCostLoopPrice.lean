@@ -13,7 +13,7 @@ mutual
     | .topAddr => 81
     | .load address => loopNodePrice address + 21
     | .load32 address | .loadByte address => loopNodePrice address + 49
-    | .op _ args => loopPriceList args + 28 * args.length + 19 * (1 - args.length) + 2
+    | .op _ args => loopPriceList args + 28 * (args.length - 1) + 19 * (1 - (args.length - 1))
     | .crepOp _ args => loopPriceList args + 57
     | .shift _ left right => loopNodePrice left + loopNodePrice right + 32
     | .cmp _ left right => loopNodePrice left + loopNodePrice right + 70
