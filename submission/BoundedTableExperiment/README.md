@@ -502,3 +502,32 @@ representation, not yet a full heap-memory refinement of the PNK code. The
 16.14-step/visit figure is a native Spike diagnostic; the source-event price of
 the hotspot loop has not been extracted, so the ~3x budget margin is deliberate
 and the projected score remains unproved.
+
+
+## 18. Frozen checkpoint, path-buffer specification, and calibration handoff
+
+Algorithm optimization is frozen at the tested candidate with source hash
+`a97b7463...` (commit `fe3f284d2`). Further work is proof/calibration only.
+
+`PathInvariant.lean` checks the path-buffer split specification:
+
+- `splitIndex path d` is the number of recorded routes `<= d`;
+- every route before the split is `<= d`;
+- in a strictly increasing path, every route at or after the split is `> d`;
+- `strict_snoc` preserves strict route monotonicity when a new route larger
+  than all existing routes is appended.
+
+The executable binary search is the implementation of this specification; the
+current proof establishes the specification, not a mechanized
+binary-search-to-spec refinement. `ReachableOrderInvariant.lean` supplies the
+arithmetic region-disjointness lemma for the path buffer versus
+keys/nodes/output/scratch, but the heap allocator's liveness/reuse refinement
+for `HT_PATH` is still open.
+
+For source-cost calibration, the concrete trace model should emit, per
+operation: op kind, key length, table count/cap, path depth, node visits,
+path-buffer stores, binary-search steps, key-compare bytes, child-link writes,
+copies/growth bytes, and output writes. The existing `prototype.py` counters
+already provide most of these; the missing piece is the exact preIsel/source
+price per event. Until that is supplied, the 16.14 native steps/visit and
+~3e11 projection remain diagnostics, not the budget theorem.
