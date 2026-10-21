@@ -1,6 +1,6 @@
 import InitECandidate.Runtime.WordStackSpillCost
 import InitECandidate.Runtime.RiscVStackImmediateCost
-import Flapjack.Compiler.Backend.WordToStack.NativeCallArgs
+import Flapjack.Compiler.Backend.WordToStack.NativeHandlers
 namespace InitECandidate.Runtime.WordToStack
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Encoders.RiscV.Target
@@ -37,9 +37,9 @@ theorem wordStack_stackMove_cost {F : Type} (count start offset temporary : Nat)
 
 /-- Allocating and copying zero stack arguments is free. Every further word
 pays at most 25 for allocation and 14 for its load/store pair. -/
-theorem wordStack_stackArgs_cost {F : Type} {α β : Type} (dest : Sum α β)
+theorem wordStack_stackArgs_cost_fits {F : Type} {α β : Type} (dest : Sum α β)
     (argCount : Nat) (kf : Nat × Nat × Nat)
-    (frameSmall : kf.2.1 ≤ 92)
+    (fits : Flapjack.Compiler.Backend.WordToStack.stackArgCount dest argCount kf.1 + kf.2.1 ≤ 256)
     (argsSmall : Flapjack.Compiler.Backend.WordToStack.stackArgCount dest argCount kf.1 ≤ 92)
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
     stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
@@ -58,6 +58,39 @@ theorem wordStack_stackArgs_cost {F : Type} {α β : Type} (dest : Sum α β)
     (25*count) (by dsimp only [count]; omega) allocation source
   change stackExecutionCost _ (stackMoveNative count 0 kf.2.1 kf.1 (.stackAlloc count)) source ≤ 39*count
   omega
+
+/-- The ordinary frame certificate implies the more general address bound. -/
+theorem wordStack_stackArgs_cost {F : Type} {α β : Type} (dest : Sum α β)
+    (argCount : Nat) (kf : Nat × Nat × Nat)
+    (frameSmall : kf.2.1 ≤ 92)
+    (argsSmall : Flapjack.Compiler.Backend.WordToStack.stackArgCount dest argCount kf.1 ≤ 92)
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
+    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      (stackArgsNative dest argCount kf) source ≤
+      39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount dest argCount kf.1 :=
+  wordStack_stackArgs_cost_fits dest argCount kf (by omega) argsSmall source
+
+/-- Handler slots extend the caller frame without changing the per-argument
+price. The immediate-offset proof covers both frames plus the handler slots. -/
+theorem wordStack_stackHandlerArgs_cost {F : Type} {α β : Type} (dest : Sum α β)
+    (argCount : Nat) (kf : Nat × Nat × Nat)
+    (frameSmall : kf.2.1 ≤ 92)
+    (argsSmall : Flapjack.Compiler.Backend.WordToStack.stackArgCount dest argCount kf.1 ≤ 92)
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
+    stackExecutionCost (fun p _ => removalLocalPrice 6 riscvConfig.addrOffset p)
+      (stackHandlerArgsNative false dest argCount kf) source ≤
+      39 * Flapjack.Compiler.Backend.WordToStack.stackArgCount dest argCount kf.1 := by
+  unfold stackHandlerArgsNative
+  apply wordStack_stackArgs_cost_fits dest argCount
+    (kf.1, kf.2.1 + Flapjack.Compiler.Backend.WordToStack.handlerSlots false,
+      kf.2.2 + Flapjack.Compiler.Backend.WordToStack.handlerSlots false)
+  · simp only [Flapjack.Compiler.Backend.WordToStack.handlerSlots, Bool.false_eq_true, ↓reduceIte]
+    omega
+  · exact argsSmall
+
+#print axioms wordStack_stackHandlerArgs_cost
+
+#print axioms wordStack_stackArgs_cost_fits
 
 #print axioms wordStack_stackMove_cost
 #print axioms wordStack_stackArgs_cost
