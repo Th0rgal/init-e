@@ -26,7 +26,7 @@ theorem wordCostLePL_callRetCont (D : WordDominatesL wp lp) {l : Nat × Nat} {s 
     WordCostLePL C wp s (.call (some (names, live)) target arguments
         (some (exceptionName, handlerProgram, continuation, liveOut)))
       l (LoopSemStateFiniteExact.cutRes liveOut output)
-      (lp.base.call + lp.base.cont + lp.base.argCost arguments.length + lp.site l + lp.retNames names.length + wb +
+      (lp.base.call + lp.base.cont + lp.base.argCost arguments.length + lp.site l target + lp.retNames names.length + wb +
         lp.base.ret * returned.length + wc) := by
   intro ok t ctxt retv rel locals ret dim notWord acc
   obtain ⟨namesCtxt, -, -, accCont⟩ := handler_acc acc
@@ -97,7 +97,7 @@ theorem wordCostLePL_callRetCont (D : WordDominatesL wp lp) {l : Nat × Nat} {s 
   have hU := D.tailOk
   have hC := D.contOk
   have hT : D.T ≤ lp.base.cont := D.contOk
-  have hS : lp.site (l.1, l.2) = lp.site l := rfl
+  have hS : lp.site (l.1, l.2) target = lp.site l target := rfl
   have hR : D.R * returned.length ≤ lp.base.ret * returned.length := Nat.mul_le_mul_right _ D.retOk
   simp only [List.length_map, wordRetWords] at cont hp hpaid ⊢
   omega
@@ -115,7 +115,7 @@ theorem wordCostLePL_callHandle (D : WordDominatesL wp lp) {l : Nat × Nat} {s e
     WordCostLePL C wp s (.call (some (names, live)) target arguments
         (some (exceptionName, handlerProgram, continuation, liveOut)))
       l (LoopSemStateFiniteExact.cutRes liveOut output)
-      (lp.base.call + lp.base.cont + lp.base.argCost arguments.length + lp.site l + lp.retNames names.length + wb + wh) := by
+      (lp.base.call + lp.base.cont + lp.base.argCost arguments.length + lp.site l target + lp.retNames names.length + wb + wh) := by
   intro ok t ctxt retv rel locals ret dim notWord acc
   obtain ⟨namesCtxt, nameCtxt, accHandler, -⟩ := handler_acc acc
   obtain ⟨args1, ss1, ctxt1, cutEnv, hwgv, hbad, hwf, -, -, hce, nz, hentry, hlr, h0r, hbody, hacc1⟩ :=
@@ -197,7 +197,7 @@ theorem wordCostLePL_callHandle (D : WordDominatesL wp lp) {l : Nat × Nat} {s e
   have hU := D.tailOk
   have hC := D.contOk
   have hT : D.T ≤ lp.base.cont := D.contOk
-  have hS : lp.site (l.1, l.2) = lp.site l := rfl
+  have hS : lp.site (l.1, l.2) target = lp.site l target := rfl
   simp only [List.length_map, wordRetWords, Nat.mul_zero] at handle hp hpaid ⊢
   omega
 
