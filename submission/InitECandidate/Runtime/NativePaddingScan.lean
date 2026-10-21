@@ -689,9 +689,6 @@ theorem section597_fetch_transfer (pc : Nat) (line : NativeLine 64)
     PaddedFetch section597Certificate pc line :=
   padScan_fetch_transfer section597Certificate pc line fetch
 
-#eval ((scanCode 0 Final.final0 Final.padded0).map (fun s => s.paddingLen)).foldl max 0
-#eval ((scanCode 0 Final.final0 Final.padded0).filter (fun s => s.paddingLen != 0)).length
-#eval (scanCode 0 Final.final0 Final.padded0).length
 end Artifact
 
 #print axioms asmFetchAux_eq_insts
