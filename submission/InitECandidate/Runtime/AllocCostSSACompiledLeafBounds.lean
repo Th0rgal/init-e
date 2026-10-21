@@ -154,6 +154,42 @@ theorem ssaCcTrans_ite_shape {width : Nat} [NeZero width]
   simp only [ssaCcTrans]
   cases ri <;> rfl
 
+/-- **Actual compiled fragment of `raise`.**  One inserted single-pair move
+(passing the raised value into frame 2) followed by `raise 2`. -/
+theorem ssaCcTrans_raise_shape
+    (num : Nat) (ssa : Spt Nat) (na : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit)) :
+    (ssaCcTrans ((.raise num) : WordLangProgHOL (BitVec 64)) ssa na lt).1 =
+      .seq (.move 1 [(2, optionLookup ssa num)]) (.raise 2) := by
+  simp only [ssaCcTrans]
+
+/-- **Actual compiled fragment of `return`.**  The returned values are renamed
+and moved into the return registers `2*(i+1)`, one inserted pair per returned
+value, followed by `return` on that register list. -/
+theorem ssaCcTrans_return_shape
+    (num : Nat) (nums : List Nat) (ssa : Spt Nat) (na : Nat)
+    (lt : List (Spt Nat × Spt Unit × Spt Unit)) :
+    (ssaCcTrans ((.return num nums) : WordLangProgHOL (BitVec 64)) ssa na lt).1 =
+      .seq
+        (.move 0 (((List.range (nums.map (optionLookup ssa)).length).map
+          fun x => 2 * (x + 1)).zip (nums.map (optionLookup ssa))))
+        (.return (optionLookup ssa num)
+          ((List.range (nums.map (optionLookup ssa)).length).map fun x => 2 * (x + 1))) := by
+  simp only [ssaCcTrans]
+
+/-- **Inserted return-move count.**  The allocator inserts exactly one move pair
+per returned value, so a returning call's inserted move cost is
+`(if nums.length ≤ 1 then 14 else 28) * nums.length` by `nativeWordPrice_move`.
+This is the concrete, compiler-derived count - not an estimate. -/
+theorem ssaCcTrans_return_move_length
+    (nums : List Nat) (ssa : Spt Nat) :
+    (((List.range (nums.map (optionLookup ssa)).length).map
+      fun x => 2 * (x + 1)).zip (nums.map (optionLookup ssa))).length = nums.length := by
+  simp
+
+#print axioms ssaCcTrans_raise_shape
+#print axioms ssaCcTrans_return_shape
+#print axioms ssaCcTrans_return_move_length
 #print axioms ssaCcTrans_ite_shape
 #print axioms ssaCcTrans_seq_shape
 #print axioms merge_overhead_bound
