@@ -19,6 +19,15 @@ def ssaLoopCostContext (SP TP : WordLangProgHOL (BitVec 64) → Nat)
   { SP,TP,names,exits,refreshed := setup.2.1,mapOut := compiled.2.1,nextOut := compiled.2.2,
     body,output := compiled.1,tables }
 
+/-- Body IH at the actual refreshed loop-entry context. -/
+def ssaLoopBodyPremise {C F : Type} (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (entry : Spt Nat → Nat → Nat) (names exits : Spt Unit)
+    (body : WordLangProgHOL (BitVec 64)) (map : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) : Prop :=
+  let setup := loopSetup (width := 64) names exits map next
+  SSABodyAllowance (C := C) (F := F) SP TP body (sptInter setup.2.1 names) setup.2.2
+    ((setup.2.1,names,exits)::tables) (entry (sptInter setup.2.1 names) setup.2.2)
+
 /-- Full actual SSA loop compilation with its setup paid ONCE, as an explicit
 entry allowance. The repeated loop theorem does not include setup in its
 head price. A whole-program composition must fund this entry allowance. -/
@@ -32,11 +41,7 @@ theorem ssa_quantitative_loop_with_setup_fund_body {C F : Type}
     (headCost : let setup := loopSetup (width := 64) names exits map next
       let ctx := ssaLoopCostContext SP TP names exits body map next tables
       TP ctx.targetLoop + TP ctx.moves + bodyEntry (sptInter ctx.refreshed names) setup.2.2 ≤ SP ctx.sourceLoop)
-    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (m : Spt Nat)
-      (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na m st.locals ct.locals ∧
-      isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
-      ssaMapOK na m ∧ ltOK lt → SSAQuantitativeAllowance SP TP body st ct m na lt (bodyEntry m na))
+    (bodyIH : ssaLoopBodyPremise (C := C) (F := F) SP TP bodyEntry names exits body map next tables)
     (premises : Flapjack.WordAlloc.wordStateEqRel source target ∧
       ssaLocalsRel next map source.locals target.locals ∧ isAllocVar next ∧
       everyVarHOL (fun key => decide (key < next)) (.loop names body exits) = true ∧
@@ -87,13 +92,16 @@ theorem ssa_quantitative_loop_with_setup_fund_body {C F : Type}
       SSALoopCostContext.moves,SSALoopCostContext.targetNames,SSALoopCostContext.targetExits]
     cases ssaReconcile (width := 64) mapOut refreshed names <;> rfl
   rcases targetRun : evaluate ctx.targetLoop after with ⟨targetResult,targetFinal⟩
+  have bodyIH' : SSABodyAllowance (C := C) (F := F) SP TP body (sptInter refreshed names) nextRefreshed
+      ((refreshed,names,exits)::tables) (bodyEntry (sptInter refreshed names) nextRefreshed) := by
+    simpa only [ssaLoopBodyPremise,setup] using bodyIH
   have inner := ssa_loop_quantitative_context_fund_body ctx nextRefreshed bodyEntry compiledBody afterValid afterAllocated
     bodyVars entryInjection exitInjection namesMapped exitsMapped
     (fun key member => Nat.lt_of_lt_of_le
       (bounds.1.1 key ((sptMemMapFstToAList names key).mpr member)) increase)
     (fun key member => Nat.lt_of_lt_of_le
       (bounds.2 key ((sptMemMapFstToAList exits key).mpr member)) increase)
-    tableValid seqZero ctxHead bodyIH source after afterFrame afterStrong targetResult targetFinal targetRun
+    tableValid seqZero ctxHead bodyIH' source after afterFrame afterStrong targetResult targetFinal targetRun
   obtain ⟨permutation,post⟩ := inner
   refine ⟨permutation,?_⟩
   dsimp only
@@ -149,8 +157,11 @@ theorem ssa_quantitative_loop_with_setup {C F : Type}
   apply ssa_quantitative_loop_with_setup_fund_body SP TP names exits body source target map next tables
     (fun _ _ => 0) seqZero
   · simpa only [Nat.add_zero] using headCost
-  · intro st ct m n ts h
-    exact (ssa_quantitative_allowance_zero SP TP body st ct m n ts).mpr (bodyIH st ct m n ts h)
+  · intro st ct h
+    let setup := loopSetup (width := 64) names exits map next
+    exact (ssa_quantitative_allowance_zero SP TP body st ct (sptInter setup.2.1 names) setup.2.2
+      ((setup.2.1,names,exits)::tables)).mpr
+      (bodyIH st ct (sptInter setup.2.1 names) setup.2.2 ((setup.2.1,names,exits)::tables) h)
   · exact premises
 
 #print axioms ssa_quantitative_loop_with_setup_fund_body

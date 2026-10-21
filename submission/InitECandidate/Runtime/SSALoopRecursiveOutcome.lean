@@ -189,13 +189,9 @@ theorem ssa_loop_quantitative_context_fund_body {C F : Type} (ctx : SSALoopCostC
     (tableValid : ltOK ctx.tables)
     (seqZero : ∀ a b, ctx.TP (.seq a b) = 0)
     (headCost : ctx.TP ctx.targetLoop + ctx.TP ctx.moves + bodyEntry (sptInter ctx.refreshed ctx.names) next ≤ ctx.SP ctx.sourceLoop)
-    (bodyIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
-      (counter : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel source target ∧
-      ssaLocalsRel counter map source.locals target.locals ∧ isAllocVar counter ∧
-      everyVarHOL (fun key => decide (key < counter)) ctx.body = true ∧
-      ssaMapOK counter map ∧ ltOK tables →
-      SSAQuantitativeAllowance ctx.SP ctx.TP ctx.body source target map counter tables (bodyEntry map counter))
+    (bodyIH : SSABodyAllowance (C := C) (F := F) ctx.SP ctx.TP ctx.body
+      (sptInter ctx.refreshed ctx.names) next ((ctx.refreshed,ctx.names,ctx.exits)::ctx.tables)
+      (bodyEntry (sptInter ctx.refreshed ctx.names) next))
     (source target : WordSemStateFiniteExact 64 C F)
     (frame : Flapjack.WordAlloc.wordStateEqRel source target)
     (strong : Flapjack.WordAlloc.strongLocalsRel (optionLookup ctx.refreshed)
@@ -395,9 +391,10 @@ theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
   apply ssa_loop_quantitative_context_fund_body ctx next (fun _ _ => 0) produced valid allocated vars
     entryInjection exitInjection namesMapped exitsMapped namesBound exitsBound tableValid seqZero
   · simpa only [Nat.add_zero] using headCost
-  · intro s t m n ts premises
-    exact (ssa_quantitative_allowance_zero ctx.SP ctx.TP ctx.body s t m n ts).mpr
-      (bodyIH s t m n ts premises)
+  · intro s t premises
+    exact (ssa_quantitative_allowance_zero ctx.SP ctx.TP ctx.body s t
+      (sptInter ctx.refreshed ctx.names) next ((ctx.refreshed,ctx.names,ctx.exits)::ctx.tables)).mpr
+      (bodyIH s t (sptInter ctx.refreshed ctx.names) next ((ctx.refreshed,ctx.names,ctx.exits)::ctx.tables) premises)
   · exact frame
   · exact strong
 

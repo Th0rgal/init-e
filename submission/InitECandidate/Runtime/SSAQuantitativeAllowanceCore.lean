@@ -23,6 +23,18 @@ def SSAQuantitativeAllowance {C F : Type}
       wordExecutionCost (fun q _ => TP q) compiled.1 target ≤
         wordExecutionCost (fun q _ => SP q) p sourceState + entry
 
+/-- Smaller-body induction premise at one actual static compilation context.
+State relations remain universally quantified; maps and loop tables do not. -/
+def SSABodyAllowance {C F : Type} (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (body : WordLangProgHOL (BitVec 64)) (map : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (entry : Nat) : Prop :=
+  ∀ (source target : WordSemStateFiniteExact 64 C F),
+    Flapjack.WordAlloc.wordStateEqRel source target ∧
+    ssaLocalsRel next map source.locals target.locals ∧ isAllocVar next ∧
+    everyVarHOL (fun key => decide (key < next)) body = true ∧
+    ssaMapOK next map ∧ ltOK tables →
+    SSAQuantitativeAllowance SP TP body source target map next tables entry
+
 /-- Only a root loop has a setup allowance; enclosing executed control nodes
 fund their immediate children separately at the actual SSA map/counter. -/
 def ssaRootEntryAllowance (TP : WordLangProgHOL (BitVec 64) → Nat)

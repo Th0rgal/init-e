@@ -27,12 +27,8 @@ theorem ssa_loop_allowance_entry {C F : Type}
     (mapped : ∀ key, sptDomain names key → sptDomain ssa key)
     (bounded : ∀ key, sptDomain names key → key < next)
     (tableValid : ltOK tables)
-    (bodyIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat)
-      (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel source target ∧
-      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
-      everyVarHOL (fun key => decide (key < next)) body = true ∧
-      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeAllowance SP TP body source target ssa next tables (entry ssa next))
+    (bodyIH : SSABodyAllowance (C := C) (F := F) SP TP body (sptInter ssa names) next
+      ((ssa,names,exits)::tables) (entry (sptInter ssa names) next))
     (cut : wordSemCutEnv (names,.ln) source.locals = some sourceEnv) :
     ∃ targetEnv,
       wordSemCutEnv (Flapjack.WordAlloc.applyNummapKey (optionLookup ssa) names,.ln)
@@ -52,7 +48,7 @@ theorem ssa_loop_allowance_entry {C F : Type}
       exact ⟨entryInjection,exitInjection⟩
     · exact tableValid table member
   exact ⟨targetEnv,targetCut,domain,
-    bodyIH _ _ _ _ _ ⟨updatedFrame,locals,allocated,vars,
+    bodyIH _ _ ⟨updatedFrame,locals,allocated,vars,
       ssaMapOKInter next ssa names valid,updatedTables⟩⟩
 
 

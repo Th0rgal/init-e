@@ -118,18 +118,10 @@ theorem ssa_quantitative_if_fund_entries {C F : Type}
     (source target : WordSemStateFiniteExact 64 C F)
     (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
     (firstEntry secondEntry : Spt Nat → Nat → Nat)
-    (firstIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
-      (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel source target ∧
-      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
-      everyVarHOL (fun x => decide (x < next)) first = true ∧
-      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeAllowance SP TP first source target ssa next tables (firstEntry ssa next))
-    (secondIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
-      (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel source target ∧
-      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
-      everyVarHOL (fun x => decide (x < next)) second = true ∧
-      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeAllowance SP TP second source target ssa next tables (secondEntry ssa next))
+    (firstIH : SSABodyAllowance (C := C) (F := F) SP TP first ssa next tables (firstEntry ssa next))
+    (secondIH : SSABodyAllowance (C := C) (F := F) SP TP second ssa
+      (ssaCcTrans first ssa next tables).2.2 tables
+      (secondEntry ssa (ssaCcTrans first ssa next tables).2.2))
     (targetPrices : ∀ p, TP p ≤ wordOptimizerLocalPrice p target)
     (localPrice : ssaIfEntryPrice TP (firstEntry ssa next)
       (secondEntry ssa (ssaCcTrans first ssa next tables).2.2)
@@ -146,6 +138,9 @@ theorem ssa_quantitative_if_fund_entries {C F : Type}
       everyVarHOL (fun x => decide (x < next)) second = true := by
     simpa only [everyVarHOL, Bool.and_eq_true, and_assoc] using h.2.2.2.1
   rcases firstCompiled : ssaCcTrans first ssa next tables with ⟨firstOut, mapFirst, nextFirst⟩
+  have secondIH' : SSABodyAllowance (C := C) (F := F) SP TP second ssa nextFirst tables
+      (secondEntry ssa nextFirst) := by
+    simpa only [firstCompiled] using secondIH
   rcases secondCompiled : ssaCcTrans second ssa nextFirst tables with ⟨secondOut, mapSecond, nextSecond⟩
   rcases reconciled : fixInconsistencies (width := 64) (mkPrio firstOut secondOut)
       mapFirst mapSecond nextSecond with ⟨movesFirst, movesSecond, nextFinal, finalMap⟩
@@ -204,7 +199,7 @@ theorem ssa_quantitative_if_fund_entries {C F : Type}
             intro x bound
             have : x < next := of_decide_eq_true bound
             exact decide_eq_true (Nat.lt_of_lt_of_le this firstInvariant.1)
-          have sim := secondIH source target ssa nextFirst tables
+          have sim := secondIH' source target
             ⟨h.1, ssaLocalsRelMore next ssa source.locals target.locals nextFirst ⟨h.2.1, firstInvariant.1⟩,
               firstInvariant.2.1, secondVars, initialMapLater, h.2.2.2.2.2⟩
           have moveSpec : ∀ (sourceAfter targetAfter : WordSemStateFiniteExact 64 C F),
@@ -240,7 +235,7 @@ theorem ssa_quantitative_if_fund_entries {C F : Type}
             have selected := Nat.le_max_right (leftWork + firstEntry ssa next) (rightWork + secondEntry ssa nextFirst)
             omega
         | true =>
-          have sim := firstIH source target ssa next tables
+          have sim := firstIH source target
             ⟨h.1, h.2.1, h.2.2.1, vars.2.2.1, h.2.2.2.2⟩
           have mapLater := ssaMapOKMore nextFirst mapFirst nextSecond
             ⟨firstInvariant.2.2, secondInvariant.1⟩
@@ -307,10 +302,12 @@ theorem ssa_quantitative_if {C F : Type}
     SSAQuantitativeSimulation SP TP (.ite operator left immediate first second) source target ssa next tables := by
   apply ssa_quantitative_if_fund_entries SP TP operator left immediate first second source target
     ssa next tables (fun _ _ => 0) (fun _ _ => 0)
-  · intro s t m n ts premises
-    exact (ssa_quantitative_allowance_zero SP TP first s t m n ts).mpr (firstIH s t m n ts premises)
-  · intro s t m n ts premises
-    exact (ssa_quantitative_allowance_zero SP TP second s t m n ts).mpr (secondIH s t m n ts premises)
+  · intro s t premises
+    exact (ssa_quantitative_allowance_zero SP TP first s t ssa next tables).mpr (firstIH s t ssa next tables premises)
+  · intro s t premises
+    let counter := (ssaCcTrans first ssa next tables).2.2
+    exact (ssa_quantitative_allowance_zero SP TP second s t ssa counter tables).mpr
+      (secondIH s t ssa counter tables premises)
   · exact targetPrices
   · simpa only [ssaIfEntryPrice,ssaIfLocalPrice,Nat.add_zero] using localPrice
   · exact h
