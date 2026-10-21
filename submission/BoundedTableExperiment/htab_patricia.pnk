@@ -48,10 +48,10 @@ fun 1 htab_new(1 key_len, 1 cap) {
     i = i + 1;
   }
   st vals + (cap - 1) * 8, 0;
-  st t + HT_INT_FREE, cap + 1;
+  st t + HT_INT_FREE, nodes;
   i = 0;
   while i < (cap >> 1) {
-    st nodes + i * HT_NODE_SIZE, cap + i + 2;
+    st nodes + i * HT_NODE_SIZE, nodes + (i + 1) * HT_NODE_SIZE;
     i = i + 1;
   }
   st nodes + (cap >> 1) - 1 * HT_NODE_SIZE, 0;
@@ -83,10 +83,10 @@ fun 1 htab_new_scratch(1 key_len, 1 cap) {
     i = i + 1;
   }
   st vals + (cap - 1) * 8, 0;
-  st t + HT_INT_FREE, cap + 1;
+  st t + HT_INT_FREE, nodes;
   i = 0;
   while i < (cap >> 1) {
-    st nodes + i * HT_NODE_SIZE, cap + i + 2;
+    st nodes + i * HT_NODE_SIZE, nodes + (i + 1) * HT_NODE_SIZE;
     i = i + 1;
   }
   st nodes + (cap >> 1) - 1 * HT_NODE_SIZE, 0;
@@ -102,9 +102,9 @@ fun 1 htab_node_ptr(1 t, 1 node) {
   return (lds 1 (t + HT_NODES)) + (node - (lds 1 (t + HT_CAP)) - 1) * HT_NODE_SIZE;
 }
 
-fun 1 htab_bit(1 key, 1 bit) {
-  var b = ld8 (key + (bit >> 3));
-  var m = 128 >> (bit & 7);
+fun 1 htab_bit(1 key, 1 route) {
+  var b = ld8 (key + (route >> 8));
+  var m = route ^ 255;
   if (b & m) != 0 { return 1; }
   return 0;
 }
@@ -119,13 +119,15 @@ fun 1 htab_first_diff(1 a, 1 b, 1 key_len) {
     if x != 0 {
       var bit = 0;
       while bit < 8 {
-        if (x & (128 >> bit)) != 0 { return i * 8 + bit; }
+        if (x & (128 >> bit)) != 0 {
+          return i * 256 + (255 - (128 >> bit));
+        }
         bit = bit + 1;
       }
     }
     i = i + 1;
   }
-  return key_len * 8;
+  return key_len * 256;
 }
 
 fun 1 htab_new_leaf(1 t, 1 key, 1 value) {
@@ -144,18 +146,16 @@ fun 1 htab_free_leaf(1 t, 1 leaf) {
 }
 
 fun 1 htab_new_internal(1 t, 1 bit) {
-  var 1 node = lds 1 (t + HT_INT_FREE);
-  var np = htab_node_ptr(t, node);
+  var 1 np = lds 1 (t + HT_INT_FREE);
   st t + HT_INT_FREE, lds 1 np;
   st np, 0;
   st np + 8, 0;
   st np + 16, bit;
-  return node;
+  return np;
 }
 
 fun 1 htab_free_internal(1 t, 1 node) {
-  var np = htab_node_ptr(t, node);
-  st np, lds 1 (t + HT_INT_FREE);
+  st node, lds 1 (t + HT_INT_FREE);
   st t + HT_INT_FREE, node;
   return 0;
 }
@@ -163,14 +163,13 @@ fun 1 htab_free_internal(1 t, 1 node) {
 /* Leaf reached by the key's branching path, or 0. */
 fun 1 htab_find_leaf(1 t, 1 key) {
   var cap = lds 1 (t + HT_CAP);
-  var nbase = lds 1 (t + HT_NODES);
   var node = lds 1 (t + HT_ROOT);
   while node != 0 {
     if node <=+ cap { return node; }
-    var np = nbase + (node - cap - 1) * 24;
-    var bit = lds 1 (np + 16);
-    var b = ld8 (key + (bit >> 3));
-    var m = 128 >> (bit & 7);
+    var np = node;
+    var route = lds 1 (np + 16);
+    var b = ld8 (key + (route >> 8));
+    var m = route ^ 255;
     if (b & m) != 0 { node = lds 1 (np + 8); }
     else { node = lds 1 np; }
   }
@@ -193,6 +192,26 @@ fun 1 htab_has(1 t, 1 key) {
   return r.0;
 }
 
+fun 1 htab_relocate(1 n, 1 oldbase, 1 newbase, 1 cap) {
+  var delta = newbase - oldbase;
+  var i = 0;
+  while i < (cap >> 1) {
+    var np = newbase + i * 24;
+    var c0 = lds 1 np;
+    var c1 = lds 1 (np + 8);
+    if c0 >+ cap { c0 = c0 + delta; }
+    if c1 >+ cap { c1 = c1 + delta; }
+    st np, c0;
+    st np + 8, c1;
+    i = i + 1;
+  }
+  var root = lds 1 (n + HT_ROOT);
+  if root >+ cap { st n + HT_ROOT, root + delta; }
+  var ifree = lds 1 (n + HT_INT_FREE);
+  if ifree >+ cap { st n + HT_INT_FREE, ifree + delta; }
+  return 0;
+}
+
 fun 1 htab_grow(1 t) {
   var cap = lds 1 (t + HT_CAP);
   var count = lds 1 (t + HT_COUNT);
@@ -209,29 +228,30 @@ fun 1 htab_grow(1 t) {
   memcpy(norder, lds 1 (t + HT_ORDER), cap * 8);
   memcpy(npos, lds 1 (t + HT_ORDER_POS), cap * 8);
   var 1 obase = lds 1 (t + HT_NODES);
+  var delta = nnodes - obase;
   var i = 0;
   while i < (cap >> 1) {
     var op = obase + i * 24;
     var np = nnodes + i * 24;
     var c0 = lds 1 op;
     var c1 = lds 1 (op + 8);
-    if c0 >+ cap { c0 = c0 + cap; }
-    if c1 >+ cap { c1 = c1 + cap; }
+    if c0 >+ cap { c0 = c0 + delta; }
+    if c1 >+ cap { c1 = c1 + delta; }
     st np, c0;
     st np + 8, c1;
     st np + 16, lds 1 (op + 16);
     i = i + 1;
   }
   var root = lds 1 (t + HT_ROOT);
-  if root >+ cap { root = root + cap; }
+  if root >+ cap { root = root + delta; }
   st n + HT_ROOT, root;
   var ifree = lds 1 (t + HT_INT_FREE);
-  if ifree != 0 { ifree = ifree + cap; }
+  if ifree != 0 { ifree = ifree + delta; }
   i = cap >> 1;
   while i < (ncap >> 1) {
     var np = nnodes + i * 24;
     st np, ifree;
-    ifree = ncap + i + 1;
+    ifree = np;
     i = i + 1;
   }
   st n + HT_INT_FREE, ifree;
@@ -279,19 +299,18 @@ fun 1 htab_set(1 t, 1 key, 1 value) {
   var parent = 0;
   var dir = 0;
   var cur = lds 1 (t + HT_ROOT);
-  var nbase = lds 1 (t + HT_NODES);
   while cur != 0 {
     if cur <=+ cap { break; }
-    var np = nbase + (cur - cap - 1) * 24;
-    var bit = lds 1 (np + 16);
-    if bit >+ d { break; }
+    var np = cur;
+    var route = lds 1 (np + 16);
+    if route >+ d { break; }
     parent = cur;
-    var b = ld8 (key + (bit >> 3));
-    var m = 128 >> (bit & 7);
+    var b = ld8 (key + (route >> 8));
+    var m = route ^ 255;
     if (b & m) != 0 { dir = 1; cur = lds 1 (np + 8); }
     else { dir = 0; cur = lds 1 np; }
   }
-  var nip = htab_node_ptr(t, new_int);
+  var nip = new_int;
   var side = htab_bit(key, d);
   if side != 0 {
     st nip, cur;
@@ -303,7 +322,7 @@ fun 1 htab_set(1 t, 1 key, 1 value) {
   if parent == 0 {
     st t + HT_ROOT, new_int;
   } else {
-    var pp = htab_node_ptr(t, parent);
+    var pp = parent;
     if dir != 0 { st pp + 8, new_int; }
     else { st pp, new_int; }
   }
@@ -330,7 +349,7 @@ fun 1 htab_del(1 t, 1 key) {
   var cur = lds 1 (t + HT_ROOT);
   while cur != 0 {
     if cur <=+ cap { break; }
-    var np = htab_node_ptr(t, cur);
+    var np = cur;
     var bit = lds 1 (np + 16);
     grand = parent;
     gdir = dir;
@@ -342,14 +361,14 @@ fun 1 htab_del(1 t, 1 key) {
   if parent == 0 {
     st t + HT_ROOT, 0;
   } else {
-    var pp = htab_node_ptr(t, parent);
+    var pp = parent;
     var sibling = 0;
     if dir != 0 { sibling = lds 1 pp; }
     else { sibling = lds 1 (pp + 8); }
     if grand == 0 {
       st t + HT_ROOT, sibling;
     } else {
-      var gp = htab_node_ptr(t, grand);
+      var gp = grand;
       if gdir != 0 { st gp + 8, sibling; }
       else { st gp, sibling; }
     }
@@ -425,6 +444,7 @@ fun 1 htab_copy(1 t) {
   var 1 nodes = alloc((cap >> 1) * HT_NODE_SIZE);
   memcpy(nodes, lds 1 (t + HT_NODES), (cap >> 1) * HT_NODE_SIZE);
   st n + HT_NODES, nodes;
+  htab_relocate(n, lds 1 (t + HT_NODES), nodes, cap);
   return n;
 }
 
@@ -448,6 +468,7 @@ fun 1 htab_copy_scratch(1 t) {
   var 1 nodes = scratch_alloc((cap >> 1) * HT_NODE_SIZE);
   memcpy(nodes, lds 1 (t + HT_NODES), (cap >> 1) * HT_NODE_SIZE);
   st n + HT_NODES, nodes;
+  htab_relocate(n, lds 1 (t + HT_NODES), nodes, cap);
   return n;
 }
 

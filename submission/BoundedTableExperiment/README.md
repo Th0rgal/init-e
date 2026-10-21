@@ -332,7 +332,7 @@ by the guest. No resize/copy/truncate path is bypassed in these runs.
 ## 10. Pinned compile/source record
 
 - candidate source: `submission/BoundedTableExperiment/htab_patricia.pnk`
-  sha256 `da352aa6f92f3283c00472d7452d8b505b017b7add4beebad31f20efa5d10074`
+  sha256 `e97eb316871e7575ac596de5d61b902993b35e559126918f81ef1cd0af71370f`
 - semantic model: `submission/BoundedTableExperiment/prototype.py`
   sha256 `ad8b1bdea4186f3da088bea6a6c421e9745cca1fb74c49a1affc5ef83edce64d`
 - order/ownership proof: `ReachableOrderInvariant.lean`
@@ -378,77 +378,87 @@ The remaining key lengths are now linked-tested too:
 All of these are Spike machine steps, not source-price ticks; the certificate
 still needs the generated `StatementRun` events and coefficient calibration.
 
-## 12. Worst-depth path test
+## 12. Worst-depth path test and exact visit accounting
 
-`worstpath_spike.sh` inserts one key per bit position
-(`key[j]` has only bit `j` set) in MSB-first order. This forces the Patricia
-spine to the deterministic `8*key_len` depth instead of the shallow random
-tree. It then repeats all lookups 100 times and compares the checksum with the
-model.
+`worstpath_spike.sh` inserts one key per bit position (key `j` has only bit `j`
+set) in MSB-first order. This forces the Patricia spine to its deterministic
+depth, then repeats all lookups 100 times.
 
-| key length | keys | model max internal visits | Spike steps | result |
+| key length | keys | max visits | all-key steps | result |
 |---|---:|---:|---:|---|
-| 20 | 160 | 159 | 36,489,664 | match |
-| 32 | 256 | 255 | 86,012,042 | match |
-| 60 | 480 | 479 | 295,571,647 | match |
+| 20 | 160 | 159 | 25,125,926 | match |
+| 32 | 256 | 255 | 58,245,738 | match |
+| 60 | 480 | 479 | 198,184,285 | match |
 
-The observed maximum visits are exactly one less than the key-bit bound
-(`8*key_len`): 159/160, 255/256, 479/480. Before the routing optimization below
-the same runs took 130,585,772 / 323,581,062 / 1,130,341,474 steps.
+The max visits are exactly `8*key_len - 1`. However, dividing the all-key time
+by `keys * repeats * max_depth` is wrong: the spine keys have mixed depths.
+For KL32 the model's exact total is 32,895 visits per 256-key cycle, mean depth
+128.496; 100 cycles are 3,289,500 visits. Subtracting the 256-insert baseline
+(1,478,654 steps), the whole-spine coefficient is
+`56,767,084 / 3,289,500 = 17.26` steps per visited node.
 
-## 13. Routing-cost optimization and conservative budget check
+`deepest_spike.sh` isolates the true maximum path. It builds the same spine and
+repeats only key bit 254:
 
-`htab_find_leaf` previously called `htab_node_ptr` and `htab_bit` at every
-internal node; each call reloaded table header fields and recomputed the node
-base. The candidate now caches `HT_NODES` once per walk, addresses
-`nbase + (node - cap - 1)*24` inline, and computes the bit mask inline:
-`ld8 (key + (bit >> 3))` and `128 >> (bit & 7)`. The same inlining is used in
-the second insertion walk. Parse/type still passes (1,559 assembly lines), and
-all linked checksums still match.
+| run | steps |
+|---|---:|
+| REPEAT=0 (build only) | 1,478,654 |
+| REPEAT=10,000 | 42,628,655 |
 
-Measured effect on the worst path:
+Delta `41,150,001 / 10,000 = 4,115.0` steps per lookup at depth 255, i.e.
+`16.14` steps per visited node. The earlier `13.2/visit` figure used a
+maximum-depth denominator over a mixed-depth workload and undercounted by about
+2x; the corrected deepest-path coefficient is 16.14.
 
-| key length | before | after | speedup | steps per lookup | steps per internal visit |
-|---|---:|---:|---:|---:|---:|
-| 20 | 130,585,772 | 36,489,664 | 3.58x | 2,281 | 14.3 |
-| 32 | 323,581,062 | 86,012,042 | 3.76x | 3,360 | 13.2 |
-| 60 | 1,130,341,474 | 295,571,647 | 3.82x | 6,158 | 12.9 |
+## 13. Direct node pointers and route encoding
 
-Conservative full-input arithmetic using the KL32 coefficients:
+The current candidate removes the remaining per-hop id-to-address arithmetic:
 
-- `htab_set` for a new key traverses twice (reachable leaf, then insertion
-  point), so ~`2 * 256 * 13.2 = 6,758` steps.
-- `33.55M * 6,758 = 2.27e11` for one insert per input entry at the adversarial
-  depth-256 shape.
-- one read per entry adds `33.55M * 3,360 = 1.13e11`, total ~`3.40e11`.
-- `htab_copy` at N=5,000 is unchanged by the routing change: 523,075 steps,
-  ~105/entry, or `3.5e9` at 33.55M entries.
-- growth is now structural: `htab_grow` relocates the existing internal nodes
-  and copies arrays in O(cap), with no key re-insertion. Its measured cost is
-  included in the N=5,000 result below and is small relative to the per-key
-  walks; a coarse `1e10` allowance is ample at the relevant capacities.
+- internal child ids are actual node pointers; leaf ids stay `<= cap`, so
+  `node <= cap` still identifies a leaf, while internal pointers are heap
+  addresses `> cap`;
+- the internal free list stores pointers; `htab_new_internal` and
+  `htab_free_internal` no longer call `htab_node_ptr`;
+- growth and copy relocate every internal pointer by `newbase - oldbase`;
+- routing is encoded as `byte_offset*256 + (255 - mask)`, so a node stores a
+  route that is monotone in the bit index. Lookup does
+  `ld8 (key + (route >> 8)) & (route ^ 255)` with no variable shift or bit
+  index extraction. `htab_first_diff` returns the same encoded route.
 
-That is ~`3.45e11` before nodedb, transcript, and other guest work. It is below
-`9e11`, but the margin is not a proof and is sensitive to the source-tick/native
-step ratio. The honest status is: the previous random-depth projection is
-unsafe, the optimized traversal removes most of the per-node coefficient, and
-the remaining full-input budget must be checked with the actual source-event
-accounting and the adversarial shape. This is not yet a certificate claim.
+Measured deepest-leaf lookup: `4,625` steps before route encoding, `4,115`
+after; per visit 18.14 -> 16.14. Whole-spine KL20/32/60 steps are
+25,125,926 / 58,245,738 / 198,184,285. All 20/28/32/52/60 differential
+checksums, lifecycle copies, deletes, and truncates still match.
 
 ## 14. Structural growth (no re-insertion walk)
 
 `htab_grow` no longer re-inserts every key. It allocates the doubled table,
-copies the old key/value/order/pos arrays, relocates the internal-node slab
-with child and free-list ids shifted by the old capacity, rebuilds the extra
-internal and leaf free lists, remaps the root, and copies the header back. The
-work is O(cap) memory movement instead of O(count * key_length * depth).
+copies the old arrays, relocates the internal-node slab and pointer free list
+by `newbase - oldbase`, rebuilds the extra internal and leaf free lists, remaps
+the root, and copies the header. The work is O(cap) memory movement rather than
+O(count * key_length * depth). Leaf ids and order arrays are unchanged.
 
-The linked tests still match:
-- N=5,000 KL=32: 26,031,455 -> 16,577,066 steps (1.57x faster overall).
-- Lifecycle copy/delete/reinsert: 1,051,935 -> 837,997 steps.
-- Worst path KL=20/32/60: 35,723,447 / 85,253,787 / 292,800,936 steps.
-- Every 20/28/32/52/60-byte differential checksum still matches.
+The linked tests match after every optimization stage:
+- N=5,000 KL=32: 16,577,066 (bulk growth) -> 13,064,208 (direct pointers) ->
+  12,721,381 (route encoding).
+- Lifecycle copy/delete/reinsert: 837,997 -> 711,407 -> 698,546.
+- Copy at N=5,000: 670,581 delta, ~134/entry (pointer relocation included).
 
-The structural invariant is the same `nodes = 2*leaves - 1`; the relocation
-preserves leaf ids and shifts only internal ids. The order arrays are copied
-verbatim, so insertion order and swap-remove positions are unchanged.
+## 15. Corrected conservative budget
+
+Using the measured KL32 deepest-path coefficient 16.14 steps/visit:
+
+- new-key insert has two walks: `2 * 255 * 16.14 = 8,231` steps;
+- `33.55M * 8,231 = 2.76e11`;
+- one deepest read per input entry: `33.55M * 4,115 = 1.38e11`;
+- subtotal `4.14e11`;
+- copy: `~4.5e9`;
+- structural growth: `~1e10` or less at these capacities;
+- total before nodedb/transcript/other guest work: `~4.3e11`.
+
+This is below `9e11` with roughly 2x margin, but the arithmetic is still a
+measurement-based projection, not a proof. It assumes no additional per-entry
+table work beyond one insert and one read, and it does not include the
+source-tick/native-step ratio. The adversarial depth-256 shape and exact model
+visit counts are now recorded; the remaining work is source-event accounting
+over the real full-input operation mix.
