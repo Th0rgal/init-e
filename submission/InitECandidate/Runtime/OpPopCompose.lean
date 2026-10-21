@@ -40,5 +40,16 @@ theorem StatementRun.declareCallReturn_cont
           (fun old => (flattenHOL old).length)).getD 0)])) :=
   StatementRun.declareCallReturn args lookup clock bodyRun shapeMatch continuationRun
 
+/-- Frame offsets 0 and 64 are distinct, so `charge_gas` preserves the pc cell. -/
+theorem frame_add_zero_ne_64 (frame : BitVec 64) :
+    frame + (64 : BitVec 64) ≠ frame + 0 := by bv_omega
+
+/-- Frame offsets 0 and 184 are distinct, so `charge_gas` preserves the pc cell. -/
+theorem frame_add_zero_ne_184 (frame : BitVec 64) :
+    frame + (184 : BitVec 64) ≠ frame + 0 := by bv_omega
+
+#print axioms frame_add_zero_ne_64
+#print axioms frame_add_zero_ne_184
+
 #print axioms StatementRun.declareCallReturn_cont
 end InitECandidate.Runtime.FineCost
