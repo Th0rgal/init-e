@@ -1,5 +1,9 @@
 import InitECandidate.Runtime.GuestCostStackPop
 namespace InitECandidate.Runtime.FineCost
+
+theorem stackPush_score_cost (coeff : Work) (n : Nat) :
+    coeff.score (WorkEvent.cost n).units = coeff.nativeCost * n := by
+  simp [Work.score, WorkEvent.units]
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
@@ -203,10 +207,10 @@ noncomputable def stackPushSuccessEvents (s : PanSemStateFiniteExact 64 F)
       (.op .add [.var VarKind.local (ofString "sp"), .const (1 : BitVec 64)]) ++
     [.memory (flattenHOL (.val (.word (sp + 1)))).length])
   let ret := .statement :: (expressionEvents updated (.const (0 : BitVec 64)) ++
-    [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])
+    [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])
   let tail := storeV ++ (storeSp ++ ret)
-  let tailEvents := (.statement :: (fullGuard ++ [.statement])) ++ tail
-  let bodyEvents := (.statement :: (capGuard ++ [.statement])) ++ tailEvents
+  let tailEvents := (.statement :: .cost statementUnit :: (fullGuard ++ [.statement])) ++ tail
+  let bodyEvents := (.statement :: .cost statementUnit :: (capGuard ++ [.statement])) ++ tailEvents
   let capEvents := .statement :: (expressionEvents entrySp (fundingLoad 232) ++
     [.copy (flattenHOL (.val (.word cap))).length, .frame 1] ++ bodyEvents ++
     [.copy (((entrySp.locals.lookup (ofString "cap")).map
@@ -303,7 +307,7 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
       (.cmp Cmp.notLower (.var VarKind.local (ofString "sp"))
         (.var VarKind.local (ofString "cap")))
       stackPushGrowth .skip) none entryCap
-      (.statement :: (expressionEvents entryCap
+      (.statement :: .cost statementUnit :: (expressionEvents entryCap
         (.cmp Cmp.notLower (.var VarKind.local (ofString "sp"))
           (.var VarKind.local (ofString "cap"))) ++ [.statement])) :=
     StatementRun.iteNo (r := none) (post := entryCap) (bodyEvents := [.statement])
@@ -323,7 +327,7 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
       (.cmp Cmp.equal (.var VarKind.local (ofString "sp"))
         (.const (1024 : BitVec 64)))
       (.raise (ofString "EvmErr") (.const (3 : BitVec 64))) .skip) none entryCap
-      (.statement :: (expressionEvents entryCap
+      (.statement :: .cost statementUnit :: (expressionEvents entryCap
         (.cmp Cmp.equal (.var VarKind.local (ofString "sp"))
           (.const (1024 : BitVec 64))) ++ [.statement])) :=
     StatementRun.iteNo (r := none) (post := entryCap) (bodyEvents := [.statement])
@@ -402,7 +406,7 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
   have retRun : StatementRun updated (.return (.const (0 : BitVec 64)))
       (some (.returned (.val (.word 0)))) (emptyLocalsHOLFinite updated)
       (.statement :: (expressionEvents updated (.const (0 : BitVec 64)) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (0 : BitVec 64))
       (costedExpression_events updated _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
@@ -463,12 +467,14 @@ theorem stackPushSuccessEvents_score (coeff : Work) (s : PanSemStateFiniteExact 
         coeff.movedWords * (((entrySp.locals.lookup (ofString "cap")).map
           (fun previous => (flattenHOL previous).length)).getD 0) +
         coeff.movedWords * (((s.locals.lookup (ofString "sp")).map
-          (fun previous => (flattenHOL previous).length)).getD 0) := by
+          (fun previous => (flattenHOL previous).length)).getD 0) +
+        2 * coeff.score (WorkEvent.cost statementUnit).units +
+        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)).units := by
   unfold stackPushSuccessEvents expressionCost
   dsimp only [stackPopEntry, stackPushCapEntry, stackPushValue]
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
     guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
-    executionWork_nil_score, List.append_nil]
+    executionWork_nil_score, List.append_nil, stackPush_score_cost]
   omega
 
 #print axioms panMemStoresHOL_four
