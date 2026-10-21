@@ -1311,4 +1311,35 @@ theorem refinedWordLocalPrice_call_none {C F : Type}
 #print axioms refinedWordLocalPrice_ite
 #print axioms refinedWordLocalPrice_loop
 #print axioms refinedWordLocalPrice_call_none
+
+/-! ## The evaluator's `seq` clause
+
+`evaluate` (Evaluate.lean:165) splits a `seq` exactly as the counter does:
+
+    | .seq c1 c2 =>
+        match _h : fixClock s (evaluate c1 s) with
+        | (res, s1) => match res with | none => evaluate c2 s1 | _ => (res, s1)
+
+so the run of a `seq` is determined by the first half's `fixClock`ed run.  The two lemmas
+below expose that, which is what lets the induction case DERIVE the target run instead of
+assuming it. -/
+theorem evaluate_seq_none {C F : Type}
+    (c1 c2 : WordLangProgHOL (BitVec 64))
+    (s mid : WordSemStateFiniteExact 64 C F)
+    (h : fixClock s (WordSemStateFiniteExact.evaluate c1 s) = (none, mid)) :
+    WordSemStateFiniteExact.evaluate (.seq c1 c2) s =
+      WordSemStateFiniteExact.evaluate c2 mid := by
+  simp only [WordSemStateFiniteExact.evaluate, h]
+
+theorem evaluate_seq_escape {C F : Type}
+    (c1 c2 : WordLangProgHOL (BitVec 64))
+    (s mid : WordSemStateFiniteExact 64 C F)
+    (res : Option (WordSemResult 64))
+    (h : fixClock s (WordSemStateFiniteExact.evaluate c1 s) = (res, mid))
+    (hr : res = none → False) :
+    WordSemStateFiniteExact.evaluate (.seq c1 c2) s = (res, mid) := by
+  simp only [WordSemStateFiniteExact.evaluate, h]
+
+#print axioms evaluate_seq_none
+#print axioms evaluate_seq_escape
 end InitECandidate.Runtime.FineCost
