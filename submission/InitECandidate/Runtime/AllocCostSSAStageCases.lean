@@ -84,6 +84,33 @@ theorem wec_stage_move_case {C F : Type}
   rw [wec_move price pri' moves' t, wec_move price pri moves s]
   exact hb
 
+/-- **`seq` stage case, both halves falling through.**  Both first halves
+return `none`, so each second half runs on its own reached middle state; the
+recursive costs are the two induction hypotheses at those states, and only the
+node price is extra. -/
+theorem wec_seq_stage_none {C F : Type}
+    (price : WordLangProgHOL (BitVec 64) → WordSemStateFiniteExact 64 C F → Nat)
+    (first second firstT secondT : WordLangProgHOL (BitVec 64))
+    (s t midS midT : WordSemStateFiniteExact 64 C F)
+    (nodeBudget b1 b2 : Nat)
+    (hs : fixClock s (evaluate first s) = (none, midS))
+    (ht : fixClock t (evaluate firstT t) = (none, midT))
+    (hnode : price (.seq firstT secondT) t ≤ price (.seq first second) s + nodeBudget)
+    (hfirst : wordExecutionCost price firstT t ≤ wordExecutionCost price first s + b1)
+    (hsecond : wordExecutionCost price secondT midT ≤
+      wordExecutionCost price second midS + b2) :
+    wordExecutionCost price (.seq firstT secondT) t ≤
+      wordExecutionCost price (.seq first second) s + (nodeBudget + (b1 + b2)) := by
+  rw [wordExecutionCost]
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+  rw [ht]
+  try dsimp only
+  rw [hs]
+  try dsimp only
+  omega
+
+#print axioms wec_seq_stage_none
 #print axioms wec_inst
 #print axioms wec_move
 #print axioms wec_stage_inst_case
