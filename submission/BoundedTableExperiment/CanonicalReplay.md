@@ -26,8 +26,17 @@ Generated tree: `submission/CandidateGuestStaging/` (git-ignored)
 7. `ActualWhileCount.lean`
 8. `ActualWhileRouteBound.lean`
 9. `ActualRouteSequenceBound.lean`
+10. `ActualFindLeafStepFrame.lean` (guard/push/bump node frames, guard internal tag)
+11. `ActualFindLeafRouteChild.lean` (route/byte/mask/child node restore)
+12. `ActualTaggedTrie.lean` (tagged internal live-edge invariant, root leaf/empty/internal)
+13. `ActualPushTrieFrame.lean` (actual push slot vs node cells)
+14. `ActualWordSepFrame.lean` (canonical WordSep node-cell frame, no-wrap disjointness)
+15. `ActualSlabPathFrame.lean` (slab cells below path)
+16. `ActualCandidateHeap.lean` (candidate heap invariant and push preservation)
 
-Latest checked commits: `08ee26dd5`, `4513efed8`, `69fd41bfe`.
+Latest checked commits: `08ee26dd5`, `4513efed8`, `69fd41bfe`, `12a59902b`,
+`254cf589b`, `3f4990b6c`, `6be500f0d`, `5560cba5c`, `97bdde03e`,
+`41be50a52`, `5e4fb84e0`, `33fe26cf9`.
 
 ## Replay
 
@@ -50,4 +59,9 @@ All checked theorems use only `propext`, `Classical.choice`, `Quot.sound`.
   `candidateFindLeafStep` body run, including guard-skip, push, bump, route,
   byte/mask, and child selection; handle the initial leaf case without a route
   load.
-- Preserve `TrieInv` through `htab_set`, `grow`, and `del`.
+- Preserve the tagged `CandidateHeapInv` through `htab_set`, `grow`, and `del`.
+- Allocator tie is open: `InitECandidate.Runtime.HtabRegions` describes the
+  original runtime `htab_new_scratch` (72-byte header, no nodes/path), not the
+  frozen candidate (120-byte header, nodes at offset 96, path at 104, no `used`).
+  A candidate-specific `source_htabNewScratch_body` and scratch sequence region
+  theorem are required before claiming `path = nodesEnd` or live slab ownership.
