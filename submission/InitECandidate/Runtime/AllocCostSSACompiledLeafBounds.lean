@@ -2417,4 +2417,84 @@ theorem wec_call_none_callee_transfer {C F : Type}
   omega
 
 #print axioms wec_call_none_callee_transfer
+/-- The loop node's transfer when the body's result continues the loop and BOTH clocks are exhausted:
+neither side charges a further iteration, so again only the node prices and the bodies remain. -/
+theorem wec_loop_cont_done_transfer {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64))
+    (s t cutS cutT : WordSemStateFiniteExact 64 C F) (extra : Nat)
+    (hs : cutState (names, .ln) s = some cutS)
+    (ht : cutState (names, .ln) t = some cutT)
+    (resultS : Option (WordSemResult 64)) (midS : WordSemStateFiniteExact 64 C F)
+    (resultT : Option (WordSemResult 64)) (midT : WordSemStateFiniteExact 64 C F)
+    (hS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) = (resultS, midS))
+    (hT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) = (resultT, midT))
+    (hcS : wordSemContLoop resultS = true)
+    (hcT : wordSemContLoop resultT = true)
+    (hcost : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice bodyC cutT ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body cutS + extra)
+    (hzS : midS.clock = 0) (hzT : midT.clock = 0) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names bodyC liveOut) t ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s + extra := by
+  rw [wec_loop_cont names liveOut bodyC t cutT ht resultT midT hT hcT,
+    wec_loop_cont names liveOut body s cutS hs resultS midS hS hcS]
+  rw [dif_pos hzT, dif_pos hzS]
+  simp only [refinedWordLocalPrice_loop]
+  omega
+
+/-- The loop node's transfer when the body's result continues the loop and BOTH clocks are live: each side
+charges one further iteration, so the node transfers whenever the body and the next iteration do.  The
+budget is doubled because BOTH the body and the recursive iteration are charged, one extra each - this is
+the step case of the loop's clock induction, with the recursive call explicit. -/
+theorem wec_loop_cont_live_transfer {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64))
+    (s t cutS cutT : WordSemStateFiniteExact 64 C F) (extra : Nat)
+    (hs : cutState (names, .ln) s = some cutS)
+    (ht : cutState (names, .ln) t = some cutT)
+    (resultS : Option (WordSemResult 64)) (midS : WordSemStateFiniteExact 64 C F)
+    (resultT : Option (WordSemResult 64)) (midT : WordSemStateFiniteExact 64 C F)
+    (hS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) = (resultS, midS))
+    (hT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) = (resultT, midT))
+    (hcS : wordSemContLoop resultS = true)
+    (hcT : wordSemContLoop resultT = true)
+    (hcost : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice bodyC cutT ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body cutS + extra)
+    (hclkS : midS.clock = 0 → False) (hclkT : midT.clock = 0 → False)
+    (hrec :
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (wordSemSTOP (.loop names bodyC liveOut)) (Flapjack.WordSemStateFiniteExact.decClock midT) ≤
+        wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (wordSemSTOP (.loop names body liveOut)) (Flapjack.WordSemStateFiniteExact.decClock midS) + extra) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names bodyC liveOut) t ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s + (extra + extra) := by
+  rw [wec_loop_cont names liveOut bodyC t cutT ht resultT midT hT hcT,
+    wec_loop_cont names liveOut body s cutS hs resultS midS hS hcS]
+  rw [dif_neg hclkT, dif_neg hclkS]
+  simp only [refinedWordLocalPrice_loop]
+  omega
+
+#print axioms wec_loop_cont_done_transfer
+#print axioms wec_loop_cont_live_transfer
+/-- The loop node's transfer in the case where the body's result does NOT continue the loop: the loop
+charges its node price plus the body's work on both sides, so the two node prices cancel and the whole
+node transfers whenever the body does.  This is the base case of the loop's clock induction; the
+continuing case recurses through wec_loop_cont. -/
+theorem wec_loop_stop_transfer {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body bodyC : WordLangProgHOL (BitVec 64))
+    (s t cutS cutT : WordSemStateFiniteExact 64 C F) (extra : Nat)
+    (hs : cutState (names, .ln) s = some cutS)
+    (ht : cutState (names, .ln) t = some cutT)
+    (resultS : Option (WordSemResult 64)) (midS : WordSemStateFiniteExact 64 C F)
+    (resultT : Option (WordSemResult 64)) (midT : WordSemStateFiniteExact 64 C F)
+    (hS : fixClock cutS (WordSemStateFiniteExact.evaluate body cutS) = (resultS, midS))
+    (hT : fixClock cutT (WordSemStateFiniteExact.evaluate bodyC cutT) = (resultT, midT))
+    (hncS : wordSemContLoop resultS = false)
+    (hncT : wordSemContLoop resultT = false)
+    (hcost : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice bodyC cutT ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body cutS + extra) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names bodyC liveOut) t ≤
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s + extra := by
+  rw [wec_loop_stop names liveOut bodyC t cutT ht resultT midT hT hncT,
+    wec_loop_stop names liveOut body s cutS hs resultS midS hS hncS]
+  simp only [refinedWordLocalPrice_loop]
+  omega
+
+#print axioms wec_loop_stop_transfer
 end InitECandidate.Runtime.FineCost
