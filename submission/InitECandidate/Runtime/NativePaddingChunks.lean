@@ -1,5 +1,63 @@
 import InitECandidate.Runtime.NativePaddingScan
 
+import InitECandidate.Proofs.BackendStages.FinalChunk528_543
+import InitECandidate.Proofs.BackendStages.FinalChunk336_351
+import InitECandidate.Proofs.BackendStages.FinalChunk432_447
+import InitECandidate.Proofs.BackendStages.FinalChunk592_607
+import InitECandidate.Proofs.BackendStages.FinalChunk416_431
+import InitECandidate.Proofs.BackendStages.FinalChunkStubs
+import InitECandidate.Proofs.BackendStages.FinalChunk816_831
+import InitECandidate.Proofs.BackendStages.FinalChunk192_207
+import InitECandidate.Proofs.BackendStages.FinalChunk464_479
+import InitECandidate.Proofs.BackendStages.FinalChunk368_383
+import InitECandidate.Proofs.BackendStages.FinalChunk144_159
+import InitECandidate.Proofs.BackendStages.FinalChunk352_367
+import InitECandidate.Proofs.BackendStages.FinalChunk752_767
+import InitECandidate.Proofs.BackendStages.FinalChunk256_271
+import InitECandidate.Proofs.BackendStages.FinalChunk832_847
+import InitECandidate.Proofs.BackendStages.FinalChunk80_95
+import InitECandidate.Proofs.BackendStages.FinalChunk720_735
+import InitECandidate.Proofs.BackendStages.FinalChunk112_127
+import InitECandidate.Proofs.BackendStages.FinalChunk800_815
+import InitECandidate.Proofs.BackendStages.FinalChunk784_799
+import InitECandidate.Proofs.BackendStages.FinalChunk320_335
+import InitECandidate.Proofs.BackendStages.FinalChunk768_783
+import InitECandidate.Proofs.BackendStages.FinalChunk496_511
+import InitECandidate.Proofs.BackendStages.FinalChunk544_559
+import InitECandidate.Proofs.BackendStages.FinalChunk560_575
+import InitECandidate.Proofs.BackendStages.FinalChunk128_143
+import InitECandidate.Proofs.BackendStages.FinalChunk512_527
+import InitECandidate.Proofs.BackendStages.FinalChunk576_591
+import InitECandidate.Proofs.BackendStages.FinalChunk864_879
+import InitECandidate.Proofs.BackendStages.FinalChunk176_191
+import InitECandidate.Proofs.BackendStages.FinalChunk288_303
+import InitECandidate.Proofs.BackendStages.FinalChunk160_175
+import InitECandidate.Proofs.BackendStages.FinalChunk656_671
+import InitECandidate.Proofs.BackendStages.FinalChunk208_223
+import InitECandidate.Proofs.BackendStages.FinalChunk64_79
+import InitECandidate.Proofs.BackendStages.FinalChunk608_623
+import InitECandidate.Proofs.BackendStages.FinalChunk624_639
+import InitECandidate.Proofs.BackendStages.FinalChunk400_415
+import InitECandidate.Proofs.BackendStages.FinalChunk384_399
+import InitECandidate.Proofs.BackendStages.FinalChunk480_495
+import InitECandidate.Proofs.BackendStages.FinalChunk848_863
+import InitECandidate.Proofs.BackendStages.FinalChunk672_687
+import InitECandidate.Proofs.BackendStages.FinalChunk96_111
+import InitECandidate.Proofs.BackendStages.FinalChunk880_889
+import InitECandidate.Proofs.BackendStages.FinalChunk240_255
+import InitECandidate.Proofs.BackendStages.FinalChunk640_655
+import InitECandidate.Proofs.BackendStages.FinalChunk448_463
+import InitECandidate.Proofs.BackendStages.FinalChunk272_287
+import InitECandidate.Proofs.BackendStages.FinalChunk224_239
+import InitECandidate.Proofs.BackendStages.FinalChunk688_703
+import InitECandidate.Proofs.BackendStages.FinalChunk704_719
+import InitECandidate.Proofs.BackendStages.FinalChunk304_319
+import InitECandidate.Proofs.BackendStages.FinalChunk736_751
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 0
+set_option cbv.maxSteps 100000000
+
 namespace InitECandidate.Runtime.NativePadding
 
 open Flapjack
@@ -7,9 +65,6 @@ open Flapjack.Compiler.Backend
 open Flapjack.Compiler.Backend.LabLang
 open InitECandidate.Proofs.BackendStages
 
-set_option maxRecDepth 1000000
-set_option maxHeartbeats 0
-set_option cbv.maxSteps 100000000
 
 theorem Padded0_span : (Padded0.lines.filter notLabel).all (padSlackOK (width := 64) 4) = true := by
   decide_cbv
@@ -2508,3 +2563,1312 @@ theorem Padded889_span : (Padded889.lines.filter notLabel).all (padSlackOK (widt
   decide_cbv
 
 end InitECandidate.Runtime.NativePadding
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk528_543
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded528_span
+  · exact InitECandidate.Runtime.NativePadding.Padded529_span
+  · exact InitECandidate.Runtime.NativePadding.Padded530_span
+  · exact InitECandidate.Runtime.NativePadding.Padded531_span
+  · exact InitECandidate.Runtime.NativePadding.Padded532_span
+  · exact InitECandidate.Runtime.NativePadding.Padded533_span
+  · exact InitECandidate.Runtime.NativePadding.Padded534_span
+  · exact InitECandidate.Runtime.NativePadding.Padded535_span
+  · exact InitECandidate.Runtime.NativePadding.Padded536_span
+  · exact InitECandidate.Runtime.NativePadding.Padded537_span
+  · exact InitECandidate.Runtime.NativePadding.Padded538_span
+  · exact InitECandidate.Runtime.NativePadding.Padded539_span
+  · exact InitECandidate.Runtime.NativePadding.Padded540_span
+  · exact InitECandidate.Runtime.NativePadding.Padded541_span
+  · exact InitECandidate.Runtime.NativePadding.Padded542_span
+  · exact InitECandidate.Runtime.NativePadding.Padded543_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk528_543
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk336_351
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded336_span
+  · exact InitECandidate.Runtime.NativePadding.Padded337_span
+  · exact InitECandidate.Runtime.NativePadding.Padded338_span
+  · exact InitECandidate.Runtime.NativePadding.Padded339_span
+  · exact InitECandidate.Runtime.NativePadding.Padded340_span
+  · exact InitECandidate.Runtime.NativePadding.Padded341_span
+  · exact InitECandidate.Runtime.NativePadding.Padded342_span
+  · exact InitECandidate.Runtime.NativePadding.Padded343_span
+  · exact InitECandidate.Runtime.NativePadding.Padded344_span
+  · exact InitECandidate.Runtime.NativePadding.Padded345_span
+  · exact InitECandidate.Runtime.NativePadding.Padded346_span
+  · exact InitECandidate.Runtime.NativePadding.Padded347_span
+  · exact InitECandidate.Runtime.NativePadding.Padded348_span
+  · exact InitECandidate.Runtime.NativePadding.Padded349_span
+  · exact InitECandidate.Runtime.NativePadding.Padded350_span
+  · exact InitECandidate.Runtime.NativePadding.Padded351_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk336_351
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk432_447
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded432_span
+  · exact InitECandidate.Runtime.NativePadding.Padded433_span
+  · exact InitECandidate.Runtime.NativePadding.Padded434_span
+  · exact InitECandidate.Runtime.NativePadding.Padded435_span
+  · exact InitECandidate.Runtime.NativePadding.Padded436_span
+  · exact InitECandidate.Runtime.NativePadding.Padded437_span
+  · exact InitECandidate.Runtime.NativePadding.Padded438_span
+  · exact InitECandidate.Runtime.NativePadding.Padded439_span
+  · exact InitECandidate.Runtime.NativePadding.Padded440_span
+  · exact InitECandidate.Runtime.NativePadding.Padded441_span
+  · exact InitECandidate.Runtime.NativePadding.Padded442_span
+  · exact InitECandidate.Runtime.NativePadding.Padded443_span
+  · exact InitECandidate.Runtime.NativePadding.Padded444_span
+  · exact InitECandidate.Runtime.NativePadding.Padded445_span
+  · exact InitECandidate.Runtime.NativePadding.Padded446_span
+  · exact InitECandidate.Runtime.NativePadding.Padded447_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk432_447
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk592_607
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded592_span
+  · exact InitECandidate.Runtime.NativePadding.Padded593_span
+  · exact InitECandidate.Runtime.NativePadding.Padded594_span
+  · exact InitECandidate.Runtime.NativePadding.Padded595_span
+  · exact InitECandidate.Runtime.NativePadding.Padded596_span
+  · exact InitECandidate.Runtime.NativePadding.Padded597_span
+  · exact InitECandidate.Runtime.NativePadding.Padded598_span
+  · exact InitECandidate.Runtime.NativePadding.Padded599_span
+  · exact InitECandidate.Runtime.NativePadding.Padded600_span
+  · exact InitECandidate.Runtime.NativePadding.Padded601_span
+  · exact InitECandidate.Runtime.NativePadding.Padded602_span
+  · exact InitECandidate.Runtime.NativePadding.Padded603_span
+  · exact InitECandidate.Runtime.NativePadding.Padded604_span
+  · exact InitECandidate.Runtime.NativePadding.Padded605_span
+  · exact InitECandidate.Runtime.NativePadding.Padded606_span
+  · exact InitECandidate.Runtime.NativePadding.Padded607_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk592_607
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk416_431
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded416_span
+  · exact InitECandidate.Runtime.NativePadding.Padded417_span
+  · exact InitECandidate.Runtime.NativePadding.Padded418_span
+  · exact InitECandidate.Runtime.NativePadding.Padded419_span
+  · exact InitECandidate.Runtime.NativePadding.Padded420_span
+  · exact InitECandidate.Runtime.NativePadding.Padded421_span
+  · exact InitECandidate.Runtime.NativePadding.Padded422_span
+  · exact InitECandidate.Runtime.NativePadding.Padded423_span
+  · exact InitECandidate.Runtime.NativePadding.Padded424_span
+  · exact InitECandidate.Runtime.NativePadding.Padded425_span
+  · exact InitECandidate.Runtime.NativePadding.Padded426_span
+  · exact InitECandidate.Runtime.NativePadding.Padded427_span
+  · exact InitECandidate.Runtime.NativePadding.Padded428_span
+  · exact InitECandidate.Runtime.NativePadding.Padded429_span
+  · exact InitECandidate.Runtime.NativePadding.Padded430_span
+  · exact InitECandidate.Runtime.NativePadding.Padded431_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk416_431
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunkStubs
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded0_span
+  · exact InitECandidate.Runtime.NativePadding.Padded1_span
+  · exact InitECandidate.Runtime.NativePadding.Padded2_span
+  · exact InitECandidate.Runtime.NativePadding.Padded4_span
+  · exact InitECandidate.Runtime.NativePadding.Padded5_span
+  · exact InitECandidate.Runtime.NativePadding.Padded6_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunkStubs
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk816_831
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded816_span
+  · exact InitECandidate.Runtime.NativePadding.Padded817_span
+  · exact InitECandidate.Runtime.NativePadding.Padded818_span
+  · exact InitECandidate.Runtime.NativePadding.Padded819_span
+  · exact InitECandidate.Runtime.NativePadding.Padded820_span
+  · exact InitECandidate.Runtime.NativePadding.Padded821_span
+  · exact InitECandidate.Runtime.NativePadding.Padded822_span
+  · exact InitECandidate.Runtime.NativePadding.Padded823_span
+  · exact InitECandidate.Runtime.NativePadding.Padded824_span
+  · exact InitECandidate.Runtime.NativePadding.Padded825_span
+  · exact InitECandidate.Runtime.NativePadding.Padded826_span
+  · exact InitECandidate.Runtime.NativePadding.Padded827_span
+  · exact InitECandidate.Runtime.NativePadding.Padded828_span
+  · exact InitECandidate.Runtime.NativePadding.Padded829_span
+  · exact InitECandidate.Runtime.NativePadding.Padded830_span
+  · exact InitECandidate.Runtime.NativePadding.Padded831_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk816_831
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk192_207
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded192_span
+  · exact InitECandidate.Runtime.NativePadding.Padded193_span
+  · exact InitECandidate.Runtime.NativePadding.Padded194_span
+  · exact InitECandidate.Runtime.NativePadding.Padded195_span
+  · exact InitECandidate.Runtime.NativePadding.Padded196_span
+  · exact InitECandidate.Runtime.NativePadding.Padded197_span
+  · exact InitECandidate.Runtime.NativePadding.Padded198_span
+  · exact InitECandidate.Runtime.NativePadding.Padded199_span
+  · exact InitECandidate.Runtime.NativePadding.Padded200_span
+  · exact InitECandidate.Runtime.NativePadding.Padded201_span
+  · exact InitECandidate.Runtime.NativePadding.Padded202_span
+  · exact InitECandidate.Runtime.NativePadding.Padded203_span
+  · exact InitECandidate.Runtime.NativePadding.Padded204_span
+  · exact InitECandidate.Runtime.NativePadding.Padded205_span
+  · exact InitECandidate.Runtime.NativePadding.Padded206_span
+  · exact InitECandidate.Runtime.NativePadding.Padded207_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk192_207
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk464_479
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded464_span
+  · exact InitECandidate.Runtime.NativePadding.Padded465_span
+  · exact InitECandidate.Runtime.NativePadding.Padded466_span
+  · exact InitECandidate.Runtime.NativePadding.Padded467_span
+  · exact InitECandidate.Runtime.NativePadding.Padded468_span
+  · exact InitECandidate.Runtime.NativePadding.Padded469_span
+  · exact InitECandidate.Runtime.NativePadding.Padded470_span
+  · exact InitECandidate.Runtime.NativePadding.Padded471_span
+  · exact InitECandidate.Runtime.NativePadding.Padded472_span
+  · exact InitECandidate.Runtime.NativePadding.Padded473_span
+  · exact InitECandidate.Runtime.NativePadding.Padded474_span
+  · exact InitECandidate.Runtime.NativePadding.Padded475_span
+  · exact InitECandidate.Runtime.NativePadding.Padded476_span
+  · exact InitECandidate.Runtime.NativePadding.Padded477_span
+  · exact InitECandidate.Runtime.NativePadding.Padded478_span
+  · exact InitECandidate.Runtime.NativePadding.Padded479_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk464_479
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk368_383
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded368_span
+  · exact InitECandidate.Runtime.NativePadding.Padded369_span
+  · exact InitECandidate.Runtime.NativePadding.Padded370_span
+  · exact InitECandidate.Runtime.NativePadding.Padded371_span
+  · exact InitECandidate.Runtime.NativePadding.Padded372_span
+  · exact InitECandidate.Runtime.NativePadding.Padded373_span
+  · exact InitECandidate.Runtime.NativePadding.Padded374_span
+  · exact InitECandidate.Runtime.NativePadding.Padded375_span
+  · exact InitECandidate.Runtime.NativePadding.Padded376_span
+  · exact InitECandidate.Runtime.NativePadding.Padded377_span
+  · exact InitECandidate.Runtime.NativePadding.Padded378_span
+  · exact InitECandidate.Runtime.NativePadding.Padded379_span
+  · exact InitECandidate.Runtime.NativePadding.Padded380_span
+  · exact InitECandidate.Runtime.NativePadding.Padded381_span
+  · exact InitECandidate.Runtime.NativePadding.Padded382_span
+  · exact InitECandidate.Runtime.NativePadding.Padded383_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk368_383
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk144_159
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded144_span
+  · exact InitECandidate.Runtime.NativePadding.Padded145_span
+  · exact InitECandidate.Runtime.NativePadding.Padded146_span
+  · exact InitECandidate.Runtime.NativePadding.Padded147_span
+  · exact InitECandidate.Runtime.NativePadding.Padded148_span
+  · exact InitECandidate.Runtime.NativePadding.Padded149_span
+  · exact InitECandidate.Runtime.NativePadding.Padded150_span
+  · exact InitECandidate.Runtime.NativePadding.Padded151_span
+  · exact InitECandidate.Runtime.NativePadding.Padded152_span
+  · exact InitECandidate.Runtime.NativePadding.Padded153_span
+  · exact InitECandidate.Runtime.NativePadding.Padded154_span
+  · exact InitECandidate.Runtime.NativePadding.Padded155_span
+  · exact InitECandidate.Runtime.NativePadding.Padded156_span
+  · exact InitECandidate.Runtime.NativePadding.Padded157_span
+  · exact InitECandidate.Runtime.NativePadding.Padded158_span
+  · exact InitECandidate.Runtime.NativePadding.Padded159_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk144_159
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk352_367
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded352_span
+  · exact InitECandidate.Runtime.NativePadding.Padded353_span
+  · exact InitECandidate.Runtime.NativePadding.Padded354_span
+  · exact InitECandidate.Runtime.NativePadding.Padded355_span
+  · exact InitECandidate.Runtime.NativePadding.Padded356_span
+  · exact InitECandidate.Runtime.NativePadding.Padded357_span
+  · exact InitECandidate.Runtime.NativePadding.Padded358_span
+  · exact InitECandidate.Runtime.NativePadding.Padded359_span
+  · exact InitECandidate.Runtime.NativePadding.Padded360_span
+  · exact InitECandidate.Runtime.NativePadding.Padded361_span
+  · exact InitECandidate.Runtime.NativePadding.Padded362_span
+  · exact InitECandidate.Runtime.NativePadding.Padded363_span
+  · exact InitECandidate.Runtime.NativePadding.Padded364_span
+  · exact InitECandidate.Runtime.NativePadding.Padded365_span
+  · exact InitECandidate.Runtime.NativePadding.Padded366_span
+  · exact InitECandidate.Runtime.NativePadding.Padded367_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk352_367
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk752_767
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded752_span
+  · exact InitECandidate.Runtime.NativePadding.Padded753_span
+  · exact InitECandidate.Runtime.NativePadding.Padded754_span
+  · exact InitECandidate.Runtime.NativePadding.Padded755_span
+  · exact InitECandidate.Runtime.NativePadding.Padded756_span
+  · exact InitECandidate.Runtime.NativePadding.Padded757_span
+  · exact InitECandidate.Runtime.NativePadding.Padded758_span
+  · exact InitECandidate.Runtime.NativePadding.Padded759_span
+  · exact InitECandidate.Runtime.NativePadding.Padded760_span
+  · exact InitECandidate.Runtime.NativePadding.Padded761_span
+  · exact InitECandidate.Runtime.NativePadding.Padded762_span
+  · exact InitECandidate.Runtime.NativePadding.Padded763_span
+  · exact InitECandidate.Runtime.NativePadding.Padded764_span
+  · exact InitECandidate.Runtime.NativePadding.Padded765_span
+  · exact InitECandidate.Runtime.NativePadding.Padded766_span
+  · exact InitECandidate.Runtime.NativePadding.Padded767_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk752_767
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk256_271
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded256_span
+  · exact InitECandidate.Runtime.NativePadding.Padded257_span
+  · exact InitECandidate.Runtime.NativePadding.Padded258_span
+  · exact InitECandidate.Runtime.NativePadding.Padded259_span
+  · exact InitECandidate.Runtime.NativePadding.Padded260_span
+  · exact InitECandidate.Runtime.NativePadding.Padded261_span
+  · exact InitECandidate.Runtime.NativePadding.Padded262_span
+  · exact InitECandidate.Runtime.NativePadding.Padded263_span
+  · exact InitECandidate.Runtime.NativePadding.Padded264_span
+  · exact InitECandidate.Runtime.NativePadding.Padded265_span
+  · exact InitECandidate.Runtime.NativePadding.Padded266_span
+  · exact InitECandidate.Runtime.NativePadding.Padded267_span
+  · exact InitECandidate.Runtime.NativePadding.Padded268_span
+  · exact InitECandidate.Runtime.NativePadding.Padded269_span
+  · exact InitECandidate.Runtime.NativePadding.Padded270_span
+  · exact InitECandidate.Runtime.NativePadding.Padded271_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk256_271
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk832_847
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded832_span
+  · exact InitECandidate.Runtime.NativePadding.Padded833_span
+  · exact InitECandidate.Runtime.NativePadding.Padded834_span
+  · exact InitECandidate.Runtime.NativePadding.Padded835_span
+  · exact InitECandidate.Runtime.NativePadding.Padded836_span
+  · exact InitECandidate.Runtime.NativePadding.Padded837_span
+  · exact InitECandidate.Runtime.NativePadding.Padded838_span
+  · exact InitECandidate.Runtime.NativePadding.Padded839_span
+  · exact InitECandidate.Runtime.NativePadding.Padded840_span
+  · exact InitECandidate.Runtime.NativePadding.Padded841_span
+  · exact InitECandidate.Runtime.NativePadding.Padded842_span
+  · exact InitECandidate.Runtime.NativePadding.Padded843_span
+  · exact InitECandidate.Runtime.NativePadding.Padded844_span
+  · exact InitECandidate.Runtime.NativePadding.Padded845_span
+  · exact InitECandidate.Runtime.NativePadding.Padded846_span
+  · exact InitECandidate.Runtime.NativePadding.Padded847_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk832_847
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk80_95
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded80_span
+  · exact InitECandidate.Runtime.NativePadding.Padded81_span
+  · exact InitECandidate.Runtime.NativePadding.Padded82_span
+  · exact InitECandidate.Runtime.NativePadding.Padded83_span
+  · exact InitECandidate.Runtime.NativePadding.Padded84_span
+  · exact InitECandidate.Runtime.NativePadding.Padded85_span
+  · exact InitECandidate.Runtime.NativePadding.Padded86_span
+  · exact InitECandidate.Runtime.NativePadding.Padded87_span
+  · exact InitECandidate.Runtime.NativePadding.Padded88_span
+  · exact InitECandidate.Runtime.NativePadding.Padded89_span
+  · exact InitECandidate.Runtime.NativePadding.Padded90_span
+  · exact InitECandidate.Runtime.NativePadding.Padded91_span
+  · exact InitECandidate.Runtime.NativePadding.Padded92_span
+  · exact InitECandidate.Runtime.NativePadding.Padded93_span
+  · exact InitECandidate.Runtime.NativePadding.Padded94_span
+  · exact InitECandidate.Runtime.NativePadding.Padded95_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk80_95
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk720_735
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded720_span
+  · exact InitECandidate.Runtime.NativePadding.Padded721_span
+  · exact InitECandidate.Runtime.NativePadding.Padded722_span
+  · exact InitECandidate.Runtime.NativePadding.Padded723_span
+  · exact InitECandidate.Runtime.NativePadding.Padded724_span
+  · exact InitECandidate.Runtime.NativePadding.Padded725_span
+  · exact InitECandidate.Runtime.NativePadding.Padded726_span
+  · exact InitECandidate.Runtime.NativePadding.Padded727_span
+  · exact InitECandidate.Runtime.NativePadding.Padded728_span
+  · exact InitECandidate.Runtime.NativePadding.Padded729_span
+  · exact InitECandidate.Runtime.NativePadding.Padded730_span
+  · exact InitECandidate.Runtime.NativePadding.Padded731_span
+  · exact InitECandidate.Runtime.NativePadding.Padded732_span
+  · exact InitECandidate.Runtime.NativePadding.Padded733_span
+  · exact InitECandidate.Runtime.NativePadding.Padded734_span
+  · exact InitECandidate.Runtime.NativePadding.Padded735_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk720_735
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk112_127
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded112_span
+  · exact InitECandidate.Runtime.NativePadding.Padded113_span
+  · exact InitECandidate.Runtime.NativePadding.Padded114_span
+  · exact InitECandidate.Runtime.NativePadding.Padded115_span
+  · exact InitECandidate.Runtime.NativePadding.Padded116_span
+  · exact InitECandidate.Runtime.NativePadding.Padded117_span
+  · exact InitECandidate.Runtime.NativePadding.Padded118_span
+  · exact InitECandidate.Runtime.NativePadding.Padded119_span
+  · exact InitECandidate.Runtime.NativePadding.Padded120_span
+  · exact InitECandidate.Runtime.NativePadding.Padded121_span
+  · exact InitECandidate.Runtime.NativePadding.Padded122_span
+  · exact InitECandidate.Runtime.NativePadding.Padded123_span
+  · exact InitECandidate.Runtime.NativePadding.Padded124_span
+  · exact InitECandidate.Runtime.NativePadding.Padded125_span
+  · exact InitECandidate.Runtime.NativePadding.Padded126_span
+  · exact InitECandidate.Runtime.NativePadding.Padded127_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk112_127
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk800_815
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded800_span
+  · exact InitECandidate.Runtime.NativePadding.Padded801_span
+  · exact InitECandidate.Runtime.NativePadding.Padded802_span
+  · exact InitECandidate.Runtime.NativePadding.Padded803_span
+  · exact InitECandidate.Runtime.NativePadding.Padded804_span
+  · exact InitECandidate.Runtime.NativePadding.Padded805_span
+  · exact InitECandidate.Runtime.NativePadding.Padded806_span
+  · exact InitECandidate.Runtime.NativePadding.Padded807_span
+  · exact InitECandidate.Runtime.NativePadding.Padded808_span
+  · exact InitECandidate.Runtime.NativePadding.Padded809_span
+  · exact InitECandidate.Runtime.NativePadding.Padded810_span
+  · exact InitECandidate.Runtime.NativePadding.Padded811_span
+  · exact InitECandidate.Runtime.NativePadding.Padded812_span
+  · exact InitECandidate.Runtime.NativePadding.Padded813_span
+  · exact InitECandidate.Runtime.NativePadding.Padded814_span
+  · exact InitECandidate.Runtime.NativePadding.Padded815_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk800_815
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk784_799
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded784_span
+  · exact InitECandidate.Runtime.NativePadding.Padded785_span
+  · exact InitECandidate.Runtime.NativePadding.Padded786_span
+  · exact InitECandidate.Runtime.NativePadding.Padded787_span
+  · exact InitECandidate.Runtime.NativePadding.Padded788_span
+  · exact InitECandidate.Runtime.NativePadding.Padded789_span
+  · exact InitECandidate.Runtime.NativePadding.Padded790_span
+  · exact InitECandidate.Runtime.NativePadding.Padded791_span
+  · exact InitECandidate.Runtime.NativePadding.Padded792_span
+  · exact InitECandidate.Runtime.NativePadding.Padded793_span
+  · exact InitECandidate.Runtime.NativePadding.Padded794_span
+  · exact InitECandidate.Runtime.NativePadding.Padded795_span
+  · exact InitECandidate.Runtime.NativePadding.Padded796_span
+  · exact InitECandidate.Runtime.NativePadding.Padded797_span
+  · exact InitECandidate.Runtime.NativePadding.Padded798_span
+  · exact InitECandidate.Runtime.NativePadding.Padded799_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk784_799
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk320_335
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded320_span
+  · exact InitECandidate.Runtime.NativePadding.Padded321_span
+  · exact InitECandidate.Runtime.NativePadding.Padded322_span
+  · exact InitECandidate.Runtime.NativePadding.Padded323_span
+  · exact InitECandidate.Runtime.NativePadding.Padded324_span
+  · exact InitECandidate.Runtime.NativePadding.Padded325_span
+  · exact InitECandidate.Runtime.NativePadding.Padded326_span
+  · exact InitECandidate.Runtime.NativePadding.Padded327_span
+  · exact InitECandidate.Runtime.NativePadding.Padded328_span
+  · exact InitECandidate.Runtime.NativePadding.Padded329_span
+  · exact InitECandidate.Runtime.NativePadding.Padded330_span
+  · exact InitECandidate.Runtime.NativePadding.Padded331_span
+  · exact InitECandidate.Runtime.NativePadding.Padded332_span
+  · exact InitECandidate.Runtime.NativePadding.Padded333_span
+  · exact InitECandidate.Runtime.NativePadding.Padded334_span
+  · exact InitECandidate.Runtime.NativePadding.Padded335_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk320_335
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk768_783
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded768_span
+  · exact InitECandidate.Runtime.NativePadding.Padded769_span
+  · exact InitECandidate.Runtime.NativePadding.Padded770_span
+  · exact InitECandidate.Runtime.NativePadding.Padded771_span
+  · exact InitECandidate.Runtime.NativePadding.Padded772_span
+  · exact InitECandidate.Runtime.NativePadding.Padded773_span
+  · exact InitECandidate.Runtime.NativePadding.Padded774_span
+  · exact InitECandidate.Runtime.NativePadding.Padded775_span
+  · exact InitECandidate.Runtime.NativePadding.Padded776_span
+  · exact InitECandidate.Runtime.NativePadding.Padded777_span
+  · exact InitECandidate.Runtime.NativePadding.Padded778_span
+  · exact InitECandidate.Runtime.NativePadding.Padded779_span
+  · exact InitECandidate.Runtime.NativePadding.Padded780_span
+  · exact InitECandidate.Runtime.NativePadding.Padded781_span
+  · exact InitECandidate.Runtime.NativePadding.Padded782_span
+  · exact InitECandidate.Runtime.NativePadding.Padded783_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk768_783
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk496_511
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded496_span
+  · exact InitECandidate.Runtime.NativePadding.Padded497_span
+  · exact InitECandidate.Runtime.NativePadding.Padded498_span
+  · exact InitECandidate.Runtime.NativePadding.Padded499_span
+  · exact InitECandidate.Runtime.NativePadding.Padded500_span
+  · exact InitECandidate.Runtime.NativePadding.Padded501_span
+  · exact InitECandidate.Runtime.NativePadding.Padded502_span
+  · exact InitECandidate.Runtime.NativePadding.Padded503_span
+  · exact InitECandidate.Runtime.NativePadding.Padded504_span
+  · exact InitECandidate.Runtime.NativePadding.Padded505_span
+  · exact InitECandidate.Runtime.NativePadding.Padded506_span
+  · exact InitECandidate.Runtime.NativePadding.Padded507_span
+  · exact InitECandidate.Runtime.NativePadding.Padded508_span
+  · exact InitECandidate.Runtime.NativePadding.Padded509_span
+  · exact InitECandidate.Runtime.NativePadding.Padded510_span
+  · exact InitECandidate.Runtime.NativePadding.Padded511_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk496_511
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk544_559
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded544_span
+  · exact InitECandidate.Runtime.NativePadding.Padded545_span
+  · exact InitECandidate.Runtime.NativePadding.Padded546_span
+  · exact InitECandidate.Runtime.NativePadding.Padded547_span
+  · exact InitECandidate.Runtime.NativePadding.Padded548_span
+  · exact InitECandidate.Runtime.NativePadding.Padded549_span
+  · exact InitECandidate.Runtime.NativePadding.Padded550_span
+  · exact InitECandidate.Runtime.NativePadding.Padded551_span
+  · exact InitECandidate.Runtime.NativePadding.Padded552_span
+  · exact InitECandidate.Runtime.NativePadding.Padded553_span
+  · exact InitECandidate.Runtime.NativePadding.Padded554_span
+  · exact InitECandidate.Runtime.NativePadding.Padded555_span
+  · exact InitECandidate.Runtime.NativePadding.Padded556_span
+  · exact InitECandidate.Runtime.NativePadding.Padded557_span
+  · exact InitECandidate.Runtime.NativePadding.Padded558_span
+  · exact InitECandidate.Runtime.NativePadding.Padded559_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk544_559
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk560_575
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded560_span
+  · exact InitECandidate.Runtime.NativePadding.Padded561_span
+  · exact InitECandidate.Runtime.NativePadding.Padded562_span
+  · exact InitECandidate.Runtime.NativePadding.Padded563_span
+  · exact InitECandidate.Runtime.NativePadding.Padded564_span
+  · exact InitECandidate.Runtime.NativePadding.Padded565_span
+  · exact InitECandidate.Runtime.NativePadding.Padded566_span
+  · exact InitECandidate.Runtime.NativePadding.Padded567_span
+  · exact InitECandidate.Runtime.NativePadding.Padded568_span
+  · exact InitECandidate.Runtime.NativePadding.Padded569_span
+  · exact InitECandidate.Runtime.NativePadding.Padded570_span
+  · exact InitECandidate.Runtime.NativePadding.Padded571_span
+  · exact InitECandidate.Runtime.NativePadding.Padded572_span
+  · exact InitECandidate.Runtime.NativePadding.Padded573_span
+  · exact InitECandidate.Runtime.NativePadding.Padded574_span
+  · exact InitECandidate.Runtime.NativePadding.Padded575_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk560_575
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk128_143
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded128_span
+  · exact InitECandidate.Runtime.NativePadding.Padded129_span
+  · exact InitECandidate.Runtime.NativePadding.Padded130_span
+  · exact InitECandidate.Runtime.NativePadding.Padded131_span
+  · exact InitECandidate.Runtime.NativePadding.Padded132_span
+  · exact InitECandidate.Runtime.NativePadding.Padded133_span
+  · exact InitECandidate.Runtime.NativePadding.Padded134_span
+  · exact InitECandidate.Runtime.NativePadding.Padded135_span
+  · exact InitECandidate.Runtime.NativePadding.Padded136_span
+  · exact InitECandidate.Runtime.NativePadding.Padded137_span
+  · exact InitECandidate.Runtime.NativePadding.Padded138_span
+  · exact InitECandidate.Runtime.NativePadding.Padded139_span
+  · exact InitECandidate.Runtime.NativePadding.Padded140_span
+  · exact InitECandidate.Runtime.NativePadding.Padded141_span
+  · exact InitECandidate.Runtime.NativePadding.Padded142_span
+  · exact InitECandidate.Runtime.NativePadding.Padded143_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk128_143
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk512_527
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded512_span
+  · exact InitECandidate.Runtime.NativePadding.Padded513_span
+  · exact InitECandidate.Runtime.NativePadding.Padded514_span
+  · exact InitECandidate.Runtime.NativePadding.Padded515_span
+  · exact InitECandidate.Runtime.NativePadding.Padded516_span
+  · exact InitECandidate.Runtime.NativePadding.Padded517_span
+  · exact InitECandidate.Runtime.NativePadding.Padded518_span
+  · exact InitECandidate.Runtime.NativePadding.Padded519_span
+  · exact InitECandidate.Runtime.NativePadding.Padded520_span
+  · exact InitECandidate.Runtime.NativePadding.Padded521_span
+  · exact InitECandidate.Runtime.NativePadding.Padded522_span
+  · exact InitECandidate.Runtime.NativePadding.Padded523_span
+  · exact InitECandidate.Runtime.NativePadding.Padded524_span
+  · exact InitECandidate.Runtime.NativePadding.Padded525_span
+  · exact InitECandidate.Runtime.NativePadding.Padded526_span
+  · exact InitECandidate.Runtime.NativePadding.Padded527_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk512_527
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk576_591
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded576_span
+  · exact InitECandidate.Runtime.NativePadding.Padded577_span
+  · exact InitECandidate.Runtime.NativePadding.Padded578_span
+  · exact InitECandidate.Runtime.NativePadding.Padded579_span
+  · exact InitECandidate.Runtime.NativePadding.Padded580_span
+  · exact InitECandidate.Runtime.NativePadding.Padded581_span
+  · exact InitECandidate.Runtime.NativePadding.Padded582_span
+  · exact InitECandidate.Runtime.NativePadding.Padded583_span
+  · exact InitECandidate.Runtime.NativePadding.Padded584_span
+  · exact InitECandidate.Runtime.NativePadding.Padded585_span
+  · exact InitECandidate.Runtime.NativePadding.Padded586_span
+  · exact InitECandidate.Runtime.NativePadding.Padded587_span
+  · exact InitECandidate.Runtime.NativePadding.Padded588_span
+  · exact InitECandidate.Runtime.NativePadding.Padded589_span
+  · exact InitECandidate.Runtime.NativePadding.Padded590_span
+  · exact InitECandidate.Runtime.NativePadding.Padded591_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk576_591
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk864_879
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded864_span
+  · exact InitECandidate.Runtime.NativePadding.Padded865_span
+  · exact InitECandidate.Runtime.NativePadding.Padded866_span
+  · exact InitECandidate.Runtime.NativePadding.Padded867_span
+  · exact InitECandidate.Runtime.NativePadding.Padded868_span
+  · exact InitECandidate.Runtime.NativePadding.Padded869_span
+  · exact InitECandidate.Runtime.NativePadding.Padded870_span
+  · exact InitECandidate.Runtime.NativePadding.Padded871_span
+  · exact InitECandidate.Runtime.NativePadding.Padded872_span
+  · exact InitECandidate.Runtime.NativePadding.Padded873_span
+  · exact InitECandidate.Runtime.NativePadding.Padded874_span
+  · exact InitECandidate.Runtime.NativePadding.Padded875_span
+  · exact InitECandidate.Runtime.NativePadding.Padded876_span
+  · exact InitECandidate.Runtime.NativePadding.Padded877_span
+  · exact InitECandidate.Runtime.NativePadding.Padded878_span
+  · exact InitECandidate.Runtime.NativePadding.Padded879_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk864_879
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk176_191
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded176_span
+  · exact InitECandidate.Runtime.NativePadding.Padded177_span
+  · exact InitECandidate.Runtime.NativePadding.Padded178_span
+  · exact InitECandidate.Runtime.NativePadding.Padded179_span
+  · exact InitECandidate.Runtime.NativePadding.Padded180_span
+  · exact InitECandidate.Runtime.NativePadding.Padded181_span
+  · exact InitECandidate.Runtime.NativePadding.Padded182_span
+  · exact InitECandidate.Runtime.NativePadding.Padded183_span
+  · exact InitECandidate.Runtime.NativePadding.Padded184_span
+  · exact InitECandidate.Runtime.NativePadding.Padded185_span
+  · exact InitECandidate.Runtime.NativePadding.Padded186_span
+  · exact InitECandidate.Runtime.NativePadding.Padded187_span
+  · exact InitECandidate.Runtime.NativePadding.Padded188_span
+  · exact InitECandidate.Runtime.NativePadding.Padded189_span
+  · exact InitECandidate.Runtime.NativePadding.Padded190_span
+  · exact InitECandidate.Runtime.NativePadding.Padded191_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk176_191
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk288_303
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded288_span
+  · exact InitECandidate.Runtime.NativePadding.Padded289_span
+  · exact InitECandidate.Runtime.NativePadding.Padded290_span
+  · exact InitECandidate.Runtime.NativePadding.Padded291_span
+  · exact InitECandidate.Runtime.NativePadding.Padded292_span
+  · exact InitECandidate.Runtime.NativePadding.Padded293_span
+  · exact InitECandidate.Runtime.NativePadding.Padded294_span
+  · exact InitECandidate.Runtime.NativePadding.Padded295_span
+  · exact InitECandidate.Runtime.NativePadding.Padded296_span
+  · exact InitECandidate.Runtime.NativePadding.Padded297_span
+  · exact InitECandidate.Runtime.NativePadding.Padded298_span
+  · exact InitECandidate.Runtime.NativePadding.Padded299_span
+  · exact InitECandidate.Runtime.NativePadding.Padded300_span
+  · exact InitECandidate.Runtime.NativePadding.Padded301_span
+  · exact InitECandidate.Runtime.NativePadding.Padded302_span
+  · exact InitECandidate.Runtime.NativePadding.Padded303_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk288_303
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk160_175
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded160_span
+  · exact InitECandidate.Runtime.NativePadding.Padded161_span
+  · exact InitECandidate.Runtime.NativePadding.Padded162_span
+  · exact InitECandidate.Runtime.NativePadding.Padded163_span
+  · exact InitECandidate.Runtime.NativePadding.Padded164_span
+  · exact InitECandidate.Runtime.NativePadding.Padded165_span
+  · exact InitECandidate.Runtime.NativePadding.Padded166_span
+  · exact InitECandidate.Runtime.NativePadding.Padded167_span
+  · exact InitECandidate.Runtime.NativePadding.Padded168_span
+  · exact InitECandidate.Runtime.NativePadding.Padded169_span
+  · exact InitECandidate.Runtime.NativePadding.Padded170_span
+  · exact InitECandidate.Runtime.NativePadding.Padded171_span
+  · exact InitECandidate.Runtime.NativePadding.Padded172_span
+  · exact InitECandidate.Runtime.NativePadding.Padded173_span
+  · exact InitECandidate.Runtime.NativePadding.Padded174_span
+  · exact InitECandidate.Runtime.NativePadding.Padded175_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk160_175
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk656_671
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded656_span
+  · exact InitECandidate.Runtime.NativePadding.Padded657_span
+  · exact InitECandidate.Runtime.NativePadding.Padded658_span
+  · exact InitECandidate.Runtime.NativePadding.Padded659_span
+  · exact InitECandidate.Runtime.NativePadding.Padded660_span
+  · exact InitECandidate.Runtime.NativePadding.Padded661_span
+  · exact InitECandidate.Runtime.NativePadding.Padded662_span
+  · exact InitECandidate.Runtime.NativePadding.Padded663_span
+  · exact InitECandidate.Runtime.NativePadding.Padded664_span
+  · exact InitECandidate.Runtime.NativePadding.Padded665_span
+  · exact InitECandidate.Runtime.NativePadding.Padded666_span
+  · exact InitECandidate.Runtime.NativePadding.Padded667_span
+  · exact InitECandidate.Runtime.NativePadding.Padded668_span
+  · exact InitECandidate.Runtime.NativePadding.Padded669_span
+  · exact InitECandidate.Runtime.NativePadding.Padded670_span
+  · exact InitECandidate.Runtime.NativePadding.Padded671_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk656_671
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk208_223
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded208_span
+  · exact InitECandidate.Runtime.NativePadding.Padded209_span
+  · exact InitECandidate.Runtime.NativePadding.Padded210_span
+  · exact InitECandidate.Runtime.NativePadding.Padded211_span
+  · exact InitECandidate.Runtime.NativePadding.Padded212_span
+  · exact InitECandidate.Runtime.NativePadding.Padded213_span
+  · exact InitECandidate.Runtime.NativePadding.Padded214_span
+  · exact InitECandidate.Runtime.NativePadding.Padded215_span
+  · exact InitECandidate.Runtime.NativePadding.Padded216_span
+  · exact InitECandidate.Runtime.NativePadding.Padded217_span
+  · exact InitECandidate.Runtime.NativePadding.Padded218_span
+  · exact InitECandidate.Runtime.NativePadding.Padded219_span
+  · exact InitECandidate.Runtime.NativePadding.Padded220_span
+  · exact InitECandidate.Runtime.NativePadding.Padded221_span
+  · exact InitECandidate.Runtime.NativePadding.Padded222_span
+  · exact InitECandidate.Runtime.NativePadding.Padded223_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk208_223
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk64_79
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded64_span
+  · exact InitECandidate.Runtime.NativePadding.Padded65_span
+  · exact InitECandidate.Runtime.NativePadding.Padded66_span
+  · exact InitECandidate.Runtime.NativePadding.Padded67_span
+  · exact InitECandidate.Runtime.NativePadding.Padded68_span
+  · exact InitECandidate.Runtime.NativePadding.Padded69_span
+  · exact InitECandidate.Runtime.NativePadding.Padded70_span
+  · exact InitECandidate.Runtime.NativePadding.Padded71_span
+  · exact InitECandidate.Runtime.NativePadding.Padded72_span
+  · exact InitECandidate.Runtime.NativePadding.Padded73_span
+  · exact InitECandidate.Runtime.NativePadding.Padded74_span
+  · exact InitECandidate.Runtime.NativePadding.Padded75_span
+  · exact InitECandidate.Runtime.NativePadding.Padded76_span
+  · exact InitECandidate.Runtime.NativePadding.Padded77_span
+  · exact InitECandidate.Runtime.NativePadding.Padded78_span
+  · exact InitECandidate.Runtime.NativePadding.Padded79_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk64_79
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk608_623
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded608_span
+  · exact InitECandidate.Runtime.NativePadding.Padded609_span
+  · exact InitECandidate.Runtime.NativePadding.Padded610_span
+  · exact InitECandidate.Runtime.NativePadding.Padded611_span
+  · exact InitECandidate.Runtime.NativePadding.Padded612_span
+  · exact InitECandidate.Runtime.NativePadding.Padded613_span
+  · exact InitECandidate.Runtime.NativePadding.Padded614_span
+  · exact InitECandidate.Runtime.NativePadding.Padded615_span
+  · exact InitECandidate.Runtime.NativePadding.Padded616_span
+  · exact InitECandidate.Runtime.NativePadding.Padded617_span
+  · exact InitECandidate.Runtime.NativePadding.Padded618_span
+  · exact InitECandidate.Runtime.NativePadding.Padded619_span
+  · exact InitECandidate.Runtime.NativePadding.Padded620_span
+  · exact InitECandidate.Runtime.NativePadding.Padded621_span
+  · exact InitECandidate.Runtime.NativePadding.Padded622_span
+  · exact InitECandidate.Runtime.NativePadding.Padded623_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk608_623
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk624_639
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded624_span
+  · exact InitECandidate.Runtime.NativePadding.Padded625_span
+  · exact InitECandidate.Runtime.NativePadding.Padded626_span
+  · exact InitECandidate.Runtime.NativePadding.Padded627_span
+  · exact InitECandidate.Runtime.NativePadding.Padded628_span
+  · exact InitECandidate.Runtime.NativePadding.Padded629_span
+  · exact InitECandidate.Runtime.NativePadding.Padded630_span
+  · exact InitECandidate.Runtime.NativePadding.Padded631_span
+  · exact InitECandidate.Runtime.NativePadding.Padded632_span
+  · exact InitECandidate.Runtime.NativePadding.Padded633_span
+  · exact InitECandidate.Runtime.NativePadding.Padded634_span
+  · exact InitECandidate.Runtime.NativePadding.Padded635_span
+  · exact InitECandidate.Runtime.NativePadding.Padded636_span
+  · exact InitECandidate.Runtime.NativePadding.Padded637_span
+  · exact InitECandidate.Runtime.NativePadding.Padded638_span
+  · exact InitECandidate.Runtime.NativePadding.Padded639_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk624_639
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk400_415
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded400_span
+  · exact InitECandidate.Runtime.NativePadding.Padded401_span
+  · exact InitECandidate.Runtime.NativePadding.Padded402_span
+  · exact InitECandidate.Runtime.NativePadding.Padded403_span
+  · exact InitECandidate.Runtime.NativePadding.Padded404_span
+  · exact InitECandidate.Runtime.NativePadding.Padded405_span
+  · exact InitECandidate.Runtime.NativePadding.Padded406_span
+  · exact InitECandidate.Runtime.NativePadding.Padded407_span
+  · exact InitECandidate.Runtime.NativePadding.Padded408_span
+  · exact InitECandidate.Runtime.NativePadding.Padded409_span
+  · exact InitECandidate.Runtime.NativePadding.Padded410_span
+  · exact InitECandidate.Runtime.NativePadding.Padded411_span
+  · exact InitECandidate.Runtime.NativePadding.Padded412_span
+  · exact InitECandidate.Runtime.NativePadding.Padded413_span
+  · exact InitECandidate.Runtime.NativePadding.Padded414_span
+  · exact InitECandidate.Runtime.NativePadding.Padded415_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk400_415
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk384_399
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded384_span
+  · exact InitECandidate.Runtime.NativePadding.Padded385_span
+  · exact InitECandidate.Runtime.NativePadding.Padded386_span
+  · exact InitECandidate.Runtime.NativePadding.Padded387_span
+  · exact InitECandidate.Runtime.NativePadding.Padded388_span
+  · exact InitECandidate.Runtime.NativePadding.Padded389_span
+  · exact InitECandidate.Runtime.NativePadding.Padded390_span
+  · exact InitECandidate.Runtime.NativePadding.Padded391_span
+  · exact InitECandidate.Runtime.NativePadding.Padded392_span
+  · exact InitECandidate.Runtime.NativePadding.Padded393_span
+  · exact InitECandidate.Runtime.NativePadding.Padded394_span
+  · exact InitECandidate.Runtime.NativePadding.Padded395_span
+  · exact InitECandidate.Runtime.NativePadding.Padded396_span
+  · exact InitECandidate.Runtime.NativePadding.Padded397_span
+  · exact InitECandidate.Runtime.NativePadding.Padded398_span
+  · exact InitECandidate.Runtime.NativePadding.Padded399_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk384_399
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk480_495
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded480_span
+  · exact InitECandidate.Runtime.NativePadding.Padded481_span
+  · exact InitECandidate.Runtime.NativePadding.Padded482_span
+  · exact InitECandidate.Runtime.NativePadding.Padded483_span
+  · exact InitECandidate.Runtime.NativePadding.Padded484_span
+  · exact InitECandidate.Runtime.NativePadding.Padded485_span
+  · exact InitECandidate.Runtime.NativePadding.Padded486_span
+  · exact InitECandidate.Runtime.NativePadding.Padded487_span
+  · exact InitECandidate.Runtime.NativePadding.Padded488_span
+  · exact InitECandidate.Runtime.NativePadding.Padded489_span
+  · exact InitECandidate.Runtime.NativePadding.Padded490_span
+  · exact InitECandidate.Runtime.NativePadding.Padded491_span
+  · exact InitECandidate.Runtime.NativePadding.Padded492_span
+  · exact InitECandidate.Runtime.NativePadding.Padded493_span
+  · exact InitECandidate.Runtime.NativePadding.Padded494_span
+  · exact InitECandidate.Runtime.NativePadding.Padded495_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk480_495
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk848_863
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded848_span
+  · exact InitECandidate.Runtime.NativePadding.Padded849_span
+  · exact InitECandidate.Runtime.NativePadding.Padded850_span
+  · exact InitECandidate.Runtime.NativePadding.Padded851_span
+  · exact InitECandidate.Runtime.NativePadding.Padded852_span
+  · exact InitECandidate.Runtime.NativePadding.Padded853_span
+  · exact InitECandidate.Runtime.NativePadding.Padded854_span
+  · exact InitECandidate.Runtime.NativePadding.Padded855_span
+  · exact InitECandidate.Runtime.NativePadding.Padded856_span
+  · exact InitECandidate.Runtime.NativePadding.Padded857_span
+  · exact InitECandidate.Runtime.NativePadding.Padded858_span
+  · exact InitECandidate.Runtime.NativePadding.Padded859_span
+  · exact InitECandidate.Runtime.NativePadding.Padded860_span
+  · exact InitECandidate.Runtime.NativePadding.Padded861_span
+  · exact InitECandidate.Runtime.NativePadding.Padded862_span
+  · exact InitECandidate.Runtime.NativePadding.Padded863_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk848_863
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk672_687
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded672_span
+  · exact InitECandidate.Runtime.NativePadding.Padded673_span
+  · exact InitECandidate.Runtime.NativePadding.Padded674_span
+  · exact InitECandidate.Runtime.NativePadding.Padded675_span
+  · exact InitECandidate.Runtime.NativePadding.Padded676_span
+  · exact InitECandidate.Runtime.NativePadding.Padded677_span
+  · exact InitECandidate.Runtime.NativePadding.Padded678_span
+  · exact InitECandidate.Runtime.NativePadding.Padded679_span
+  · exact InitECandidate.Runtime.NativePadding.Padded680_span
+  · exact InitECandidate.Runtime.NativePadding.Padded681_span
+  · exact InitECandidate.Runtime.NativePadding.Padded682_span
+  · exact InitECandidate.Runtime.NativePadding.Padded683_span
+  · exact InitECandidate.Runtime.NativePadding.Padded684_span
+  · exact InitECandidate.Runtime.NativePadding.Padded685_span
+  · exact InitECandidate.Runtime.NativePadding.Padded686_span
+  · exact InitECandidate.Runtime.NativePadding.Padded687_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk672_687
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk96_111
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded96_span
+  · exact InitECandidate.Runtime.NativePadding.Padded97_span
+  · exact InitECandidate.Runtime.NativePadding.Padded98_span
+  · exact InitECandidate.Runtime.NativePadding.Padded99_span
+  · exact InitECandidate.Runtime.NativePadding.Padded100_span
+  · exact InitECandidate.Runtime.NativePadding.Padded101_span
+  · exact InitECandidate.Runtime.NativePadding.Padded102_span
+  · exact InitECandidate.Runtime.NativePadding.Padded103_span
+  · exact InitECandidate.Runtime.NativePadding.Padded104_span
+  · exact InitECandidate.Runtime.NativePadding.Padded105_span
+  · exact InitECandidate.Runtime.NativePadding.Padded106_span
+  · exact InitECandidate.Runtime.NativePadding.Padded107_span
+  · exact InitECandidate.Runtime.NativePadding.Padded108_span
+  · exact InitECandidate.Runtime.NativePadding.Padded109_span
+  · exact InitECandidate.Runtime.NativePadding.Padded110_span
+  · exact InitECandidate.Runtime.NativePadding.Padded111_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk96_111
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk880_889
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded880_span
+  · exact InitECandidate.Runtime.NativePadding.Padded881_span
+  · exact InitECandidate.Runtime.NativePadding.Padded882_span
+  · exact InitECandidate.Runtime.NativePadding.Padded883_span
+  · exact InitECandidate.Runtime.NativePadding.Padded884_span
+  · exact InitECandidate.Runtime.NativePadding.Padded885_span
+  · exact InitECandidate.Runtime.NativePadding.Padded886_span
+  · exact InitECandidate.Runtime.NativePadding.Padded887_span
+  · exact InitECandidate.Runtime.NativePadding.Padded888_span
+  · exact InitECandidate.Runtime.NativePadding.Padded889_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk880_889
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk240_255
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded240_span
+  · exact InitECandidate.Runtime.NativePadding.Padded241_span
+  · exact InitECandidate.Runtime.NativePadding.Padded242_span
+  · exact InitECandidate.Runtime.NativePadding.Padded243_span
+  · exact InitECandidate.Runtime.NativePadding.Padded244_span
+  · exact InitECandidate.Runtime.NativePadding.Padded245_span
+  · exact InitECandidate.Runtime.NativePadding.Padded246_span
+  · exact InitECandidate.Runtime.NativePadding.Padded247_span
+  · exact InitECandidate.Runtime.NativePadding.Padded248_span
+  · exact InitECandidate.Runtime.NativePadding.Padded249_span
+  · exact InitECandidate.Runtime.NativePadding.Padded250_span
+  · exact InitECandidate.Runtime.NativePadding.Padded251_span
+  · exact InitECandidate.Runtime.NativePadding.Padded252_span
+  · exact InitECandidate.Runtime.NativePadding.Padded253_span
+  · exact InitECandidate.Runtime.NativePadding.Padded254_span
+  · exact InitECandidate.Runtime.NativePadding.Padded255_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk240_255
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk640_655
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded640_span
+  · exact InitECandidate.Runtime.NativePadding.Padded641_span
+  · exact InitECandidate.Runtime.NativePadding.Padded642_span
+  · exact InitECandidate.Runtime.NativePadding.Padded643_span
+  · exact InitECandidate.Runtime.NativePadding.Padded644_span
+  · exact InitECandidate.Runtime.NativePadding.Padded645_span
+  · exact InitECandidate.Runtime.NativePadding.Padded646_span
+  · exact InitECandidate.Runtime.NativePadding.Padded647_span
+  · exact InitECandidate.Runtime.NativePadding.Padded648_span
+  · exact InitECandidate.Runtime.NativePadding.Padded649_span
+  · exact InitECandidate.Runtime.NativePadding.Padded650_span
+  · exact InitECandidate.Runtime.NativePadding.Padded651_span
+  · exact InitECandidate.Runtime.NativePadding.Padded652_span
+  · exact InitECandidate.Runtime.NativePadding.Padded653_span
+  · exact InitECandidate.Runtime.NativePadding.Padded654_span
+  · exact InitECandidate.Runtime.NativePadding.Padded655_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk640_655
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk448_463
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded448_span
+  · exact InitECandidate.Runtime.NativePadding.Padded449_span
+  · exact InitECandidate.Runtime.NativePadding.Padded450_span
+  · exact InitECandidate.Runtime.NativePadding.Padded451_span
+  · exact InitECandidate.Runtime.NativePadding.Padded452_span
+  · exact InitECandidate.Runtime.NativePadding.Padded453_span
+  · exact InitECandidate.Runtime.NativePadding.Padded454_span
+  · exact InitECandidate.Runtime.NativePadding.Padded455_span
+  · exact InitECandidate.Runtime.NativePadding.Padded456_span
+  · exact InitECandidate.Runtime.NativePadding.Padded457_span
+  · exact InitECandidate.Runtime.NativePadding.Padded458_span
+  · exact InitECandidate.Runtime.NativePadding.Padded459_span
+  · exact InitECandidate.Runtime.NativePadding.Padded460_span
+  · exact InitECandidate.Runtime.NativePadding.Padded461_span
+  · exact InitECandidate.Runtime.NativePadding.Padded462_span
+  · exact InitECandidate.Runtime.NativePadding.Padded463_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk448_463
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk272_287
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded272_span
+  · exact InitECandidate.Runtime.NativePadding.Padded273_span
+  · exact InitECandidate.Runtime.NativePadding.Padded274_span
+  · exact InitECandidate.Runtime.NativePadding.Padded275_span
+  · exact InitECandidate.Runtime.NativePadding.Padded276_span
+  · exact InitECandidate.Runtime.NativePadding.Padded277_span
+  · exact InitECandidate.Runtime.NativePadding.Padded278_span
+  · exact InitECandidate.Runtime.NativePadding.Padded279_span
+  · exact InitECandidate.Runtime.NativePadding.Padded280_span
+  · exact InitECandidate.Runtime.NativePadding.Padded281_span
+  · exact InitECandidate.Runtime.NativePadding.Padded282_span
+  · exact InitECandidate.Runtime.NativePadding.Padded283_span
+  · exact InitECandidate.Runtime.NativePadding.Padded284_span
+  · exact InitECandidate.Runtime.NativePadding.Padded285_span
+  · exact InitECandidate.Runtime.NativePadding.Padded286_span
+  · exact InitECandidate.Runtime.NativePadding.Padded287_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk272_287
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk224_239
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded224_span
+  · exact InitECandidate.Runtime.NativePadding.Padded225_span
+  · exact InitECandidate.Runtime.NativePadding.Padded226_span
+  · exact InitECandidate.Runtime.NativePadding.Padded227_span
+  · exact InitECandidate.Runtime.NativePadding.Padded228_span
+  · exact InitECandidate.Runtime.NativePadding.Padded229_span
+  · exact InitECandidate.Runtime.NativePadding.Padded230_span
+  · exact InitECandidate.Runtime.NativePadding.Padded231_span
+  · exact InitECandidate.Runtime.NativePadding.Padded232_span
+  · exact InitECandidate.Runtime.NativePadding.Padded233_span
+  · exact InitECandidate.Runtime.NativePadding.Padded234_span
+  · exact InitECandidate.Runtime.NativePadding.Padded235_span
+  · exact InitECandidate.Runtime.NativePadding.Padded236_span
+  · exact InitECandidate.Runtime.NativePadding.Padded237_span
+  · exact InitECandidate.Runtime.NativePadding.Padded238_span
+  · exact InitECandidate.Runtime.NativePadding.Padded239_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk224_239
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk688_703
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded688_span
+  · exact InitECandidate.Runtime.NativePadding.Padded689_span
+  · exact InitECandidate.Runtime.NativePadding.Padded690_span
+  · exact InitECandidate.Runtime.NativePadding.Padded691_span
+  · exact InitECandidate.Runtime.NativePadding.Padded692_span
+  · exact InitECandidate.Runtime.NativePadding.Padded693_span
+  · exact InitECandidate.Runtime.NativePadding.Padded694_span
+  · exact InitECandidate.Runtime.NativePadding.Padded695_span
+  · exact InitECandidate.Runtime.NativePadding.Padded696_span
+  · exact InitECandidate.Runtime.NativePadding.Padded697_span
+  · exact InitECandidate.Runtime.NativePadding.Padded698_span
+  · exact InitECandidate.Runtime.NativePadding.Padded699_span
+  · exact InitECandidate.Runtime.NativePadding.Padded700_span
+  · exact InitECandidate.Runtime.NativePadding.Padded701_span
+  · exact InitECandidate.Runtime.NativePadding.Padded702_span
+  · exact InitECandidate.Runtime.NativePadding.Padded703_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk688_703
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk704_719
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded704_span
+  · exact InitECandidate.Runtime.NativePadding.Padded705_span
+  · exact InitECandidate.Runtime.NativePadding.Padded706_span
+  · exact InitECandidate.Runtime.NativePadding.Padded707_span
+  · exact InitECandidate.Runtime.NativePadding.Padded708_span
+  · exact InitECandidate.Runtime.NativePadding.Padded709_span
+  · exact InitECandidate.Runtime.NativePadding.Padded710_span
+  · exact InitECandidate.Runtime.NativePadding.Padded711_span
+  · exact InitECandidate.Runtime.NativePadding.Padded712_span
+  · exact InitECandidate.Runtime.NativePadding.Padded713_span
+  · exact InitECandidate.Runtime.NativePadding.Padded714_span
+  · exact InitECandidate.Runtime.NativePadding.Padded715_span
+  · exact InitECandidate.Runtime.NativePadding.Padded716_span
+  · exact InitECandidate.Runtime.NativePadding.Padded717_span
+  · exact InitECandidate.Runtime.NativePadding.Padded718_span
+  · exact InitECandidate.Runtime.NativePadding.Padded719_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk704_719
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk304_319
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded304_span
+  · exact InitECandidate.Runtime.NativePadding.Padded305_span
+  · exact InitECandidate.Runtime.NativePadding.Padded306_span
+  · exact InitECandidate.Runtime.NativePadding.Padded307_span
+  · exact InitECandidate.Runtime.NativePadding.Padded308_span
+  · exact InitECandidate.Runtime.NativePadding.Padded309_span
+  · exact InitECandidate.Runtime.NativePadding.Padded310_span
+  · exact InitECandidate.Runtime.NativePadding.Padded311_span
+  · exact InitECandidate.Runtime.NativePadding.Padded312_span
+  · exact InitECandidate.Runtime.NativePadding.Padded313_span
+  · exact InitECandidate.Runtime.NativePadding.Padded314_span
+  · exact InitECandidate.Runtime.NativePadding.Padded315_span
+  · exact InitECandidate.Runtime.NativePadding.Padded316_span
+  · exact InitECandidate.Runtime.NativePadding.Padded317_span
+  · exact InitECandidate.Runtime.NativePadding.Padded318_span
+  · exact InitECandidate.Runtime.NativePadding.Padded319_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk304_319
+
+namespace InitECandidate.Proofs.BackendStages.FinalChunk736_751
+
+theorem final_sections_slack : forall s, s ∈ final -> (List.filter InitECandidate.Runtime.NativePadding.notLabel s.lines).all (InitECandidate.Runtime.NativePadding.padSlackOK (width := 64) 4) = true := by
+  intro s hs
+  simp only [final, List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact InitECandidate.Runtime.NativePadding.Padded736_span
+  · exact InitECandidate.Runtime.NativePadding.Padded737_span
+  · exact InitECandidate.Runtime.NativePadding.Padded738_span
+  · exact InitECandidate.Runtime.NativePadding.Padded739_span
+  · exact InitECandidate.Runtime.NativePadding.Padded740_span
+  · exact InitECandidate.Runtime.NativePadding.Padded741_span
+  · exact InitECandidate.Runtime.NativePadding.Padded742_span
+  · exact InitECandidate.Runtime.NativePadding.Padded743_span
+  · exact InitECandidate.Runtime.NativePadding.Padded744_span
+  · exact InitECandidate.Runtime.NativePadding.Padded745_span
+  · exact InitECandidate.Runtime.NativePadding.Padded746_span
+  · exact InitECandidate.Runtime.NativePadding.Padded747_span
+  · exact InitECandidate.Runtime.NativePadding.Padded748_span
+  · exact InitECandidate.Runtime.NativePadding.Padded749_span
+  · exact InitECandidate.Runtime.NativePadding.Padded750_span
+  · exact InitECandidate.Runtime.NativePadding.Padded751_span
+
+end InitECandidate.Proofs.BackendStages.FinalChunk736_751
