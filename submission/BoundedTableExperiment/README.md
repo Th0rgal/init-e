@@ -685,3 +685,18 @@ fresh-insert cost lowers the 2e11 break-even counts:
 
 The duplicate term still dominates the obstruction; fresh inserts additionally
 pay about `row_bytes * 73` source units of amortized array copying.
+
+## 26. Trace-to-PNK event relation
+
+`trace_relation.py` checks every model event against the PNK operation shape:
+
+- `set_new`: one path descent, `path_stores` recorded nodes, at most
+  `ceil(log2(depth+1))` binary-search steps, one child-link write (zero for the
+  first root leaf); a growth event performs a second descent after relocation,
+  so `visits = 2 * path_stores`;
+- `set_update`: descent only, no path stores, search, or link write;
+- `get`: descent only;
+- `delete`: at most one swap-remove order move.
+
+The 1,477-event canonical trace passes with zero failures. This is a behavioral
+trace-to-PNK relation, not a proof of the PNK heap semantics.
