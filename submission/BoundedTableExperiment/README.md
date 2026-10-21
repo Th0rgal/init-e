@@ -1008,3 +1008,22 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`.
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. This composes the actual
 candidate push statement with the actual store rule and path invariant; the
 surrounding loop/guard trace and the binary-search/link tail remain open.
+
+## 46. Actual one-iteration search trace
+
+`CandidateFindLeafStepTrace.lean` decomposes an actual successful
+`StatementRun` of one `htab_find_leaf_path` iteration:
+
+- `candidateFindLeafStep_run_split`: `step = seq guard walk` splits into the
+  guard run and walk run;
+- `candidateFindLeafWalk_run_split`: `walk = seq push (seq bump route)` splits
+  into the actual path-push, depth-bump, and route/child runs;
+- `candidateFindLeafStep_trace`: the full event order is
+  `guardEvents ++ (pushEvents ++ (bumpEvents ++ routeEvents))` with all four
+  actual subruns;
+- `candidateFindLeafStep_trace_score`: the actual event score is the sum of
+  the four subrun scores.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. The loop driver
+(multiple iterations, guard early exit, endpoint tail) and the binary-search/
+link/growth parts remain open.
