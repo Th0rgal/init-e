@@ -1,30 +1,108 @@
-submission/BoundedTableExperiment/ActualWhileComposition.lean:81:34: error: Application type mismatch: The argument
-  rest
-has type
-  StatementRun fn middle✝ (ProgHOL.while condition body) result post restEvents✝
-but is expected to have type
-  StatementRun fn middle✝ (ProgHOL.while condition body) none ?m.80 ?m.82
-in the application
-  whileEventsOfRun middle✝ ?m.80 none ?m.82 rest
-submission/BoundedTableExperiment/ActualWhileComposition.lean:82:43: error: Type mismatch
-  WhileEvents.break guard nonzero one
-has type
-  WhileEvents fn condition body s (some PanSemResultExact.break) post
-    (WorkEvent.statement :: WorkEvent.cost (whileOverhead + loopMoves fn) :: (guardEvents✝ ++ bodyEvents✝))
-but is expected to have type
-  WhileEvents fn condition body s none post
-    (WorkEvent.statement :: WorkEvent.cost (whileOverhead + loopMoves fn) :: (guardEvents✝ ++ bodyEvents✝))
-submission/BoundedTableExperiment/ActualWhileComposition.lean:85:34: error: Application type mismatch: The argument
-  rest
-has type
-  StatementRun fn middle✝ (ProgHOL.while condition body) result post restEvents✝
-but is expected to have type
-  StatementRun fn middle✝ (ProgHOL.while condition body) none ?m.155 ?m.157
-in the application
-  whileEventsOfRun middle✝ ?m.155 none ?m.157 rest
-submission/BoundedTableExperiment/ActualWhileComposition.lean:77:2: error: (deterministic) timeout at `whnf`, maximum number of heartbeats (1000000) has been reached
+submission/BoundedTableExperiment/ActualWhileComposition.lean:108:14: error: omega could not prove the goal:
+a possible counterexample may satisfy the constraints
+  a ≥ 1
+where
+ a := ↑s.clock
+submission/BoundedTableExperiment/ActualWhileComposition.lean:119:14: error: omega could not prove the goal:
+a possible counterexample may satisfy the constraints
+  a ≥ 1
+where
+ a := ↑s.clock
+F : Type
+fn : MlS
+condition : ExpHOL 64
+body : ProgHOL 64
+d : WhileData fn condition body
+s : PanSemStateFiniteExact 64 F
+r : Option (PanSemResultExact 64)
+post : PanSemStateFiniteExact 64 F
+value✝ : Word
+guardEvents✝ : List WorkEvent
+middle✝ : PanSemStateFiniteExact 64 F
+bodyEvents✝ restEvents✝ : List WorkEvent
+nonzero : value✝ ≠ 0
+clock : s.clock ≠ 0
+guard : CostedExpressionRun s condition (some (ValueHOL.val (HolWordLab.word value✝))) guardEvents✝
+one : StatementRun fn s.decClockHOLFinite body none middle✝ bodyEvents✝
+rest : StatementRun fn middle✝ (ProgHOL.while condition body) r post restEvents✝
+rec :
+  ∀ (y : WhileData fn condition body),
+    WellFoundedRelation.rel y
+        { s := s, r := r, post := post,
+          events :=
+            WorkEvent.statement ::
+              WorkEvent.cost (whileOverhead + loopMoves fn) :: (guardEvents✝ ++ bodyEvents✝ ++ restEvents✝),
+          run := ⋯ } →
+      WhileEvents fn condition body y.s y.r y.post y.events
+⊢ InvImage (fun x1 x2 => x1 < x2) (fun d => d.s.clock)
+    { s := middle✝, r := r, post := post, events := restEvents✝, run := rest }
+    { s := s, r := r, post := post,
+      events :=
+        WorkEvent.statement ::
+          WorkEvent.cost (whileOverhead + loopMoves fn) :: (guardEvents✝ ++ (bodyEvents✝ ++ restEvents✝)),
+      run := ⋯ }
+F : Type
+fn : MlS
+condition : ExpHOL 64
+body : ProgHOL 64
+d : WhileData fn condition body
+s : PanSemStateFiniteExact 64 F
+r : Option (PanSemResultExact 64)
+post : PanSemStateFiniteExact 64 F
+value✝ : Word
+guardEvents✝ : List WorkEvent
+middle✝ : PanSemStateFiniteExact 64 F
+bodyEvents✝ restEvents✝ : List WorkEvent
+nonzero : value✝ ≠ 0
+clock : s.clock ≠ 0
+guard : CostedExpressionRun s condition (some (ValueHOL.val (HolWordLab.word value✝))) guardEvents✝
+one : StatementRun fn s.decClockHOLFinite body (some PanSemResultExact.continue) middle✝ bodyEvents✝
+rest : StatementRun fn middle✝ (ProgHOL.while condition body) r post restEvents✝
+rec :
+  ∀ (y : WhileData fn condition body),
+    WellFoundedRelation.rel y
+        { s := s, r := r, post := post,
+          events :=
+            WorkEvent.statement ::
+              WorkEvent.cost (whileOverhead + loopMoves fn) :: (guardEvents✝ ++ bodyEvents✝ ++ restEvents✝),
+          run := ⋯ } →
+      WhileEvents fn condition body y.s y.r y.post y.events
+⊢ InvImage (fun x1 x2 => x1 < x2) (fun d => d.s.clock)
+    { s := middle✝, r := r, post := post, events := restEvents✝, run := rest }
+    { s := s, r := r, post := post,
+      events :=
+        WorkEvent.statement ::
+          WorkEvent.cost (whileOverhead + loopMoves fn) :: (guardEvents✝ ++ (bodyEvents✝ ++ restEvents✝)),
+      run := ⋯ }
+submission/BoundedTableExperiment/ActualWhileComposition.lean:106:45: warning: This simp argument is unused:
+  measure
 
-Note: Use `set_option maxHeartbeats <num>` to set the limit.
+Hint: Omit it from the simp argument list.
+  [apply] simp [WellFoundedRelation.rel, decClockHOLFinite]
 
-Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
-submission/BoundedTableExperiment/ActualWhileComposition.lean:97:14: error(lean.unknownIdentifier): Unknown constant `BoundedTableExperiment.whileEventsOfRun`
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/BoundedTableExperiment/ActualWhileComposition.lean:106:54: warning: This simp argument is unused:
+  decClockHOLFinite
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [WellFoundedRelation.rel, measure]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/BoundedTableExperiment/ActualWhileComposition.lean:117:45: warning: This simp argument is unused:
+  measure
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [WellFoundedRelation.rel, decClockHOLFinite]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/BoundedTableExperiment/ActualWhileComposition.lean:117:54: warning: This simp argument is unused:
+  decClockHOLFinite
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [WellFoundedRelation.rel, measure]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+submission/BoundedTableExperiment/ActualWhileComposition.lean:134:0: warning: Definition `whileEventsSuccess` is a proposition; use `theorem` instead of `def`
+
+Note: This linter can be disabled with `set_option linter.defProp false`
+'BoundedTableExperiment.whileEventsOfRun' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
