@@ -19,7 +19,9 @@
 #define HT_LEAF_FREE 80
 #define HT_INT_FREE  88
 #define HT_NODES     96
-#define HT_SIZE      104
+#define HT_PATH      104
+#define HT_DEPTH     112
+#define HT_SIZE      120
 
 #define HT_NODE_SIZE 24
 
@@ -40,6 +42,9 @@ fun 1 htab_new(1 key_len, 1 cap) {
   st t + HT_ORDER_POS, order_pos;
   var 1 nodes = alloc((cap >> 1) * HT_NODE_SIZE);
   st t + HT_NODES, nodes;
+  var 1 path = alloc(key_len * 64);
+  st t + HT_PATH, path;
+  st t + HT_DEPTH, 0;
   st t + HT_ROOT, 0;
   st t + HT_LEAF_FREE, 1;
   var i = 0;
@@ -75,6 +80,9 @@ fun 1 htab_new_scratch(1 key_len, 1 cap) {
   st t + HT_ORDER_POS, order_pos;
   var 1 nodes = scratch_alloc((cap >> 1) * HT_NODE_SIZE);
   st t + HT_NODES, nodes;
+  var 1 path = scratch_alloc(key_len * 64);
+  st t + HT_PATH, path;
+  st t + HT_DEPTH, 0;
   st t + HT_ROOT, 0;
   st t + HT_LEAF_FREE, 1;
   var i = 0;
@@ -173,6 +181,31 @@ fun 1 htab_find_leaf(1 t, 1 key) {
     if (b & m) != 0 { node = lds 1 (np + 8); }
     else { node = lds 1 np; }
   }
+  return 0;
+}
+
+/* Same descent as htab_find_leaf, but records the internal-node path so a
+   new-key insertion can locate its split point by binary search instead of a
+   second root-to-leaf walk. */
+fun 1 htab_find_leaf_path(1 t, 1 key) {
+  var cap = lds 1 (t + HT_CAP);
+  var 1 path = lds 1 (t + HT_PATH);
+  var node = lds 1 (t + HT_ROOT);
+  var depth = 0;
+  while node != 0 {
+    if node <=+ cap {
+      st t + HT_DEPTH, depth;
+      return node;
+    }
+    st path + depth * 8, node;
+    depth = depth + 1;
+    var route = lds 1 (node + 16);
+    var b = ld8 (key + (route >> 8));
+    var m = route ^ 255;
+    if (b & m) != 0 { node = lds 1 (node + 8); }
+    else { node = lds 1 node; }
+  }
+  st t + HT_DEPTH, depth;
   return 0;
 }
 
@@ -278,7 +311,7 @@ fun 1 htab_set(1 t, 1 key, 1 value) {
     st t + HT_COUNT, 1;
     return 0;
   }
-  var leaf = htab_find_leaf(t, key);
+  var leaf = htab_find_leaf_path(t, key);
   if leaf != 0 {
     var kp = htab_key_ptr(t, leaf);
     var eq = memeq(kp, key, lds 1 (t + HT_KEYLEN));
@@ -290,25 +323,35 @@ fun 1 htab_set(1 t, 1 key, 1 value) {
   if ((lds 1 (t + HT_COUNT)) + 1) * 2 >+ cap {
     htab_grow(t);
     cap = lds 1 (t + HT_CAP);
-    leaf = htab_find_leaf(t, key);
+    leaf = htab_find_leaf_path(t, key);
   }
   var kp = htab_key_ptr(t, leaf);
   var d = htab_first_diff(key, kp, lds 1 (t + HT_KEYLEN));
   var 1 new_leaf = htab_new_leaf(t, key, value);
   var 1 new_int = htab_new_internal(t, d);
+  var 1 path = lds 1 (t + HT_PATH);
+  var depth = lds 1 (t + HT_DEPTH);
+  var lo = 0;
+  var hi = depth;
+  while lo < hi {
+    var mid = (lo + hi) >> 1;
+    var mr = lds 1 ((lds 1 (path + mid * 8)) + 16);
+    if mr >+ d { hi = mid; } else { lo = mid + 1; }
+  }
   var parent = 0;
+  var cur = leaf;
+  if lo != depth {
+    cur = lds 1 (path + lo * 8);
+  }
+  if lo != 0 {
+    parent = lds 1 (path + (lo - 1) * 8);
+  }
   var dir = 0;
-  var cur = lds 1 (t + HT_ROOT);
-  while cur != 0 {
-    if cur <=+ cap { break; }
-    var np = cur;
-    var route = lds 1 (np + 16);
-    if route >+ d { break; }
-    parent = cur;
-    var b = ld8 (key + (route >> 8));
-    var m = route ^ 255;
-    if (b & m) != 0 { dir = 1; cur = lds 1 (np + 8); }
-    else { dir = 0; cur = lds 1 np; }
+  if parent != 0 {
+    var pr = lds 1 (parent + 16);
+    var pb = ld8 (key + (pr >> 8));
+    var pm = pr ^ 255;
+    if (pb & pm) != 0 { dir = 1; }
   }
   var nip = new_int;
   var side = htab_bit(key, d);

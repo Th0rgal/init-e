@@ -332,7 +332,7 @@ by the guest. No resize/copy/truncate path is bypassed in these runs.
 ## 10. Pinned compile/source record
 
 - candidate source: `submission/BoundedTableExperiment/htab_patricia.pnk`
-  sha256 `e97eb316871e7575ac596de5d61b902993b35e559126918f81ef1cd0af71370f`
+  sha256 `a97b7463d8f5371a33b92b3f16974f1c8e799bec1c13b71b1c95144b664b7669`
 - semantic model: `submission/BoundedTableExperiment/prototype.py`
   sha256 `ad8b1bdea4186f3da088bea6a6c421e9745cca1fb74c49a1affc5ef83edce64d`
 - order/ownership proof: `ReachableOrderInvariant.lean`
@@ -440,25 +440,40 @@ O(count * key_length * depth). Leaf ids and order arrays are unchanged.
 
 The linked tests match after every optimization stage:
 - N=5,000 KL=32: 16,577,066 (bulk growth) -> 13,064,208 (direct pointers) ->
-  12,721,381 (route encoding).
+  12,721,381 (route encoding) -> 12,428,351 (single-descent insertion).
 - Lifecycle copy/delete/reinsert: 837,997 -> 711,407 -> 698,546.
 - Copy at N=5,000: 670,581 delta, ~134/entry (pointer relocation included).
 
-## 15. Corrected conservative budget
+## 15. Single-descent insertion
 
-Using the measured KL32 deepest-path coefficient 16.14 steps/visit:
+The previous `htab_set` walked root-to-leaf, computed the first differing route,
+then walked root-to-leaf again to find the split point. The candidate now keeps
+a reusable path buffer in the table header (`HT_PATH`, `HT_DEPTH`, sized
+`key_len*64` bytes). The descent records each internal node; after `d` is known,
+a binary search over the strictly increasing path routes finds the split point,
+and one final key-byte load determines the child direction. No second
+root-to-leaf walk remains.
 
-- new-key insert has two walks: `2 * 255 * 16.14 = 8,231` steps;
-- `33.55M * 8,231 = 2.76e11`;
+Measured effect on the 256-key spine build (all inserts, no lookups):
+1,478,654 -> 1,021,083 steps, a 1.45x reduction. Deepest-leaf lookup is
+unchanged at 4,115 steps.
+
+## 16. Corrected conservative budget
+
+Using the measured KL32 deepest-path coefficient 16.14 steps/visited node and
+the measured one-walk insertion:
+
+- new-key insert: one 255-hop walk (`~4,116`) plus path stores, binary search,
+  key compare, and split-link work; budget conservatively 4,500 steps;
+- `33.55M * 4,500 = 1.51e11`;
 - one deepest read per input entry: `33.55M * 4,115 = 1.38e11`;
-- subtotal `4.14e11`;
-- copy: `~4.5e9`;
-- structural growth: `~1e10` or less at these capacities;
-- total before nodedb/transcript/other guest work: `~4.3e11`.
+- subtotal `2.89e11`;
+- copy: `~4.5e9` (measured 670,597 delta at N=5,000, ~134/entry);
+- structural growth: `~1e10` or less;
+- total before nodedb/transcript/other guest work: `~3.0e11`.
 
-This is below `9e11` with roughly 2x margin, but the arithmetic is still a
-measurement-based projection, not a proof. It assumes no additional per-entry
-table work beyond one insert and one read, and it does not include the
-source-tick/native-step ratio. The adversarial depth-256 shape and exact model
-visit counts are now recorded; the remaining work is source-event accounting
-over the real full-input operation mix.
+This is below `9e11` with roughly 3x margin. It remains a measurement-based
+projection, not a proof: it assumes at most one insert plus one read of table
+work per input entry, and it does not include the source-tick/native-step ratio
+or the real full-input operation mix. The adversarial depth-256 shape, exact
+model visit totals, and deepest-leaf-only measurement are now recorded.
