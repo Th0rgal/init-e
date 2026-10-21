@@ -302,6 +302,27 @@ theorem wec_seq_some_split {C F : Type}
   | none => exact absurd rfl h
   | some r => simp only [Nat.add_zero]
 
+/-- **Shape of the stack-move program.**  `listNextVarRenameMove` emits a single
+`.move 0` node over `newLs.zip curLs`, where `curLs := ls.map (optionLookup ssa)`
+and `newLs := (listNextVarRename ls ssa n).1`.  So the alloc/install/ffi stack
+moves are one move node over the live-name list, not a program tree. -/
+theorem listNextVarRenameMove_shape
+    (ssa : Spt Nat) (n : Nat) (ls : List Nat) :
+    ((listNextVarRenameMove ssa n ls : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).1 =
+      .move 0 ((listNextVarRename ls ssa n).1.zip (ls.map (optionLookup ssa))) := by
+  simp only [listNextVarRenameMove]
+
+/-- **Price of the stack-move program** in terms of its certified list: it is
+`certifiedMoveCharge` of exactly the list the node carries. -/
+theorem listNextVarRenameMove_price {C F : Type}
+    (ssa : Spt Nat) (n : Nat) (ls : List Nat) (s : WordSemStateFiniteExact 64 C F) :
+    nativeWordPrice ((listNextVarRenameMove ssa n ls : WordLangProgHOL (BitVec 64) × Spt Nat × Nat)).1 s =
+      certifiedMoveCharge ((listNextVarRename ls ssa n).1.zip (ls.map (optionLookup ssa))) := by
+  rw [listNextVarRenameMove_shape]
+  exact nativeWordPrice_move_eq_certified 0 _ s
+
+#print axioms listNextVarRenameMove_shape
+#print axioms listNextVarRenameMove_price
 #print axioms wec_seq_some_split
 #print axioms wec_seq_none_split
 #print axioms nativeWordPrice_move_eq_certified
