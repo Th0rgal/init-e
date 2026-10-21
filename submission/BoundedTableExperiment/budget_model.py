@@ -18,6 +18,11 @@ def entry_cost(depth, bsearch_steps, fresh):
         c += P["grow_per_loop"]                  # one growth-loop body
     return c
 
+def max_entries(budget, depth, bsearch_steps, dup_frac):
+    per = dup_frac * entry_cost(depth, bsearch_steps, False) + \
+          (1 - dup_frac) * entry_cost(depth, bsearch_steps, True)
+    return budget / per
+
 def main():
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 33_550_000
     key_len = int(sys.argv[2]) if len(sys.argv) > 2 else 4
@@ -26,6 +31,7 @@ def main():
     # leaves has average depth at most min(8*key_len, K-1) (comb), so total
     # descent work scales with the *distinct* count, not the operation count.
     fixed_k = int(sys.argv[4]) if len(sys.argv) > 4 else 0
+    budget = int(sys.argv[5]) if len(sys.argv) > 5 else 200_000_000_000
     # A distinct key consumes at least key_len input bytes; a fixed key length
     # also gives at most 2^(8*key_len) distinct keys.
     distinct = n
@@ -41,6 +47,15 @@ def main():
         print(json.dumps({"prices": P, "n": n, "key_len": key_len, "K": fixed_k,
                           "avg_depth_bound": avg_depth, "total": total,
                           "per_entry": total / n}, indent=2))
+        return
+    if len(sys.argv) > 6 and sys.argv[6] == "max":
+        rows = []
+        for depth in (1, 2, 4, 8, 16, 25):
+            b = max(1, math.ceil(math.log2(depth + 1)))
+            rows.append({"depth": depth, "budget": budget,
+                         "max_entries": {str(d): max_entries(budget, depth, b, d)
+                                         for d in (0.0, 0.9, 0.99, 0.999)}})
+        print(json.dumps({"prices": P, "rows": rows}, indent=2))
         return
     out = []
     for depth in (4, 8, 16, 25, max_depth):

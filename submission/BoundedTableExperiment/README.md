@@ -619,3 +619,23 @@ This is the key open budget obstruction. A finite composition needs either a
 proved much smaller average live path depth for the reachable nodedb keys, a
 proved operation-count bound, or a cheaper per-visit source path. No finite
 claim is made from these diagnostics.
+
+## 22. Break-even operation count against the 2e11 remainder
+
+`budget_model.py ... 200000000000 max` gives the maximum number of table
+operations that fit 2e11 source units at a given average depth:
+
+| avg depth | 0% dup | 90% dup | 99% dup | 99.9% dup |
+|---:|---:|---:|---:|---:|
+| 1 | 35.0M | 127.6M | 173.4M | 179.9M |
+| 2 | 27.0M | 73.2M | 88.3M | 90.1M |
+| 4 | 19.6M | 39.9M | 44.6M | 45.1M |
+| 8 | 13.1M | 21.1M | 22.4M | 22.6M |
+| 16 | 8.1M | 10.9M | 11.2M | 11.3M |
+| 25 | 5.8M | 7.0M | 7.2M | 7.2M |
+
+At the 33.55M entry bound, the table fits only with average depth at most 4
+(90%+ duplicates) or depth 1–2 with fewer duplicates. At depth 8 the break-even
+count is about 21M, so either the reachable operation count must be bounded
+below 33.55M or the average path depth must be proved small. These are
+diagnostics, not the score theorem.
