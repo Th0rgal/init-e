@@ -7,7 +7,9 @@ open Flapjack Flapjack.WordSemStateFiniteExact
 price of its own syntax; structural nodes are free; `Tick` pays its native
 `Skip`. An assignment pays its expression work, whose root node is the move
 itself. A call pays one word per argument, and a returning call pays its return
-names exactly when its callee body returns a value of that length (the native
+names exactly when its callee body returns a value of that length, plus one
+for the call itself (a tail call's arguments always include the return
+location) (the native
 return suffix runs only then): the price is state dependent. -/
 
 /-- The callee body of a returning call returns a value list of the call's
@@ -38,7 +40,7 @@ noncomputable def loopWordPrice {C F : Type} (p : WordLangProgHOL (BitVec 64))
   | .return _ values => 1 + values.length
   | .call none _ arguments _ => arguments.length
   | .call (some (returns, _)) _ arguments _ =>
-      arguments.length + if wordCallReturned p s then returns.length else 0
+      1 + arguments.length + if wordCallReturned p s then returns.length else 0
   | _ => 1
 
 section leaves

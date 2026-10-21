@@ -68,11 +68,10 @@ theorem wordCostLe_callShort {C F : Type} {s : LoopSemStateFiniteExact 64 F}
       rw [call_cost_zero _ _ _ _ t zero, loopWordPrice, if_neg (noRet _ _)]
       simp
     · simp only [LoopToWord.compHOL]
-      refine Nat.le_trans (wordCost_seq_le _ _ _ _ 1 fun m => by rw [wordCost_tick]; simp [loopWordPrice]) ?_
-      rw [call_cost_zero _ _ _ _ t zero]
+      rw [wordCost_seq_stop _ _ _ _ (call_eval_zero _ _ _ _ t zero), call_cost_zero _ _ _ _ t zero]
       simp only [loopWordPrice]
       rw [if_neg (noRet _ _)]
-      simp; omega
+      simp
 
 /-- Returned words of the Word callee body are those of the Loop body. -/
 theorem retWords_le {C F : Type} {ctxt : Spt Nat} {retv : WordLocW 64} {E t1 : WordSemStateFiniteExact 64 C F}

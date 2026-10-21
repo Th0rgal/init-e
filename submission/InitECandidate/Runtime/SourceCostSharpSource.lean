@@ -31,7 +31,9 @@ theorem source_loop_sharp_work {F : Type}
       LoopRunRel loopContext live
         (evalCrepSemHOLProgExact (crepSimpMapcsHOL t) (crepSimpProgHOL (compileProgExactHOLW context p)))
         (evaluate (compileHOLExact loopContext live (crepSimpProgHOL (compileProgExactHOLW context p)))
-          { u with clock := u.clock + extra }) := by
+          { u with clock := u.clock + extra }) ∧
+      (evaluate (compileHOLExact loopContext live (crepSimpProgHOL (compileProgExactHOLW context p)))
+          { u with clock := u.clock + extra }).1 ≠ some .error := by
   obtain ⟨w, crepWork, crepBound⟩ := source_crep_executed_work_sharp run t context resultOk rel
     localised checked codeChecked
   obtain ⟨r1, t1, crepRun, _, _, _, resultRel⟩ := compiled_source_run t context run.sound
@@ -45,7 +47,12 @@ theorem source_loop_sharp_work {F : Type}
     exact resultRel_not_error resultRel
   obtain ⟨extra, wl, work, bound, runRel⟩ :=
     crep_loop_installed_sharp_work simpWork u loopContext live simpOk loopRel
-  exact ⟨extra, wl, work, by omega, runRel⟩
+  refine ⟨extra, wl, work, by omega, runRel, ?_⟩
+  rw [runRel.2.2.2.2.1]
+  revert simpOk
+  generalize (evalCrepSemHOLProgExact (crepSimpMapcsHOL t) (crepSimpProgHOL (compileProgExactHOLW context p))).1 = cr
+  intro h
+  rcases cr with _ | (_ | _ | _ | _ | _ | _ | _) <;> simp_all [resultToLoop]
 
 /-- The sharp score as an explicit dot product over the canonical event
 vector plus the replay count, which is `k - 1` for every `memory k` and every

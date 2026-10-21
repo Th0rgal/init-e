@@ -19,7 +19,7 @@ theorem loop_live_paid_call_cont {F : Type}
     (nonerror : (cutRes liveOut output).1 ≠ some .error) :
     LoopLivePaid s (.call (some (names, live)) target arguments
       (some (exceptionName, handlerProgram, continuation, liveOut)))
-      (cutRes liveOut output) (1 + arguments.length + wb + returned.length + wc) := by
+      (cutRes liveOut output) (2 + arguments.length + wb + returned.length + wc) := by
   intro contexts locals wanted input
   rcases contCompiled : shrinkHOL contexts continuation wanted with ⟨contCode, contLive⟩
   rcases handlerCompiled : shrinkHOL contexts handlerProgram wanted with ⟨handlerCode, handlerLive⟩
@@ -64,7 +64,7 @@ theorem loop_live_paid_call_cont {F : Type}
       (shrinkHOL contexts (.call (some (names, live)) target arguments
         (some (exceptionName, handlerProgram, continuation, liveOut))) wanted).1
       (cutRes (sptInter wanted liveOut) (output.1, { output.2 with locals := postLocals }))
-      (1 + arguments.length + wb + returned.length + wc') := by
+      (2 + arguments.length + wb + returned.length + wc') := by
     simpa only [compiled] using targetRun
   exact loop_live_finish (LoopWork.callRetCont (exceptionName := exceptionName) (handlerProgram := handlerProgram)
     (liveOut := liveOut) args find nodup cut body lengths cont) nonerror

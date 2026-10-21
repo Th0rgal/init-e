@@ -62,7 +62,7 @@ theorem wordCostLe_callRetCont {C F : Type} {s entry post : LoopSemStateFiniteEx
       continuation output wc) :
     WordCostLe C s (.call (some (names, live)) target arguments
         (some (exceptionName, handlerProgram, continuation, liveOut)))
-      (LoopSemStateFiniteExact.cutRes liveOut output) (1 + arguments.length + wb + returned.length + wc) := by
+      (LoopSemStateFiniteExact.cutRes liveOut output) (2 + arguments.length + wb + returned.length + wc) := by
   intro ok t ctxt retv l rel locals ret dim notWord acc
   obtain ⟨namesCtxt, -, -, accCont⟩ := handler_acc acc
   obtain ⟨args1, ss1, ctxt1, l1, cutEnv, hwgv, hbad, hwf, -, -, hce, nz, hentry, hlr, h0r, hbody, hacc1⟩ :=
