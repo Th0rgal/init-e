@@ -2530,4 +2530,35 @@ theorem evaluate_loop_stop {C F : Type}
 
 
 #print axioms evaluate_loop_stop
+/-- The loop's CONTINUING run: when the body's result continues the loop and the body did not exhaust the
+clock, the loop evaluates exactly to a further iteration - wordSemSTOP of the loop at the decremented
+clock.  This is the run-level counterpart of wec_loop_cont_live_transfer, and it is the step the loop's
+outcome induction takes. -/
+theorem evaluate_loop_cont {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s cutSource : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cutSource)
+    (result : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (h : fixClock cutSource (WordSemStateFiniteExact.evaluate body cutSource) = (result, middle))
+    (hc : wordSemContLoop result = true)
+    (hclk : middle.clock = 0 → False) :
+    WordSemStateFiniteExact.evaluate (.loop names body liveOut) s =
+      WordSemStateFiniteExact.evaluate (wordSemSTOP (.loop names body liveOut)) (Flapjack.WordSemStateFiniteExact.decClock middle) := by
+  rw [evaluate]
+  split
+  · next hnone =>
+    rw [hs] at hnone
+    cases hnone
+  · next cs hsome =>
+    rw [hs] at hsome
+    cases hsome
+    rw [h]
+    dsimp only
+    rw [if_pos (by rw [hc])]
+    split
+    · next hz =>
+      exact absurd hz hclk
+    · rfl
+
+#print axioms evaluate_loop_cont
 end InitECandidate.Runtime.FineCost
