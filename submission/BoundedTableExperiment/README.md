@@ -852,3 +852,21 @@ the remaining step.
 Axioms are `propext` and `Quot.sound`. This is the loop-level event-trace
 composition; binding the concrete `htab_set` guard prices and link write is
 the remaining instantiation.
+
+## 36. Actual candidate `StatementRun` traces and costs
+
+`CandidateStatementRuns.lean` imports the generated candidate AST
+(`Candidate.guestFn_*`, the exact PNK program, not a surrogate model) and the
+runtime's `source_evaluation_cost_trace` / `sourceExecutionCost_spec`:
+
+- `candidate_htab_set_trace` / `candidate_htab_set_cost_spec`: the actual
+  `htab_set` body has a finite size-aware `StatementRun` from every state, and
+  the selected trace's source cost equals `sourceExecutionCost`;
+- the same for `htab_find_leaf_path`, `htab_del`, `htab_truncate`, `htab_grow`,
+  `htab_copy`, and the whole `main`.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`. These are existence and
+cost-consistency results for the actual candidate AST. They do not yet give a
+closed per-operation cost formula or the Patricia heap/path invariants; the
+binary-search/path-push/link event decomposition still has to be proved by
+case analysis on the candidate AST and its actual semantics.
