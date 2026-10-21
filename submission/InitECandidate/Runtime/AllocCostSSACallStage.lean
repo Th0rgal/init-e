@@ -181,31 +181,26 @@ theorem ssaCall_returning_cost_stage {C F : Type}
   rw [hcallT, hcallS]
   omega
 
-/-- The callee-body component at the allocated entry, transferred to the source
-entry: the allocated calling convention builds the entry from a stack that is
-`sValEq`-related to the source one, which is exactly the entry condition of the
-checked `nativeWordPrice_callBody_transfer`. -/
+/-- The callee-body component at the allocated entry: the stack condition is
+derived from `SsaAllocRel` itself (`stage_sValEq`), so no caller-supplied
+`sValEq` is needed. -/
 theorem ssaCall_body_stage {C F : Type}
     (ssa : Spt Nat) (next : Nat)
     (prog : WordLangProgHOL (BitVec 64)) (args1 : List (WordLocW 64)) (ss : Option Nat)
     (envs : Spt (WordLocW 64) × Spt (WordLocW 64))
     (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
     (s t : WordSemStateFiniteExact 64 C F) (rel : SsaAllocRel ssa next s t)
-    (ys : List (WordSemStackFrame 64))
-    (hval : WordSemStackEq.sValEq t.stack ys)
     (hne : (evaluate prog
       (WordSemStateFiniteExact.callEnv args1 ss (pushEnv envs handler (decClock s)))).1 ≠
         some WordSemResult.error) :
     wordExecutionCost nativeWordPrice prog
         (WordSemStateFiniteExact.callEnv args1 ss
-          (pushEnv envs handler (decClock { s with stack := ys }))) =
+          (pushEnv envs handler (decClock { s with stack := t.stack }))) =
       wordExecutionCost nativeWordPrice prog
         (WordSemStateFiniteExact.callEnv args1 ss
-          (pushEnv envs handler (decClock s))) := by
-  have hvalS : WordSemStackEq.sValEq s.stack ys := by
-    rw [← stage_stack rel]
-    exact hval
-  exact nativeWordPrice_callBody_transfer prog args1 ss envs handler s ys hvalS hne
+          (pushEnv envs handler (decClock s))) :=
+  nativeWordPrice_callBody_transfer prog args1 ss envs handler s t.stack
+    (stage_sValEq rel) hne
 
 /-- The return-handler continuation component: the allocated continuation runs
 on the popped environment with a stack that is `sValEq`-related to the source

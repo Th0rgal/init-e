@@ -82,7 +82,7 @@ noncomputable def nativeWordPrice {C F : Type} (p : WordLangProgHOL (BitVec 64))
   | .inst instruction => nativeInstPrice instruction
   | .call none _ arguments _ => 41
   | .call (some (returns, _)) _ arguments _ =>
-      189 + 39 * arguments.length +
+      189 + 39 * (arguments.length + 1 - 22) +
         if wordCallReturned p s then 21 * returns.length else 0
   | _ => 0
 
@@ -101,7 +101,7 @@ theorem nativeWordPrice_call_returning {C F : Type} (returns : List Nat)
     (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
     (s : WordSemStateFiniteExact 64 C F) :
     nativeWordPrice (.call (some (returns, cutset, retCode, l1, l2)) dest arguments handler) s =
-      189 + 39 * arguments.length +
+      189 + 39 * (arguments.length + 1 - 22) +
         if wordCallReturned (.call (some (returns, cutset, retCode, l1, l2)) dest arguments
           handler) s then 21 * returns.length else 0 := by
   rw [nativeWordPrice]

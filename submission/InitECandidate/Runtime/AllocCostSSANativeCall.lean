@@ -34,7 +34,7 @@ theorem nativeWordPrice_call_le {C F : Type} (returns : List Nat)
     (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
     (s : WordSemStateFiniteExact 64 C F) :
     nativeWordPrice (.call (some (returns, cutset, retCode, l1, l2)) dest arguments
-      handler) s ≤ 189 + 39 * arguments.length + 21 * returns.length := by
+      handler) s ≤ 189 + 39 * (arguments.length + 1 - 22) + 21 * returns.length := by
   rw [nativeWordPrice]
   split <;> omega
 
