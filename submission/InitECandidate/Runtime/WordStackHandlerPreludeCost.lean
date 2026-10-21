@@ -103,14 +103,8 @@ theorem compiledHandlerCall_cost_from_prelude {F : Type}
   have reassoc : stackExecutionCost (fun p _ => price p) compiled {target with clock := target.clock+extra} =
       stackExecutionCost (fun p _ => price p) (.seq prelude (.seq .skip callCode)) {target with clock := target.clock+extra} := by
     rw [compiledEq]
-    dsimp only [prelude]
-    rw [stackCost_seq_assoc]
-    apply stackCost_seq_congr_right (price := price)
-    intro afterDestination
-    rw [stackCost_seq_assoc]
-    apply stackCost_seq_congr_right (price := price)
-    intro afterSave
-    exact (stackCost_seq_assoc (price := price) pushCode argsCode (.seq .skip callCode) afterSave).symm
+    exact stackCost_seq_four_factor (price := price) destinationCode savedCode pushCode argsCode
+      (.seq .skip callCode) _
   have shifted := Compiler.Backend.StackProps.evaluateAddClock extra prelude target none moved ⟨preludeRun,by simp⟩
   have prefixCost := handlerPrelude_cost (price := price) k frame payload h1 h2 names dest args bs savedBs
     n savedIndex destinationCode savedCode destination destinationCompile savedCompile frameSmall argsSmall

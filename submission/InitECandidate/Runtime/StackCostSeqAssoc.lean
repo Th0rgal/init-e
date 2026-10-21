@@ -37,6 +37,20 @@ theorem stackCost_seq_congr_right {F : Type} (first second third : HolProg 64)
   rcases run : StackSemEvaluate.evaluate (first, source) with ⟨result, middle⟩
   cases result <;> simp only [same]
 
+/-- Factor an arbitrary four-part prefix, preserving stops within it. -/
+theorem stackCost_seq_four_factor {F : Type} (p1 p2 p3 p4 suffix : HolProg 64)
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
+    stackExecutionCost (fun p _ => price p) (.seq p1 (.seq p2 (.seq p3 (.seq p4 suffix)))) source =
+      stackExecutionCost (fun p _ => price p) (.seq (.seq p1 (.seq p2 (.seq p3 p4))) suffix) source := by
+  rw [stackCost_seq_assoc]
+  apply stackCost_seq_congr_right (price := price)
+  intro afterFirst
+  rw [stackCost_seq_assoc]
+  apply stackCost_seq_congr_right (price := price)
+  intro afterSecond
+  exact (stackCost_seq_assoc (price := price) p3 p4 suffix afterSecond).symm
+
+#print axioms stackCost_seq_four_factor
 #print axioms stackCost_seq_congr_right
 
 #print axioms stackCost_seq_assoc
