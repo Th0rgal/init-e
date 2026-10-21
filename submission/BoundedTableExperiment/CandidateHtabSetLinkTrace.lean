@@ -89,8 +89,33 @@ theorem candidateHtabSetLink_outer {F : Type} {fn : MlS}
   | iteNo guard body =>
       exact ⟨_, _, _, rfl, guard, Or.inr ⟨rfl, body⟩⟩
 
+/-- Outer split of the actual growth branch: either the grow/reload/re-search
+arm or the `skip` arm. -/
+theorem candidateHtabSetGrowth_trace {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s candidateHtabSetGrowth none post events) :
+    ∃ (value : BitVec 64) (guardEvents branchEvents : List WorkEvent),
+      events = .statement :: .cost (statementUnit + branchMoves fn) ::
+        (guardEvents ++ branchEvents) ∧
+      CostedExpressionRun s
+        (.cmp .lower (loc "cap")
+          (.panop .mul [.op .add [lw (off "t" 24),.const 1],.const 2]))
+        (some (.val (.word value))) guardEvents ∧
+      ((value ≠ 0 ∧
+        StatementRun fn s candidateHtabSetGrowSeq none post branchEvents) ∨
+       (value = 0 ∧
+        branchEvents = [.statement] ∧ post = s)) := by
+  rw [candidateHtabSetLeaf_growth] at run
+  cases run with
+  | iteYes guard nonzero body =>
+      exact ⟨_, _, _, rfl, guard, Or.inl ⟨nonzero, body⟩⟩
+  | iteNo guard body =>
+      cases body with
+      | skip => exact ⟨_, _, _, rfl, guard, Or.inr ⟨rfl, rfl, rfl⟩⟩
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateHtabSetSideStores_trace
 #print axioms BoundedTableExperiment.candidateHtabSetSideStorePair_trace
 #print axioms BoundedTableExperiment.candidateHtabSetLink_outer
+#print axioms BoundedTableExperiment.candidateHtabSetGrowth_trace

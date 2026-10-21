@@ -1122,3 +1122,10 @@ explicitly. Axioms are `propext`, `Classical.choice`, `Quot.sound`.
   `statements + nativeCost*(statementUnit + branchMoves fn) + guard + branch`.
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`.
+
+## 54. Actual growth-branch split
+
+`candidateHtabSetGrowth_trace` splits an actual successful growth branch into
+the `cap < (count+1)*2` grow/reload/re-search arm or the `skip` arm, with the
+actual comparison events and branch run. Axioms are `propext`,
+`Classical.choice`, `Quot.sound`.
