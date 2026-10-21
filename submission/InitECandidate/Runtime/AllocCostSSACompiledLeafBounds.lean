@@ -2019,4 +2019,18 @@ theorem ssaCcTrans_ite_quant_then {C F : Type}
     exact hcost
 
 #print axioms ssaCcTrans_ite_quant_then
+/-- A loop node whose cut state is absent charges only its node price (2). -/
+theorem wec_loop_cutState_none {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = none) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s = 2 := by
+  rw [wordExecutionCost]
+  split
+  · rw [refinedWordLocalPrice_loop]
+  · next hsome =>
+    rw [hs] at hsome
+    cases hsome
+
+#print axioms wec_loop_cutState_none
 end InitECandidate.Runtime.FineCost
