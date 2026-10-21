@@ -61,6 +61,16 @@ theorem refinedNativeLocalPrice_le {F : Type} (gap : Nat) (encoded : LabProgHOL 
   case tick =>
     exact Nat.add_le_add_left (Nat.sub_le_sub_right bounded 1) _
 
+/-- The refined native table remains below the conservative table. -/
+theorem refinedNativePriceWithGap_le (gap : Nat) (p : HolProg 64) :
+    refinedNativePriceWithGap gap p ≤ nativePriceWithGap gap p := by
+  cases p <;> try (dsimp only [refinedNativePriceWithGap]; exact Nat.le_refl _)
+  case inst instruction =>
+    cases instruction <;> simp only [refinedNativePriceWithGap, nativePriceWithGap] <;> omega
+  case tick => simp only [refinedNativePriceWithGap, nativePriceWithGap]; omega
+
+#print axioms refinedNativePriceWithGap_le
+
 #print axioms refinedNativeLocalPrice_caps
 #print axioms refinedNativeLocalPrice_le
 end InitECandidate.Runtime.StackToLab

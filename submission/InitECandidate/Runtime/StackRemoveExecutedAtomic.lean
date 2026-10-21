@@ -21,11 +21,11 @@ theorem stackExecutionCost_atomic {F : Type}
 /-- Quantitative simulation for every unchanged atomic constructor. The
 semantic compiler theorem derives the target run; local instruction pricing
 supplies its executed-cost bound independently. -/
-theorem removalCostSimulation_atomic {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+theorem removalCostSimulation_atomicWithPrice {F : Type} (sourcePrice targetPrice : HolProg 64 → Nat)
     (jump : Bool) (bounds : BitVec 64 × BitVec 64) (p : HolProg 64) (atomic : executionAtomic p = true)
-    (localBound : nativePriceWithGap gap p ≤ sourcePrice p)
+    (localBound : targetPrice p ≤ sourcePrice p)
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
-    RemovalCostSimulation sourcePrice gap jump bounds p source := by
+    RemovalCostSimulationFor sourcePrice targetPrice jump bounds p source := by
   intro post target result pointer premises
   obtain ⟨clock, postTarget, targetRun, postRelation⟩ :=
     StackRemove.CompCorrect.Assembly.compCorrect p source result post target pointer bounds jump premises
@@ -37,5 +37,14 @@ theorem removalCostSimulation_atomic {F : Type} (sourcePrice : HolProg 64 → Na
       stackExecutionCost_atomic _ p atomic, stackExecutionCost_atomic _ p atomic]
     exact localBound
 
+/-- Conservative-table specialization, retaining the existing API. -/
+theorem removalCostSimulation_atomic {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (p : HolProg 64) (atomic : executionAtomic p = true)
+    (localBound : nativePriceWithGap gap p ≤ sourcePrice p)
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F) :
+    RemovalCostSimulation sourcePrice gap jump bounds p source :=
+  removalCostSimulation_atomicWithPrice sourcePrice (nativePriceWithGap gap) jump bounds p atomic localBound source
+
+#print axioms removalCostSimulation_atomicWithPrice
 #print axioms removalCostSimulation_atomic
 end InitECandidate.Runtime.StackToLab

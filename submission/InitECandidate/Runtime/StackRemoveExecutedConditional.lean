@@ -4,13 +4,13 @@ namespace InitECandidate.Runtime.StackToLab
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.StackLang
 open Flapjack.Compiler.Encoders.Asm
 
-theorem removalCostSimulation_ite {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+theorem removalCostSimulation_iteWithPrice {F : Type} (sourcePrice targetPrice : HolProg 64 → Nat)
     (jump : Bool) (bounds : BitVec 64 × BitVec 64) (cmp : HolCmp) (reg : Nat) (operand : HolRegImm 64) (yes no : HolProg 64)
-    (localBound : 5 + gap ≤ sourcePrice (.ite cmp reg operand yes no))
+    (branchBound : ∀ left right, targetPrice (.ite cmp reg operand left right) ≤ sourcePrice (.ite cmp reg operand yes no))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
-    (yesIH : RemovalCostSimulation sourcePrice gap jump bounds yes source)
-    (noIH : RemovalCostSimulation sourcePrice gap jump bounds no source) :
-    RemovalCostSimulation sourcePrice gap jump bounds (.ite cmp reg operand yes no) source := by
+    (yesIH : RemovalCostSimulationFor sourcePrice targetPrice jump bounds yes source)
+    (noIH : RemovalCostSimulationFor sourcePrice targetPrice jump bounds no source) :
+    RemovalCostSimulationFor sourcePrice targetPrice jump bounds (.ite cmp reg operand yes no) source := by
   intro post target result pointer premises
   obtain ⟨run, nonerror, related, lower⟩ := premises
   simp only [StackProps.regBound] at lower
@@ -42,7 +42,7 @@ theorem removalCostSimulation_ite {F : Type} (sourcePrice : HolProg 64 → Nat) 
           cases choice
           · exact lower.2.2.2
           · exact lower.2.2.1
-        have branchIH : RemovalCostSimulation sourcePrice gap jump bounds (if choice then yes else no) source := by
+        have branchIH : RemovalCostSimulationFor sourcePrice targetPrice jump bounds (if choice then yes else no) source := by
           cases choice <;> assumption
         obtain ⟨clock, postTarget, targetRun, postRelation, cost⟩ :=
           branchIH post target result pointer ⟨branchRun, nonerror, related, branchLower⟩
@@ -59,15 +59,25 @@ theorem removalCostSimulation_ite {F : Type} (sourcePrice : HolProg 64 → Nat) 
         · rw [StackRemove.comp, StackSemEvaluate.evaluate_ite, targetLeft, targetRight]
           cases choice <;> simpa only [chosen, Bool.false_eq_true, ↓reduceIte] using targetRun
         · rw [StackRemove.comp,
-            stackExecutionCost.eq_2 (fun p _ => nativePriceWithGap gap p)
+            stackExecutionCost.eq_2 (fun p _ => targetPrice p)
               {target with clock := clock + target.clock} cmp reg operand
               (StackRemove.comp jump bounds pointer yes) (StackRemove.comp jump bounds pointer no),
             stackExecutionCost.eq_2 (fun p _ => sourcePrice p) source cmp reg operand yes no]
           simp only [selectedBranchBudget, targetLeft, targetRight, readLeft, readRight, chosen]
-          have targetLocal : nativePriceWithGap gap (.ite cmp reg operand
-              (StackRemove.comp jump bounds pointer yes) (StackRemove.comp jump bounds pointer no)) = 5 + gap := rfl
-          rw [targetLocal]
-          cases choice <;> exact Nat.add_le_add localBound cost
+          have targetLocal := branchBound (StackRemove.comp jump bounds pointer yes) (StackRemove.comp jump bounds pointer no)
+          cases choice <;> exact Nat.add_le_add targetLocal cost
 
+theorem removalCostSimulation_ite {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (cmp : HolCmp) (reg : Nat)
+    (operand : HolRegImm 64) (yes no : HolProg 64)
+    (localBound : 5+gap ≤ sourcePrice (.ite cmp reg operand yes no))
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (yesIH : RemovalCostSimulation sourcePrice gap jump bounds yes source)
+    (noIH : RemovalCostSimulation sourcePrice gap jump bounds no source) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.ite cmp reg operand yes no) source :=
+  removalCostSimulation_iteWithPrice sourcePrice (nativePriceWithGap gap) jump bounds cmp reg operand yes no
+    (fun _ _ => localBound) source yesIH noIH
+
+#print axioms removalCostSimulation_iteWithPrice
 #print axioms removalCostSimulation_ite
 end InitECandidate.Runtime.StackToLab

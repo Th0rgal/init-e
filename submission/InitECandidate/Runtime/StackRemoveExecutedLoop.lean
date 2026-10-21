@@ -16,16 +16,17 @@ theorem stackExecutionCost_loop_run {F : Type}
 
 /-- Quantitative original loop simulation; reentry is guarded by the actual
 source result and remaining clock, and cost is additive across iterations. -/
-theorem removalCostSimulation_loop {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+theorem removalCostSimulation_loopWithPrice {F : Type} (sourcePrice targetPrice : HolProg 64 → Nat)
     (jump : Bool) (bounds : BitVec 64 × BitVec 64) (body : HolProg 64)
-    (localBound : 2 ≤ sourcePrice (.loop body))
+    (loopBound : ∀ pointer, targetPrice (.loop (comp jump bounds pointer body)) ≤ sourcePrice (.loop body))
     (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
-    (bodyIH : RemovalCostSimulation sourcePrice gap jump bounds body source)
+    (bodyIH : RemovalCostSimulationFor sourcePrice targetPrice jump bounds body source)
     (reentryIH : ∀ bodyResult middle, evaluate (body, source) = (bodyResult, middle) →
       contLoop bodyResult = true → middle.clock ≠ 0 →
-      RemovalCostSimulation sourcePrice gap jump bounds (.loop body) (decClock middle)) :
-    RemovalCostSimulation sourcePrice gap jump bounds (.loop body) source := by
+      RemovalCostSimulationFor sourcePrice targetPrice jump bounds (.loop body) (decClock middle)) :
+    RemovalCostSimulationFor sourcePrice targetPrice jump bounds (.loop body) source := by
   intro postSource target result pointer hypothesis
+  have localBound := loopBound pointer
   rcases hypothesis with ⟨sourceRun, notError, relation, lower⟩
   rcases bodyRun : evaluate (body, source) with ⟨bodyResult, middle⟩
   have bodyNotError := StackRemove.CompCorrect.Loop.loopBodyNotError body source middle postSource bodyResult result bodyRun sourceRun notError
@@ -53,7 +54,7 @@ theorem removalCostSimulation_loop {F : Type} (sourcePrice : HolProg 64 → Nat)
       · rw [comp, stackExecutionCost_loop_run _ _ _ _ _ firstTargetRun,
           stackExecutionCost_loop_run _ _ _ _ _ bodyRun]
         simp only [continues, middleClocks, zero, bne_self_eq_false, Bool.and_false, Bool.false_eq_true, ↓reduceIte]
-        change 2 + _ ≤ sourcePrice (.loop body) + _
+        change targetPrice (.loop (comp jump bounds pointer body)) + _ ≤ sourcePrice (.loop body) + _
         omega
     · rw [StackRemove.CompCorrect.Loop.evaluateLoopReentry body source middle bodyResult bodyRun continues zero] at sourceRun
       have decRelation := RelationLaws.stateRelDecClock jump bounds pointer middle middleTarget middleRelation
@@ -86,15 +87,15 @@ theorem removalCostSimulation_loop {F : Type} (sourcePrice : HolProg 64 → Nat)
       · cases result with
         | none => exact postRelation
         | some value => cases value <;> exact postRelation
-      · have shiftedCost := stackExecutionCost_addClock (nativePriceWithGap gap)
+      · have shiftedCost := stackExecutionCost_addClock (targetPrice)
           (comp jump bounds pointer body) {target with clock := firstClock + target.clock}
           middleTarget bodyResult firstTargetRun notTimeout secondClock
-        have combinedCost : stackExecutionCost (fun p _ => nativePriceWithGap gap p)
+        have combinedCost : stackExecutionCost (fun p _ => targetPrice p)
             (comp jump bounds pointer body) {target with clock := (firstClock + secondClock) + target.clock} ≤
             stackExecutionCost (fun p _ => sourcePrice p) body source := by
-          have eq : stackExecutionCost (fun p _ => nativePriceWithGap gap p)
+          have eq : stackExecutionCost (fun p _ => targetPrice p)
               (comp jump bounds pointer body) {target with clock := (firstClock + secondClock) + target.clock} =
-              stackExecutionCost (fun p _ => nativePriceWithGap gap p)
+              stackExecutionCost (fun p _ => targetPrice p)
                 (comp jump bounds pointer body) {target with clock := firstClock + target.clock} := by
             simpa only [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using shiftedCost
           exact eq.le.trans firstCost
@@ -103,7 +104,7 @@ theorem removalCostSimulation_loop {F : Type} (sourcePrice : HolProg 64 → Nat)
         simp only [continues, boostedNonzero, zero, bne_iff_ne, Bool.true_and, ↓reduceIte]
         simp only [if_pos boostedNonzero, if_neg zero, if_pos zero]
         rw [decState]
-        change 2 + _ + _ ≤ sourcePrice (.loop body) + _ + _
+        change targetPrice (.loop (comp jump bounds pointer body)) + _ + _ ≤ sourcePrice (.loop body) + _ + _
         have costRest := secondCost
         simp only [comp] at costRest
         exact Nat.add_le_add (Nat.add_le_add localBound combinedCost) costRest
@@ -126,8 +127,21 @@ theorem removalCostSimulation_loop {F : Type} (sourcePrice : HolProg 64 → Nat)
     · rw [comp, stackExecutionCost_loop_run _ _ _ _ _ firstTargetRun,
         stackExecutionCost_loop_run _ _ _ _ _ bodyRun]
       simp only [exits, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
-      change 2 + _ ≤ sourcePrice (.loop body) + _
+      change targetPrice (.loop (comp jump bounds pointer body)) + _ ≤ sourcePrice (.loop body) + _
       omega
 
+theorem removalCostSimulation_loop {F : Type} (sourcePrice : HolProg 64 → Nat) (gap : Nat)
+    (jump : Bool) (bounds : BitVec 64 × BitVec 64) (body : HolProg 64)
+    (localBound : 2 ≤ sourcePrice (.loop body))
+    (source : StackSemStateFiniteExact 64 LabToTarget.Config F)
+    (bodyIH : RemovalCostSimulation sourcePrice gap jump bounds body source)
+    (reentryIH : ∀ bodyResult middle, evaluate (body,source) = (bodyResult,middle) →
+      contLoop bodyResult = true → middle.clock ≠ 0 →
+      RemovalCostSimulation sourcePrice gap jump bounds (.loop body) (decClock middle)) :
+    RemovalCostSimulation sourcePrice gap jump bounds (.loop body) source :=
+  removalCostSimulation_loopWithPrice sourcePrice (nativePriceWithGap gap) jump bounds body
+    (fun _ => localBound) source bodyIH reentryIH
+
+#print axioms removalCostSimulation_loopWithPrice
 #print axioms removalCostSimulation_loop
 end InitECandidate.Runtime.StackToLab
