@@ -2,6 +2,8 @@ import InitECandidate.Proofs.BackendStages.Final
 import Flapjack.Compiler.Backend.LabToTarget.CodeSimilar.Padding
 import Flapjack.Compiler.Backend.LabToTarget.Navigation
 import Flapjack.Compiler.Backend.LabToTarget.RemoveLabels
+import InitECandidate.Proofs.BackendStages.Padded597
+import InitECandidate.Proofs.BackendStages.FinalReencode597
 
 /-!
 # Native padding scanner for the final emitted code
@@ -531,5 +533,178 @@ def PadCertificate.ofScan {width : Nat} [NeZero width] (nop : List (BitVec 8))
       lengths_agree := by
         rw [← hem, List.map_map, List.length_flatten, List.map_map]
         rfl }
+
+/-! ## The transfer
+
+The scanner certificate transports a source fetch to the padded code.  The
+code-level similarity is *derived* (never assumed) by the existing
+`codeSimilar_padCode` theorem, and the fetch step reuses the existing bridge
+`codeSimilar_asmFetchAux`; the scanner contributes the offset, the padded bytes
+and the opcode the padded instruction belongs to. -/
+
+/-- The source/padded code pair of a certificate is `codeSimilar`: this is the
+existing padding similarity theorem instantiated at the certificate's own data. -/
+theorem PadCertificate.codeSimilar {width : Nat} [NeZero width] (cert : PadCertificate width) :
+    codeSimilar cert.source cert.padded := by
+  rw [cert.padded_eq]
+  exact codeSimilar_padCode cert.source cert.source cert.nop (codeSimilar_refl cert.source)
+
+theorem optionRel_some {α β : Type} {rel : α → β → Prop} {a : α} {y : Option β} :
+    Option.Rel rel (some a) y → ∃ b, y = some b ∧ rel a b := by
+  intro h
+  cases y with
+  | none => cases h
+  | some b =>
+    exact ⟨b, rfl, by cases h; assumption⟩
+
+/-- Every recorded segment's opcode bytes are a prefix of its emitted bytes. -/
+theorem PadCertificate.segment_keeps {width : Nat} [NeZero width] (cert : PadCertificate width)
+    {seg : PadSeg width} (hmem : seg ∈ cert.segs) :
+    lineBytes seg.source <+: lineBytes seg.emitted := by
+  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.mp hmem
+  have h1 : (cert.segs.map PadSeg.source)[i]? = some seg.source := by
+    rw [List.getElem?_map, hi]; rfl
+  have h2 : (cert.segs.map PadSeg.emitted)[i]? = some seg.emitted := by
+    rw [List.getElem?_map, hi]; rfl
+  rw [cert.sources_eq] at h1
+  rw [cert.emitted_eq] at h2
+  exact (padsRel_getElem? cert.padding_accounted i seg.source seg.emitted h1 h2).2
+
+/-- **The transfer.**  If the source code fetches instruction `pc` (with
+`asmFetchAux`) and the scanner's certificate records, for that same instruction,
+the padded segment at its byte offset, then the padded code fetches the same
+instruction position — a `lineSimilar` instruction — and the fetched padded
+bytes are exactly the recorded opcode bytes followed by the recorded native
+padding, starting at the scanner-computed offset. -/
+def PaddedFetch {width : Nat} [NeZero width] (cert : PadCertificate width) (pc : Nat)
+    (line : NativeLine width) : Prop :=
+  ∃ seg ∈ cert.segs, ∃ line' : NativeLine width,
+    asmFetchAux pc cert.padded = some line' ∧
+    lineSimilar line line' ∧
+    seg.source = line ∧
+    seg.emitted = line' ∧
+    (cert.segs.map PadSeg.offset)[pc]? = some seg.offset ∧
+    (cert.segs.map PadSeg.payload)[pc]? = some (lineBytes line') ∧
+    lineBytes line <+: lineBytes line' ∧
+    seg.offset + (lineBytes line').length ≤
+      cert.base + ((insts cert.padded).map lineBytes).flatten.length
+
+theorem padScan_fetch_transfer {width : Nat} [NeZero width] (cert : PadCertificate width)
+    (pc : Nat) (line : NativeLine width) (fetch : asmFetchAux pc cert.source = some line) :
+    PaddedFetch cert pc line := by
+  -- code similarity of the certificate's own pair, derived by the existing theorem
+  have hsim : codeSimilar cert.source (padCode cert.nop cert.source) := by
+    rw [← cert.padded_eq]
+    exact cert.codeSimilar
+  have hrel := codeSimilar_asmFetchAux pc cert.source (padCode cert.nop cert.source) hsim
+  rw [← cert.padded_eq] at hrel
+  rw [fetch] at hrel
+  obtain ⟨line', hfetch', hs⟩ := optionRel_some hrel
+  -- the fetched instructions are the entries of the two instruction streams
+  have hsrc : (insts cert.source)[pc]? = some line := by
+    rw [← asmFetchAux_eq_insts pc cert.source, fetch]
+  have hpadded : (insts cert.padded)[pc]? = some line' := by
+    rw [← asmFetchAux_eq_insts pc cert.padded, hfetch']
+  rw [← cert.sources_eq] at hsrc
+  rw [← cert.emitted_eq] at hpadded
+  rw [List.getElem?_map] at hsrc hpadded
+  cases hpc : cert.segs[pc]? with
+  | none => rw [hpc] at hsrc; simp at hsrc
+  | some seg =>
+    rw [hpc] at hsrc hpadded
+    simp only [Option.map, Option.some.injEq] at hsrc hpadded
+    have hmem : seg ∈ cert.segs := List.mem_iff_getElem?.mpr ⟨pc, hpc⟩
+    obtain rfl : line' = seg.emitted := hpadded.symm
+    obtain rfl : line = seg.source := hsrc.symm
+    refine ⟨seg, hmem, seg.emitted, hfetch', hs, rfl, rfl, ?_, ?_, ?_, ?_⟩
+    · rw [List.getElem?_map, hpc]; rfl
+    · rw [List.getElem?_map, hpc]; rfl
+    · exact cert.segment_keeps hmem
+    · rw [← cert.lengths_agree]
+      exact offsetChain_bound cert.chain seg hmem
+
+/-! ## The transfer instantiated at the artifact, and concrete scanner runs
+
+The scanner is a computable function of the concrete code objects, so the
+certificate below is literally `scanCode` applied to the guest's own final
+code, and the scan can be *evaluated* on the artifact's sections. -/
+
+section Artifact
+
+open InitECandidate.Proofs.BackendStages
+open Flapjack.Compiler.Encoders.RiscV.Target
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 0
+set_option cbv.maxSteps 100000000
+
+/-- The nop chunk `padCode` repeats in the final assembly. -/
+def paddingNop : List (BitVec 8) := riscvConfig.encode (.inst .skip)
+
+/-- **The certificate of the guest's actual final code.**  `Final.final0` is the
+pre-padding object and `Final.padded0` its `padCode` image, which
+`Final.padding0_eq` proves; everything else in the certificate is computed by
+the scanner and proven about that computation. -/
+def padded0Certificate : PadCertificate 64 :=
+  PadCertificate.ofScan paddingNop 0 Final.final0 Final.padded0 Final.padding0_eq
+
+/-- **The padded-offset transfer on the guest's own final code.** -/
+theorem padded0_fetch_transfer (pc : Nat) (line : NativeLine 64)
+    (fetch : asmFetchAux pc Final.final0 = some line) :
+    PaddedFetch padded0Certificate pc line :=
+  padScan_fetch_transfer padded0Certificate pc line fetch
+
+/-- The source/padded pair of that certificate is `codeSimilar`. -/
+theorem padded0_codeSimilar : codeSimilar Final.final0 Final.padded0 :=
+  padded0Certificate.codeSimilar
+
+/-- Artifact section 597 is padded by the scanner's nop chunk. -/
+theorem section597_pad :
+    LabToTarget.padCode paddingNop ([FinalReencode597] : List (NativeCode 64)) = [Padded597] := by
+  show (⟨FinalReencode597.sectionId,
+        LabToTarget.padSection (riscvConfig.encode (.inst .skip)) FinalReencode597.lines []⟩ :
+      NativeCode 64) :: LabToTarget.padCode (riscvConfig.encode (.inst .skip)) [] = [Padded597]
+  rw [Padded597_eq]
+  rfl
+
+/-- **A concrete scan of the artifact.**  In section 597 `padCode` really pads:
+two instructions have 4 opcode bytes and recorded length 8, and the scanner
+reports, for each, its byte offset in the padded section, its opcode length and
+its padded length.  This is `decide_cbv`: the numbers are computed by the
+scanner running on the artifact's concrete code. -/
+theorem section597_scan_segments :
+    ((scanCode 0 ([FinalReencode597] : List (NativeCode 64)) [Padded597]).filter
+        (fun s => !(s.paddingLen == 0))).map
+        (fun s => (s.offset, s.opcode.length, s.payload.length)) =
+      [(20, 4, 8), (3848, 4, 8)] := by
+  decide_cbv
+
+/-- The scanner certificate of that same artifact section. -/
+def section597Certificate : PadCertificate 64 :=
+  PadCertificate.ofScan paddingNop 0 [FinalReencode597] [Padded597] section597_pad
+
+/-- The padded-offset transfer on that artifact section. -/
+theorem section597_fetch_transfer (pc : Nat) (line : NativeLine 64)
+    (fetch : asmFetchAux pc ([FinalReencode597] : List (NativeCode 64)) = some line) :
+    PaddedFetch section597Certificate pc line :=
+  padScan_fetch_transfer section597Certificate pc line fetch
+
+end Artifact
+
+#print axioms asmFetchAux_eq_insts
+#print axioms scanInsts_padCode
+#print axioms padSection_keeps
+#print axioms padCode_padsRel
+#print axioms offsetChain_scanInsts
+#print axioms offsetChain_bound
+#print axioms PadCertificate.ofScan
+#print axioms PadCertificate.codeSimilar
+#print axioms PadCertificate.segment_keeps
+#print axioms padScan_fetch_transfer
+#print axioms padded0_fetch_transfer
+#print axioms padded0_codeSimilar
+#print axioms section597_pad
+#print axioms section597_scan_segments
+#print axioms section597_fetch_transfer
 
 end InitECandidate.Runtime.NativePadding
