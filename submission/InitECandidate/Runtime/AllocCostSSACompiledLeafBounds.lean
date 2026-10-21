@@ -1300,4 +1300,39 @@ theorem getVar_permute {C F : Type} (name : Nat)
     getVar name {s with permute := perm} = getVar name s := rfl
 
 #print axioms getVar_permute
+
+/-! ## Canonical prices of the control constructors
+
+Read off root's fallback clause of `refinedWordLocalPrice` with the pinned constructor
+signatures from Figure `WordLangProgHOL` (Flapjack/Pancake/WordLang.lean:221):
+`.ite (op : Cmp) (condition : Nat) (right : WordRegImm a) (then else)`, 
+`.loop (liveIn : WordLangNumSetHOL) (body) (liveOut : WordLangNumSetHOL)`, and
+`.call (returns : Option (...)) (target : Option Nat) (arguments) (handler : Option (Nat × prog × Nat × Nat))`. -/
+theorem refinedWordLocalPrice_ite {C F : Type} (op : Cmp) (condition : Nat)
+    (right : WordRegImm (BitVec 64))
+    (thenBranch elseBranch : WordLangProgHOL (BitVec 64))
+    (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.ite op condition right thenBranch elseBranch) s = 23 := by
+  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
+    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
+
+theorem refinedWordLocalPrice_loop {C F : Type}
+    (liveIn : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (liveOut : WordLangNumSetHOL) (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop liveIn body liveOut) s = 2 := by
+  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
+    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
+
+theorem refinedWordLocalPrice_call_none {C F : Type}
+    (target : Option Nat) (arguments : List Nat)
+    (handler : Option (Nat × WordLangProgHOL (BitVec 64) × Nat × Nat))
+    (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.call none target arguments handler) s = 41 := by
+  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
+    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
+
+#print axioms refinedWordLocalPrice_ite
+#print axioms refinedWordLocalPrice_loop
+#print axioms refinedWordLocalPrice_call_none
 end InitECandidate.Runtime.FineCost
