@@ -91,8 +91,45 @@ theorem PathMemoryInv.push_at {F : Type} {s : PanSemStateFiniteExact 64 F}
   subst haddr
   exact PathMemoryInv.push inv bound hdom route store
 
+/-- A finite sequence of actual one-word stores. -/
+inductive StoreSeq {F : Type} :
+    PanSemStateFiniteExact 64 F → List (BitVec 64 × HolWordLab 64) →
+    PanSemStateFiniteExact 64 F → Prop
+  | nil (s : PanSemStateFiniteExact 64 F) : StoreSeq s [] s
+  | cons {s post : PanSemStateFiniteExact 64 F}
+      {address : BitVec 64} {value : HolWordLab 64}
+      {rest : List (BitVec 64 × HolWordLab 64)}
+      {memory : BitVec 64 → HolWordLab 64}
+      (write : @panMemStoresHOL 64 _ address [value] s.memaddrs
+        (Classical.decPred _) s.memory = some memory)
+      (tail : StoreSeq { s with memory := memory } rest post) :
+      StoreSeq s ((address, value) :: rest) post
+
+/-- A sequence of actual one-word stores whose addresses never touch the
+recorded path slots preserves `PathMemoryInv`. -/
+theorem StoreSeq.pathInv {F : Type} {s post : PanSemStateFiniteExact 64 F}
+    {base : BitVec 64} {depth : Nat} {routes : Nat → BitVec 64}
+    {stores : List (BitVec 64 × HolWordLab 64)}
+    (seq : StoreSeq s stores post)
+    (inv : PathMemoryInv s base depth routes)
+    (separate : ∀ address value, (address, value) ∈ stores →
+      ∀ i, i < depth → pathAddr base i ≠ address) :
+    PathMemoryInv post base depth routes := by
+  induction seq with
+  | nil => exact inv
+  | @cons s post address value rest memory write tail ih =>
+      exact ih
+        (PathMemoryInv.store_other inv value
+          (by
+            intro i hi
+            exact separate address value (by simp) i hi) write)
+        (by
+          intro address' value' member i hi
+          exact separate address' value' (by simp [member]) i hi)
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.PathMemoryInv.push
 #print axioms BoundedTableExperiment.PathMemoryInv.store_other
 #print axioms BoundedTableExperiment.PathMemoryInv.push_at
+#print axioms BoundedTableExperiment.StoreSeq.pathInv

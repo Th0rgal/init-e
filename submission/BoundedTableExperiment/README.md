@@ -1155,3 +1155,13 @@ declaration scores plus the branch score. Axioms are `propext`,
 
 Axioms are `propext`, `Classical.choice`, `Quot.sound`. The call bodies
 (`htab_grow`/copy) are still opaque at this level.
+
+## 57. Path invariant under store sequences
+
+`ActualPathMemoryInvariant.lean` defines `StoreSeq`, a finite sequence of actual
+one-word `panMemStoresHOL` writes that only change memory, and proves
+`StoreSeq.pathInv`: if every stored address is outside every recorded path
+slot, the sequence preserves `PathMemoryInv`. This covers array/table writes
+performed by growth, copy, and truncate without touching the path buffer.
+
+Axioms are `propext`, `Classical.choice`, `Quot.sound`.
