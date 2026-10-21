@@ -286,3 +286,38 @@ charged cost.  The honest options are (a) a cost-invariance lemma for `wordExecu
 `permute`-only state changes (true if `permute` is not consulted by `getVar`), or (b) charging the
 source side at the permuted state and carrying the permuted state through the statement.  Option (a)
 is the one to prove; it needs the fact that `getVar`/`getVarImm` ignore the `permute` field.
+
+## Where the constructors stand (after the seq case)
+
+DONE.  `ssaCcTrans_seq_quant_none` and `ssaCcTrans_seq_quant_escape` are the seq induction case for
+both outcomes.  From the two recursive quantitative IHs they derive, at `refinedWordLocalPrice`:
+
+- the reached middles: `midS`/`midT` are the `fixClock`ed states of each side's first-body run
+  (`fixClock_fst`, `fixClock_fst_none`, `fixClockMid`), obtained, not assumed;
+- the composite runs: `evaluate_seq_none` / `evaluate_seq_escape`, with `ssaCcTrans_seq_shape`
+  rewriting the compiled program to `.seq firstOut secondOut` first;
+- the post relation: `ssaCcTransCorrectSeq` from `firstIH`/`secondIH`/`hinv`;
+- the counter bound: the counter's seq split on both sides, both node prices cancelled by
+  `refinedWordLocalPrice_seq_zero`, then the two IH cost bounds.
+The second body's IH is instantiated at `midS`/`midT` AND at the threaded allocator state
+`(ssaCcTrans first ssa next tables).2.1/.2.2`.
+
+ITE.  Local content complete: `evaluate_ite_true`/`_false` (the evaluator's `.ite` clause has no
+`fixClock`), `refinedWordLocalPrice_ite = 23`, `wec_ite_true_canonical` (cost = 23 + selected branch),
+`ite_transfer_then/else_canonical` (node price cancels), and `ite_stage_then/else` which package, for a
+source ite and a compiled ite with possibly renamed condition registers, both runs plus the counter
+bound.  What is missing for the quantitative case is one allocator-side fact: the compiled branch is
+`body` FOLLOWED BY the inconsistency-fixing suffix
+(`ssaCcTrans_ite_shape`: `.seq (ssaCcTrans first ssa na lt).1 (fixInconsistencies (mkPrio ...) ... ...).1`),
+so the branch's quantitative predicate needs a canonical-price bound for that suffix (or the existing
+`siteBound`/`callAfterMoves` accounting).  Requested from finite-auth in both acceptable forms.
+
+LOOP / CALL.  The prices are proved (`refinedWordLocalPrice_loop = 2`,
+`refinedWordLocalPrice_call_none = 41`), but their counter clauses are not price-only:
+`.loop` is `cutState (names, .ln) s`, then `wordExecutionCost body cutSource`, then a `fixClock
+cutSource (evaluate body cutSource)` split and a `wordSemContLoop` continuation test
+(WordExecutionCost.lean:33), and `.call` is `getVars args s`, then `wordSemBadDestArgs`, then
+`wordSemFindCode dest (wordSemAddRetLoc ret xs) s.code s.stackSize`, each of the failing paths
+charging only `price p s` (WordExecutionCost.lean:44).  So their quantitative cases need the same
+`prime`-level splits the seq case used, with `cutState`/`fixClock` for the loop and the frame
+lookup for the call; the `41` is the node price, not the total.
