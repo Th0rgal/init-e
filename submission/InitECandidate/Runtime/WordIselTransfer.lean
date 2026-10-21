@@ -13,7 +13,7 @@ function body is selected at its own fresh temporary (`IselCode`), and pays
 `wordOptimizerLocalPrice`. Callee runs are supplied by `IselCalleeIH`, guarded
 lexicographically below the body's starting termination depth and clock, so a
 global clock induction can discharge it. This module states the relation and
-proves the leaf case. -/
+proves the leaf case and the expression statements. -/
 
 /-- The target code table is the source table with every function body
 instruction-selected at its own fresh temporary. -/
@@ -144,4 +144,117 @@ theorem isel_leaf_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExac
     exact optimizer_le_preIsel p s
 
 #print axioms isel_leaf_transfer
+open Flapjack.Compiler.Backend.WordToWord in
+/-- A leaf whose selected code has a static cost within its pre-selection price
+transfers: its selected code runs to the same result from the related target
+state, over the target code table. -/
+theorem isel_stmt_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
+    (p : WordLangProgHOL (BitVec 64)) (hp : cscLeaf p = true) (s t : WordSemStateFiniteExact 64 C F)
+    (res : Option (WordSemResult 64)) (rst : WordSemStateFiniteExact 64 C F)
+    (k : Nat) (line : lineBound preAllocLeafBudget (WordInst.instSelectExecutable c temp p) = some k)
+    (priced : k ≤ preIselPrice p s)
+    (vars : everyVarHOL (fun x => decide (x < temp)) p = true) (rel : IselRel c temp s t)
+    (run : evaluate p s = (res, rst)) (ok : res ≠ some .error) :
+    ∃ rstT, evaluate (WordInst.instSelectExecutable c temp p) t = (res, rstT) ∧
+      IselPost c temp res rst rstT ∧
+      wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp p) t ≤
+        wordExecutionCost preIselPrice p s := by
+  obtain ⟨hl, hcode, ht⟩ := rel
+  -- the source run over the target code table
+  have frame := evaluate_tgt_frame t.code s.compileOracle s.compile s (fun n => iselCode_mem hcode n) p hp
+  rw [run] at frame
+  obtain ⟨cEq, oEq, ccEq⟩ := leaf_frame_const p hp s
+  rw [run] at cEq oEq ccEq
+  -- selection on that state
+  obtain ⟨loc', h1, h2⟩ := WordInst.inst_select_thm c temp p (tgtState t.code s.compileOracle s.compile s) res
+    (tgtState t.code s.compileOracle s.compile rst) t.locals ⟨frame, vars, ok, hl⟩
+  have tEq : { tgtState t.code s.compileOracle s.compile s with locals := t.locals } = t :=
+    (rfl : { tgtState t.code s.compileOracle s.compile s with locals := t.locals } =
+      { s with locals := t.locals, code := t.code }).trans ht.symm
+  rw [tEq, ← WordInst.instSelectExecutable_eq] at h1
+  refine ⟨_, h1, ⟨?_, ?_, ?_⟩, ?_⟩
+  · show WordSemStateFiniteExact.LrPost temp res rst.locals loc'
+    rcases res with _ | (_ | _ | _ | _ | _ | _ | _ | _) <;> exact h2
+  · simp only [tgtState]; rw [cEq]; exact hcode
+  · simp only [tgtState]; rw [← oEq, ← ccEq]
+  · have bound := wordCost_le_lineBound wordOptimizerLocalPrice preAllocLeafBudget
+      (fun a b s => by simp [wordOptimizerLocalPrice, WordToStack.refinedWordLocalPrice,
+        WordToStack.refinedWordStackLeafBudget])
+      (fun q s n leaf budget => optimizerPrice_le_preAllocLeaf q s n leaf budget) _ k line t
+    rw [wordCost_leaf _ (cscLeaf_isLeaf hp)]
+    omega
+
+attribute [local simp] lineBound isLeafProg preAllocLeafBudget rawMovePrice
+  WordToStack.refinedWordStackLeafBudget
+
+theorem isel_shareInst_lineBound (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
+    (op : WordMemOp) (v : Nat) (e : WordLangExpHOL (BitVec 64)) :
+    ∃ k, lineBound preAllocLeafBudget (WordInst.instSelectExecutable c temp (.shareInst op v e)) = some k ∧
+      k ≤ selExpCost e + 13 := by
+  simp only [WordInst.instSelectExecutable, selExpCost]
+  split
+  · rename_i exp' w heq
+    split
+    · obtain ⟨k, hk, hle⟩ := isel_lineBound c temp temp exp'
+      refine ⟨k + 13, by simp [hk], ?_⟩
+      rw [heq, iselCost_op2]; simp; omega
+    · obtain ⟨k, hk, hle⟩ := isel_lineBound c temp temp (.op .add [exp', .const w])
+      exact ⟨k + 13, by rw [heq]; simp [hk], by rw [heq]; omega⟩
+  · obtain ⟨k, hk, hle⟩ := isel_lineBound c temp temp
+      (WordInst.flattenExp (WordInst.ExecutablePullExp.pullExpExecutable e))
+    exact ⟨k + 13, by simp [hk], by omega⟩
+
+theorem isel_assign_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
+    (s t : WordSemStateFiniteExact 64 C F) (res : Option (WordSemResult 64))
+    (rst : WordSemStateFiniteExact 64 C F) (v : Nat) (e : WordLangExpHOL (BitVec 64))
+    (vars : everyVarHOL (fun x => decide (x < temp)) (.assign v e) = true) (rel : IselRel c temp s t)
+    (run : evaluate (.assign v e) s = (res, rst)) (ok : res ≠ some .error) :
+    ∃ rstT, evaluate (WordInst.instSelectExecutable c temp (.assign v e)) t = (res, rstT) ∧
+      IselPost c temp res rst rstT ∧
+      wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp (.assign v e)) t ≤
+        wordExecutionCost preIselPrice (.assign v e) s := by
+  obtain ⟨k, hk, hle⟩ := isel_assign_lineBound c temp v e
+  exact isel_stmt_transfer c temp _ rfl s t res rst k hk (by simpa [preIselPrice] using hle) vars rel run ok
+
+theorem isel_set_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
+    (s t : WordSemStateFiniteExact 64 C F) (res : Option (WordSemResult 64))
+    (rst : WordSemStateFiniteExact 64 C F) (st : WordStoreHOL) (e : WordLangExpHOL (BitVec 64))
+    (vars : everyVarHOL (fun x => decide (x < temp)) (.set st e) = true) (rel : IselRel c temp s t)
+    (run : evaluate (.set st e) s = (res, rst)) (ok : res ≠ some .error) :
+    ∃ rstT, evaluate (WordInst.instSelectExecutable c temp (.set st e)) t = (res, rstT) ∧
+      IselPost c temp res rst rstT ∧
+      wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp (.set st e)) t ≤
+        wordExecutionCost preIselPrice (.set st e) s := by
+  obtain ⟨k, hk, hle⟩ := isel_set_lineBound c temp st e
+  exact isel_stmt_transfer c temp _ rfl s t res rst k hk (by simpa [preIselPrice] using hle) vars rel run ok
+
+theorem isel_store_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
+    (s t : WordSemStateFiniteExact 64 C F) (res : Option (WordSemResult 64))
+    (rst : WordSemStateFiniteExact 64 C F) (e : WordLangExpHOL (BitVec 64)) (v : Nat)
+    (vars : everyVarHOL (fun x => decide (x < temp)) (.store e v) = true) (rel : IselRel c temp s t)
+    (run : evaluate (.store e v) s = (res, rst)) (ok : res ≠ some .error) :
+    ∃ rstT, evaluate (WordInst.instSelectExecutable c temp (.store e v)) t = (res, rstT) ∧
+      IselPost c temp res rst rstT ∧
+      wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp (.store e v)) t ≤
+        wordExecutionCost preIselPrice (.store e v) s := by
+  obtain ⟨k, hk, hle⟩ := isel_store_lineBound c temp v e
+  exact isel_stmt_transfer c temp _ rfl s t res rst k hk (by simpa [preIselPrice] using hle) vars rel run ok
+
+theorem isel_shareInst_transfer {C F : Type} (c : Compiler.Encoders.Asm.AsmConfigExact 64) (temp : Nat)
+    (s t : WordSemStateFiniteExact 64 C F) (res : Option (WordSemResult 64))
+    (rst : WordSemStateFiniteExact 64 C F) (op : WordMemOp) (v : Nat) (e : WordLangExpHOL (BitVec 64))
+    (vars : everyVarHOL (fun x => decide (x < temp)) (.shareInst op v e) = true) (rel : IselRel c temp s t)
+    (run : evaluate (.shareInst op v e) s = (res, rst)) (ok : res ≠ some .error) :
+    ∃ rstT, evaluate (WordInst.instSelectExecutable c temp (.shareInst op v e)) t = (res, rstT) ∧
+      IselPost c temp res rst rstT ∧
+      wordExecutionCost wordOptimizerLocalPrice (WordInst.instSelectExecutable c temp (.shareInst op v e)) t ≤
+        wordExecutionCost preIselPrice (.shareInst op v e) s := by
+  obtain ⟨k, hk, hle⟩ := isel_shareInst_lineBound c temp op v e
+  exact isel_stmt_transfer c temp _ rfl s t res rst k hk (by simpa [preIselPrice] using hle) vars rel run ok
+
+#print axioms isel_stmt_transfer
+#print axioms isel_assign_transfer
+#print axioms isel_set_transfer
+#print axioms isel_store_transfer
+#print axioms isel_shareInst_transfer
 end InitECandidate.Runtime.FineCost
