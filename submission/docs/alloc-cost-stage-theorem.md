@@ -417,3 +417,44 @@ The projected form then follows: obtain the tuple, `rw`, `show AllocOnly p1`, ap
 - `call`: flat-price failure paths are done; the successful path is `getVars` -> `wordSemBadDestArgs` ->
   `wordSemFindCode dest (wordSemAddRetLoc ret xs) s.code s.stackSize`, which charges the callee - this is
   where the global transformed-callee code relation enters.
+
+## The optimizer price (root 8e0fe4244) - ported at HEAD dd398d158
+
+`wordOptimizerLocalPrice`: move = 24 per pair, instruction/get/loc/heap heads = max 24 (refined price),
+everything else = refined price.  CSE and copy propagation are proved against it, so the transfer has to be
+available there.
+
+The port rides a seam that costs nothing: the RUN half of a transfer never mentions a price.
+So `quantRuns` is price-free, `quantTransferAt price ...` pairs it with the counter bound, and
+`quantRuns.of_quantTransfer` reads the run half straight out of the refined-price transfer already proved.
+Only the cost half is redone, and the counter splits (`wec_seq_none_split_generic`,
+`wec_seq_some_split_generic`, `wec_move_generic`, `wec_inst`, `wec_skip`) were already price-polymorphic.
+
+Landed at the optimizer price:
+- node prices `wordOptimizerLocalPrice_move/_seq_zero/_ite/_loop/_call_none` (24*pairs, 0, 23, 2, 41);
+- `wec_move_optimizer` (a move node charges exactly 24*moves.length) and the two seq splits;
+- the leaf state-independence facts (`wec_skip_optimizer_state_independent`,
+  `wec_inst_optimizer_state_independent`, `wec_move_optimizer_state_independent`), which with the price-free
+  run half are what the suffix certificate needs to compose a compiled branch at this price;
+- `transformedCalleeRelAt` + `.spec`: the transformed-callee relation at ANY price, to instantiate here.
+
+### Blocker, and it is a real factor two, not a tactic slip
+
+The optimizer price charges 24 per move PAIR; the certified coalescing table charges 12 per emitted MOVE and
+budgets 24 per NON-self pair.  A swap of two locals emits two moves, so the optimizer price can be twice the
+table's charge for the same node (48n against 24n).  Hence `24 * parmove length <= allocMovePrice` is FALSE,
+both at n = 1 (24 against 12) and at n >= 2 with a swap, and no sharper scheduler bound repairs it.
+What is proved instead, from `goSeq_move` by arithmetic:
+  optimizer_move_price_le_double_table : 24 * length <= 2 * allocMovePrice pairs
+  optimizer_move_price_le_nonself      : 24 * length <= 56 * nonselfCount pairs
+i.e. the inserted-move charge at the optimizer price is at most twice the certified table charge.  If the
+downstream composition cannot absorb that factor on the inserted-move part, the table has to be restated at 24
+per non-self pair rather than the price weakened.
+
+### Build note
+
+The optimizer-price oleans are not in the cost-allocation build dir.  Copy the missing ones in, e.g.
+`cp -rn finite-score-build/.lake/build/lib/lean/InitECandidate cost-allocation-build/lib/lean/`, otherwise imports
+such as `WordOptimizerPrice` / `WordOptimizerMoveCost` fail with "object file ... does not exist".
+Also watch the LEAN_PATH: `N=$(cat shared_lean_path.txt)` is colon-separated and must not be overwritten with a
+single directory while copying oleans (that mistake produced a bogus "unknown module prefix Flapjack").
