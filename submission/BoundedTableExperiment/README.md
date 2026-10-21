@@ -1129,3 +1129,16 @@ Axioms are `propext`, `Classical.choice`, `Quot.sound`.
 the `cap < (count+1)*2` grow/reload/re-search arm or the `skip` arm, with the
 actual comparison events and branch run. Axioms are `propext`,
 `Classical.choice`, `Quot.sound`.
+
+## 55. Full actual binary-search iteration event/cost
+
+`candidateHtabSetBsearchStep_trace` gives the full event list of one actual
+binary-search iteration:
+
+`statement :: (mid ++ [frame 1] ++ (statement :: (mr ++ [frame 1] ++
+ (statement :: cost(statementUnit+branchMoves fn) :: (guard ++ branch)))))`
+
+with the actual `mid`/`mr` initializer runs and comparison guard.
+`candidateHtabSetBsearchStep_trace_score` gives its actual score as the two
+declaration scores plus the branch score. Axioms are `propext`,
+`Classical.choice`, `Quot.sound`.

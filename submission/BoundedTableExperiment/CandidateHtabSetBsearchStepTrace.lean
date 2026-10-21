@@ -117,6 +117,61 @@ theorem bsearchBranch_score {fn : MlS} (coeff : Work)
   simp [executionWork, WorkEvent.units, Work.score]
   omega
 
+/-- Full actual event list of one binary-search iteration. -/
+theorem candidateHtabSetBsearchStep_trace {F : Type} {fn : MlS}
+    {s post : PanSemStateFiniteExact 64 F} {events : List WorkEvent}
+    (run : StatementRun fn s candidateHtabSetBsearchStep none post events) :
+    ∃ (midValue mrValue : ValueHOL 64) (branchValue : BitVec 64)
+      (midState mrState : PanSemStateFiniteExact 64 F)
+      (midEvents mrEvents guardEvents branchEvents : List WorkEvent),
+      events = .statement :: (midEvents ++ [.frame 1] ++
+        (.statement :: (mrEvents ++ [.frame 1] ++
+          (.statement :: .cost (statementUnit + branchMoves fn) ::
+            (guardEvents ++ branchEvents))))) ∧
+      CostedExpressionRun s
+        (.shift .asr (.op .add [loc "lo",loc "hi"]) (.const 1))
+        (some midValue) midEvents ∧
+      CostedExpressionRun midState (lw candidateHtabSetMrAddr) (some mrValue) mrEvents ∧
+      CostedExpressionRun mrState (.cmp .lower (loc "d") (loc "mr"))
+        (some (.val (.word branchValue))) guardEvents := by
+  rw [show candidateHtabSetBsearchStep =
+    .dec (ofString "mid") .one
+      (.shift .asr (.op .add [loc "lo",loc "hi"]) (.const 1))
+      (.dec (ofString "mr") .one (lw candidateHtabSetMrAddr)
+        (.ite (.cmp .lower (loc "d") (loc "mr"))
+          (.assign .local (ofString "hi") (loc "mid"))
+          (.assign .local (ofString "lo") (.op .add [loc "mid",.const 1]))))
+    from rfl] at run
+  cases run with
+  | declareValue midInit _ midBody =>
+      cases midBody with
+      | declareValue mrInit _ mrBody =>
+          cases mrBody with
+          | iteYes guard nonzero branch =>
+              exact ⟨_, _, _, _, _, _, _, _, _, rfl, midInit, mrInit, guard⟩
+          | iteNo guard branch =>
+              exact ⟨_, _, _, _, _, _, _, _, _, rfl, midInit, mrInit, guard⟩
+
+/-- Actual score of a full binary-search iteration. -/
+theorem candidateHtabSetBsearchStep_trace_score {F : Type} {fn : MlS}
+    (coeff : Work) {s post : PanSemStateFiniteExact 64 F}
+    {events : List WorkEvent}
+    (run : StatementRun fn s candidateHtabSetBsearchStep none post events) :
+    ∃ (midEvents mrEvents guardEvents branchEvents : List WorkEvent),
+      coeff.score (executionWork events) =
+        coeff.statements + coeff.score (executionWork midEvents) +
+        coeff.frameSlots +
+        (coeff.statements + coeff.score (executionWork mrEvents) +
+          coeff.frameSlots +
+          (coeff.statements +
+            coeff.nativeCost * (statementUnit + branchMoves fn) +
+            coeff.score (executionWork guardEvents) +
+            coeff.score (executionWork branchEvents))) := by
+  obtain ⟨_, _, _, _, _, midEvents, mrEvents, guardEvents, branchEvents,
+    rfl, _, _, _⟩ := candidateHtabSetBsearchStep_trace run
+  refine ⟨midEvents, mrEvents, guardEvents, branchEvents, ?_⟩
+  rw [bsearchDecl_score, bsearchDecl_score, bsearchBranch_score]
+
 end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.candidateHtabSetBsearchStep_mid
@@ -124,3 +179,5 @@ end BoundedTableExperiment
 #print axioms BoundedTableExperiment.candidateHtabSetBsearchStep_branch
 #print axioms BoundedTableExperiment.bsearchDecl_score
 #print axioms BoundedTableExperiment.bsearchBranch_score
+#print axioms BoundedTableExperiment.candidateHtabSetBsearchStep_trace
+#print axioms BoundedTableExperiment.candidateHtabSetBsearchStep_trace_score
