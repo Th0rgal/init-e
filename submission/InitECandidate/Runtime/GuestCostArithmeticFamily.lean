@@ -9,6 +9,8 @@ open Flapjack.Basis.Pure.MlString
 
 variable {F : Type}
 
+private def addSatFn : MlS := ofString "add_sat"
+
 /-- The saturating-add opcode helper: add the two words and return the maximum
 word exactly when the addition carried. -/
 noncomputable def addSatSumExpression : ExpHOL 64 :=
@@ -64,8 +66,8 @@ noncomputable def addSatCarryEvents (s : PanSemStateFiniteExact 64 F) (sum : Bit
   let entry := setVarHOLFinite (ofString "s") (.val (.word sum)) s
   let guardEvents := expressionEvents entry addSatCarryExpression
   let retEvents := .statement :: (expressionEvents entry (.const addSatMaximum) ++
-    [.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length)])
-  let tailEvents := .statement :: .cost statementUnit :: (guardEvents ++ retEvents)
+    [.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length + returnMoves addSatFn)])
+  let tailEvents := .statement :: .cost (statementUnit + branchMoves addSatFn) :: (guardEvents ++ retEvents)
   .statement :: (expressionEvents s addSatSumExpression ++
     [.frame 1] ++ tailEvents)
 
@@ -73,9 +75,9 @@ noncomputable def addSatCarryEvents (s : PanSemStateFiniteExact 64 F) (sum : Bit
 noncomputable def addSatNoCarryEvents (s : PanSemStateFiniteExact 64 F) (sum : BitVec 64) :
     List WorkEvent :=
   let entry := setVarHOLFinite (ofString "s") (.val (.word sum)) s
-  let guardEvents := .statement :: .cost statementUnit :: (expressionEvents entry addSatCarryExpression ++ [.statement])
+  let guardEvents := .statement :: .cost (statementUnit + branchMoves addSatFn) :: (expressionEvents entry addSatCarryExpression ++ [.statement])
   let retEvents := .statement :: (expressionEvents entry (.var VarKind.local (ofString "s")) ++
-    [.cost (returnOverhead (flattenHOL (.val (.word sum))).length)])
+    [.cost (returnOverhead (flattenHOL (.val (.word sum))).length + returnMoves addSatFn)])
   let tailEvents := guardEvents ++ retEvents
   .statement :: (expressionEvents s addSatSumExpression ++
     [.frame 1] ++ tailEvents)
@@ -86,7 +88,7 @@ theorem addSat_carry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 64)
     (hB : s.locals.lookup (ofString "b") = some (.val (.word b)))
     (hSum : sum = a + b)
     (carry : sum.toNat < a.toNat) :
-    StatementRun s addSatDeclaredBody (some (.returned (.val (.word addSatMaximum))))
+    StatementRun addSatFn s addSatDeclaredBody (some (.returned (.val (.word addSatMaximum))))
       (addSatReturnedPost s sum) (addSatCarryEvents s sum) := by
   classical
   let entry := setVarHOLFinite (ofString "s") (.val (.word sum)) s
@@ -111,24 +113,24 @@ theorem addSat_carry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 64)
   have payload : CostedExpressionRun entry (.const addSatMaximum)
       (some (.val (.word addSatMaximum))) (expressionEvents entry (.const addSatMaximum)) :=
     costedExpression_events entry _ _ (by simp [expressionValue, evalHOLExact])
-  have bodyRun : StatementRun entry (.return (.const addSatMaximum))
+  have bodyRun : StatementRun addSatFn entry (.return (.const addSatMaximum))
       (some (.returned (.val (.word addSatMaximum)))) (emptyLocalsHOLFinite entry)
       (.statement :: (expressionEvents entry (.const addSatMaximum) ++
-        [.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length)])) :=
-    StatementRun.returnValue (expression := .const addSatMaximum) payload
+        [.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length + returnMoves addSatFn)])) :=
+    StatementRun.returnValue (fn := addSatFn) (expression := .const addSatMaximum) payload
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
-  have tailRun : StatementRun entry addSatTail
+  have tailRun : StatementRun addSatFn entry addSatTail
       (some (.returned (.val (.word addSatMaximum)))) (emptyLocalsHOLFinite entry)
-      (.statement :: .cost statementUnit :: (expressionEvents entry addSatCarryExpression ++
+      (.statement :: .cost (statementUnit + branchMoves addSatFn) :: (expressionEvents entry addSatCarryExpression ++
         (.statement :: (expressionEvents entry (.const addSatMaximum) ++
-          [.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length)])))) := by
+          [.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length + returnMoves addSatFn)])))) := by
     unfold addSatTail
-    exact StatementRun.seqStop (by simp)
-      (StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
+    exact StatementRun.seqStop (fn := addSatFn) (by simp)
+      (StatementRun.iteYes (fn := addSatFn) (post := emptyLocalsHOLFinite entry)
         (yes := .return (.const addSatMaximum)) (no := .skip) guard (by decide) bodyRun)
   have shapeMatch : shapeEqHOL .one (shapeOfHOLExact (.val (.word sum))) = true := by
     simp [shapeOfHOLExact, shapeEqHOL]
-  refine StatementRun.declareValue (name := ofString "s") (shape := .one)
+  refine StatementRun.declareValue (fn := addSatFn) (name := ofString "s") (shape := .one)
     (initializer := addSatSumExpression) (body := addSatTail) init shapeMatch ?_
   simpa [addSatCarryEvents, addSatDeclaredBody, entry] using tailRun
 
@@ -138,7 +140,7 @@ theorem addSat_noCarry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 6
     (hB : s.locals.lookup (ofString "b") = some (.val (.word b)))
     (hSum : sum = a + b)
     (noCarry : ¬ sum.toNat < a.toNat) :
-    StatementRun s addSatDeclaredBody (some (.returned (.val (.word sum))))
+    StatementRun addSatFn s addSatDeclaredBody (some (.returned (.val (.word sum))))
       (addSatReturnedPost s sum) (addSatNoCarryEvents s sum) := by
   classical
   let entry := setVarHOLFinite (ofString "s") (.val (.word sum)) s
@@ -167,26 +169,26 @@ theorem addSat_noCarry_run (s : PanSemStateFiniteExact 64 F) (a b sum : BitVec 6
       (some (.val (.word sum)))
       (expressionEvents entry (.var VarKind.local (ofString "s"))) :=
     costedExpression_events entry _ _ retValue
-  have bodyRun : StatementRun entry (.return (.var VarKind.local (ofString "s")))
+  have bodyRun : StatementRun addSatFn entry (.return (.var VarKind.local (ofString "s")))
       (some (.returned (.val (.word sum)))) (emptyLocalsHOLFinite entry)
       (.statement :: (expressionEvents entry (.var VarKind.local (ofString "s")) ++
-        [.cost (returnOverhead (flattenHOL (.val (.word sum))).length)])) :=
-    StatementRun.returnValue (expression := .var VarKind.local (ofString "s")) ret
+        [.cost (returnOverhead (flattenHOL (.val (.word sum))).length + returnMoves addSatFn)])) :=
+    StatementRun.returnValue (fn := addSatFn) (expression := .var VarKind.local (ofString "s")) ret
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
-  have tailRun : StatementRun entry addSatTail
+  have tailRun : StatementRun addSatFn entry addSatTail
       (some (.returned (.val (.word sum)))) (emptyLocalsHOLFinite entry)
-      ((.statement :: .cost statementUnit :: (expressionEvents entry addSatCarryExpression ++
+      ((.statement :: .cost (statementUnit + branchMoves addSatFn) :: (expressionEvents entry addSatCarryExpression ++
         [.statement])) ++
         (.statement :: (expressionEvents entry (.var VarKind.local (ofString "s")) ++
-          [.cost (returnOverhead (flattenHOL (.val (.word sum))).length)]))) := by
+          [.cost (returnOverhead (flattenHOL (.val (.word sum))).length + returnMoves addSatFn)]))) := by
     unfold addSatTail
-    exact StatementRun.seqNext
-      (StatementRun.iteNo (condition := addSatCarryExpression)
+    exact StatementRun.seqNext (fn := addSatFn)
+      (StatementRun.iteNo (fn := addSatFn) (condition := addSatCarryExpression)
         (yes := .return (.const addSatMaximum)) (no := .skip) guard
-        (StatementRun.skip (s := entry))) bodyRun
+        (StatementRun.skip (fn := addSatFn) (s := entry))) bodyRun
   have shapeMatch : shapeEqHOL .one (shapeOfHOLExact (.val (.word sum))) = true := by
     simp [shapeOfHOLExact, shapeEqHOL]
-  refine StatementRun.declareValue (name := ofString "s") (shape := .one)
+  refine StatementRun.declareValue (fn := addSatFn) (name := ofString "s") (shape := .one)
     (initializer := addSatSumExpression) (body := addSatTail) init shapeMatch ?_
   simpa [addSatNoCarryEvents, addSatDeclaredBody, entry] using tailRun
 
@@ -204,8 +206,8 @@ theorem addSatCarryEvents_score (coeff : Work)
         coeff.movedWords * (flattenHOL (.val (.word addSatMaximum))).length +
         coeff.movedWords * (((s.locals.lookup (ofString "s")).map
           (fun previous => (flattenHOL previous).length)).getD 0) +
-        coeff.score (WorkEvent.cost statementUnit).units +
-        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length)).units := by
+        coeff.score (WorkEvent.cost (statementUnit + branchMoves addSatFn)).units +
+        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word addSatMaximum))).length + returnMoves addSatFn)).units := by
   unfold addSatCarryEvents expressionCost
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
     guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
@@ -225,8 +227,8 @@ theorem addSatNoCarryEvents_score (coeff : Work)
         coeff.movedWords * (flattenHOL (.val (.word sum))).length +
         coeff.movedWords * (((s.locals.lookup (ofString "s")).map
           (fun previous => (flattenHOL previous).length)).getD 0) +
-        coeff.score (WorkEvent.cost statementUnit).units +
-        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word sum))).length)).units := by
+        coeff.score (WorkEvent.cost (statementUnit + branchMoves addSatFn)).units +
+        coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word sum))).length + returnMoves addSatFn)).units := by
   unfold addSatNoCarryEvents expressionCost
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
     guest_score_copy, score_frame, guest_score_memory, score_singleton, score_expression,
@@ -248,7 +250,7 @@ theorem addSat_carry_source_run (s : PanSemStateFiniteExact 64 Guest.HostMemory)
     (hA : s.locals.lookup (ofString "a") = some (.val (.word a)))
     (hB : s.locals.lookup (ofString "b") = some (.val (.word b)))
     (hSum : sum = a + b) (carry : sum.toNat < a.toNat) :
-    StatementRun s (sourceFunctionBody Guest.guestFn_add_sat)
+    StatementRun addSatFn s (sourceFunctionBody Guest.guestFn_add_sat)
       (some (.returned (.val (.word addSatMaximum))))
       (addSatReturnedPost s sum) (addSatCarryEvents s sum) := by
   rw [source_addSat_body]
@@ -260,7 +262,7 @@ theorem addSat_noCarry_source_run (s : PanSemStateFiniteExact 64 Guest.HostMemor
     (hA : s.locals.lookup (ofString "a") = some (.val (.word a)))
     (hB : s.locals.lookup (ofString "b") = some (.val (.word b)))
     (hSum : sum = a + b) (noCarry : ¬ sum.toNat < a.toNat) :
-    StatementRun s (sourceFunctionBody Guest.guestFn_add_sat)
+    StatementRun addSatFn s (sourceFunctionBody Guest.guestFn_add_sat)
       (some (.returned (.val (.word sum))))
       (addSatReturnedPost s sum) (addSatNoCarryEvents s sum) := by
   rw [source_addSat_body]
