@@ -145,7 +145,7 @@ partial def loopBody : WordLangProgHOL (BitVec 64) → Option (WordLangProgHOL (
   | .mustTerminate b => loopBody b
   | _ => none
 
-def target := [(103,"find_leaf"),(104,"find_leaf_path"),(109,"set"),(108,"grow"),(117,"copy"),(111,"truncate"),(107,"relocate"),(110,"del")]
+def target := [(103,"find_leaf"),(104,"find_leaf_path"),(109,"set"),(108,"grow"),(117,"copy"),(111,"truncate"),(107,"relocate"),(110,"del"),(76,"memcpy"),(77,"memzero"),(78,"memeq"),(67,"alloc")]
 
 unsafe def main : IO Unit := do
   for (lab,nm) in target do
