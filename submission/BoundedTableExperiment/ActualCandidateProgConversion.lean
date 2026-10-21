@@ -36,6 +36,23 @@ theorem progToHOL_assign_eq (kind : VarKind) (name : String) (value : Exp (BitVe
     progToHOL (.assign kind name value) = .assign kind (ofString name) (expToHOL value) := by
   rw [progToHOL.eq_def]
 
+theorem progToHOL_ite_eq (condition : Exp (BitVec 64))
+    (thenBranch elseBranch : Prog (BitVec 64)) :
+    progToHOL (.ite condition thenBranch elseBranch) =
+      .ite (expToHOL condition) (progToHOL thenBranch) (progToHOL elseBranch) := by
+  rw [progToHOL.eq_def]
+
+theorem progToHOL_while_eq (condition : Exp (BitVec 64)) (body : Prog (BitVec 64)) :
+    progToHOL (.while condition body) = .while (expToHOL condition) (progToHOL body) := by
+  rw [progToHOL.eq_def]
+
+theorem progToHOL_return_eq (value : Exp (BitVec 64)) :
+    progToHOL (.return value) = .return (expToHOL value) := by
+  rw [progToHOL.eq_def]
+
+theorem progToHOL_skip_eq : progToHOL (.skip : Prog (BitVec 64)) = .skip := by
+  rw [progToHOL.eq_def]
+
 /-- The frozen candidate `htab_new_scratch` starts with the 120-byte table
 allocation; the exact continuation is left opaque. -/
 theorem candidate_htabNewScratch_allocHead :
