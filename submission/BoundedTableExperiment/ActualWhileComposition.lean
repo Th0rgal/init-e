@@ -26,13 +26,13 @@ inductive WhileEvents {F : Type} (fn : MlS) (condition : ExpHOL 64)
   | next {s middle post} {value : BitVec 64} {r : Option (PanSemResultExact 64)}
       {guardEvents bodyEvents restEvents : List WorkEvent}
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
-      (nonzero : value ≠ 0)
+      (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       (one : StatementRun fn (decClockHOLFinite s) body none middle bodyEvents)
       (rest : WhileEvents fn condition body middle r post restEvents) :
       WhileEvents fn condition body s r post
         (.statement :: .cost (whileOverhead + loopMoves fn) ::
           (guardEvents ++ bodyEvents ++ restEvents))
-  | break {s post} {value : BitVec 64}
+  | breakLoop {s post} {value : BitVec 64}
       {guardEvents bodyEvents : List WorkEvent}
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0)
@@ -40,10 +40,10 @@ inductive WhileEvents {F : Type} (fn : MlS) (condition : ExpHOL 64)
       WhileEvents fn condition body s none post
         (.statement :: .cost (whileOverhead + loopMoves fn) ::
           (guardEvents ++ bodyEvents))
-  | continue {s middle post} {value : BitVec 64} {r : Option (PanSemResultExact 64)}
+  | continueLoop {s middle post} {value : BitVec 64} {r : Option (PanSemResultExact 64)}
       {guardEvents bodyEvents restEvents : List WorkEvent}
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
-      (nonzero : value ≠ 0)
+      (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       (one : StatementRun fn (decClockHOLFinite s) body (some .continue) middle bodyEvents)
       (rest : WhileEvents fn condition body middle r post restEvents) :
       WhileEvents fn condition body s r post
@@ -109,7 +109,7 @@ def whileEventsOfRun {F : Type} {fn : MlS} {condition : ExpHOL 64}
           exact WhileEvents.stop guard
       | whileNext guard nonzero clock one rest =>
           change WhileEvents fn condition body s r post _
-          exact WhileEvents.next guard nonzero one
+          exact WhileEvents.next guard nonzero clock one
             (rec ⟨_, _, _, _, rest⟩ (by
               change (measure fun d : @WhileData F fn condition body => d.s.clock).rel _ _
               simp only [InvImage, WellFoundedRelation.rel, measure]
@@ -119,10 +119,10 @@ def whileEventsOfRun {F : Type} {fn : MlS} {condition : ExpHOL 64}
               omega))
       | whileBreak guard nonzero clock one =>
           change WhileEvents fn condition body s none post _
-          exact WhileEvents.break guard nonzero one
+          exact WhileEvents.breakLoop guard nonzero one
       | whileContinue guard nonzero clock one rest =>
           change WhileEvents fn condition body s r post _
-          exact WhileEvents.continue guard nonzero one
+          exact WhileEvents.continueLoop guard nonzero clock one
             (rec ⟨_, _, _, _, rest⟩ (by
               change (measure fun d : @WhileData F fn condition body => d.s.clock).rel _ _
               simp only [InvImage, WellFoundedRelation.rel, measure]
