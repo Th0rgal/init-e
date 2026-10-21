@@ -30,7 +30,7 @@ noncomputable def externalTransferEvents {F : Type} (s : PanSemStateFiniteExact 
 noncomputable def externalEvents {F : Type} (s : PanSemStateFiniteExact 64 F)
     (function : MlStringHOL) (configuration configurationLength array arrayLength : ExpHOL 64) :
     List WorkEvent :=
-  .statement :: (expressionEvents s configuration ++ expressionEvents s configurationLength ++
+  .statement :: .cost 37 :: (expressionEvents s configuration ++ expressionEvents s configurationLength ++
     expressionEvents s array ++ expressionEvents s arrayLength ++
     externalTransferEvents s function configuration configurationLength array arrayLength)
 

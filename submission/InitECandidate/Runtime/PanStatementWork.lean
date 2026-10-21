@@ -3,6 +3,42 @@ import InitECandidate.Runtime.PanExternalCost
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
+/-! Native overheads of executed statements beyond their expressions, at the
+native Crep prices (`CrepWorkS`): a statement unit is 37, a call 196 plus one
+argument move (39) and one argument slot (1) per word, a returned word 49.
+`Skip`, sequencing, declarations and assignments emit no unit: their Crep code
+is the expressions' own. -/
+
+/-- The Crep statement unit. -/
+def statementUnit : Nat := 37
+
+/-- A loop guard evaluation pays three statement units. -/
+def whileOverhead : Nat := 3 * statementUnit
+
+/-- `return` of `n` words: the statement unit, one move and one slot per word. -/
+def returnOverhead (n : Nat) : Nat := statementUnit + 40 * n
+
+/-- `raise` of `n` words: a global store per word and the raise itself. -/
+def raiseOverhead (n : Nat) : Nat := 51 * n + 86
+
+/-- A call with `n` argument words. -/
+def callOverhead (n : Nat) : Nat := 196 + 40 * n
+
+/-- Zero-initialised return slots of a declaring call. -/
+def slotOverhead (n : Nat) : Nat := 19 * n
+
+/-- Copying `n` returned words to the caller. -/
+def returnCopy (n : Nat) : Nat := 49 * n
+
+/-- Leaving a call: copying the returned words, or for an exception its
+payload and the compiled handler check and re-raise. -/
+def callExitOverhead : Option (PanSemResultExact 64) → Nat
+  | some (.exception _ value) => returnCopy (flattenHOL value).length + 147
+  | result => returnCopy (callPayloadWords result)
+
+/-- A primitive over `n` argument words: the primitive and one slot per word. -/
+def primitiveOverhead (n : Nat) : Nat := 85 + n
+
 /-- Size-aware statement traces. Recursive control rules expose every guard
 expression and only the statements on the executed branch. `Seq` is structural
 composition: it emits no event of its own (no native operation), so actual
@@ -22,43 +58,43 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (nonzero : value ≠ 0)
       (body : StatementRun s yes r post bodyEvents) :
       StatementRun s (.ite condition yes no) r post
-        (.statement :: (guardEvents ++ bodyEvents))
+        (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents))
   | iteNo {s condition yes no guardEvents r post bodyEvents}
       (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents)
       (body : StatementRun s no r post bodyEvents) :
       StatementRun s (.ite condition yes no) r post
-        (.statement :: (guardEvents ++ bodyEvents))
+        (.statement :: .cost statementUnit :: (guardEvents ++ bodyEvents))
 
-  | breakStmt (s) : StatementRun s .break (some .break) s [.statement]
-  | continueStmt (s) : StatementRun s .continue (some .continue) s [.statement]
+  | breakStmt (s) : StatementRun s .break (some .break) s [.statement, .cost statementUnit]
+  | continueStmt (s) : StatementRun s .continue (some .continue) s [.statement, .cost statementUnit]
   | whileFalse {s condition body guardEvents}
       (guard : CostedExpressionRun s condition (some (.val (.word 0))) guardEvents) :
-      StatementRun s (.while condition body) none s (.statement :: guardEvents)
+      StatementRun s (.while condition body) none s (.statement :: .cost whileOverhead :: guardEvents)
   | whileNext {s condition body value guardEvents middle r post bodyEvents restEvents}
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       (one : StatementRun (decClockHOLFinite s) body none middle bodyEvents)
       (rest : StatementRun middle (.while condition body) r post restEvents) :
       StatementRun s (.while condition body) r post
-        (.statement :: (guardEvents ++ bodyEvents ++ restEvents))
+        (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents ++ restEvents))
   | whileContinue {s condition body value guardEvents middle r post bodyEvents restEvents}
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       (one : StatementRun (decClockHOLFinite s) body (some .continue) middle bodyEvents)
       (rest : StatementRun middle (.while condition body) r post restEvents) :
       StatementRun s (.while condition body) r post
-        (.statement :: (guardEvents ++ bodyEvents ++ restEvents))
+        (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents ++ restEvents))
   | whileBreak {s condition body value guardEvents post bodyEvents}
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock ≠ 0)
       (one : StatementRun (decClockHOLFinite s) body (some .break) post bodyEvents) :
       StatementRun s (.while condition body) none post
-        (.statement :: (guardEvents ++ bodyEvents))
+        (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))
   | whileTimeout {s condition body value guardEvents}
       (guard : CostedExpressionRun s condition (some (.val (.word value))) guardEvents)
       (nonzero : value ≠ 0) (clock : s.clock = 0) :
       StatementRun s (.while condition body) (some .timeOut) (emptyLocalsHOLFinite s)
-        (.statement :: guardEvents)
+        (.statement :: .cost whileOverhead :: guardEvents)
   | whileMissingGuard {s condition body guardEvents}
       (guard : CostedExpressionRun s condition none guardEvents) :
       StatementRun s (.while condition body) (some .error) s (.statement :: guardEvents)
@@ -69,7 +105,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (notBreak : result ≠ .break) (notContinue : result ≠ .continue)
       (one : StatementRun (decClockHOLFinite s) body (some result) post bodyEvents) :
       StatementRun s (.while condition body) (some result) post
-        (.statement :: (guardEvents ++ bodyEvents))
+        (.statement :: .cost whileOverhead :: (guardEvents ++ bodyEvents))
 
   | assignValue {s kind name expression value events}
       (expr : CostedExpressionRun s expression (some value) events)
@@ -88,7 +124,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (expr : CostedExpressionRun s expression (some value) events)
       (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
       StatementRun s (.return expression) (some (.returned value)) (emptyLocalsHOLFinite s)
-        (.statement :: (events ++ [.copy (flattenHOL value).length]))
+        (.statement :: (events ++ [.cost (returnOverhead (flattenHOL value).length)]))
   | returnOversize {s expression value events}
       (expr : CostedExpressionRun s expression (some value) events)
       (size : ¬ sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
@@ -103,7 +139,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (shapeMatches : shapeOfHOLExact value = shape)
       (size : sizeOfShapeWithContextHOL s.structs (shapeOfHOLExact value) ≤ 32) :
       StatementRun s (.raise exceptionId expression) (some (.exception exceptionId value))
-        (emptyLocalsHOLFinite s) (.statement :: (events ++ [.copy (flattenHOL value).length]))
+        (emptyLocalsHOLFinite s) (.statement :: (events ++ [.cost (raiseOverhead (flattenHOL value).length)]))
   | raiseFailure {s exceptionId expression events}
       (expr : CostedExpressionRun s expression none events) :
       StatementRun s (.raise exceptionId expression) (some .error) s (.statement :: events)
@@ -196,9 +232,9 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (plan : callCostPlan s info returnShape bodyResult bodyPost = .done result post) :
       StatementRun s (.call info function arguments) result post
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length,
-            .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-          [.copy (callPayloadWords bodyResult)] ++ callGlobalEvents s info))
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
+          [.cost (callExitOverhead bodyResult)] ++ callGlobalEvents s info))
   | callHandler {s info function arguments values body callee returnShape bodyResult bodyPost
       bodyEvents handlerEntry handlerProgram handlerEvents result post}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -210,9 +246,9 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (handlerRun : StatementRun handlerEntry handlerProgram result post handlerEvents) :
       StatementRun s (.call info function arguments) result post
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length,
-            .frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ bodyEvents ++
-          [.copy (callPayloadWords bodyResult)] ++ handlerEvents))
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++
+          [.cost (callExitOverhead bodyResult)] ++ handlerEvents))
   | callArgumentsFailure {s info function arguments}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
         arguments = none) :
@@ -231,7 +267,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (clock : s.clock = 0) :
       StatementRun s (.call info function arguments) (some .timeOut) (emptyLocalsHOLFinite s)
         (.statement :: (expressionListEvents s arguments ++
-          [.frame (sizeOfShapeWithContextHOL s.structs returnShape)] ++ callGlobalEvents s info))
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ callGlobalEvents s info))
 
   | declareCallReturn {s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents continuationEvents result post}
@@ -249,9 +286,9 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       StatementRun s (.decCall name shape function arguments continuation) result
         { post with locals := HolFiniteMapExact.resVarEq post.locals (name, s.locals.lookup name) }
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length,
-            .frame (sizeOfShapeWithContextHOL s.structs shape)] ++ bodyEvents ++
-          [.copy (flattenHOL value).length] ++ continuationEvents ++
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
+          [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents ++
           [.copy (((s.locals.lookup name).map (fun old => (flattenHOL old).length)).getD 0)]))
 
   | declareCallArgumentsFailure {s name shape function arguments continuation}
@@ -272,7 +309,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (clock : s.clock = 0) :
       StatementRun s (.decCall name shape function arguments continuation)
         (some .timeOut) (emptyLocalsHOLFinite s) (.statement :: (expressionListEvents s arguments ++
-          [.frame (sizeOfShapeWithContextHOL s.structs shape)]))
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs shape))]))
   | declareCallRejectedReturn {s name shape function arguments continuation values body callee returnShape
       value bodyPost bodyEvents}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -285,8 +323,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
         shapeEqHOL (shapeOfHOLExact value) returnShape) = false) :
       StatementRun s (.decCall name shape function arguments continuation) (some .error) bodyPost
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length,
-            .frame (sizeOfShapeWithContextHOL s.structs shape)] ++ bodyEvents))
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents))
   | declareCallStopped {s name shape function arguments continuation values body callee returnShape
       bodyResult bodyPost bodyEvents}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -298,19 +336,19 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       StatementRun s (.decCall name shape function arguments continuation)
         (declareCallStopPlan bodyResult bodyPost).1 (declareCallStopPlan bodyResult bodyPost).2
         (.statement :: (expressionListEvents s arguments ++
-          [.copy (values.flatMap flattenHOL).length, .frame values.length,
-            .frame (sizeOfShapeWithContextHOL s.structs shape)] ++ bodyEvents ++
-          [.copy (callPayloadWords bodyResult)]))
+          [.cost (callOverhead (values.flatMap flattenHOL).length +
+            slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
+          [.cost (callExitOverhead bodyResult)]))
 
   | tickStep {s} (clock : s.clock ≠ 0) :
-      StatementRun s .tick none (decClockHOLFinite s) [.statement]
+      StatementRun s .tick none (decClockHOLFinite s) [.statement, .cost statementUnit]
   | tickTimeout {s} (clock : s.clock = 0) :
-      StatementRun s .tick (some .timeOut) (emptyLocalsHOLFinite s) [.statement]
+      StatementRun s .tick (some .timeOut) (emptyLocalsHOLFinite s) [.statement, .cost statementUnit]
   | annotation {s tag text} : StatementRun s (.annot tag text) none s [.statement]
   | iteInvalidGuard {s condition yes no value events}
       (guard : CostedExpressionRun s condition value events)
       (invalid : ∀ word, value ≠ some (.val (.word word))) :
-      StatementRun s (.ite condition yes no) (some .error) s (.statement :: events)
+      StatementRun s (.ite condition yes no) (some .error) s (.statement :: .cost statementUnit :: events)
   | whileInvalidGuard {s condition body value events}
       (guard : CostedExpressionRun s condition value events)
       (invalid : ∀ word, value ≠ some (.val (.word word))) :
@@ -351,7 +389,8 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (operation : panPrimopHOLExact operator values = some value)
       (valid : isValidValueHOLFinite s .local name value = true) :
       StatementRun s (.primitive name operator arguments) none (setVarHOLFinite name value s)
-        (.statement :: (expressionListEvents s arguments ++ [.scalar 1] ++ [.copy (flattenHOL value).length]))
+        (.statement :: (expressionListEvents s arguments ++
+          [.cost (primitiveOverhead (values.flatMap flattenHOL).length)] ++ [.copy (flattenHOL value).length]))
 
   | primitiveInvalid {s name operator arguments values value}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
@@ -359,14 +398,16 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F → ProgHOL 64 �
       (operation : panPrimopHOLExact operator values = some value)
       (valid : isValidValueHOLFinite s .local name value = false) :
       StatementRun s (.primitive name operator arguments) (some .error) s
-        (.statement :: (expressionListEvents s arguments ++ [.scalar 1]))
+        (.statement :: (expressionListEvents s arguments ++
+          [.cost (primitiveOverhead (values.flatMap flattenHOL).length)]))
 
   | primitiveRejected {s name operator arguments values}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
         arguments = some values)
       (operation : panPrimopHOLExact operator values = none) :
       StatementRun s (.primitive name operator arguments) (some .error) s
-        (.statement :: (expressionListEvents s arguments ++ [.scalar 1]))
+        (.statement :: (expressionListEvents s arguments ++
+          [.cost (primitiveOverhead (values.flatMap flattenHOL).length)]))
 
   | primitiveArgumentsFailure {s name operator arguments}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))
