@@ -340,3 +340,36 @@ by the guest. No resize/copy/truncate path is bypassed in these runs.
   `riscv-isa-sim` with `riscv64-unknown-elf-{as,ld}`
 
 These are experimental participant artifacts, not challenge inputs.
+
+## 11. Lifecycle, copy/scratch, and remaining key lengths
+
+`lifecycle_spike.sh` runs a linked test with 200 inserts, `htab_copy`,
+`htab_copy_scratch`, mutation of both copies, 100 deletes, 100 reinserts across
+the growth boundary, and 50 delete/reinsert recycling cycles. It verifies that
+the original and copies are independent and that every live/dead lookup is
+correct. Result: `1,641,719` Spike steps, status/count checksum `1,000,200`,
+matching the expected `1e6*ok + count`.
+
+`copy_spike.sh` measures copy cost directly by comparing `COPIES=0` with
+`COPIES=1` at N=5,000:
+
+| operation | Spike steps | delta | per entry |
+|---|---:|---:|---:|
+| no copy | 37,514,634 | — | — |
+| heap `htab_copy` | 38,037,709 | 523,075 | ≈105 |
+| scratch `htab_copy_scratch` | 38,037,661 | 523,027 | ≈105 |
+
+Thus a copy is linear in the table and must be charged once per block where
+`compute_state_root` invokes it; it is not hidden in the per-lookup path.
+Scratch copy has the same measured cost and its allocations are released with
+the frame.
+
+The remaining key lengths are now linked-tested too:
+
+| N | key length | Spike steps | checksum |
+|---|---|---:|---|
+| 1,000 | 28 | 6,537,347 | match |
+| 1,000 | 52 | 6,747,606 | match |
+
+All of these are Spike machine steps, not source-price ticks; the certificate
+still needs the generated `StatementRun` events and coefficient calibration.
