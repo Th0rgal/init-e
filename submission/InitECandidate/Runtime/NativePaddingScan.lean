@@ -826,6 +826,30 @@ theorem paddingNop_length : paddingNop.length = 4 := by
   rw [paddingNop_eq]
   rfl
 
+/-! ### The remaining source-side obligation
+
+`padSection_asm_padding`/`padSection_labAsm_padding` turn any bound on a source
+line's *slack* into the padding of its image, so the whole-artifact numeric bound
+reduces to a bound on the pre-padding code.  That bound is an encoding fact --
+`encLinesAgain` passes `Asm` lines through unchanged, a re-encoded `LabAsm` line
+takes `l1 = max bs.length l`, `linesUpdLabLen` gives each label length `0` or `1`,
+and `addNop` appends exactly one nop chunk -- and it is stated nowhere yet. -/
+
+/-- **Open obligation: the source-side slack bound.**  Every instruction line of
+the artifact's pre-padding code carries at most `B` bytes of recorded slack.
+
+This is the only missing premise: the segment-level form
+`∀ seg ∈ padded0Certificate.segs,
+ (lineBytes seg.emitted).length ≤ (lineBytes seg.source).length + B`
+follows from it through `padSection_asm_padding`/`padSection_labAsm_padding`
+plus one `addNop` chunk, and `PadSeg.paddingLen_le_of_length_le` then gives
+`seg.paddingLen ≤ B` for every scanned segment.  It is *not* provable by
+computation: reducing any artifact-wide projection of `Final.final0` (205014
+instruction lines) overflows the stack, so it must be proved structurally about
+`encLinesAgain`/`linesUpdLabLen`/`addNop`. -/
+def SourceSlackBound (B : Nat) : Prop :=
+  ∀ line ∈ insts InitECandidate.Proofs.BackendStages.Final.final0, lineSlack line ≤ B
+
 #print axioms scanInsts_maps
 #print axioms asmFetchAux_eq_insts
 #print axioms scanInsts_padCode
@@ -846,6 +870,9 @@ theorem paddingNop_length : paddingNop.length = 4 := by
 #print axioms padBytes_length
 #print axioms padSection_asm_padding
 #print axioms padSection_labAsm_padding
+#print axioms SourceSlackBound
+#print axioms PadSeg.paddingLen_eq_of_prefix
+#print axioms PadSeg.paddingLen_le_of_length_le
 #print axioms section597_pad
 #print axioms section597_scan_segments
 #print axioms section597_padding_bound
