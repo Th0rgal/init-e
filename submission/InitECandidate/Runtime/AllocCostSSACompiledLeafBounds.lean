@@ -499,6 +499,31 @@ theorem move_node_schedule_le_charge {pri : Nat} {pairs : List (Nat × Nat)}
       certifiedMoveCharge pairs :=
   le_trans (goSeq_move ok) (allocMovePrice_le_certifiedCharge pairs)
 
+/-- **`seq` stage transfer with a certified per-site overhead.**  Composing the
+two fall-through decompositions (`wec_seq_none_split`) gives the whole-`seq` transfer:
+node-price overhead plus the two halves' transfers at the reached middle states.  The
+source-side price carries the certified per-site SSA overhead `extraNode`; the target
+side is never charged a supplied budget. -/
+theorem seq_transfer_fallthrough {C F : Type}
+    (s1 s2 : WordLangProgHOL (BitVec 64))
+    (source target midS midT : WordSemStateFiniteExact 64 C F)
+    (hS : fixClock source (evaluate s1 source) = (none, midS))
+    (hT : fixClock target (evaluate s1 target) = (none, midT))
+    {extraNode extra1 extra2 : Nat}
+    (hnode : nativeWordPrice (.seq s1 s2) target ≤
+      nativeWordPrice (.seq s1 s2) source + extraNode)
+    (h1 : wordExecutionCost nativeWordPrice s1 target ≤
+      wordExecutionCost nativeWordPrice s1 source + extra1)
+    (h2 : wordExecutionCost nativeWordPrice s2 midT ≤
+      wordExecutionCost nativeWordPrice s2 midS + extra2) :
+    wordExecutionCost nativeWordPrice (.seq s1 s2) target ≤
+      wordExecutionCost nativeWordPrice (.seq s1 s2) source +
+        (extraNode + (extra1 + extra2)) := by
+  rw [wec_seq_none_split s1 s2 target midT hT,
+    wec_seq_none_split s1 s2 source midS hS]
+  omega
+
+#print axioms seq_transfer_fallthrough
 #print axioms move_node_schedule_le_charge
 #print axioms allocMovePrice_le_certifiedCharge
 #print axioms allocMovePrice_eq
