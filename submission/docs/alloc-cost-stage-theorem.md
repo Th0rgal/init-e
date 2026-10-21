@@ -97,3 +97,48 @@ SSA map well-formedness, the freshness bound and the table invariant. The only
 premise about the target's *run* is `ssaSimulation`, which the compiler proof already establishes constructor by
 constructor, and the induction is the source-measure one
 (`lex3_induction`, quantified over all target programs/states/relations).
+
+## Compiler-derived inserted-move counts (allocation side)
+
+Read from the allocator sources, not assumed:
+
+- `fixInconsistencies prio ssaL ssaR na`
+  (`WordAlloc/SSAFixInconsistencies.lean:65`) returns
+  `(.seq (.move (priority prio true) lmov) lseq,
+    .seq (.move (priority prio false) rmov) rseq, na'', ssaL'')`
+  where `varUnion := (sptToAList (sptUnion ssaL ssaR)).map Prod.fst`,
+  `(lmov, rmov, na', ssaL', ssaR') := mergeMoves varUnion ssaL ssaR na`, and
+  `(lseq, rseq, …) := fakeMoves prio varUnion ssaL' ssaR' na'`.  So a merge
+  inserts **exactly two `.move` nodes** (one per side) plus the fake-move
+  sequences, and their pair counts are the counts produced by `mergeMoves` /
+  `fakeMoves` over the live-variable key list `varUnion`.
+- `mergeMoves` per key: both sides located ⇒ a `seq` with a single-pair `.move`
+  per divergent side; one side only ⇒ `lmove = .seq seqL (.move … [(na', lx)])`
+  plus `rmove = .seq seqR (fakeMove na')`; neither ⇒ the sides pass through
+  unchanged.  `fakeMove na'` is a single-pair move on the fresh name.
+- Pricing: every inserted move is a `.move` node, so it costs the checked
+  `nativeWordPrice_move`, `(if len ≤ 1 then 14 else 28) * len`.  Hence with
+  `n := varUnion.length` live variables at the merge, the inserted move cost is
+  at most `28*lmov.length + 28*rmov.length + Σ_{fake} 14 ≤ 56*n + 14*n = 70*n`,
+  and exactly computable from the `mergeMoves`/`fakeMoves` outputs.
+
+### Three different move charges, not to be conflated
+
+1. **SSA inserted moves** — the `mergeMoves`/`fakeMoves`/`fixInconsistencies`
+   programs above, priced per `.move` node by pair count (14 or 28 per pair).
+2. **Stack-level `stackMove`** — `Flapjack/Stack.lean:242`
+   `stackMove : Nat → Nat → Nat → Nat → StackProg α → StackProg α` emits one
+   move per word via the recursive `.seq (.move …) (stackMove count (start+1)
+   …)`, so `count` words cost `count` stack moves; `stackAlloc count` builds
+   this at frame offset.  This is the frame/stack side, not the SSA side.
+3. **`stackArgs39` spill** — 39 per spilled call argument at the allocated call
+   site, which is why the call's pre-allocator term is
+   `189 + 39*(args.length+1-22) + (21*rets if returning)` and the *spill* is a
+   separate allocator-side extra covered by `ssaTransExtra`, never added to the
+   source-side `argCost`.
+
+Ret- and live-move counts are thus: live moves = the `mergeMoves`/`fakeMoves`
+pair counts at each merge (bounded by `70*n` per merge as above); return moves
+at a returning call = the moves in the allocated continuation between the
+returned-value store and the continuation's first read, which the call stage's
+continuation leg covers at the compiler's own reached popped state.
