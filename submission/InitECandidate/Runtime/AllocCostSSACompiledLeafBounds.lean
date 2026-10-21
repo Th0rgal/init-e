@@ -858,4 +858,52 @@ theorem ite_transfer_refined {C F : Type}
   omega
 
 #print axioms ite_transfer_refined
+
+/-- **Call-site argument move, priced canonically.**  The `.call` clause's inserted
+argument move is charged at `refinedWordLocalPrice (.move 1 (convArgs.zip names)) s`, the
+canonical price of exactly that node - the slot the checked scheduler-exact leaf budget
+fills.  No 14/28 overestimate appears. -/
+theorem call_arg_prefix_charge_refined {C F : Type} (ssa : Spt Nat) (args : List Nat)
+    (tail : WordLangProgHOL (BitVec 64))
+    (s mid : WordSemStateFiniteExact 64 C F)
+    (hfix : fixClock s (evaluate (.move 1
+      (((List.range (args.map (optionLookup ssa)).length).map
+        fun x => 2 * x).zip (args.map (optionLookup ssa)))) s) = (none, mid)) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+          fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) s =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+          fun x => 2 * x).zip (args.map (optionLookup ssa)))) tail) s +
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.move 1 (((List.range (args.map (optionLookup ssa)).length).map
+          fun x => 2 * x).zip (args.map (optionLookup ssa)))) s +
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice tail mid := by
+  rw [wec_seq_none_split_generic
+        (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice) _ tail s mid hfix,
+      wec_move_generic (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice) 1 _ s]
+
+/-- **Live-name stack move of a returning call, priced canonically.** -/
+theorem stack_live_move_prefix_charge_refined {C F : Type}
+    (ssa : Spt Nat) (n : Nat) (ls : List Nat)
+    (tail : WordLangProgHOL (BitVec 64))
+    (s mid : WordSemStateFiniteExact 64 C F)
+    (hfix : fixClock s (evaluate (.move 0
+      ((listNextVarRename ls ssa n).1.zip (ls.map (optionLookup ssa)))) s) = (none, mid)) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move 0 ((listNextVarRename ls ssa n).1.zip
+        (ls.map (optionLookup ssa)))) tail) s =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq (.move 0 ((listNextVarRename ls ssa n).1.zip
+          (ls.map (optionLookup ssa)))) tail) s +
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.move 0 ((listNextVarRename ls ssa n).1.zip
+          (ls.map (optionLookup ssa)))) s +
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice tail mid := by
+  rw [wec_seq_none_split_generic
+        (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice) _ tail s mid hfix,
+      wec_move_generic (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice) 0 _ s]
+
+#print axioms call_arg_prefix_charge_refined
+#print axioms stack_live_move_prefix_charge_refined
 end InitECandidate.Runtime.FineCost
