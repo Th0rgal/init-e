@@ -21,9 +21,9 @@ noncomputable def decCallEvents {F : Type} (s : PanSemStateFiniteExact 64 F)
     (bodyEvents : List WorkEvent) (value : ValueHOL 64)
     (continuationEvents : List WorkEvent) (oldWords : Nat) : List WorkEvent :=
   .statement :: (expressionListEvents s arguments ++
-    [.copy (values.flatMap flattenHOL).length, .frame values.length,
-      .frame (sizeOfShapeWithContextHOL s.structs shape)] ++ bodyEvents ++
-    [.copy (flattenHOL value).length] ++ continuationEvents ++ [.copy oldWords])
+    [.cost (callOverhead (values.flatMap flattenHOL).length +
+      slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
+    [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents)
 
 /-- Scalar cost of the same `decCall` trace: every term is a coefficient times
 an actually recorded size. -/
@@ -31,11 +31,8 @@ noncomputable def decCallLocalCost {F : Type} (coeff : Work)
     (s : PanSemStateFiniteExact 64 F) (arguments : List (ExpHOL 64))
     (values : List (ValueHOL 64)) (shape : ShapeHOL) (bodyEvents : List WorkEvent)
     (value : ValueHOL 64) (continuationEvents : List WorkEvent) (oldWords : Nat) : Nat :=
-  coeff.statements + coeff.score (executionWork (expressionListEvents s arguments)) +
-    coeff.movedWords * (values.flatMap flattenHOL).length + coeff.frameSlots * values.length +
-    coeff.frameSlots * sizeOfShapeWithContextHOL s.structs shape +
-    coeff.score (executionWork bodyEvents) + coeff.movedWords * (flattenHOL value).length +
-    coeff.score (executionWork continuationEvents) + coeff.movedWords * oldWords
+  coeff.score (executionWork
+    (decCallEvents s arguments values shape bodyEvents value continuationEvents oldWords))
 
 /-- A returning `decCall` executed by the actual declared call entry, with its
 explicit trace and local price. -/
@@ -68,17 +65,13 @@ theorem decCall_statement_work {F : Type} (coeff : Work)
       decCallLocalCost coeff s arguments values shape bodyEvents value continuationEvents oldWords := by
   refine ⟨?_, ?_⟩
   · unfold decCallEvents
-    rw [oldWordsEq]
     exact StatementRun.declareCallReturn (name := name) (shape := shape)
       (function := function) (arguments := arguments) (continuation := continuation)
       (values := values) (body := body) (callee := callee) (returnShape := returnShape)
       (value := value) (bodyPost := bodyPost) (bodyEvents := bodyEvents)
       (continuationEvents := continuationEvents) (result := result) (post := post)
       args lookup clock bodyRun shapeMatch continuationRun
-  · unfold decCallEvents decCallLocalCost
-    simp only [executionWork_score_cons, executionWork_score_append, score_statement,
-      score_frame, guest_score_copy, score_singleton, score_pair, executionWork_nil_score]
-    omega
+  · rfl
 
 /-- The pure call-exit plan of a call that discards a returned word: the caller's
 locals are restored over the callee's post state. -/

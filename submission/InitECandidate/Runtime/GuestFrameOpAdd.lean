@@ -11,8 +11,8 @@ theorem chargeGasPost_memory_ne (s : PanSemStateFiniteExact 64 Guest.HostMemory)
     (frame left used amount address : BitVec 64)
     (leftNe : address ≠ frame + 64) (usedNe : address ≠ frame + 184) :
     (chargeGasPost s frame left used amount).memory address = s.memory address := by
-  unfold chargeGasPost sourceWriteWord
-  simp only [emptyLocalsHOLFinite, setVarHOLFinite]
+  unfold chargeGasPost
+  simp only [emptyLocalsHOLFinite, setVarHOLFinite, sourceWriteWord]
   rw [if_neg usedNe, if_neg leftNe]
 
 /-- `charge_gas` never changes the clock. -/

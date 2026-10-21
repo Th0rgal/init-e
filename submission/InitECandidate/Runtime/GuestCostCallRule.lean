@@ -15,7 +15,7 @@ noncomputable def callEvents {F : Type} (s : PanSemStateFiniteExact 64 F) (argum
     (bodyResult : Option (PanSemResultExact 64))
     (bodyEvents : List WorkEvent)
     (info : Option (Option (VarKind × MlStringHOL) ×
-      Option (MlStringHOL × MlStringHOL × ProgHOL 64))) : List WorkEvent :=
+      Option (MlStringHOL × MlStringHOL × ProgHOL 64)) := none) : List WorkEvent :=
   .statement :: (expressionListEvents s arguments ++
     [.cost (callOverhead (values.flatMap flattenHOL).length +
       slotOverhead (sizeOfShapeWithContextHOL s.structs returnShape))] ++ bodyEvents ++

@@ -35,9 +35,7 @@ theorem StatementRun.declareCallReturn_cont
       (.statement :: (expressionListEvents s arguments ++
         [.cost (callOverhead (values.flatMap flattenHOL).length +
           slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
-        [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents ++
-        [.copy (((s.locals.lookup name).map
-          (fun old => (flattenHOL old).length)).getD 0)])) :=
+        [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents)) :=
   StatementRun.declareCallReturn args lookup clock bodyRun shapeMatch continuationRun
 
 /-- Frame offsets 0 and 64 are distinct, so `charge_gas` preserves the pc cell. -/

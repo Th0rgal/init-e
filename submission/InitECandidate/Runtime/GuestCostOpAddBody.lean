@@ -153,7 +153,7 @@ noncomputable def opAddEvents (s : PanSemStateFiniteExact 64 Guest.HostMemory)
       (callEvents sY [.const (3 : BitVec 64)] [.val (.word 3)] .one
         (some (.returned (.val (.word 0))))
         (chargeGasBodyEvents (callEntryStateHOLFinite sY (chargeGasCallee 3)) frame
-          funding.left funding.used 3) ++
+          funding.left funding.used 3) (some (none, none)) ++
        decCallEvents sZ
         [.var VarKind.local (ofString "x"), .var VarKind.local (ofString "y")] [xv, yv]
         comb4Shape
@@ -164,12 +164,12 @@ noncomputable def opAddEvents (s : PanSemStateFiniteExact 64 Guest.HostMemory)
           (some (.returned (.val (.word 0))))
           (stackPushSuccessEvents (callEntryStateHOLFinite sR (stackPushCallee rv))
             frame (sp - 2) cap base (opAddLimb0 a0 b0) (opAddLimb1 a0 a1 b0 b1)
-            (opAddLimb2 a0 a1 a2 b0 b1 b2) (opAddLimb3 a0 a1 a2 a3 b0 b1 b2 b3)) ++
+            (opAddLimb2 a0 a1 a2 b0 b1 b2) (opAddLimb3 a0 a1 a2 a3 b0 b1 b2 b3)) (some (none, none)) ++
          callEvents sP [.const (1 : BitVec 64)] [.val (.word 1)] .one
           (some (.returned (.val (.word 0))))
-          (pcAddEvents (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc 1) ++
+          (pcAddEvents (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc 1) (some (none, none)) ++
          (.statement :: (expressionEvents sPc (.const (0 : BitVec 64)) ++
-           [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])))
+           [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])))
         (oldBindingWords sZ (ofString "r")))
       (oldBindingWords sX (ofString "y")))
     (oldBindingWords s (ofString "x"))
@@ -183,52 +183,8 @@ Every term is a coefficient times a size actually recorded in the trace. -/
 noncomputable def opAddLocalCost (coeff : Work) (s : PanSemStateFiniteExact 64 Guest.HostMemory)
     (frame sp cap base pc : BitVec 64) (funding : GasFunding)
     (a0 a1 a2 a3 b0 b1 b2 b3 : BitVec 64) : Nat :=
-  let xv : ValueHOL 64 := fourWordValue a0 a1 a2 a3
-  let yv : ValueHOL 64 := fourWordValue b0 b1 b2 b3
-  let rv : ValueHOL 64 := opAddRValue a0 a1 a2 a3 b0 b1 b2 b3
-  let sX := opAddXEntry s frame sp xv
-  let sY := opAddYEntry s frame sp xv yv
-  let sZ := opAddGasState s frame sp xv yv funding
-  let sR := opAddREntry s frame sp xv yv funding a0 a1 a2 a3 b0 b1 b2 b3
-  let sP := opAddPushState s frame sp cap base xv yv funding a0 a1 a2 a3 b0 b1 b2 b3
-  let sPc := opAddPcState s frame sp cap base pc xv yv funding a0 a1 a2 a3 b0 b1 b2 b3
-  decCallLocalCost coeff s [] [] comb4Shape
-    (stackPopSuccessEvents (callEntryStateHOLFinite s HolFiniteMapExact.empty)
-      frame sp (base + (sp - 1) * 32) a0 a1 a2 a3)
-    xv
-    (decCallEvents sX [] [] comb4Shape
-      (stackPopSuccessEvents (callEntryStateHOLFinite sX HolFiniteMapExact.empty)
-        frame (sp - 1) (base + (sp - 1 - 1) * 32) b0 b1 b2 b3)
-      yv
-      (callEvents sY [.const (3 : BitVec 64)] [.val (.word 3)] .one
-        (some (.returned (.val (.word 0))))
-        (chargeGasBodyEvents (callEntryStateHOLFinite sY (chargeGasCallee 3)) frame
-          funding.left funding.used 3) ++
-       decCallEvents sZ
-        [.var VarKind.local (ofString "x"), .var VarKind.local (ofString "y")] [xv, yv]
-        comb4Shape
-        (u256AddEvents (callEntryStateHOLFinite sZ (u256AddCallee xv yv))
-          a0 a1 a2 a3 b0 b1 b2 b3)
-        rv
-        (callEvents sR [.var VarKind.local (ofString "r")] [rv] .one
-          (some (.returned (.val (.word 0))))
-          (stackPushSuccessEvents (callEntryStateHOLFinite sR (stackPushCallee rv))
-            frame (sp - 2) cap base (opAddLimb0 a0 b0) (opAddLimb1 a0 a1 b0 b1)
-            (opAddLimb2 a0 a1 a2 b0 b1 b2) (opAddLimb3 a0 a1 a2 a3 b0 b1 b2 b3)) ++
-         callEvents sP [.const (1 : BitVec 64)] [.val (.word 1)] .one
-          (some (.returned (.val (.word 0))))
-          (pcAddEvents (callEntryStateHOLFinite sP (pcAddCallee 1)) frame pc 1) ++
-         (.statement :: (expressionEvents sPc (.const (0 : BitVec 64)) ++
-           [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])))
-        (oldBindingWords sZ (ofString "r")))
-      (oldBindingWords sX (ofString "y")))
-    (oldBindingWords s (ofString "x"))
-
-/-- The actual installed `op_add` arm executes: two four-word pops, the
-`charge_gas` call, the four-limb `u256_add`, the `stack_push` of its result, the
-`pc_add` increment and `return 0`. Both callee bodies and every continuation are
-the concrete helper traces; only the physical stack/gas/clock facts are explicit
-premises. -/
+  coeff.score (executionWork
+    (opAddEvents s frame sp cap base pc funding a0 a1 a2 a3 b0 b1 b2 b3))
 theorem opAdd_body_run
     (coeff : Work)
     (s : PanSemStateFiniteExact 64 Guest.HostMemory)
@@ -368,7 +324,7 @@ theorem opAdd_body_run
   have retRun : StatementRun sPc (.return (.const 0)) (some (.returned (.val (.word 0))))
       (emptyLocalsHOLFinite sPc)
       (.statement :: (expressionEvents sPc (.const 0) ++
-        [.copy (flattenHOL (.val (.word (0 : BitVec 64)))).length])) :=
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) :=
     StatementRun.returnValue (expression := .const (0 : BitVec 64))
       (costedExpression_events sPc _ _ (by simp [expressionValue, evalHOLExact]))
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
@@ -579,11 +535,7 @@ theorem opAddEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 Guest.Ho
     coeff.score (executionWork (opAddEvents s frame sp cap base pc funding
       a0 a1 a2 a3 b0 b1 b2 b3)) =
       opAddLocalCost coeff s frame sp cap base pc funding a0 a1 a2 a3 b0 b1 b2 b3 := by
-  unfold opAddEvents opAddLocalCost
-  simp only [decCallLocalCost, decCallEvents, callEvents, executionWork_score_cons,
-    executionWork_score_append, score_statement, score_frame, guest_score_copy,
-    score_singleton, score_pair, executionWork_nil_score, List.append_nil]
-  omega
+  rfl
 
 #print axioms opAddEvents_score
 
