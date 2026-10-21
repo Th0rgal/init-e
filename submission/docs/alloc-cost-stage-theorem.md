@@ -458,3 +458,36 @@ The optimizer-price oleans are not in the cost-allocation build dir.  Copy the m
 such as `WordOptimizerPrice` / `WordOptimizerMoveCost` fail with "object file ... does not exist".
 Also watch the LEAN_PATH: `N=$(cat shared_lean_path.txt)` is colon-separated and must not be overwritten with a
 single directory while copying oleans (that mistake produced a bogus "unknown module prefix Flapjack").
+
+## The call node is closed (HEAD 1d9bb6ccb)
+
+`wec_call_none_success`: with the frame looked up (`wordSemFindCode dest xs s.code s.stackSize =
+some (args1, prog, ss)`), a live clock and no handler, the call charges 41 plus the CALLEE's cost at
+`callEnv args1 ss (decClock s)` - the environment the call constructs.
+
+`wec_call_none_callee_transfer`: if each program's call site looks up its frame and the transformed callee
+charges at most the original's plus a budget AT THE ENVIRONMENTS THE TWO CALLS CONSTRUCT, the whole call node
+transfers within that budget.  The two inputs are exactly what already exists: `findCode_some_lookup` turns each
+`wordSemFindCode` success into the `sptLookup` facts, and `transformedCalleeRel.spec` gives the callee bound at
+those lookups.  Both sides are rewritten by the success lemma and the node price 41 cancels, exactly as the
+ite's 23 does.
+
+### What this took (each item cost a failed compile)
+
+- the `getVars` match must be iota-reduced (`dsimp only`) after rewriting with `hgv`, else the `badDestArgs`
+  `if` is buried under the match and nothing can rewrite it;
+- the guard must be discharged WITHOUT rewriting `hbad` - that produces the undischargeable redex
+  `if false = true` - the way is `rw [if_neg (by rw [hbad]; decide)]`;
+- `wordSemAddRetLoc` must be reduced with `simp only`, not `rw`: it sits under a `generalizing := false` match;
+- the clock branch is a `dite`, resolved with `dif_neg` of the live-clock hypothesis;
+- the state's stack size is `Spt Nat`, i.e. the frame's third component is `Option Nat`; a generic `StackSize`
+  binder fails to unify.
+
+## Remaining: the loop constructor
+
+The counter side is ready (`wec_loop_cutState_none`, `wec_loop_split`, `wec_loop_stop`, `wec_loop_cont`): the
+loop's cost is decomposed one step per iteration with the recursive call explicit at
+`(wordSemSTOP (.loop ...)) (decClock middle)`.  What the loop's transfer still needs is a genuine induction over
+the loop's clock TOGETHER with the compiler's `wordStateEqRel`, because the body must transfer at every
+iteration state and the recursion's state is not the caller's.  That is why the loop is not the ite's one-shot
+assembly.
