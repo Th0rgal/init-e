@@ -195,31 +195,67 @@ reference ordered map and reports the maximum number of node visits and
 key-byte comparisons per operation. This validates the indexing/order/deletion
 logic before writing the PNK candidate.
 
-## 6. Candidate source and validation status
+## 6. Candidate source, parser/type check, and checked invariant
 
 - `htab_patricia.pnk` is the isolated participant-only API-compatible candidate.
-  It keeps header offsets 0/8/16/24 and every old entry point. It is not wired
-  into `guest/` or any build.
-- `prototype.py` is the executable semantic model. It passed 20,000 randomized
-  operations (set/update/delete/truncate) against a reference ordered map,
-  including exact insertion-order and swap-remove equality, plus a 5,000-key
-  adversarial `BE64(n)||BE64(n)||zero32` test. Observed maximum internal-node
-  visits were 8 for random 32-byte keys and 13 for the adversarial family
-  (the theoretical bound is one visit per key bit).
-- The PNK candidate still needs the normal parser/typing pass and a differential
-  test harness before it can replace anything; the Python model is the
-  behavioral oracle for that step.
+  It keeps header offsets 0/8/16/24 and every entry point used by clients. It is
+  not wired into `guest/` or any build.
+- `compile_check.sh` preprocesses a minimal `main` that allocates a table and
+  exercises set/get/item/del/truncate, then runs
+  `lake exe flapjack-compile --assembly`. This passes the Pancake parser and
+  type checker for the candidate. The PNK form avoids `/`, nested call
+  arguments, and calls in conditions, which the parser does not accept.
+- `PatriciaInvariant.lean` is checked with `lake env lean`. It proves for any
+  Patricia shape:
+  - `nodes t = 2 * leaves t - 1` (Nat), hence `nodes t ≤ 2 * leaves t`;
+  - if all branch bits lie strictly in `(0, 8*key_len)`, then
+    `depth t ≤ 8*key_len`.
+  The `Between` predicate is exactly the strictly increasing-bit-index
+  invariant required by insertion/deletion. Axioms are only `propext` and
+  `Quot.sound`.
+- `prototype.py` is the executable semantic/capacity model. It passed
+  randomized operations for key lengths 20, 28, 32, 52, and 60 against a
+  reference ordered map, including exact insertion-order and swap-remove
+  equality. It also checks `live_internal <= cap/2` after every operation and
+  passed the 5,000-key adversarial family for 20/32/60-byte keys.
+- The PNK candidate still needs a full linked differential harness (run the
+  compiled guest and compare keys/order/values against the model); the model is
+  the behavioral oracle for that step.
 
-## 7. Projected full-input work after replacement
+## 7. Measured operation counts; what is still unproved
 
-A lookup visits at most `8*key_len` internal nodes and performs one
-`key_len`-byte compare. For the 32-byte node DB this is at most 256 node
-visits, versus the old uniform `setBodyCost` term of
-`536870912 * 130 = 69,793,218,560` ticks per iteration. Even at a deliberately
-high 50 source ticks per visit and one visited node per key bit, the full
-`33,554,428`-entry DB is about `3.4e11` ticks, below the `9e11` target, and
-the actual branching depth is logarithmic for normal keys and at most 256 for
-the adversarial family. The certificate must calibrate the per-node and
-per-key-byte coefficients from the generated source trace rather than assume
-50 ticks; the structural point is that the bound becomes
-`O(count*key_len)`, not `O(count*capacity)` and not `O(input^2)`.
+The 5,000-operation randomized runs (seed = key length) and 5,000-key
+adversarial runs produce deterministic counters, not a source-cost proof:
+
+| case | max visits | live internals / cap | grows | copy moves |
+|---|---|---|---|---|
+| random L=20 | 8 | 28 / 64 | 3 | 28 |
+| random L=32 | 8 | 31 / 64 | 3 | 28 |
+| random L=52 | 8 | 33 / 128 | 4 | 60 |
+| random L=60 | 7 | 30 / 64 | 3 | 28 |
+| adversarial L=20 | 13 | 4999 / 16384 | 11 | 8188 |
+| adversarial L=32 | 13 | 4999 / 16384 | 11 | 8188 |
+| adversarial L=60 | 13 | 4999 / 16384 | 11 | 8188 |
+
+Amortization that must be in the certificate, not assumed away:
+
+- `htab_grow` doubles capacity and rebuilds from `HT_ORDER`; the sum of moved
+  entries over all doublings is at most `2N`, so growth adds an amortized
+  `O(key_len)` per insert. The measured 8,188 moves for N=5,000 is below the
+  `2N=10,000` bound.
+- `htab_copy` remains `O(cap + nodes)` because it copies arrays and nodes. It is
+  invoked once per block in `compute_state_root`, not per transaction; its cost
+  must be charged once against the block-level independent term.
+- `htab_truncate(t,n)` performs `count-n` real deletions, each `O(key_len)`.
+  These deletions are charged exactly once; there is no hidden O(N) scan.
+- `order`/`order_pos` update in O(1) per insert/delete; deletion uses the same
+  swap-remove semantics as the old table.
+- The 60-byte case has `8*60=480` maximum branch depth; the invariant bounds
+  this without a per-key length assumption other than `key_len ≤ 60`.
+
+The earlier `3.4e11` figure was a projection, not a proof. What is established
+now is structural: lookup is `O(key_len)` nodes and one `key_len` compare;
+insert/delete/truncate are `O(key_len)` plus the counted order/growth work; the
+pool is `≤2N` nodes and `N ≤ cap/2`. The actual executed source ticks per op
+still need to be derived from the generated `StatementRun` events and the
+coefficients of the source-price API.
