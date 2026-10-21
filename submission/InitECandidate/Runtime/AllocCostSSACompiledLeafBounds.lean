@@ -1106,60 +1106,6 @@ theorem canonical_move_price_le_nonself {C F : Type} (pri : Nat) (pairs : List (
 #print axioms canonical_move_price_le_table
 #print axioms canonical_move_price_le_nonself
 
-/-- **The `seq` constructor: actual target execution together with the counter bound.**
-Uses the compiler's own recursive case (`ssaCcTransCorrectSeq`, SSASemanticSeq.lean:51) with
-the legitimate smaller-body simulation IHs and the original SSA invariants
-(`wordStateEqRel`, `ssaLocalsRel`, `isAllocVar`, `everyVarHOL`, `ssaMapOK`, `ltOK`) to get
-the target run, and the canonical-price `seq` composition for the counter bound.  Nothing
-about the final target run or a target cost is assumed: the simulation is produced by the
-compiler's theorem and the cost by the reached-state split. -/
-theorem ssaCcTrans_seq_transfer {C F : Type}
-    (first second : WordLangProgHOL (BitVec 64))
-    (source target : WordSemStateFiniteExact 64 C F)
-    (ssa : Spt Nat) (next : Nat)
-    (tables : List (Spt Nat × Spt Unit × Spt Unit))
-    (firstIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
-      (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel source target ∧
-      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
-      everyVarHOL (fun x => decide (x < next)) first = true ∧
-      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation first source target ssa next tables)
-    (secondIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
-      (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
-      Flapjack.WordAlloc.wordStateEqRel source target ∧
-      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
-      everyVarHOL (fun x => decide (x < next)) second = true ∧
-      ssaMapOK next ssa ∧ ltOK tables → ssaSimulation second source target ssa next tables)
-    (h : Flapjack.WordAlloc.wordStateEqRel source target ∧
-      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
-      everyVarHOL (fun x => decide (x < next)) (.seq first second) = true ∧
-      ssaMapOK next ssa ∧ ltOK tables)
-    (midS midT : WordSemStateFiniteExact 64 C F)
-    (extraNode extra1 extra2 : Nat)
-    (hS : fixClock source (evaluate first source) = (none, midS))
-    (hT : fixClock target (evaluate first target) = (none, midT))
-    (hnode : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-      (.seq first second) target <=
-      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-        (.seq first second) source + extraNode)
-    (h1 : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-      first target <=
-      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-        first source + extra1)
-    (h2 : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-      second midT <=
-      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-        second midS + extra2) :
-    ssaSimulation (.seq first second) source target ssa next tables ∧
-      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-        (.seq first second) target <=
-      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
-        (.seq first second) source + extraNode + extra1 + extra2 :=
-  ⟨ssaCcTransCorrectSeq first second source target ssa next tables firstIH secondIH h,
-   seq_transfer_refined first second source target midS midT hS hT
-     extraNode extra1 extra2 hnode h1 h2⟩
-
-#print axioms ssaCcTrans_seq_transfer
 
 /-- Price-generic escaping split for `seq`: when the first half does not fall through,
 the second half is charged nothing. -/
@@ -1205,4 +1151,61 @@ theorem seq_transfer_escape_refined {C F : Type}
 
 #print axioms wec_seq_some_split_generic
 #print axioms seq_transfer_escape_refined
+
+/-- `refinedWordLocalPrice` of a `seq` node is zero: the leaf table has no entry for it
+and the fallback lists only ite/loop/call. -/
+theorem refinedWordLocalPrice_seq_zero {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F) :
+    InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq f g) s = 0 := by
+  simp only [InitECandidate.Runtime.WordToStack.refinedWordLocalPrice,
+    InitECandidate.Runtime.WordToStack.refinedWordStackLeafBudget]
+
+/-- **The `ssaCcTrans` `seq` constructor, COMPILED syntax on the left.**  The target run is
+the compiled program `(ssaCcTrans (.seq first second) ssa next tables).1`, whose shape is
+`.seq firstOut secondOut` with `firstOut := (ssaCcTrans first ssa next tables).1` and
+`secondOut := (ssaCcTrans second (ssaCcTrans first ssa next tables).2.1
+(ssaCcTrans first ssa next tables).2.2 tables).1` (ssaCcTrans_seq_shape).  The two IHs are
+the actual first/second compiled bodies against their source bodies, and the reached pair
+is split on the compiled first body for the target and on the source first body for the
+source.  Conclusion: the compiled seq's executed cost is at most the source seq's cost plus
+the two body transfers; the seq node itself contributes nothing (its canonical price is 0 on
+both sides). -/
+theorem ssaCcTrans_seq_transfer_compiled {C F : Type}
+    (first second : WordLangProgHOL (BitVec 64)) (ssa : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (source target midS midT : WordSemStateFiniteExact 64 C F)
+    (extra1 extra2 : Nat)
+    (hS : fixClock source (evaluate first source) = (none, midS))
+    (hT : fixClock target
+      (evaluate ((ssaCcTrans first ssa next tables)).1 target) = (none, midT))
+    (h1 : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      ((ssaCcTrans first ssa next tables)).1 target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        first source + extra1)
+    (h2 : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      ((ssaCcTrans second ((ssaCcTrans first ssa next tables)).2.1
+        ((ssaCcTrans first ssa next tables)).2.2 tables)).1 midT <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        second midS + extra2) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      ((ssaCcTrans (.seq first second) ssa next tables)).1 target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq first second) source + extra1 + extra2 := by
+  rw [ssaCcTrans_seq_shape]
+  rw [wec_seq_none_split_generic
+        (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice) _ _ target midT hT,
+      wec_seq_none_split_generic
+        (InitECandidate.Runtime.WordToStack.refinedWordLocalPrice) _ _ source midS hS]
+  have hp1 : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq ((ssaCcTrans first ssa next tables)).1
+        ((ssaCcTrans second ((ssaCcTrans first ssa next tables)).2.1
+          ((ssaCcTrans first ssa next tables)).2.2 tables)).1) target = 0 :=
+    refinedWordLocalPrice_seq_zero _ _ _
+  have hp2 : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq first second) source = 0 := refinedWordLocalPrice_seq_zero _ _ _
+  rw [hp1, hp2]
+  omega
+
+#print axioms refinedWordLocalPrice_seq_zero
+#print axioms ssaCcTrans_seq_transfer_compiled
 end InitECandidate.Runtime.FineCost
