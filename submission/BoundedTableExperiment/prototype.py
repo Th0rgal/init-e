@@ -47,6 +47,9 @@ class Patricia:
         self.order_moves = 0
         self.grows = 0
         self.copy_moves = 0
+        self.path_stores = 0
+        self.bsearch_steps = 0
+        self.link_writes = 0
 
     def _new(self, node) -> int:
         i = self.next_id
@@ -92,7 +95,8 @@ class Patricia:
             new.set(k, v)
         # Count the rebuild work in the old table's totals.
         for name in ('visits', 'bit_tests', 'key_compares', 'compare_bytes',
-                     'first_diff_bytes', 'order_moves'):
+                     'first_diff_bytes', 'order_moves', 'path_stores',
+                     'bsearch_steps', 'link_writes'):
             setattr(old, name, getattr(old, name) + getattr(new, name))
         old.max_visits = max(old.max_visits, new.max_visits)
         old.grows += 1
@@ -114,7 +118,7 @@ class Patricia:
             self.order.append(lid)
             self.order_pos[lid] = 0
             return True
-        node, _ = self._walk(key)
+        node, path = self._walk(key)
         old = self.nodes[node][1]
         if old == key:
             self.nodes[node] = ('leaf', key, value)
@@ -130,6 +134,9 @@ class Patricia:
         self.first_diff_bytes += self.key_len
         new_leaf = self._new(('leaf', key, value))
         new_int = self._new(('int', d, None, None))
+        self.path_stores += len(path)
+        self.bsearch_steps += max(1, len(path).bit_length())
+        self.link_writes += 1
         self.live_internal += 1
         self.max_live_internal = max(self.max_live_internal, self.live_internal)
         parent = None
@@ -207,6 +214,8 @@ class Patricia:
         return {
             'cap': self.cap, 'count': len(self.order), 'grows': self.grows,
             'copy_moves': self.copy_moves, 'max_visits': self.max_visits,
+            'path_stores': self.path_stores, 'bsearch_steps': self.bsearch_steps,
+            'link_writes': self.link_writes,
             'max_live_internal': self.max_live_internal,
             'visits': self.visits, 'bit_tests': self.bit_tests,
             'key_compares': self.key_compares,

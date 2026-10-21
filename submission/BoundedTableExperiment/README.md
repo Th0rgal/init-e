@@ -531,3 +531,17 @@ copies/growth bytes, and output writes. The existing `prototype.py` counters
 already provide most of these; the missing piece is the exact preIsel/source
 price per event. Until that is supplied, the 16.14 native steps/visit and
 ~3e11 projection remain diagnostics, not the budget theorem.
+
+## 19. Concrete operation trace for source-price calibration
+
+`prototype.py` now records `path_stores`, `bsearch_steps`, and `link_writes`
+alongside the existing visit/compare/order/copy counters. `trace_model.py`
+emits one JSON event per operation with the deltas of every counter plus
+`op`, key index, `cap`, and `count`. The canonical run has 1,477 events
+(1,000 inserts, 334 deletes, 143 gets) with totals
+`path_stores=12,277`, `bsearch_steps=6,537`.
+
+This is the concrete trace model requested for source-price calibration. It is
+a behavior/count trace, not a source-event trace; an exact preIsel/source price
+per event still needs to be supplied. The optimized candidate remains frozen at
+`fe3f284d2` / source hash `a97b7463...`.
