@@ -437,6 +437,29 @@ theorem call_arg_move_certificate (args : List Nat) (ssa : Spt Nat) {before : Na
         fun x => 2 * x).zip (args.map (optionLookup ssa))) :=
   goSeq_move ok
 
+/-- Bridge between the Bool `!=` that finite-auth's filters use and `decide (≠)`. -/
+theorem bne_decide_eq (a b : Nat) : (a != b) = decide (a ≠ b) := by
+  by_cases h : a = b <;> simp [h]
+
+/-- finite-auth's nonself count is my `nonselfCount`: his filter runs on the halved
+pairs, mine on the original pairs with `decide (≠)`. -/
+theorem physPairs_filter_length (pairs : List (Nat × Nat)) :
+    ((physPairs pairs).filter (fun p => p.1 != p.2)).length = nonselfCount pairs := by
+  simp [physPairs, nonselfCount, physNonself, List.filter_map, Function.comp_def,
+    bne_decide_eq]
+
+/-- **His schedule price is dominated by my charge bound**: 12 or 24 per physical
+nonself pair is at most 28 per nonself pair. -/
+theorem allocMovePrice_le (pairs : List (Nat × Nat)) :
+    allocMovePrice pairs ≤ 28 * nonselfCount pairs := by
+  unfold allocMovePrice
+  dsimp only
+  rw [physPairs_filter_length]
+  split <;> omega
+
+#print axioms allocMovePrice_le
+#print axioms physPairs_filter_length
+#print axioms bne_decide_eq
 #print axioms move_node_certificate
 #print axioms call_arg_move_certificate
 #print axioms evaluate_move_none
