@@ -39,3 +39,39 @@ end BoundedTableExperiment
 
 #print axioms BoundedTableExperiment.functionsHOL_names
 #print axioms BoundedTableExperiment.functionsHOL_all
+
+namespace BoundedTableExperiment
+
+open InitECandidate.Runtime
+open Flapjack
+open Flapjack.Pancake.PanLang
+open Flapjack.Basis.Pure.MlString
+
+/-- Function names extracted directly from production declarations, without
+converting any bodies to HOL. -/
+def declaredFunctionNames : List (Decl (BitVec 64)) → List MlS
+  | [] => []
+  | .function declaration :: rest => ofString declaration.name :: declaredFunctionNames rest
+  | _ :: rest => declaredFunctionNames rest
+
+/-- Names of `functionsHOL` after converting a production declaration list;
+no body conversion is forced by the name projection. -/
+theorem functionsHOL_map_names (declarations : List (Decl (BitVec 64))) :
+    (functionsHOL (declarations.map declToHOL)).map Prod.fst =
+      declaredFunctionNames declarations := by
+  induction declarations with
+  | nil => rfl
+  | cons declaration rest ih =>
+      cases declaration with
+      | function d =>
+          simp [functionsHOL, declToHOL, funDeclToHOL, declaredFunctionNames, ih]
+      | decl shape name value =>
+          simp [functionsHOL, declToHOL, declaredFunctionNames, ih]
+      | exnDecl name shape =>
+          simp [functionsHOL, declToHOL, declaredFunctionNames, ih]
+      | name name fields =>
+          simp [functionsHOL, declToHOL, declaredFunctionNames, ih]
+
+end BoundedTableExperiment
+
+#print axioms BoundedTableExperiment.functionsHOL_map_names
