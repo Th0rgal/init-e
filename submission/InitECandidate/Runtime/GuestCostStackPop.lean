@@ -1,6 +1,10 @@
 import InitECandidate.Runtime.GuestCostComb4Load
 import InitECandidate.Runtime.GuestCostPcAdd
+set_option maxRecDepth 10000
+set_option maxHeartbeats 4000000
 namespace InitECandidate.Runtime.FineCost
+
+variable {fn : MlS}
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 open Flapjack.Basis.Pure.MlString
 
@@ -24,9 +28,9 @@ noncomputable def stackPopRejectEvents (s : PanSemStateFiniteExact 64 F) (sp : B
   let entry := setVarHOLFinite (ofString "sp") (.val (.word sp)) s
   .statement :: (expressionEvents s stackPopSp ++
     [.frame 1] ++
-    (.statement :: .cost statementUnit :: (expressionEvents entry stackPopGuard ++
+    (.statement :: .cost (statementUnit + branchMoves fn) :: (expressionEvents entry stackPopGuard ++
       (.statement :: (expressionEvents entry (.const 2) ++
-        [.cost (raiseOverhead (flattenHOL (.val (.word (2 : BitVec 64)))).length)])))))
+        [.cost (raiseOverhead (flattenHOL (.val (.word (2 : BitVec 64)))).length + raiseMoves fn)])))))
 
 /-- Post state of a rejected `stack_pop`: locals dropped, previous `sp` restored. -/
 noncomputable def stackPopRejectPost (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64) :
@@ -75,9 +79,9 @@ theorem stackPop_reject_run (s : PanSemStateFiniteExact 64 F) (frame sp : BitVec
     (domain : s.memaddrs (frame + 16)) (memory : s.memory (frame + 16) = .word sp)
     (exceptionShape : s.eshapes.lookup (ofString "EvmErr") = some .one)
     (empty : sp = 0) :
-    StatementRun s (sourceFunctionBody Guest.guestFn_stack_pop)
+    StatementRun fn s (sourceFunctionBody Guest.guestFn_stack_pop)
       (some (.exception (ofString "EvmErr") (.val (.word 2))))
-      (stackPopRejectPost s sp) (stackPopRejectEvents s sp) := by
+      (stackPopRejectPost s sp) (stackPopRejectEvents (fn := fn) s sp) := by
   classical
   let entry := setVarHOLFinite (ofString "sp") (.val (.word sp)) s
   have entrySp : entry.locals.lookup (ofString "sp") = some (.val (.word sp)) := by
@@ -95,21 +99,21 @@ theorem stackPop_reject_run (s : PanSemStateFiniteExact 64 F) (frame sp : BitVec
   have payload : CostedExpressionRun entry (.const 2) (some (.val (.word 2)))
       (expressionEvents entry (.const 2)) :=
     costedExpression_events entry _ _ (by simp [expressionValue, evalHOLExact])
-  have raiseRun : StatementRun entry (.raise (ofString "EvmErr") (.const 2))
+  have raiseRun : StatementRun fn entry (.raise (ofString "EvmErr") (.const 2))
       (some (.exception (ofString "EvmErr") (.val (.word 2)))) (emptyLocalsHOLFinite entry)
       (.statement :: (expressionEvents entry (.const 2) ++
-        [.cost (raiseOverhead (flattenHOL (.val (.word (2 : BitVec 64)))).length)])) :=
-    StatementRun.raiseValue (exceptionId := ofString "EvmErr") (expression := .const 2)
+        [.cost (raiseOverhead (flattenHOL (.val (.word (2 : BitVec 64)))).length + raiseMoves fn)])) :=
+    StatementRun.raiseValue (fn := fn) (exceptionId := ofString "EvmErr") (expression := .const 2)
       (shape := .one) payload exceptionShape (by simp [shapeOfHOLExact])
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
-  have prefixRun : StatementRun entry stackPopRejectPrefix
+  have prefixRun : StatementRun fn entry stackPopRejectPrefix
       (some (.exception (ofString "EvmErr") (.val (.word 2)))) (emptyLocalsHOLFinite entry)
-      (.statement :: .cost statementUnit :: (expressionEvents entry stackPopGuard ++
+      (.statement :: .cost (statementUnit + branchMoves fn) :: (expressionEvents entry stackPopGuard ++
         (.statement :: (expressionEvents entry (.const 2) ++
-          [.cost (raiseOverhead (flattenHOL (.val (.word (2 : BitVec 64)))).length)])))) :=
-    StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
+          [.cost (raiseOverhead (flattenHOL (.val (.word (2 : BitVec 64)))).length + raiseMoves fn)])))) :=
+    StatementRun.iteYes (fn := fn) (post := emptyLocalsHOLFinite entry)
       (yes := .raise (ofString "EvmErr") (.const 2)) (no := .skip) guard (by decide) raiseRun
-  have tailRun : StatementRun entry
+  have tailRun : StatementRun fn entry
       (.seq stackPopRejectPrefix
         (.seq (.assign VarKind.local (ofString "sp")
             (.op .sub [.var VarKind.local (ofString "sp"), .const 1]))
@@ -118,17 +122,17 @@ theorem stackPop_reject_run (s : PanSemStateFiniteExact 64 F) (frame sp : BitVec
               (.op .add [(.load .one (fundingAddress 8)),
                 (.panop .mul [.var VarKind.local (ofString "sp"), .const 32])]))))))
       (some (.exception (ofString "EvmErr") (.val (.word 2)))) (emptyLocalsHOLFinite entry)
-      (.statement :: .cost statementUnit :: (expressionEvents entry stackPopGuard ++
+      (.statement :: .cost (statementUnit + branchMoves fn) :: (expressionEvents entry stackPopGuard ++
         (.statement :: (expressionEvents entry (.const 2) ++
-          [.cost (raiseOverhead (flattenHOL (.val (.word (2 : BitVec 64)))).length)])))) :=
-    StatementRun.seqStop (by simp)
+          [.cost (raiseOverhead (flattenHOL (.val (.word (2 : BitVec 64)))).length + raiseMoves fn)])))) :=
+    StatementRun.seqStop (fn := fn) (by simp)
 
-      (StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
+      (StatementRun.iteYes (fn := fn) (post := emptyLocalsHOLFinite entry)
         (yes := .raise (ofString "EvmErr") (.const 2)) (no := .skip) guard (by decide) raiseRun)
   have shapeMatch : shapeEqHOL .one (shapeOfHOLExact (.val (.word sp))) = true := by
     simp [shapeOfHOLExact, shapeEqHOL]
   rw [stackPop_prefix_installed]
-  refine StatementRun.declareValue (name := ofString "sp") (shape := .one)
+  refine StatementRun.declareValue (fn := fn) (name := ofString "sp") (shape := .one)
     (initializer := stackPopSp)
     (body := (.seq stackPopRejectPrefix
       (.seq (.assign VarKind.local (ofString "sp")
@@ -159,7 +163,7 @@ theorem eval_stackPopSub (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64)
 /-- The `sp := sp - 1` assignment of the successful path. -/
 theorem stackPop_assign_run (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64)
     (hSp : s.locals.lookup (ofString "sp") = some (.val (.word sp))) :
-    StatementRun s (.assign VarKind.local (ofString "sp")
+    StatementRun fn s (.assign VarKind.local (ofString "sp")
       (.op .sub [.var VarKind.local (ofString "sp"), .const 1])) none
       (setKvarHOLFinite VarKind.local (ofString "sp")
         (.val (.word (sp - 1))) s)
@@ -167,7 +171,7 @@ theorem stackPop_assign_run (s : PanSemStateFiniteExact 64 F) (sp : BitVec 64)
         (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
         [.copy (flattenHOL (.val (.word (sp - 1)))).length])) := by
   classical
-  refine StatementRun.assignValue (kind := VarKind.local) (name := ofString "sp")
+  refine StatementRun.assignValue (fn := fn) (kind := VarKind.local) (name := ofString "sp")
     (expression := .op .sub [.var VarKind.local (ofString "sp"), .const 1])
     (value := .val (.word (sp - 1))) ?_ ?_
   · exact costedExpression_events s _ _ (eval_stackPopSub s sp hSp)
@@ -178,7 +182,7 @@ theorem stackPop_store_run (s : PanSemStateFiniteExact 64 F) (frame sp' : BitVec
     (hFrame : s.globals.lookup (ofString "ev") = some (.val (.word frame)))
     (hSp : s.locals.lookup (ofString "sp") = some (.val (.word sp')))
     (domain : s.memaddrs (frame + 16)) :
-    StatementRun s (.store (fundingAddress 16) (.var VarKind.local (ofString "sp"))) none
+    StatementRun fn s (.store (fundingAddress 16) (.var VarKind.local (ofString "sp"))) none
       { s with memory := writeWordMemory s (frame + 16) sp' }
       (.statement :: (expressionEvents s (fundingAddress 16) ++
         expressionEvents s (.var VarKind.local (ofString "sp")) ++
@@ -196,7 +200,7 @@ theorem stackPop_store_run (s : PanSemStateFiniteExact 64 F) (frame sp' : BitVec
     simp only [flattenHOL, panMemStoresHOL, panMemStoreHOL]
     rw [if_pos domain]
     rfl
-  exact StatementRun.storeValue (destination := fundingAddress 16)
+  exact StatementRun.storeValue (fn := fn) (destination := fundingAddress 16)
     (source := .var VarKind.local (ofString "sp")) dst src write
 
 
@@ -243,14 +247,14 @@ theorem stackPop_return_run (s : PanSemStateFiniteExact 64 F) (base w0 w1 w2 w3 
     (d3 : s.memaddrs (base + 24))
     (m0 : s.memory base = .word w0) (m1 : s.memory (base + 8) = .word w1)
     (m2 : s.memory (base + 16) = .word w2) (m3 : s.memory (base + 24) = .word w3) :
-    StatementRun s (.return (.load comb4Shape stackPopValueAddress))
+    StatementRun fn s (.return (.load comb4Shape stackPopValueAddress))
       (some (.returned (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
         .val (.word w3)])))
       (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.load comb4Shape stackPopValueAddress) ++
         [.cost (returnOverhead (flattenHOL (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
-          .val (.word w3)])).length)])) :=
-  StatementRun.returnValue (expression := .load comb4Shape stackPopValueAddress)
+          .val (.word w3)])).length + returnMoves fn)])) :=
+  StatementRun.returnValue (fn := fn) (expression := .load comb4Shape stackPopValueAddress)
     (costedExpression_events s _ _
       (eval_load_comb4 s stackPopValueAddress base w0 w1 w2 w3 hAddress d0 d1 d2 d3 m0 m1 m2 m3))
     (by simp [shapeOfHOLExact, comb4Shape])
@@ -335,7 +339,7 @@ noncomputable def stackPopSuccessEvents (s : PanSemStateFiniteExact 64 F) (frame
   .statement ::
     (expressionEvents s stackPopSp ++
       [.frame 1] ++
-      ((.statement :: .cost statementUnit :: (expressionEvents entry stackPopGuard ++ [.statement])) ++
+      ((.statement :: .cost (statementUnit + branchMoves fn) :: (expressionEvents entry stackPopGuard ++ [.statement])) ++
         (.statement :: (expressionEvents entry
             (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
           [.copy (flattenHOL (.val (.word (sp - 1)))).length])) ++
@@ -344,7 +348,7 @@ noncomputable def stackPopSuccessEvents (s : PanSemStateFiniteExact 64 F) (frame
           [.memory (flattenHOL (.val (.word (sp - 1)))).length, .cost (storeOverhead (flattenHOL (.val (.word (sp - 1)))).length)]) ++
         .statement :: (expressionEvents stored
           (.load comb4Shape stackPopValueAddress) ++
-          [.cost (returnOverhead (flattenHOL payload).length)])))
+          [.cost (returnOverhead (flattenHOL payload).length + returnMoves fn)])))
 
 /-- The complete successful execution trace of the installed `stack_pop` helper:
 the nonzero pointer takes the guard's false branch, the pointer is decremented and
@@ -366,14 +370,14 @@ theorem stackPop_success_run (state : PanSemStateFiniteExact 64 F)
     (addressCell1 : (stackPopStored state frame sp).memory (base + (sp - 1) * 32 + 8) = .word w1)
     (addressCell2 : (stackPopStored state frame sp).memory (base + (sp - 1) * 32 + 16) = .word w2)
     (addressCell3 : (stackPopStored state frame sp).memory (base + (sp - 1) * 32 + 24) = .word w3) :
-    StatementRun state (sourceFunctionBody Guest.guestFn_stack_pop)
+    StatementRun fn state (sourceFunctionBody Guest.guestFn_stack_pop)
       (some (.returned (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
         .val (.word w3)])))
       { emptyLocalsHOLFinite (stackPopStored state frame sp) with
         locals := HolFiniteMapExact.resVarEq
           (emptyLocalsHOLFinite (stackPopStored state frame sp)).locals
           (ofString "sp", state.locals.lookup (ofString "sp")) }
-      (stackPopSuccessEvents state frame sp (base + (sp - 1) * 32) w0 w1 w2 w3) := by
+      (stackPopSuccessEvents (fn := fn) state frame sp (base + (sp - 1) * 32) w0 w1 w2 w3) := by
   classical
   have entrySp : (stackPopEntry state sp).locals.lookup (ofString "sp") =
       some (.val (.word sp)) := stackPopEntry_sp state sp
@@ -411,15 +415,15 @@ theorem stackPop_success_run (state : PanSemStateFiniteExact 64 F)
   have guard : CostedExpressionRun (stackPopEntry state sp) stackPopGuard (some (.val (.word 0)))
       (expressionEvents (stackPopEntry state sp) stackPopGuard) :=
     costedExpression_events _ _ _ guardValue
-  have iteRun : StatementRun (stackPopEntry state sp)
+  have iteRun : StatementRun fn (stackPopEntry state sp)
       (.ite stackPopGuard (.raise (ofString "EvmErr") (.const 2)) .skip)
       none (stackPopEntry state sp)
-      (.statement :: .cost statementUnit :: (expressionEvents (stackPopEntry state sp) stackPopGuard ++
+      (.statement :: .cost (statementUnit + branchMoves fn) :: (expressionEvents (stackPopEntry state sp) stackPopGuard ++
         [.statement])) :=
-    StatementRun.iteNo (r := none) (post := stackPopEntry state sp)
+    StatementRun.iteNo (fn := fn) (r := none) (post := stackPopEntry state sp)
       (bodyEvents := [.statement]) (yes := .raise (ofString "EvmErr") (.const 2))
-      (no := .skip) guard (StatementRun.skip (stackPopEntry state sp))
-  have assignRun : StatementRun (stackPopEntry state sp)
+      (no := .skip) guard (StatementRun.skip (fn := fn) (stackPopEntry state sp))
+  have assignRun : StatementRun fn (stackPopEntry state sp)
       (.assign VarKind.local (ofString "sp")
         (.op .sub [.var VarKind.local (ofString "sp"), .const 1]))
       none (stackPopAssigned state sp)
@@ -427,7 +431,7 @@ theorem stackPop_success_run (state : PanSemStateFiniteExact 64 F)
           (.op .sub [.var VarKind.local (ofString "sp"), .const 1]) ++
         [.copy (flattenHOL (.val (.word (sp - 1)))).length])) :=
     stackPop_assign_run (stackPopEntry state sp) sp entrySp
-  have storeRun : StatementRun (stackPopAssigned state sp)
+  have storeRun : StatementRun fn (stackPopAssigned state sp)
       (.store (fundingAddress 16) (.var VarKind.local (ofString "sp")))
       none (stackPopStored state frame sp)
       (.statement :: (expressionEvents (stackPopAssigned state sp) (fundingAddress 16) ++
@@ -440,7 +444,7 @@ theorem stackPop_success_run (state : PanSemStateFiniteExact 64 F)
     have := eval_stackPopValueAddress (stackPopStored state frame sp) frame base (sp - 1)
       storedFrame storedBaseDomain storedBaseCell storedSp
     simpa [expressionValue] using this
-  have retRun : StatementRun (stackPopStored state frame sp)
+  have retRun : StatementRun fn (stackPopStored state frame sp)
       (.return (.load comb4Shape stackPopValueAddress))
       (some (.returned (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
         .val (.word w3)])))
@@ -448,13 +452,13 @@ theorem stackPop_success_run (state : PanSemStateFiniteExact 64 F)
       (.statement :: (expressionEvents (stackPopStored state frame sp)
           (.load comb4Shape stackPopValueAddress) ++
         [.cost (returnOverhead (flattenHOL (.rStruct [.val (.word w0), .val (.word w1), .val (.word w2),
-          .val (.word w3)])).length)])) :=
+          .val (.word w3)])).length + returnMoves fn)])) :=
     stackPop_return_run (stackPopStored state frame sp) (base + (sp - 1) * 32)
       w0 w1 w2 w3 address addressDomain0 addressDomain1 addressDomain2 addressDomain3
       addressCell0 addressCell1 addressCell2 addressCell3
-  have tailRun := StatementRun.seqNext assignRun (StatementRun.seqNext storeRun retRun)
+  have tailRun := StatementRun.seqNext (fn := fn) assignRun (StatementRun.seqNext (fn := fn) storeRun retRun)
   rw [stackPop_prefix_installed]
-  refine StatementRun.declareValue (name := ofString "sp") (shape := .one)
+  refine StatementRun.declareValue (fn := fn) (name := ofString "sp") (shape := .one)
     (initializer := stackPopSp)
     (body := (.seq (.ite stackPopGuard (.raise (ofString "EvmErr") (.const 2)) .skip)
       (.seq (.assign VarKind.local (ofString "sp")
@@ -463,14 +467,14 @@ theorem stackPop_success_run (state : PanSemStateFiniteExact 64 F)
           (.return (.load comb4Shape stackPopValueAddress))))))
     init shapeMatch ?_
   simpa [stackPopSuccessEvents, stackPopEntry, stackPopAssigned, stackPopStored] using
-    StatementRun.seqNext iteRun tailRun
+    StatementRun.seqNext (fn := fn) iteRun tailRun
 
 /-- Explicit coefficient price of the same successful `stack_pop` trace: nine
 executed statements, four expressions, three copied values, one frame slot, one
 word write, and the restored previous pointer. -/
-theorem stackPopSuccessEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
+theorem stackPopSuccessEvents_score (coeff : Work) {fn : MlS} (s : PanSemStateFiniteExact 64 F)
     (frame sp base : BitVec 64) (w0 w1 w2 w3 : BitVec 64) :
-    coeff.score (executionWork (stackPopSuccessEvents s frame sp base w0 w1 w2 w3)) ≤
+    coeff.score (executionWork (stackPopSuccessEvents (fn := fn) s frame sp base w0 w1 w2 w3)) ≤
       9 * coeff.statements +
         expressionCost coeff s stackPopSp +
         coeff.movedWords * (flattenHOL (.val (.word sp))).length +
@@ -489,9 +493,9 @@ theorem stackPopSuccessEvents_score (coeff : Work) (s : PanSemStateFiniteExact 6
           .val (.word w2), .val (.word w3)])).length +
         coeff.movedWords * (((s.locals.lookup (ofString "sp")).map
           (fun previous => (flattenHOL previous).length)).getD 0) +
-        coeff.score (WorkEvent.cost statementUnit).units +
+        coeff.score (WorkEvent.cost (statementUnit + branchMoves fn)).units +
         coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.rStruct [.val (.word w0),
-          .val (.word w1), .val (.word w2), .val (.word w3)])).length)).units := by
+          .val (.word w1), .val (.word w2), .val (.word w3)])).length + returnMoves fn)).units := by
   unfold stackPopSuccessEvents expressionCost
   dsimp only [stackPopEntry, stackPopAssigned, stackPopStored]
   simp only [executionWork_score_cons, executionWork_score_append, score_statement,
