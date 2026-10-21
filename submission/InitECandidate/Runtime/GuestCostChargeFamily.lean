@@ -1,9 +1,12 @@
 import InitECandidate.Runtime.GuestCostCallRule
 import InitECandidate.Runtime.ChargeGas
 import InitECandidate.Runtime.PanSingleWordLookup
+set_option maxRecDepth 10000
 set_option maxHeartbeats 4000000
 
 namespace InitECandidate.Runtime.FineCost
+
+variable {F : Type}
 
 /-- Symbolic score of a native cost event. -/
 theorem charge_score_cost (coeff : Work) (n : Nat) :
@@ -20,7 +23,7 @@ theorem costedExpression_events {F : Type} (s : PanSemStateFiniteExact 64 F) (e 
     CostedExpressionRun s e value (expressionEvents s e) := h ▸ costedExpressionRun_total s e
 
 /-- The memory map after writing one word, the exact post-memory of a
-`StatementRun.storeValue` step. -/
+`StatementRun.storeValue (fn := ofString "charge_gas")` step. -/
 noncomputable def writeWordMemory {F : Type} (s : PanSemStateFiniteExact 64 F)
     (address value : BitVec 64) : RiscV.Word 64 → HolWordLab 64 :=
   fun current => if current = address then .word value else s.memory current
@@ -33,7 +36,7 @@ theorem chargeGas_storeDebit_run (s : PanSemStateFiniteExact 64 Guest.HostMemory
     (hLeft : s.locals.lookup (ofString "gl") = some (.val (.word left)))
     (hAmount : s.locals.lookup (ofString "amount") = some (.val (.word amount)))
     (domain : s.memaddrs (frame + 64)) :
-    StatementRun s (.store (fundingAddress 64) gasDebitExpression) none
+    StatementRun (ofString "charge_gas") s (.store (fundingAddress 64) gasDebitExpression) none
       { s with memory := writeWordMemory s (frame + 64) (left - amount) }
       (.statement :: (expressionEvents s (fundingAddress 64) ++
         expressionEvents s gasDebitExpression ++
@@ -52,7 +55,7 @@ theorem chargeGas_storeDebit_run (s : PanSemStateFiniteExact 64 Guest.HostMemory
     simp only [flattenHOL, panMemStoresHOL, panMemStoreHOL]
     rw [if_pos domain]
     rfl
-  exact StatementRun.storeValue (destination := fundingAddress 64)
+  exact StatementRun.storeValue (fn := ofString "charge_gas") (destination := fundingAddress 64)
     (source := gasDebitExpression) dst src write
 
 /-- The successful spent store `ev[184] := ev[184] + amount`. -/
@@ -61,7 +64,7 @@ theorem chargeGas_storeUsed_run (s : PanSemStateFiniteExact 64 Guest.HostMemory)
     (hFrame : s.globals.lookup (ofString "ev") = some (.val (.word frame)))
     (hAmount : s.locals.lookup (ofString "amount") = some (.val (.word amount)))
     (domain : s.memaddrs (frame + 184)) (cell : s.memory (frame + 184) = .word used) :
-    StatementRun s (.store (fundingAddress 184) chargeGasUsedExpression) none
+    StatementRun (ofString "charge_gas") s (.store (fundingAddress 184) chargeGasUsedExpression) none
       { s with memory := writeWordMemory s (frame + 184) (used + amount) }
       (.statement :: (expressionEvents s (fundingAddress 184) ++
         expressionEvents s chargeGasUsedExpression ++
@@ -81,21 +84,21 @@ theorem chargeGas_storeUsed_run (s : PanSemStateFiniteExact 64 Guest.HostMemory)
     simp only [flattenHOL, panMemStoresHOL, panMemStoreHOL]
     rw [if_pos domain]
     rfl
-  exact StatementRun.storeValue (destination := fundingAddress 184)
+  exact StatementRun.storeValue (fn := ofString "charge_gas") (destination := fundingAddress 184)
     (source := chargeGasUsedExpression) dst src write
 
 /-- The helper's final `return 0`. -/
 theorem chargeGas_return_run (s : PanSemStateFiniteExact 64 Guest.HostMemory) :
-    StatementRun s (.return (.const 0)) (some (.returned (.val (.word 0))))
+    StatementRun (ofString "charge_gas") s (.return (.const 0)) (some (.returned (.val (.word 0))))
       (emptyLocalsHOLFinite s)
       (.statement :: (expressionEvents s (.const 0) ++
-        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])) := by
+        [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves (ofString "charge_gas"))])) := by
   classical
   have expr : CostedExpressionRun s (.const 0) (some (.val (.word 0)))
       (expressionEvents s (.const 0)) :=
     costedExpression_events (F := Guest.HostMemory) s (.const 0) _
       (by simp [expressionValue, evalHOLExact])
-  exact StatementRun.returnValue (expression := .const 0) expr
+  exact StatementRun.returnValue (fn := ofString "charge_gas") (expression := .const 0) expr
     (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
 
 
@@ -132,7 +135,7 @@ noncomputable def chargeGasTailEvents (s : PanSemStateFiniteExact 64 Guest.HostM
     [.memory (flattenHOL (.val (.word (used + amount)))).length,
       .cost (storeOverhead (flattenHOL (.val (.word (used + amount)))).length)])
   let ret := .statement :: (expressionEvents s2 (.const 0) ++
-    [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])
+    [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves (ofString "charge_gas"))])
   iteEvents ++ (storeA ++ (storeB ++ ret))
 
 noncomputable def chargeGasBodyEvents (s : PanSemStateFiniteExact 64 Guest.HostMemory)
@@ -148,7 +151,7 @@ noncomputable def chargeGasBodyEvents (s : PanSemStateFiniteExact 64 Guest.HostM
     expressionEvents s1 chargeGasUsedExpression ++
     [.memory (flattenHOL (.val (.word (used + amount)))).length, .cost (storeOverhead (flattenHOL (.val (.word (used + amount)))).length)])
   let ret := .statement :: (expressionEvents s2 (.const 0) ++
-    [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])
+    [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves (ofString "charge_gas"))])
   let tailEvents := storeA ++ (storeB ++ ret)
   let bodyEvents := chargeGasTailEvents s frame left used amount
   .statement ::
@@ -165,7 +168,7 @@ theorem chargeGas_body_run (state : PanSemStateFiniteExact 64 Guest.HostMemory)
     (leftCell : state.memory (frame + 64) = .word left)
     (usedCell : state.memory (frame + 184) = .word used)
     (enough : amount ≤ left) :
-    StatementRun state (sourceFunctionBody Guest.guestFn_charge_gas)
+    StatementRun (ofString "charge_gas") state (sourceFunctionBody Guest.guestFn_charge_gas)
       (some (.returned (.val (.word 0))))
       (chargeGasPost state frame left used amount)
       (chargeGasBodyEvents state frame left used amount) := by
@@ -202,25 +205,25 @@ theorem chargeGas_body_run (state : PanSemStateFiniteExact 64 Guest.HostMemory)
   have guard : CostedExpressionRun entry chargeGasCheck (some (.val (.word 0)))
       (expressionEvents entry chargeGasCheck) :=
     costedExpression_events entry chargeGasCheck _ guardValue
-  have iteRun : StatementRun entry
+  have iteRun : StatementRun (ofString "charge_gas") entry
       (.ite chargeGasCheck (.raise (ofString "EvmErr") (.const 4)) .skip) none entry
       (.statement :: .cost statementUnit :: (expressionEvents entry chargeGasCheck ++ [.statement])) :=
-    StatementRun.iteNo (r := none) (post := entry) (bodyEvents := [.statement])
+    StatementRun.iteNo (fn := ofString "charge_gas") (r := none) (post := entry) (bodyEvents := [.statement])
       (yes := .raise (ofString "EvmErr") (.const 4)) (no := .skip)
-      guard (StatementRun.skip entry)
+      guard (StatementRun.skip (fn := ofString "charge_gas") entry)
   have storeA := chargeGas_storeDebit_run entry frame left amount hFrame entryLeft entryAmount
     (by simpa [entry, setVarHOLFinite] using leftDomain)
   have storeB := chargeGas_storeUsed_run s1 frame used amount
     (by simpa [s1, entry, setVarHOLFinite, sourceWriteWord, writeWordMemory] using hFrame) s1Amount
     (by simpa [s1, entry, setVarHOLFinite, sourceWriteWord, writeWordMemory] using usedDomain) s1Used
   have ret := chargeGas_return_run s2
-  have tailRun := StatementRun.seqNext storeA (StatementRun.seqNext storeB ret)
-  have bodyRun : StatementRun entry chargeGasTail (some (.returned (.val (.word 0))))
+  have tailRun := StatementRun.seqNext (fn := ofString "charge_gas") storeA (StatementRun.seqNext (fn := ofString "charge_gas") storeB ret)
+  have bodyRun : StatementRun (ofString "charge_gas") entry chargeGasTail (some (.returned (.val (.word 0))))
       s2.emptyLocalsHOLFinite (chargeGasTailEvents state frame left used amount) := by
     rw [chargeGasTail_shape]
-    simpa only [chargeGasTailEvents] using StatementRun.seqNext iteRun tailRun
+    simpa only [chargeGasTailEvents] using StatementRun.seqNext (fn := ofString "charge_gas") iteRun tailRun
   rw [source_chargeGas_body]
-  have traced := StatementRun.declareValue (name := ofString "gl") (shape := .one)
+  have traced := StatementRun.declareValue (fn := ofString "charge_gas") (name := ofString "gl") (shape := .one)
     (initializer := fundingLoad 64) (body := chargeGasTail) (post := s2.emptyLocalsHOLFinite)
     (initEvents := expressionEvents state (fundingLoad 64))
     (bodyEvents := chargeGasTailEvents state frame left used amount) init shapeMatch bodyRun
@@ -236,7 +239,7 @@ theorem chargeGas_body_run_funding (state : PanSemStateFiniteExact 64 Guest.Host
     (hAmount : state.locals.lookup (ofString "amount") = some (.val (.word amount)))
     (leftDomain : state.memaddrs (frame + 64)) (usedDomain : state.memaddrs (frame + 184))
     (memory : HasGasFunding state frame funding) (enough : amount ≤ funding.left) :
-    StatementRun state (sourceFunctionBody Guest.guestFn_charge_gas)
+    StatementRun (ofString "charge_gas") state (sourceFunctionBody Guest.guestFn_charge_gas)
       (some (.returned (.val (.word 0))))
       (chargeGasPost state frame funding.left funding.used amount)
       (chargeGasBodyEvents state frame funding.left funding.used amount) :=
@@ -269,7 +272,7 @@ noncomputable def chargeGasBodyBound (coeff : Work)
     coeff.movedWords * (((s.locals.lookup (ofString "gl")).map
       (fun previous => (flattenHOL previous).length)).getD 0) +
     coeff.score (WorkEvent.cost statementUnit).units +
-    coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)).units
+    coeff.score (WorkEvent.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length + returnMoves (ofString "charge_gas"))).units
 
 theorem chargeGasBodyEvents_score (coeff : Work)
     (s : PanSemStateFiniteExact 64 Guest.HostMemory) (frame left used amount : BitVec 64) :
@@ -306,7 +309,7 @@ theorem chargeGas_outOfGas_run (state : PanSemStateFiniteExact 64 Guest.HostMemo
     (leftDomain : state.memaddrs (frame + 64))
     (leftCell : state.memory (frame + 64) = .word left)
     (insufficient : left.toNat < amount.toNat) :
-    StatementRun state (sourceFunctionBody Guest.guestFn_charge_gas)
+    StatementRun (ofString "charge_gas") state (sourceFunctionBody Guest.guestFn_charge_gas)
       (some (.exception (ofString "EvmErr") (.val (.word 4))))
       (chargeGasFailurePost state left) (chargeGasOutOfGasEvents state frame left 0 amount) := by
   classical
@@ -333,34 +336,34 @@ theorem chargeGas_outOfGas_run (state : PanSemStateFiniteExact 64 Guest.HostMemo
   have payload : CostedExpressionRun entry (.const 4) (some (.val (.word 4)))
       (expressionEvents entry (.const 4)) :=
     costedExpression_events entry _ _ (by simp [expressionValue, evalHOLExact])
-  have raiseRun : StatementRun entry (.raise (ofString "EvmErr") (.const 4))
+  have raiseRun : StatementRun (ofString "charge_gas") entry (.raise (ofString "EvmErr") (.const 4))
       (some (.exception (ofString "EvmErr") (.val (.word 4)))) (emptyLocalsHOLFinite entry)
       (.statement :: (expressionEvents entry (.const 4) ++
         [.cost (raiseOverhead (flattenHOL (.val (.word (4 : BitVec 64)))).length)])) :=
-    StatementRun.raiseValue (exceptionId := ofString "EvmErr") (expression := .const 4)
+    StatementRun.raiseValue (fn := ofString "charge_gas") (exceptionId := ofString "EvmErr") (expression := .const 4)
       (shape := .one) payload exceptionShape (by simp [shapeOfHOLExact])
       (by simp [shapeOfHOLExact, sizeOfShapeWithContextHOL])
-  have iteRun : StatementRun entry
+  have iteRun : StatementRun (ofString "charge_gas") entry
       (.ite chargeGasCheck (.raise (ofString "EvmErr") (.const 4)) .skip)
       (some (.exception (ofString "EvmErr") (.val (.word 4)))) (emptyLocalsHOLFinite entry)
       (.statement :: .cost statementUnit :: (expressionEvents entry chargeGasCheck ++
         (.statement :: (expressionEvents entry (.const 4) ++
           [.cost (raiseOverhead (flattenHOL (.val (.word (4 : BitVec 64)))).length)])))) :=
-    StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
+    StatementRun.iteYes (fn := ofString "charge_gas") (post := emptyLocalsHOLFinite entry)
       (yes := .raise (ofString "EvmErr") (.const 4)) (no := .skip)
       guard (by decide) raiseRun
-  have tailRun : StatementRun entry chargeGasTail
+  have tailRun : StatementRun (ofString "charge_gas") entry chargeGasTail
       (some (.exception (ofString "EvmErr") (.val (.word 4)))) (emptyLocalsHOLFinite entry)
       (.statement :: .cost statementUnit :: (expressionEvents entry chargeGasCheck ++
         (.statement :: (expressionEvents entry (.const 4) ++
           [.cost (raiseOverhead (flattenHOL (.val (.word (4 : BitVec 64)))).length)])))) := by
     rw [chargeGasTail_shape]
-    exact StatementRun.seqStop (by simp)
-      (StatementRun.iteYes (post := emptyLocalsHOLFinite entry)
+    exact StatementRun.seqStop (fn := ofString "charge_gas") (by simp)
+      (StatementRun.iteYes (fn := ofString "charge_gas") (post := emptyLocalsHOLFinite entry)
         (yes := .raise (ofString "EvmErr") (.const 4)) (no := .skip)
         guard (by decide) raiseRun)
   rw [source_chargeGas_body, chargeGasOutOfGasEvents]
-  exact StatementRun.declareValue (name := ofString "gl") (shape := .one)
+  exact StatementRun.declareValue (fn := ofString "charge_gas") (name := ofString "gl") (shape := .one)
     (initializer := fundingLoad 64) (body := chargeGasTail) init shapeMatch tailRun
 
 
@@ -385,7 +388,7 @@ theorem chargeGas_call_run (state : PanSemStateFiniteExact 64 Guest.HostMemory)
     (enough : amount ≤ funding.left) :
     ∃ (result : Option (PanSemResultExact 64))
       (post : PanSemStateFiniteExact 64 Guest.HostMemory),
-      StatementRun (callEntryStateHOLFinite state
+      StatementRun (ofString "charge_gas") (callEntryStateHOLFinite state
         (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
         (sourceFunctionBody Guest.guestFn_charge_gas) (some (.returned (.val (.word 0))))
         (chargeGasPost (callEntryStateHOLFinite state
@@ -398,8 +401,8 @@ theorem chargeGas_call_run (state : PanSemStateFiniteExact 64 Guest.HostMemory)
         (chargeGasPost (callEntryStateHOLFinite state
           (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
           frame funding.left funding.used amount) = .done result post ∧
-      StatementRun state (.call info (ofString "charge_gas") [argument]) result post
-        (callEvents state [argument] [.val (.word amount)] .one
+      StatementRun (ofString "charge_gas") state (.call info (ofString "charge_gas") [argument]) result post
+        (callEvents (ofString "charge_gas") state (ofString "charge_gas") [argument] [.val (.word amount)] .one
           (some (.returned (.val (.word 0))))
           (chargeGasBodyEvents (callEntryStateHOLFinite state
             (HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))))
@@ -409,7 +412,7 @@ theorem chargeGas_call_run (state : PanSemStateFiniteExact 64 Guest.HostMemory)
     HolFiniteMapExact.empty.update (ofString "amount", .val (.word amount))
   let bodyEvents := chargeGasBodyEvents (callEntryStateHOLFinite state callee) frame
     funding.left funding.used amount
-  have bodyRun : StatementRun (callEntryStateHOLFinite state callee)
+  have bodyRun : StatementRun (ofString "charge_gas") (callEntryStateHOLFinite state callee)
       (sourceFunctionBody Guest.guestFn_charge_gas) (some (.returned (.val (.word 0))))
       (chargeGasPost (callEntryStateHOLFinite state callee) frame funding.left funding.used
         amount) bodyEvents := chargeGas_body_run_funding
@@ -443,7 +446,7 @@ theorem chargeGas_call_run (state : PanSemStateFiniteExact 64 Guest.HostMemory)
   obtain ⟨result, post, planEq⟩ := plan
   have lookup := pan_single_word_lookup state.code.lookup (ofString "charge_gas")
     (ofString "amount") (sourceFunctionBody Guest.guestFn_charge_gas) amount installed
-  have callRun := StatementRun.callDone (s := state) (info := info)
+  have callRun := StatementRun.callDone (fn := ofString "charge_gas") (s := state) (info := info)
     (function := ofString "charge_gas") (arguments := [argument])
     (values := [.val (.word amount)]) (body := sourceFunctionBody Guest.guestFn_charge_gas)
     (callee := callee) (returnShape := .one) (bodyResult := some (.returned value))
