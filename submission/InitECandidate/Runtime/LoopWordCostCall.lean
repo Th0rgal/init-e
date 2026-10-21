@@ -119,7 +119,7 @@ theorem wordCostLe_callTail {C F : Type} {s post : LoopSemStateFiniteExact 64 F}
     simp [wordSemBadDestArgs]
   have nz : t.clock ≠ 0 := by rw [hclock]; exact clock
   simp only [LoopToWord.compHOL]
-  rw [tail_call_cost _ _ t hwgv0 hbad hwf nz]
+  rw [loop_tail_call_cost _ _ t hwgv0 hbad hwf nz]
   have relBody : loopToWordStateRelHOLExact { LoopSemStateFiniteExact.decClock s with locals := env }
       (callEnv args1 ss1 (decClock t)) := by
     simp only [loopToWordStateRelHOLExact, WordSemStateFiniteExact.callEnv, decClock,
