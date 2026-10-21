@@ -878,4 +878,31 @@ def SourceSlackBound (B : Nat) : Prop :=
 #print axioms section597_padding_bound
 #print axioms section597_fetch_transfer
 
+
+/-- Recorded span check: a line's recorded length exceeds its byte length by at
+most `b`.  Labels carry no bytes. -/
+def padSlackOK {width : Nat} [NeZero width] (b : Nat) (line : NativeLine width) : Bool :=
+  match line with
+  | .label _ _ _ => true
+  | .asm _ bytes len => decide (len ≤ bytes.length + b)
+  | .labAsm _ _ bytes len => decide (len ≤ bytes.length + b)
+
+/-- Section-wise span bounds compose into a bound on the whole instruction
+stream.  The filtered line lists are the per-section inputs, so no filter lemma
+is needed. -/
+theorem insts_all_of_sections {width : Nat} [NeZero width] (b : Nat) :
+    forall (secs : List (NativeCode width)),
+      (forall s, s ∈ secs -> (List.filter notLabel s.lines).all (padSlackOK b) = true) ->
+      (insts secs).all (padSlackOK b) = true := by
+  intro secs
+  induction secs with
+  | nil => intro _; rfl
+  | cons sec rest ih =>
+      intro h
+      obtain ⟨sid, lines⟩ := sec
+      rw [insts_cons, List.all_append, Bool.and_eq_true]
+      exact ⟨h ⟨sid, lines⟩ (by simp),
+             ih (by intro s hs; exact h s (by simp [hs]))⟩
+
+
 end InitECandidate.Runtime.NativePadding
