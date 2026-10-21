@@ -1036,4 +1036,43 @@ theorem call_site_transfer_no_differential {C F : Type} (ssa : Spt Nat) (args : 
   omega
 
 #print axioms call_site_transfer_no_differential
+
+/-- **Any move-prefixed `seq` shared by both runs costs nothing in differential.**  A
+move node costs exactly its own canonical price (`wec_move_generic`), and that price is
+state-independent, so for a `.seq (.move pri pairs) tail` appearing identically on the
+source and the target run the only remaining difference is the tail's cost at the reached
+middle states.  This covers both inserted-move sites (call argument moves and the
+returning-call live-name stack move) uniformly. -/
+theorem move_seq_no_differential {C F : Type} (pri : Nat) (pairs : List (Nat × Nat))
+    (tail : WordLangProgHOL (BitVec 64))
+    (source target midS midT : WordSemStateFiniteExact 64 C F)
+    (hS : fixClock source (evaluate (.move pri pairs) source) = (none, midS))
+    (hT : fixClock target (evaluate (.move pri pairs) target) = (none, midT))
+    (extra2 : Nat)
+    (htail : wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      tail midT <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        tail midS + extra2) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move pri pairs) tail) target <=
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq (.move pri pairs) tail) source + extra2 := by
+  rw [wec_seq_none_split_generic _ (.move pri pairs) tail target midT hT,
+      wec_seq_none_split_generic _ (.move pri pairs) tail source midS hS,
+      wec_move_generic _ pri pairs target,
+      wec_move_generic _ pri pairs source]
+  have hn : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.seq (.move pri pairs) tail) target =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.seq (.move pri pairs) tail) source :=
+    refinedWordLocalPrice_state_independent _ _ _
+  have hm : InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+      (.move pri pairs) target =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice
+        (.move pri pairs) source :=
+    refinedWordLocalPrice_state_independent _ _ _
+  rw [hn, hm]
+  omega
+
+#print axioms move_seq_no_differential
 end InitECandidate.Runtime.FineCost
