@@ -1712,4 +1712,26 @@ theorem move_fallthrough {C F : Type}
   rw [evaluate_move_none pri moves s hnodup hget]
   simp only [fixClock]
 
+/-- Fall-through composes over `seq`: if both halves fall through from any state, so does their
+sequence.  Proved the same way evaluate_seq_none was - by unfolding the evaluator's seq clause
+with the reached fixClock split in hand. -/
+theorem seq_fallthrough {C F : Type} (f g : WordLangProgHOL (BitVec 64))
+    (hf : ∀ (s : WordSemStateFiniteExact 64 C F), (fixClock s (WordSemStateFiniteExact.evaluate f s)).1 = none)
+    (hg : ∀ (s : WordSemStateFiniteExact 64 C F), (fixClock s (WordSemStateFiniteExact.evaluate g s)).1 = none)
+    (s : WordSemStateFiniteExact 64 C F) :
+    (fixClock s (WordSemStateFiniteExact.evaluate (.seq f g) s)).1 = none := by
+  cases hfix : fixClock s (WordSemStateFiniteExact.evaluate f s) with
+  | mk res mid =>
+    have hres : res = none := by
+      have h := hf s
+      rw [hfix] at h
+      exact h
+    subst hres
+    have hseq : WordSemStateFiniteExact.evaluate (.seq f g) s = WordSemStateFiniteExact.evaluate g mid := by
+      simp only [WordSemStateFiniteExact.evaluate, hfix]
+    rw [hseq, fixClock_fst]
+    have hg' := hg mid
+    rwa [fixClock_fst] at hg'
+
+#print axioms seq_fallthrough
 end InitECandidate.Runtime.FineCost
