@@ -616,4 +616,37 @@ theorem ite_transfer_of_branch {C F : Type}
   omega
 
 #print axioms ite_transfer_of_branch
+
+/-- The `.ite` clause of the counter, taken branch `true`: the node costs its own price
+plus the cost of `e2`.  The lookups return `WordLocW 64` (see
+WordSem/Accessors.lean:173 and :293), which is the carrier `wordSemWordCmp` compares. -/
+theorem wec_ite_true {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (x y : WordLocW 64)
+    (hx : getVar r1 s = some x) (hy : getVarImm ri s = some y)
+    (hc : wordSemWordCmp cmp x y = some true) :
+    wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) s =
+      nativeWordPrice (.ite cmp r1 ri e2 e3) s +
+        wordExecutionCost nativeWordPrice e2 s := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+  simp only [hx, hy, hc]
+
+/-- The `.ite` clause of the counter, taken branch `false`. -/
+theorem wec_ite_false {C F : Type}
+    (cmp : Cmp) (r1 : Nat) (ri : WordRegImm (BitVec 64))
+    (e2 e3 : WordLangProgHOL (BitVec 64)) (s : WordSemStateFiniteExact 64 C F)
+    (x y : WordLocW 64)
+    (hx : getVar r1 s = some x) (hy : getVarImm ri s = some y)
+    (hc : wordSemWordCmp cmp x y = some false) :
+    wordExecutionCost nativeWordPrice (.ite cmp r1 ri e2 e3) s =
+      nativeWordPrice (.ite cmp r1 ri e2 e3) s +
+        wordExecutionCost nativeWordPrice e3 s := by
+  rw [wordExecutionCost]
+  all_goals first | rfl | (intros; contradiction) | skip
+  simp only [hx, hy, hc]
+
+#print axioms wec_ite_true
+#print axioms wec_ite_false
 end InitECandidate.Runtime.FineCost
