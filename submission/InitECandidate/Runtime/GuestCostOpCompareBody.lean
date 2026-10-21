@@ -38,6 +38,30 @@ theorem source_opGt_body :
                   (.return (.const (0 : BitVec 64)))))))) := by
   cbv
 
+/-- `u256_gt` is the swapped-argument `u256_lt`. -/
+theorem source_u256Gt_body :
+    sourceFunctionBody Guest.guestFn_u256_gt =
+      .call none (ofString "u256_lt")
+        [.var VarKind.local (ofString "b"), .var VarKind.local (ofString "a")] := by
+  cbv
+
+/-- Actual `stack_push_bool` body: nonzero means one, zero means zero. -/
+theorem source_stackPushBool_body :
+    sourceFunctionBody Guest.guestFn_stack_push_bool =
+      .seq
+        (.ite (.cmp Cmp.notEqual (.var VarKind.local (ofString "b")) (.const (0 : BitVec 64)))
+          (.call (some (none, none)) (ofString "stack_push")
+            [.rstruct [.const (1 : BitVec 64), .const (0 : BitVec 64),
+              .const (0 : BitVec 64), .const (0 : BitVec 64)]])
+          (.call (some (none, none)) (ofString "stack_push")
+            [.rstruct [.const (0 : BitVec 64), .const (0 : BitVec 64),
+              .const (0 : BitVec 64), .const (0 : BitVec 64)]]))
+        (.return (.const (0 : BitVec 64))) := by
+  cbv
+
+#print axioms source_u256Gt_body
+#print axioms source_stackPushBool_body
+
 #print axioms source_opLt_body
 #print axioms source_opGt_body
 end InitECandidate.Runtime.FineCost
