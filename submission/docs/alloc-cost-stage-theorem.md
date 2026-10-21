@@ -226,3 +226,33 @@ the post relation faithful by construction instead of by transcription, and it m
 purely a matter of the two compositions that already exist:
 `ssaCcTransCorrectSeq` for the simulation half and `ssaCcTrans_seq_transfer_compiled` (fall-through)
 / `seq_transfer_escape_refined` (escape) for the cost half.
+
+## Applied: runs exposed, post relation untouched
+
+`quantSsaSimulation` now carries, existentially:
+
+    permutation : Nat -> Nat -> Nat
+    rS sS rT sT
+    evaluate prog {source with permute := permutation} = (rS, sS)          -- source run
+    evaluate (ssaCcTrans prog ssa next tables).1 target = (rT, sT)        -- compiled run
+    ssaSimulation prog source target ssa next tables                      -- post relation, verbatim
+    rS = rT                                                               -- outcome equality
+    wordExecutionCost refinedWordLocalPrice (ssaCcTrans prog ssa next tables).1 target
+      <= wordExecutionCost refinedWordLocalPrice prog source + extra       -- executed cost
+
+The post relation is NOT transcribed: the compiler's own `ssaSimulation` is a conjunct, so the
+four-branch outcome match (`ssaLocalsRel` / `strongLocalsRel` via `tables` / locals equality) stays
+exactly as the compiler states it.  The runs are now equations over existential variables, which is
+what a stage needs: `targetRun` yields `evaluate (ssaCcTrans ...).1 target = (rT, sT)`, so a stage
+reads off the reached state instead of guessing it.
+
+Accessors, all green:
+- `quantSsaSimulation.toSsaSimulation` --- the compiler's simulation (projection of the conjunct);
+- `quantSsaSimulation.costBound` --- the executed-cost half;
+- `quantSsaSimulation.targetRun` --- the compiled run equation (reached state).
+
+Remaining for the seq case: from the first body's quantitative IH, `rS = none` together with
+`rS = rT` gives the compiled first body's outcome `none`, hence the reached middle state via
+`targetRun`; feed that as `hT`/`midT` to `ssaCcTrans_seq_transfer_compiled` (fall-through) or use
+`seq_transfer_escape_refined` when the outcome is not `none`; the simulation half is
+`ssaCcTransCorrectSeq` applied to the two recursive IHs and the invariants.
