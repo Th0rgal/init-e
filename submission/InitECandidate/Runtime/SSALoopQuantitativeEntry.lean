@@ -1,5 +1,5 @@
 import InitECandidate.Runtime.SSALoopBodyEntry
-import InitECandidate.Runtime.SSAQuantitativeCost
+import InitECandidate.Runtime.SSAQuantitativeAllowanceCore
 
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.WordAlloc
@@ -8,8 +8,9 @@ set_option maxHeartbeats 4000000
 
 /-- Instantiate the quantitative body IH at the actual loop cut and
 intersected refreshed map, deriving all six original SSA entry obligations. -/
-theorem ssa_loop_quantitative_entry {C F : Type}
+theorem ssa_loop_allowance_entry {C F : Type}
     (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (entry : Spt Nat → Nat → Nat)
     (source target : WordSemStateFiniteExact 64 C F) (ssa : Spt Nat) (next : Nat)
     (names exits : Spt Unit) (body : WordLangProgHOL (BitVec 64))
     (tables : List (Spt Nat × Spt Unit × Spt Unit))
@@ -31,14 +32,14 @@ theorem ssa_loop_quantitative_entry {C F : Type}
       Flapjack.WordAlloc.wordStateEqRel source target ∧
       ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
       everyVarHOL (fun key => decide (key < next)) body = true ∧
-      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeSimulation SP TP body source target ssa next tables)
+      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeAllowance SP TP body source target ssa next tables (entry ssa next))
     (cut : wordSemCutEnv (names,.ln) source.locals = some sourceEnv) :
     ∃ targetEnv,
       wordSemCutEnv (Flapjack.WordAlloc.applyNummapKey (optionLookup ssa) names,.ln)
         target.locals = some targetEnv ∧
       sptDomain sourceEnv = sptDomain names ∧
-      SSAQuantitativeSimulation SP TP body {source with locals := sourceEnv} {target with locals := targetEnv}
-        (sptInter ssa names) next ((ssa,names,exits)::tables) := by
+      SSAQuantitativeAllowance SP TP body {source with locals := sourceEnv} {target with locals := targetEnv}
+        (sptInter ssa names) next ((ssa,names,exits)::tables) (entry (sptInter ssa names) next) := by
   obtain ⟨targetEnv,targetCut,domain,locals⟩ := ssa_loop_entry_cut ssa names next
     source.locals target.locals sourceEnv cut strong entryInjection mapped bounded
   have updatedFrame : Flapjack.WordAlloc.wordStateEqRel
@@ -101,5 +102,5 @@ theorem ssa_loop_recursive_entry {C F : Type}
 
 #print axioms ssa_loop_recursive_images
 #print axioms ssa_loop_recursive_entry
-#print axioms ssa_loop_quantitative_entry
+#print axioms ssa_loop_allowance_entry
 end InitECandidate.Runtime.FineCost

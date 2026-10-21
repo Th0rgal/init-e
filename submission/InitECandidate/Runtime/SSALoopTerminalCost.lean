@@ -61,7 +61,7 @@ theorem ssa_loop_terminal_locals {α : Type}
 body induction bound. Reconciliation costs nothing here because it is not
 executed. This includes positive exits, returns, exceptions and timeouts. -/
 theorem ssa_loop_terminal_cost {C F : Type}
-    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat) (entry : Nat)
     (seqZero : ∀ a b, TP (.seq a b) = 0)
     (names exits targetNames targetExits : Spt Unit)
     (body output moves : WordLangProgHOL (BitVec 64))
@@ -74,9 +74,9 @@ theorem ssa_loop_terminal_cost {C F : Type}
     (terminal : wordSemContLoop (some result) = false)
     (notExit : (some result : Option (WordSemResult 64)) ≠ some (.break 0))
     (bodyCost : wordExecutionCost (fun p _ => TP p) output targetEntry ≤
-      wordExecutionCost (fun p _ => SP p) body sourceEntry)
+      wordExecutionCost (fun p _ => SP p) body sourceEntry + entry)
     (headCost : TP (.loop targetNames
-      (match (generalizing := false) moves with | .skip => output | _ => .seq output moves) targetExits) ≤
+      (match (generalizing := false) moves with | .skip => output | _ => .seq output moves) targetExits) + entry ≤
       SP (.loop names body exits)) :
     let finalBody := match (generalizing := false) moves with | .skip => output | _ => .seq output moves
     evaluate (.loop names body exits) source = (wordSemExitLoop (some result), sourcePost) ∧
@@ -103,7 +103,7 @@ theorem ssa_loop_terminal_cost {C F : Type}
   · simpa only [terminal, Bool.false_eq_true, if_false, notExit] using targetLoop
   · rw [sourceCost, targetCost, finalCost]
     simp only [terminal, Bool.false_eq_true, if_false, Nat.add_zero]
-    exact Nat.add_le_add headCost bodyCost
+    omega
 
 #print axioms ssa_loop_terminal_cost
 #print axioms ssa_body_terminal_reconcile

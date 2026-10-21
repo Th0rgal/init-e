@@ -68,7 +68,7 @@ private theorem post_of_run {C F : Type} (ctx : SSALoopCostContext)
 /-- Complete continuing branch of the actual SSA loop clock induction.
 It handles timeout, failed source re-entry, and a successful recursive IH,
 while preserving one permutation for semantics and executed work. -/
-theorem ssa_loop_recursive_outcome {C F : Type} (ctx : SSALoopCostContext)
+theorem ssa_loop_recursive_outcome {C F : Type} (ctx : SSALoopCostContext) (bodyEntry : Nat)
     (source target sourceAfter targetAfter targetFinal : WordSemStateFiniteExact 64 C F)
     (sourceEnv targetEnv : Spt (WordLocW 64))
     (bodyResult targetResult : Option (WordSemResult 64)) (permutation : Nat → Nat → Nat)
@@ -84,8 +84,8 @@ theorem ssa_loop_recursive_outcome {C F : Type} (ctx : SSALoopCostContext)
     (loopRun : evaluate ctx.targetLoop target = (targetResult,targetFinal))
     (bodyCost : wordExecutionCost (fun p _ => ctx.TP p) ctx.finalBody {target with locals := targetEnv} ≤
       wordExecutionCost (fun p _ => ctx.SP p) ctx.body
-        {source with locals := sourceEnv,permute := permutation} + ctx.TP ctx.moves)
-    (headCost : ctx.TP ctx.targetLoop + ctx.TP ctx.moves ≤ ctx.SP ctx.sourceLoop)
+        {source with locals := sourceEnv,permute := permutation} + ctx.TP ctx.moves + bodyEntry)
+    (headCost : ctx.TP ctx.targetLoop + ctx.TP ctx.moves + bodyEntry ≤ ctx.SP ctx.sourceLoop)
     (ih : ∀ nextSource nextTarget : WordSemStateFiniteExact 64 C F,
       nextTarget.clock < target.clock →
       Flapjack.WordAlloc.wordStateEqRel nextSource nextTarget ∧
@@ -112,8 +112,10 @@ theorem ssa_loop_recursive_outcome {C F : Type} (ctx : SSALoopCostContext)
     obtain ⟨sourceActual,targetActual,flushed,locals,cost⟩ := ssa_loop_timeout_cost ctx.SP ctx.TP
       ctx.names ctx.exits ctx.targetNames ctx.targetExits ctx.body ctx.finalBody
       {source with permute := permutation} {source with locals := sourceEnv,permute := permutation}
-      sourceAfter target {target with locals := targetEnv} targetAfter bodyResult (ctx.TP ctx.moves)
-      sourceStateCut targetStateCut sourceRun targetRun continuing sourceZero frame bodyCost headCost
+      sourceAfter target {target with locals := targetEnv} targetAfter bodyResult (ctx.TP ctx.moves + bodyEntry)
+      sourceStateCut targetStateCut sourceRun targetRun continuing sourceZero frame
+        (by simpa only [Nat.add_assoc] using bodyCost)
+        (by simpa only [Nat.add_assoc] using headCost)
     have same := Prod.mk.inj (targetActual.symm.trans loopRun)
     obtain ⟨rfl,rfl⟩ := same
     exact post_of_run ctx source _ target _ _ _ permutation sourceActual
@@ -170,8 +172,8 @@ theorem ssa_loop_recursive_outcome {C F : Type} (ctx : SSALoopCostContext)
 /-- Complete quantitative simulation of the emitted loop, before its
 one-off setup. The only semantic induction premise concerns the smaller
 source body. Recursive loop reasoning is discharged by clock induction. -/
-theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
-    (next : Nat)
+theorem ssa_loop_quantitative_context_fund_body {C F : Type} (ctx : SSALoopCostContext)
+    (next : Nat) (bodyEntry : Spt Nat → Nat → Nat)
     (produced : ssaCcTrans ctx.body (sptInter ctx.refreshed ctx.names) next
       ((ctx.refreshed,ctx.names,ctx.exits)::ctx.tables) = (ctx.output,ctx.mapOut,ctx.nextOut))
     (valid : ssaMapOK next ctx.refreshed) (allocated : isAllocVar next)
@@ -186,22 +188,22 @@ theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
     (exitsBound : ∀ key, sptDomain ctx.exits key → key < next)
     (tableValid : ltOK ctx.tables)
     (seqZero : ∀ a b, ctx.TP (.seq a b) = 0)
-    (headCost : ctx.TP ctx.targetLoop + ctx.TP ctx.moves ≤ ctx.SP ctx.sourceLoop)
+    (headCost : ctx.TP ctx.targetLoop + ctx.TP ctx.moves + bodyEntry (sptInter ctx.refreshed ctx.names) next ≤ ctx.SP ctx.sourceLoop)
     (bodyIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
       (counter : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
       Flapjack.WordAlloc.wordStateEqRel source target ∧
       ssaLocalsRel counter map source.locals target.locals ∧ isAllocVar counter ∧
       everyVarHOL (fun key => decide (key < counter)) ctx.body = true ∧
       ssaMapOK counter map ∧ ltOK tables →
-      SSAQuantitativeSimulation ctx.SP ctx.TP ctx.body source target map counter tables)
+      SSAQuantitativeAllowance ctx.SP ctx.TP ctx.body source target map counter tables (bodyEntry map counter))
     (source target : WordSemStateFiniteExact 64 C F)
     (frame : Flapjack.WordAlloc.wordStateEqRel source target)
     (strong : Flapjack.WordAlloc.strongLocalsRel (optionLookup ctx.refreshed)
       (sptDomain ctx.names) source.locals target.locals) :
     ∀ targetResult targetFinal, evaluate ctx.targetLoop target = (targetResult,targetFinal) →
       SSALoopQuantitativePost ctx source target targetFinal targetResult := by
-  have headOnly : ctx.TP ctx.targetLoop ≤ ctx.SP ctx.sourceLoop :=
-    Nat.le_trans (Nat.le_add_right _ _) headCost
+  have headOnly : ctx.TP ctx.targetLoop + bodyEntry (sptInter ctx.refreshed ctx.names) next ≤ ctx.SP ctx.sourceLoop := by
+    omega
   have solve : ∀ clock, ∀ source target : WordSemStateFiniteExact 64 C F,
       target.clock = clock → Flapjack.WordAlloc.wordStateEqRel source target →
       Flapjack.WordAlloc.strongLocalsRel (optionLookup ctx.refreshed)
@@ -234,7 +236,7 @@ theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
           simp only [SSALoopCostContext.sourceLoop,evaluate_def_rebound,stateCut]
         exact post_of_run ctx source _ target targetFinal _ targetResult target.permute failed (Or.inl rfl)
       | some sourceEnv =>
-        obtain ⟨targetEnv,targetCut,domain,simulation⟩ := ssa_loop_quantitative_entry ctx.SP ctx.TP
+        obtain ⟨targetEnv,targetCut,domain,simulation⟩ := ssa_loop_allowance_entry ctx.SP ctx.TP bodyEntry
           source target ctx.refreshed next ctx.names ctx.exits ctx.body ctx.tables sourceEnv frame strong
           valid allocated vars entryInjection exitInjection namesMapped namesBound tableValid bodyIH sourceCut
         obtain ⟨permutation,bodyPost⟩ := simulation
@@ -281,8 +283,11 @@ theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
                   unfold SSALoopCostContext.finalBody SSALoopCostContext.moves
                   generalize moveEq : ssaReconcile (width := 64) ctx.mapOut ctx.refreshed ctx.names = moves at finalCost ⊢
                   cases moves <;> exact finalCost
-                have bound := Nat.le_trans finalCost' (Nat.add_le_add_right bodyCost (ctx.TP ctx.moves))
-                exact ssa_loop_recursive_outcome ctx source target sourceAfter reconciled targetFinal
+                have bound : wordExecutionCost (fun p _ => ctx.TP p) ctx.finalBody {target with locals := targetEnv} ≤
+                    wordExecutionCost (fun p _ => ctx.SP p) ctx.body {source with locals := sourceEnv,permute := permutation} +
+                      ctx.TP ctx.moves + bodyEntry (sptInter ctx.refreshed ctx.names) next := by
+                  omega
+                exact ssa_loop_recursive_outcome ctx (bodyEntry (sptInter ctx.refreshed ctx.names) next) source target sourceAfter reconciled targetFinal
                   sourceEnv targetEnv none targetResult permutation sourceCut targetCut sourceBody finalRun'
                   finalFrame entryLocals rfl loopRun bound headCost recursiveIH
               | some value =>
@@ -296,10 +301,15 @@ theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
                   have bound : wordExecutionCost (fun p _ => ctx.TP p) ctx.finalBody
                       {target with locals := targetEnv} ≤
                       wordExecutionCost (fun p _ => ctx.SP p) ctx.body
-                        {source with locals := sourceEnv,permute := permutation} + ctx.TP ctx.moves := by
-                    exact Nat.le_trans (Nat.le_trans (Nat.le_of_eq finalCost) bodyCost)
-                      (Nat.le_add_right _ _)
-                  exact ssa_loop_recursive_outcome ctx source target sourceAfter targetAfter targetFinal
+                        {source with locals := sourceEnv,permute := permutation} + ctx.TP ctx.moves + bodyEntry (sptInter ctx.refreshed ctx.names) next := by
+                    have reached : wordExecutionCost (fun p _ => ctx.TP p) ctx.finalBody
+                        {target with locals := targetEnv} ≤
+                        wordExecutionCost (fun p _ => ctx.SP p) ctx.body
+                          {source with locals := sourceEnv,permute := permutation} +
+                            bodyEntry (sptInter ctx.refreshed ctx.names) next :=
+                      Nat.le_trans (Nat.le_of_eq finalCost) bodyCost
+                    omega
+                  exact ssa_loop_recursive_outcome ctx (bodyEntry (sptInter ctx.refreshed ctx.names) next) source target sourceAfter targetAfter targetFinal
                     sourceEnv targetEnv (some (.continue 0)) targetResult permutation sourceCut targetCut
                     sourceBody finalRun bodyFrame entryLocals rfl loopRun bound headCost recursiveIH
                 · by_cases breakZero : value = .break 0
@@ -321,7 +331,7 @@ theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
                           (sptDomain ctx.exits) sourceAfter.locals targetAfter.locals := by
                         simpa [SSAResultLocals] using bodyLocals
                       obtain ⟨targetExitEnv,sourceActual,targetActual,exitFrame,exitLocals,cost⟩ :=
-                        ssa_loop_break_zero_cost ctx.SP ctx.TP seqZero ctx.names ctx.exits ctx.refreshed
+                        ssa_loop_break_zero_cost ctx.SP ctx.TP (bodyEntry (sptInter ctx.refreshed ctx.names) next) seqZero ctx.names ctx.exits ctx.refreshed
                           ctx.mapOut next ctx.nextOut ctx.body ctx.output ctx.moves ctx.tables
                           {source with permute := permutation} {source with locals := sourceEnv,permute := permutation}
                           sourceAfter target {target with locals := targetEnv} targetAfter exitEnv produced
@@ -337,7 +347,7 @@ theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
                       simp [wordSemContLoop,nz]
                     have notExit : (some value : Option (WordSemResult 64)) ≠ some (.break 0) :=
                       fun equal => breakZero (Option.some.inj equal)
-                    obtain ⟨sourceActual,targetActual,cost⟩ := ssa_loop_terminal_cost ctx.SP ctx.TP seqZero
+                    obtain ⟨sourceActual,targetActual,cost⟩ := ssa_loop_terminal_cost ctx.SP ctx.TP (bodyEntry (sptInter ctx.refreshed ctx.names) next) seqZero
                       ctx.names ctx.exits ctx.targetNames ctx.targetExits ctx.body ctx.output ctx.moves
                       {source with permute := permutation} {source with locals := sourceEnv,permute := permutation}
                       sourceAfter target {target with locals := targetEnv} targetAfter value sourceStateCut targetStateCut
@@ -350,6 +360,48 @@ theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
                       (Or.inr ⟨rfl,bodyFrame,finalLocals,cost⟩)
   exact solve target.clock source target rfl frame strong
 
+
+/-- Zero-body-entry specialization retains the original loop interface. -/
+theorem ssa_loop_quantitative_context {C F : Type} (ctx : SSALoopCostContext)
+    (next : Nat)
+    (produced : ssaCcTrans ctx.body (sptInter ctx.refreshed ctx.names) next
+      ((ctx.refreshed,ctx.names,ctx.exits)::ctx.tables) = (ctx.output,ctx.mapOut,ctx.nextOut))
+    (valid : ssaMapOK next ctx.refreshed) (allocated : isAllocVar next)
+    (vars : everyVarHOL (fun key => decide (key < next)) ctx.body = true)
+    (entryInjection : ∀ x y, sptDomain ctx.names x → sptDomain ctx.names y →
+      optionLookup ctx.refreshed x = optionLookup ctx.refreshed y → x = y)
+    (exitInjection : ∀ x y, sptDomain ctx.exits x → sptDomain ctx.exits y →
+      optionLookup ctx.refreshed x = optionLookup ctx.refreshed y → x = y)
+    (namesMapped : ∀ key, sptDomain ctx.names key → sptDomain ctx.refreshed key)
+    (exitsMapped : ∀ key, sptDomain ctx.exits key → sptDomain ctx.refreshed key)
+    (namesBound : ∀ key, sptDomain ctx.names key → key < next)
+    (exitsBound : ∀ key, sptDomain ctx.exits key → key < next)
+    (tableValid : ltOK ctx.tables)
+    (seqZero : ∀ a b, ctx.TP (.seq a b) = 0)
+    (headCost : ctx.TP ctx.targetLoop + ctx.TP ctx.moves ≤ ctx.SP ctx.sourceLoop)
+    (bodyIH : ∀ (source target : WordSemStateFiniteExact 64 C F) (map : Spt Nat)
+      (counter : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel counter map source.locals target.locals ∧ isAllocVar counter ∧
+      everyVarHOL (fun key => decide (key < counter)) ctx.body = true ∧
+      ssaMapOK counter map ∧ ltOK tables →
+      SSAQuantitativeSimulation ctx.SP ctx.TP ctx.body source target map counter tables)
+    (source target : WordSemStateFiniteExact 64 C F)
+    (frame : Flapjack.WordAlloc.wordStateEqRel source target)
+    (strong : Flapjack.WordAlloc.strongLocalsRel (optionLookup ctx.refreshed)
+      (sptDomain ctx.names) source.locals target.locals) :
+    ∀ targetResult targetFinal, evaluate ctx.targetLoop target = (targetResult,targetFinal) →
+      SSALoopQuantitativePost ctx source target targetFinal targetResult := by
+  apply ssa_loop_quantitative_context_fund_body ctx next (fun _ _ => 0) produced valid allocated vars
+    entryInjection exitInjection namesMapped exitsMapped namesBound exitsBound tableValid seqZero
+  · simpa only [Nat.add_zero] using headCost
+  · intro s t m n ts premises
+    exact (ssa_quantitative_allowance_zero ctx.SP ctx.TP ctx.body s t m n ts).mpr
+      (bodyIH s t m n ts premises)
+  · exact frame
+  · exact strong
+
+#print axioms ssa_loop_quantitative_context_fund_body
 #print axioms ssa_loop_quantitative_context
 #print axioms ssa_loop_recursive_outcome
 end InitECandidate.Runtime.FineCost

@@ -22,19 +22,21 @@ def ssaLoopCostContext (SP TP : WordLangProgHOL (BitVec 64) → Nat)
 /-- Full actual SSA loop compilation with its setup paid ONCE, as an explicit
 entry allowance. The repeated loop theorem does not include setup in its
 head price. A whole-program composition must fund this entry allowance. -/
-theorem ssa_quantitative_loop_with_setup {C F : Type}
+theorem ssa_quantitative_loop_with_setup_fund_body {C F : Type}
     (SP TP : WordLangProgHOL (BitVec 64) → Nat)
     (names exits : Spt Unit) (body : WordLangProgHOL (BitVec 64))
     (source target : WordSemStateFiniteExact 64 C F) (map : Spt Nat) (next : Nat)
     (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (bodyEntry : Spt Nat → Nat → Nat)
     (seqZero : ∀ a b, TP (.seq a b) = 0)
-    (headCost : let ctx := ssaLoopCostContext SP TP names exits body map next tables
-      TP ctx.targetLoop + TP ctx.moves ≤ SP ctx.sourceLoop)
+    (headCost : let setup := loopSetup (width := 64) names exits map next
+      let ctx := ssaLoopCostContext SP TP names exits body map next tables
+      TP ctx.targetLoop + TP ctx.moves + bodyEntry (sptInter ctx.refreshed names) setup.2.2 ≤ SP ctx.sourceLoop)
     (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (m : Spt Nat)
       (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
       Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na m st.locals ct.locals ∧
       isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
-      ssaMapOK na m ∧ ltOK lt → SSAQuantitativeSimulation SP TP body st ct m na lt)
+      ssaMapOK na m ∧ ltOK lt → SSAQuantitativeAllowance SP TP body st ct m na lt (bodyEntry m na))
     (premises : Flapjack.WordAlloc.wordStateEqRel source target ∧
       ssaLocalsRel next map source.locals target.locals ∧ isAllocVar next ∧
       everyVarHOL (fun key => decide (key < next)) (.loop names body exits) = true ∧
@@ -76,7 +78,7 @@ theorem ssa_quantitative_loop_with_setup {C F : Type}
   rcases compiledBody : ssaCcTrans body (sptInter refreshed names) nextRefreshed
       ((refreshed,names,exits)::tables) with ⟨output,mapOut,nextOut⟩
   let ctx : SSALoopCostContext := { SP,TP,names,exits,refreshed,mapOut,nextOut,body,output,tables }
-  have ctxHead : TP ctx.targetLoop + TP ctx.moves ≤ SP ctx.sourceLoop := by
+  have ctxHead : TP ctx.targetLoop + TP ctx.moves + bodyEntry (sptInter refreshed names) nextRefreshed ≤ SP ctx.sourceLoop := by
     simpa only [ssaLoopCostContext,setup,compiledBody] using headCost
   have compiled : ssaCcTrans (.loop names body exits) map next tables =
       (.seq setupProg ctx.targetLoop,sptInter refreshed exits,nextOut) := by
@@ -85,7 +87,7 @@ theorem ssa_quantitative_loop_with_setup {C F : Type}
       SSALoopCostContext.moves,SSALoopCostContext.targetNames,SSALoopCostContext.targetExits]
     cases ssaReconcile (width := 64) mapOut refreshed names <;> rfl
   rcases targetRun : evaluate ctx.targetLoop after with ⟨targetResult,targetFinal⟩
-  have inner := ssa_loop_quantitative_context ctx nextRefreshed compiledBody afterValid afterAllocated
+  have inner := ssa_loop_quantitative_context_fund_body ctx nextRefreshed bodyEntry compiledBody afterValid afterAllocated
     bodyVars entryInjection exitInjection namesMapped exitsMapped
     (fun key member => Nat.lt_of_lt_of_le
       (bounds.1.1 key ((sptMemMapFstToAList names key).mpr member)) increase)
@@ -114,5 +116,43 @@ theorem ssa_quantitative_loop_with_setup {C F : Type}
         Nat.add_le_add setupCost innerCost
       _ = _ := Nat.add_comm _ _
 
+
+/-- Zero-body-entry specialization retains the original setup theorem. -/
+theorem ssa_quantitative_loop_with_setup {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (names exits : Spt Unit) (body : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F) (map : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (seqZero : ∀ a b, TP (.seq a b) = 0)
+    (headCost : let ctx := ssaLoopCostContext SP TP names exits body map next tables
+      TP ctx.targetLoop + TP ctx.moves ≤ SP ctx.sourceLoop)
+    (bodyIH : ∀ (st ct : WordSemStateFiniteExact 64 C F) (m : Spt Nat)
+      (na : Nat) (lt : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel st ct ∧ ssaLocalsRel na m st.locals ct.locals ∧
+      isAllocVar na ∧ everyVarHOL (fun key => decide (key < na)) body = true ∧
+      ssaMapOK na m ∧ ltOK lt → SSAQuantitativeSimulation SP TP body st ct m na lt)
+    (premises : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next map source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun key => decide (key < next)) (.loop names body exits) = true ∧
+      ssaMapOK next map ∧ ltOK tables) :
+    ∃ permutation,
+      let compiled := ssaCcTrans (.loop names body exits) map next tables
+      let sourceState := {source with permute := permutation}
+      let sourceRun := evaluate (.loop names body exits) sourceState
+      let targetRun := evaluate compiled.1 target
+      sourceRun.1 = some .error ∨ sourceRun.1 = targetRun.1 ∧
+        Flapjack.WordAlloc.wordStateEqRel sourceRun.2 targetRun.2 ∧
+        SSAResultLocals compiled.2.2 compiled.2.1 tables sourceRun.2.locals targetRun.2.locals sourceRun.1 ∧
+        wordExecutionCost (fun p _ => TP p) compiled.1 target ≤
+          wordExecutionCost (fun p _ => SP p) (.loop names body exits) sourceState +
+            ssaReconciliationPrice TP (loopSetup (width := 64) names exits map next).1 := by
+  apply ssa_quantitative_loop_with_setup_fund_body SP TP names exits body source target map next tables
+    (fun _ _ => 0) seqZero
+  · simpa only [Nat.add_zero] using headCost
+  · intro st ct m n ts h
+    exact (ssa_quantitative_allowance_zero SP TP body st ct m n ts).mpr (bodyIH st ct m n ts h)
+  · exact premises
+
+#print axioms ssa_quantitative_loop_with_setup_fund_body
 #print axioms ssa_quantitative_loop_with_setup
 end InitECandidate.Runtime.FineCost

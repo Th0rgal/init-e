@@ -43,7 +43,7 @@ theorem ssa_loop_exit_cut {width : Nat} [NeZero width] {C F : Type}
 compiler metadata derives the target exit cut; only the reached body work is
 charged, and the output relation uses the refreshed exit map. -/
 theorem ssa_loop_break_zero_cost {C F : Type}
-    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat) (entry : Nat)
     (seqZero : ∀ a b, TP (.seq a b) = 0)
     (names exits : Spt Unit) (refreshed mapOut : Spt Nat) (next nextOut : Nat)
     (body output moves : WordLangProgHOL (BitVec 64))
@@ -67,10 +67,10 @@ theorem ssa_loop_break_zero_cost {C F : Type}
     (bounded : ∀ key, sptDomain exits key → key < next)
     (exitCut : wordSemCutEnv (exits,.ln) sourcePost.locals = some exitEnv)
     (bodyCost : wordExecutionCost (fun p _ => TP p) output targetEntry ≤
-      wordExecutionCost (fun p _ => SP p) body sourceEntry)
+      wordExecutionCost (fun p _ => SP p) body sourceEntry + entry)
     (headCost : TP (.loop (Flapjack.WordAlloc.applyNummapKey (optionLookup refreshed) names)
       (match (generalizing := false) moves with | .skip => output | _ => .seq output moves)
-      (Flapjack.WordAlloc.applyNummapKey (optionLookup refreshed) exits)) ≤
+      (Flapjack.WordAlloc.applyNummapKey (optionLookup refreshed) exits)) + entry ≤
       SP (.loop names body exits)) :
     let finalBody := match (generalizing := false) moves with | .skip => output | _ => .seq output moves
     ∃ targetExitEnv,
@@ -118,8 +118,8 @@ theorem ssa_loop_break_zero_cost {C F : Type}
       target targetEntry targetPost
       (some (.break 0)) targetCut finalRun]
     cases moves <;> dsimp only at finalCost headCost ⊢
-    all_goals simpa only [finalCost, wordSemContLoop, Bool.false_eq_true, if_false, Nat.add_zero]
-      using Nat.add_le_add headCost bodyCost
+    all_goals simp only [finalCost, wordSemContLoop, Bool.false_eq_true, if_false, Nat.add_zero]
+    all_goals omega
 
 #print axioms ssa_loop_break_zero_cost
 #print axioms ssa_loop_exit_cut
