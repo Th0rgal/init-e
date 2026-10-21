@@ -2066,4 +2066,36 @@ theorem wec_loop_split {C F : Type}
       rfl
 
 #print axioms wec_loop_split
+/-- When the body's result does not continue the loop, the loop charges only its node price and the
+body's work. -/
+theorem wec_loop_stop {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s cutSource : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cutSource)
+    (result : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (h : fixClock cutSource (WordSemStateFiniteExact.evaluate body cutSource) = (result, middle))
+    (hnc : wordSemContLoop result = false) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s + wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body cutSource := by
+  rw [wec_loop_split names liveOut body s cutSource hs result middle h, hnc]
+  simp
+
+/-- When it does, the next iteration is charged at the decremented clock (zero once exhausted). -/
+theorem wec_loop_cont {C F : Type}
+    (names liveOut : WordLangNumSetHOL) (body : WordLangProgHOL (BitVec 64))
+    (s cutSource : WordSemStateFiniteExact 64 C F)
+    (hs : cutState (names, .ln) s = some cutSource)
+    (result : Option (WordSemResult 64)) (middle : WordSemStateFiniteExact 64 C F)
+    (h : fixClock cutSource (WordSemStateFiniteExact.evaluate body cutSource) = (result, middle))
+    (hc : wordSemContLoop result = true) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s =
+      InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.loop names body liveOut) s + wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice body cutSource +
+        (dite (middle.clock = 0) (fun _ => 0)
+          (fun _ => wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (wordSemSTOP (.loop names body liveOut))
+            (Flapjack.WordSemStateFiniteExact.decClock middle))) := by
+  rw [wec_loop_split names liveOut body s cutSource hs result middle h, hc]
+  simp
+
+#print axioms wec_loop_stop
+#print axioms wec_loop_cont
 end InitECandidate.Runtime.FineCost
