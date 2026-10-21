@@ -1624,4 +1624,34 @@ theorem wec_skip_state_independent {C F : Type} (s1 s2 : WordSemStateFiniteExact
   rw [wec_skip, wec_skip, refinedWordLocalPrice_state_independent]
 
 #print axioms wec_skip_state_independent
+/-- **`seq` composition of state independence.**  If both halves have state-independent costs and
+the first half always falls through, the `seq` node's cost is state independent too: the seq's
+own price is 0 (refinedWordLocalPrice_seq_zero) and the second half is charged at whatever middle
+state each run reaches, where its cost is the same by hypothesis.  The fall-through hypothesis is
+not decoration: without it a first half that escapes on one state and falls through on another
+changes whether the second half is charged at all, and the costs genuinely differ.  For
+allocator code the fall-through property is exactly what finite-auth's move table certifies. -/
+theorem wec_seq_state_independent {C F : Type}
+    (f g : WordLangProgHOL (BitVec 64))
+    (hf : ∀ (s t : WordSemStateFiniteExact 64 C F), wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice f s = wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice f t)
+    (hg : ∀ (s t : WordSemStateFiniteExact 64 C F), wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice g s = wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice g t)
+    (hfall : ∀ (s : WordSemStateFiniteExact 64 C F), (fixClock s (WordSemStateFiniteExact.evaluate f s)).1 = none)
+    (s1 s2 : WordSemStateFiniteExact 64 C F) :
+    wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq f g) s1 =
+      wordExecutionCost InitECandidate.Runtime.WordToStack.refinedWordLocalPrice (.seq f g) s2 := by
+  cases h1 : fixClock s1 (WordSemStateFiniteExact.evaluate f s1) with
+  | mk r1 m1 =>
+    cases h2 : fixClock s2 (WordSemStateFiniteExact.evaluate f s2) with
+    | mk r2 m2 =>
+      have hr1 : r1 = none := by simpa [h1] using hfall s1
+      have hr2 : r2 = none := by simpa [h2] using hfall s2
+      subst hr1
+      subst hr2
+      rw [wec_seq_none_split_generic InitECandidate.Runtime.WordToStack.refinedWordLocalPrice f g s1 m1 h1,
+          wec_seq_none_split_generic InitECandidate.Runtime.WordToStack.refinedWordLocalPrice f g s2 m2 h2,
+          refinedWordLocalPrice_seq_zero f g s1,
+          refinedWordLocalPrice_seq_zero f g s2,
+          hf s1 s2, hg m1 m2]
+
+#print axioms wec_seq_state_independent
 end InitECandidate.Runtime.FineCost
