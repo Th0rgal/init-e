@@ -1,4 +1,5 @@
 import InitECandidate.Runtime.SSAAppendReconciliationCost
+import InitECandidate.Runtime.SSAQuantitativeAllowanceCore
 import Flapjack.Compiler.Backend.WordAlloc.Proofs.SSASemanticIf
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Backend.WordAlloc
@@ -15,6 +16,19 @@ noncomputable def ssaIfLocalPrice (price : WordLangProgHOL (BitVec 64) → Nat)
   | .ite cmp reg imm (.seq a movesA) (.seq b movesB) =>
       price (.ite cmp reg imm (.seq a movesA) (.seq b movesB)) +
         max (ssaReconciliationPrice price movesA) (ssaReconciliationPrice price movesB)
+  | _ => 0
+
+/-- Selected branch entry plus its exact reconciliation, with no global
+maximum across functions or source sites. -/
+noncomputable def ssaIfEntryPrice (price : WordLangProgHOL (BitVec 64) → Nat)
+    (firstEntry secondEntry : Nat)
+    (program : WordLangProgHOL (BitVec 64)) (map : Spt Nat) (next : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) : Nat :=
+  match (ssaCcTrans program map next tables).1 with
+  | .ite cmp reg imm (.seq a movesA) (.seq b movesB) =>
+      price (.ite cmp reg imm (.seq a movesA) (.seq b movesB)) +
+        max (ssaReconciliationPrice price movesA + firstEntry)
+          (ssaReconciliationPrice price movesB + secondEntry)
   | _ => 0
 
 def ssa_rename_conditional_imm {width : Nat} (ssa : Spt Nat) :
@@ -41,6 +55,33 @@ theorem ssa_get_var_imm_transport {width : Nat} [NeZero width]
 
 /-- One actual branch witness, followed only on fall-through by the
 compiler's reconciliation. All prefix work is computed from emitted leaves. -/
+theorem ssa_quantitative_reconciled_branch_entry {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (body output moves : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (map mapOut finalMap : Spt Nat) (next nextOut nextFinal : Nat)
+    (tables : List (Spt Nat × Spt Unit × Spt Unit)) (n entry : Nat)
+    (seqZero : ∀ p q, TP (.seq p q) = 0)
+    (compiled : ssaCcTrans body map next tables = (output,mapOut,nextOut))
+    (line : lineBound (ssaReconciliationLeaf TP) moves = some n)
+    (moveSpec : ∀ (s t : WordSemStateFiniteExact 64 C F),
+      ssaLocalsRel nextOut mapOut s.locals t.locals →
+      let run := evaluate moves t
+      run.1 = none ∧ ssaLocalsRel nextFinal finalMap s.locals run.2.locals ∧
+        Flapjack.WordAlloc.wordStateEqRel t run.2)
+    (sim : SSAQuantitativeAllowance SP TP body source target map next tables entry) :
+    ∃ permutation,
+      SSAQuantitativeOutcome finalMap nextFinal tables
+        (evaluate body {source with permute := permutation}) (evaluate (.seq output moves) target)
+        (wordExecutionCost (fun p _ => SP p) body {source with permute := permutation} + entry + n)
+        (wordExecutionCost (fun p _ => TP p) (.seq output moves) target) := by
+  obtain ⟨permutation, post⟩ := sim
+  dsimp only at post
+  rw [compiled] at post
+  refine ⟨permutation, ?_⟩
+  exact ssa_append_reconciliation_cost TP seqZero _ target output moves mapOut finalMap nextOut nextFinal tables
+    _ n line moveSpec post
+
 theorem ssa_quantitative_reconciled_branch {C F : Type}
     (SP TP : WordLangProgHOL (BitVec 64) → Nat)
     (body output moves : WordLangProgHOL (BitVec 64))
@@ -61,37 +102,38 @@ theorem ssa_quantitative_reconciled_branch {C F : Type}
         (evaluate body {source with permute := permutation}) (evaluate (.seq output moves) target)
         (wordExecutionCost (fun p _ => SP p) body {source with permute := permutation} + n)
         (wordExecutionCost (fun p _ => TP p) (.seq output moves) target) := by
-  obtain ⟨permutation, post⟩ := sim
-  dsimp only at post
-  rw [compiled] at post
-  refine ⟨permutation, ?_⟩
-  exact ssa_append_reconciliation_cost TP seqZero _ target output moves mapOut finalMap nextOut nextFinal tables
-    _ n line moveSpec post
+  have result := ssa_quantitative_reconciled_branch_entry SP TP body output moves source target
+    map mapOut finalMap next nextOut nextFinal tables n 0 seqZero compiled line moveSpec
+    ((ssa_quantitative_allowance_zero SP TP body source target map next tables).mpr sim)
+  simpa only [Nat.add_zero] using result
 
 /-- Full actual conditional SSA case. All six entry invariants derive
 branch allocation and reconciliation facts. The two smaller-body quantitative
 IHs supply actual branch witnesses; exact emitted reconciliation work is paid
 by this source conditional's local price. -/
-theorem ssa_quantitative_if {C F : Type}
+theorem ssa_quantitative_if_fund_entries {C F : Type}
     (SP TP : WordLangProgHOL (BitVec 64) → Nat)
     (operator : Cmp) (left : Nat) (immediate : WordRegImm (BitVec 64))
     (first second : WordLangProgHOL (BitVec 64))
     (source target : WordSemStateFiniteExact 64 C F)
     (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (firstEntry secondEntry : Spt Nat → Nat → Nat)
     (firstIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
       (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
       Flapjack.WordAlloc.wordStateEqRel source target ∧
       ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
       everyVarHOL (fun x => decide (x < next)) first = true ∧
-      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeSimulation SP TP first source target ssa next tables)
+      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeAllowance SP TP first source target ssa next tables (firstEntry ssa next))
     (secondIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
       (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
       Flapjack.WordAlloc.wordStateEqRel source target ∧
       ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
       everyVarHOL (fun x => decide (x < next)) second = true ∧
-      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeSimulation SP TP second source target ssa next tables)
+      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeAllowance SP TP second source target ssa next tables (secondEntry ssa next))
     (targetPrices : ∀ p, TP p ≤ wordOptimizerLocalPrice p target)
-    (localPrice : ssaIfLocalPrice TP (.ite operator left immediate first second) ssa next tables ≤
+    (localPrice : ssaIfEntryPrice TP (firstEntry ssa next)
+      (secondEntry ssa (ssaCcTrans first ssa next tables).2.2)
+      (.ite operator left immediate first second) ssa next tables ≤
       SP (.ite operator left immediate first second))
     (h : Flapjack.WordAlloc.wordStateEqRel source target ∧
       ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
@@ -117,9 +159,9 @@ theorem ssa_quantitative_if {C F : Type}
   rw [reconciled] at leftLine rightLine
   dsimp only at leftLine rightLine
   have localBound : TP (.ite operator (optionLookup ssa left) (ssa_rename_conditional_imm ssa immediate)
-      (.seq firstOut movesFirst) (.seq secondOut movesSecond)) + max leftWork rightWork ≤
+      (.seq firstOut movesFirst) (.seq secondOut movesSecond)) + max (leftWork + firstEntry ssa next) (rightWork + secondEntry ssa nextFirst) ≤
       SP (.ite operator left immediate first second) := by
-    simpa only [ssaIfLocalPrice, compiled, ssaReconciliationPrice, leftLine, rightLine, Option.getD_some] using localPrice
+    simpa only [ssaIfEntryPrice, compiled, firstCompiled, ssaReconciliationPrice, leftLine, rightLine, Option.getD_some] using localPrice
   have seqZero : ∀ p q, TP (.seq p q) = 0 := by
     intro p q
     have bound := targetPrices (.seq p q)
@@ -176,8 +218,8 @@ theorem ssa_quantitative_if {C F : Type}
               ⟨secondInvariant.2.1, secondInvariant.2.2⟩
             rw [reconciled] at fixed
             exact fixed locals
-          obtain ⟨permutation, branch⟩ := ssa_quantitative_reconciled_branch SP TP second secondOut movesSecond source target
-            ssa mapSecond finalMap nextFirst nextSecond nextFinal tables rightWork seqZero secondCompiled rightLine moveSpec sim
+          obtain ⟨permutation, branch⟩ := ssa_quantitative_reconciled_branch_entry SP TP second secondOut movesSecond source target
+            ssa mapSecond finalMap nextFirst nextSecond nextFinal tables rightWork (secondEntry ssa nextFirst) seqZero secondCompiled rightLine moveSpec sim
           refine ⟨permutation, ?_⟩
           dsimp only
           rw [compiled]
@@ -195,7 +237,7 @@ theorem ssa_quantitative_if {C F : Type}
             conv_lhs => rw [wordExecutionCost]
             conv_rhs => rw [wordExecutionCost]
             simp only [readLeft, readRight, sourceLeft, sourceRight, comparison, targetLeft, targetRight]
-            have selected := Nat.le_max_right leftWork rightWork
+            have selected := Nat.le_max_right (leftWork + firstEntry ssa next) (rightWork + secondEntry ssa nextFirst)
             omega
         | true =>
           have sim := firstIH source target ssa next tables
@@ -213,8 +255,8 @@ theorem ssa_quantitative_if {C F : Type}
             rw [reconciled] at fixed
             exact fixed (ssaLocalsRelMore nextFirst mapFirst sourceAfter.locals targetAfter.locals nextSecond
               ⟨locals, secondInvariant.1⟩)
-          obtain ⟨permutation, branch⟩ := ssa_quantitative_reconciled_branch SP TP first firstOut movesFirst source target
-            ssa mapFirst finalMap next nextFirst nextFinal tables leftWork seqZero firstCompiled leftLine moveSpec sim
+          obtain ⟨permutation, branch⟩ := ssa_quantitative_reconciled_branch_entry SP TP first firstOut movesFirst source target
+            ssa mapFirst finalMap next nextFirst nextFinal tables leftWork (firstEntry ssa next) seqZero firstCompiled leftLine moveSpec sim
           refine ⟨permutation, ?_⟩
           dsimp only
           rw [compiled]
@@ -232,9 +274,49 @@ theorem ssa_quantitative_if {C F : Type}
             conv_lhs => rw [wordExecutionCost]
             conv_rhs => rw [wordExecutionCost]
             simp only [readLeft, readRight, sourceLeft, sourceRight, comparison, targetLeft, targetRight]
-            have selected := Nat.le_max_left leftWork rightWork
+            have selected := Nat.le_max_left (leftWork + firstEntry ssa next) (rightWork + secondEntry ssa nextFirst)
             omega
 
+
+/-- Zero-entry specialization preserves the original conditional API. -/
+theorem ssa_quantitative_if {C F : Type}
+    (SP TP : WordLangProgHOL (BitVec 64) → Nat)
+    (operator : Cmp) (left : Nat) (immediate : WordRegImm (BitVec 64))
+    (first second : WordLangProgHOL (BitVec 64))
+    (source target : WordSemStateFiniteExact 64 C F)
+    (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit))
+    (firstIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
+      (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) first = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeSimulation SP TP first source target ssa next tables)
+    (secondIH : ∀ (source target : WordSemStateFiniteExact 64 C F)
+      (ssa : Spt Nat) (next : Nat) (tables : List (Spt Nat × Spt Unit × Spt Unit)),
+      Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) second = true ∧
+      ssaMapOK next ssa ∧ ltOK tables → SSAQuantitativeSimulation SP TP second source target ssa next tables)
+    (targetPrices : ∀ p, TP p ≤ wordOptimizerLocalPrice p target)
+    (localPrice : ssaIfLocalPrice TP (.ite operator left immediate first second) ssa next tables ≤
+      SP (.ite operator left immediate first second))
+    (h : Flapjack.WordAlloc.wordStateEqRel source target ∧
+      ssaLocalsRel next ssa source.locals target.locals ∧ isAllocVar next ∧
+      everyVarHOL (fun x => decide (x < next)) (.ite operator left immediate first second) = true ∧
+      ssaMapOK next ssa ∧ ltOK tables) :
+    SSAQuantitativeSimulation SP TP (.ite operator left immediate first second) source target ssa next tables := by
+  apply ssa_quantitative_if_fund_entries SP TP operator left immediate first second source target
+    ssa next tables (fun _ _ => 0) (fun _ _ => 0)
+  · intro s t m n ts premises
+    exact (ssa_quantitative_allowance_zero SP TP first s t m n ts).mpr (firstIH s t m n ts premises)
+  · intro s t m n ts premises
+    exact (ssa_quantitative_allowance_zero SP TP second s t m n ts).mpr (secondIH s t m n ts premises)
+  · exact targetPrices
+  · simpa only [ssaIfEntryPrice,ssaIfLocalPrice,Nat.add_zero] using localPrice
+  · exact h
+
+#print axioms ssa_quantitative_reconciled_branch_entry
+#print axioms ssa_quantitative_if_fund_entries
 #print axioms ssa_quantitative_reconciled_branch
 #print axioms ssa_quantitative_if
 end InitECandidate.Runtime.FineCost
