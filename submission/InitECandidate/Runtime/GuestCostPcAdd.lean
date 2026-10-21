@@ -58,7 +58,7 @@ theorem pcAdd_store_run (s : PanSemStateFiniteExact 64 F) (frame value n : BitVe
       { s with memory := writeWordMemory s (frame + 0) (value + n) }
       (.statement :: (expressionEvents s pcAddAddress ++
         expressionEvents s pcAddValue ++
-        [.memory (flattenHOL (.val (.word (value + n)))).length])) := by
+        [.memory (flattenHOL (.val (.word (value + n)))).length, .cost (storeOverhead (flattenHOL (.val (.word (value + n)))).length)])) := by
   classical
   have dst : CostedExpressionRun s pcAddAddress (some (.val (.word (frame + 0))))
       (expressionEvents s pcAddAddress) :=
@@ -93,7 +93,7 @@ noncomputable def pcAddEvents (s : PanSemStateFiniteExact 64 F) (frame value n :
     { s with memory := writeWordMemory s (frame + 0) (value + n) }
   .statement ::
     (expressionEvents s pcAddAddress ++ expressionEvents s pcAddValue ++
-      [.memory (flattenHOL (.val (.word (value + n)))).length] ++
+      [.memory (flattenHOL (.val (.word (value + n)))).length, .cost (storeOverhead (flattenHOL (.val (.word (value + n)))).length)] ++
       (.statement :: (expressionEvents stored (.const 0) ++
         [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])))
 
@@ -120,6 +120,7 @@ theorem pcAddEvents_score (coeff : Work) (s : PanSemStateFiniteExact 64 F)
         expressionCost coeff s pcAddAddress +
         expressionCost coeff s pcAddValue +
         coeff.memoryAccesses * (flattenHOL (.val (.word (value + n)))).length +
+        coeff.nativeCost * storeOverhead (flattenHOL (.val (.word (value + n)))).length +
         expressionCost coeff { s with memory := writeWordMemory s (frame + 0) (value + n) }
           (.const 0) +
         coeff.movedWords * (flattenHOL (.val (.word (0 : BitVec 64)))).length +

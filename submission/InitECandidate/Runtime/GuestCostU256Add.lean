@@ -196,9 +196,7 @@ the restored previous binding of the limb name. -/
 noncomputable def u256AddDecEvents (s : PanSemStateFiniteExact 64 F) (name : MlStringHOL)
     (bodyEvents : List WorkEvent) : List WorkEvent :=
   .statement :: (expressionEvents s u256AddZeroPair ++
-    [.copy (flattenHOL u256AddZeroValue).length, .frame 1] ++ bodyEvents ++
-    [.copy (((s.locals.lookup name).map
-      (fun previous => (flattenHOL previous).length)).getD 0)])
+    [.frame 1] ++ bodyEvents)
 
 /-- Recorded events of the final four-word return. -/
 noncomputable def u256AddReturnEvents (s : PanSemStateFiniteExact 64 F) (payload : ValueHOL 64) :

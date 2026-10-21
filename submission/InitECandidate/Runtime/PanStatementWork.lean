@@ -36,6 +36,10 @@ def callExitOverhead : Option (PanSemResultExact 64) â†’ Nat
   | some (.exception _ value) => returnCopy (flattenHOL value).length + 147
   | result => returnCopy (callPayloadWords result)
 
+/-- Storing `n` words: per word the store unit, the address (the temporary
+for the first word, temporary plus offset after) and the value temporary. -/
+def storeOverhead (n : Nat) : Nat := 112 * n - 47 * (n - (n - 1))
+
 /-- A primitive over `n` argument words: the primitive and one slot per word. -/
 def primitiveOverhead (n : Nat) : Nat := 85 + n
 
@@ -150,14 +154,14 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       (write : @panMemStoresHOL 64 _ address (flattenHOL value) s.memaddrs
         (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = some memory) :
       StatementRun s (.store destination source) none { s with memory := memory }
-        (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length]))
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length, .cost (storeOverhead (flattenHOL value).length)]))
   | storeRejected {s destination source address value addressEvents valueEvents}
       (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
       (src : CostedExpressionRun s source (some value) valueEvents)
       (write : @panMemStoresHOL 64 _ address (flattenHOL value) s.memaddrs
         (fun a => Classical.propDecidable (s.memaddrs a)) s.memory = none) :
       StatementRun s (.store destination source) (some .error) s
-        (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length]))
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory (flattenHOL value).length, .cost (storeOverhead (flattenHOL value).length)]))
   | storeSourceFailure {s destination source address addressEvents valueEvents}
       (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
       (src : CostedExpressionRun s source none valueEvents) :
@@ -174,7 +178,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
         (BitVec.ofNat 32 value.toNat) = some memory) :
       StatementRun s (.store32 destination source) none { s with memory := memory }
-        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1, .cost (storeOverhead 1)]))
 
   | store32Rejected {s destination source address value addressEvents valueEvents}
       (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
@@ -183,7 +187,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
         (BitVec.ofNat 32 value.toNat) = none) :
       StatementRun s (.store32 destination source) (some .error) s
-        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1, .cost (storeOverhead 1)]))
 
   | storeByteValue {s destination source address value memory addressEvents valueEvents}
       (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
@@ -192,7 +196,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
         (BitVec.ofNat 8 value.toNat) = some memory) :
       StatementRun s (.storeByte destination source) none { s with memory := memory }
-        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1, .cost (storeOverhead 1)]))
 
   | storeByteRejected {s destination source address value addressEvents valueEvents}
       (dst : CostedExpressionRun s destination (some (.val (.word address))) addressEvents)
@@ -201,7 +205,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         (fun a => Classical.propDecidable (s.memaddrs a)) s.be address
         (BitVec.ofNat 8 value.toNat) = none) :
       StatementRun s (.storeByte destination source) (some .error) s
-        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1]))
+        (.statement :: (addressEvents ++ valueEvents ++ [.memory 1, .cost (storeOverhead 1)]))
 
   | declareValue {s name shape initializer body value initEvents bodyEvents result post}
       (init : CostedExpressionRun s initializer (some value) initEvents)
@@ -209,9 +213,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
       (bodyRun : StatementRun (setVarHOLFinite name value s) body result post bodyEvents) :
       StatementRun s (.dec name shape initializer body) result
         { post with locals := HolFiniteMapExact.resVarEq post.locals (name, s.locals.lookup name) }
-        (.statement :: (initEvents ++ [.copy (flattenHOL value).length, .frame 1] ++
-          bodyEvents ++ [.copy (((s.locals.lookup name).map
-            (fun previous => (flattenHOL previous).length)).getD 0)]))
+        (.statement :: (initEvents ++ [.frame 1] ++ bodyEvents))
   | declareMismatch {s name shape initializer body value initEvents}
       (init : CostedExpressionRun s initializer (some value) initEvents)
       (mismatch : shapeEqHOL shape (shapeOfHOLExact value) = false) :
@@ -288,8 +290,7 @@ inductive StatementRun {F : Type} : PanSemStateFiniteExact 64 F â†’ ProgHOL 64 â
         (.statement :: (expressionListEvents s arguments ++
           [.cost (callOverhead (values.flatMap flattenHOL).length +
             slotOverhead (sizeOfShapeWithContextHOL s.structs shape))] ++ bodyEvents ++
-          [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents ++
-          [.copy (((s.locals.lookup name).map (fun old => (flattenHOL old).length)).getD 0)]))
+          [.cost (returnCopy (flattenHOL value).length)] ++ continuationEvents))
 
   | declareCallArgumentsFailure {s name shape function arguments continuation}
       (args : evalListHOLFinite s (h := fun a => Classical.propDecidable (s.memaddrs a))

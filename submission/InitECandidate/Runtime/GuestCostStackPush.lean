@@ -201,24 +201,20 @@ noncomputable def stackPushSuccessEvents (s : PanSemStateFiniteExact 64 F)
       (.const (1024 : BitVec 64)))
   let storeV := .statement :: (expressionEvents entryCap stackPopValueAddress ++
     expressionEvents entryCap (.var VarKind.local (ofString "v")) ++
-    [.memory (flattenHOL payload).length])
+    [.memory (flattenHOL payload).length, .cost (storeOverhead (flattenHOL payload).length)])
   let storeSp := .statement :: (expressionEvents stored (fundingAddress 16) ++
     expressionEvents stored
       (.op .add [.var VarKind.local (ofString "sp"), .const (1 : BitVec 64)]) ++
-    [.memory (flattenHOL (.val (.word (sp + 1)))).length])
+    [.memory (flattenHOL (.val (.word (sp + 1)))).length, .cost (storeOverhead (flattenHOL (.val (.word (sp + 1)))).length)])
   let ret := .statement :: (expressionEvents updated (.const (0 : BitVec 64)) ++
     [.cost (returnOverhead (flattenHOL (.val (.word (0 : BitVec 64)))).length)])
   let tail := storeV ++ (storeSp ++ ret)
   let tailEvents := (.statement :: .cost statementUnit :: (fullGuard ++ [.statement])) ++ tail
   let bodyEvents := (.statement :: .cost statementUnit :: (capGuard ++ [.statement])) ++ tailEvents
   let capEvents := .statement :: (expressionEvents entrySp (fundingLoad 232) ++
-    [.copy (flattenHOL (.val (.word cap))).length, .frame 1] ++ bodyEvents ++
-    [.copy (((entrySp.locals.lookup (ofString "cap")).map
-      (fun previous => (flattenHOL previous).length)).getD 0)])
+    [.frame 1] ++ bodyEvents)
   .statement :: (expressionEvents s (fundingLoad 16) ++
-    [.copy (flattenHOL (.val (.word sp))).length, .frame 1] ++ capEvents ++
-    [.copy (((s.locals.lookup (ofString "sp")).map
-      (fun previous => (flattenHOL previous).length)).getD 0)])
+    [.frame 1] ++ capEvents)
 
 /-- The adequate-capacity successful path of the installed `stack_push`: `sp` and
 `cap` are loaded, both guards take their `skip` branch, the four-word value is
@@ -364,7 +360,7 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
       (.store stackPopValueAddress (.var VarKind.local (ofString "v"))) none stored
       (.statement :: (expressionEvents entryCap stackPopValueAddress ++
         expressionEvents entryCap (.var VarKind.local (ofString "v")) ++
-        [.memory (flattenHOL payload).length])) :=
+        [.memory (flattenHOL payload).length, .cost (storeOverhead (flattenHOL payload).length)])) :=
     StatementRun.storeValue (destination := stackPopValueAddress)
       (source := .var VarKind.local (ofString "v")) addressExpr valueExpr writeV
   have storedSp : stored.locals.lookup (ofString "sp") = some (.val (.word sp)) := by
@@ -399,7 +395,7 @@ theorem stackPush_success_run (s : PanSemStateFiniteExact 64 F)
       (.statement :: (expressionEvents stored (fundingAddress 16) ++
         expressionEvents stored
           (.op .add [.var VarKind.local (ofString "sp"), .const (1 : BitVec 64)]) ++
-        [.memory (flattenHOL (.val (.word (sp + 1)))).length])) :=
+        [.memory (flattenHOL (.val (.word (sp + 1)))).length, .cost (storeOverhead (flattenHOL (.val (.word (sp + 1)))).length)])) :=
     StatementRun.storeValue (destination := fundingAddress 16)
       (source := .op .add [.var VarKind.local (ofString "sp"), .const (1 : BitVec 64)])
       addressStoredExpr spValueExpr writeSp
@@ -458,10 +454,12 @@ theorem stackPushSuccessEvents_score (coeff : Work) (s : PanSemStateFiniteExact 
         expressionCost coeff entryCap stackPopValueAddress +
         expressionCost coeff entryCap (.var VarKind.local (ofString "v")) +
         coeff.memoryAccesses * (flattenHOL payload).length +
+        coeff.nativeCost * storeOverhead (flattenHOL payload).length +
         expressionCost coeff stored (fundingAddress 16) +
         expressionCost coeff stored
           (.op .add [.var VarKind.local (ofString "sp"), .const (1 : BitVec 64)]) +
         coeff.memoryAccesses * (flattenHOL (.val (.word (sp + 1)))).length +
+        coeff.nativeCost * storeOverhead (flattenHOL (.val (.word (sp + 1)))).length +
         expressionCost coeff updated (.const (0 : BitVec 64)) +
         coeff.movedWords * (flattenHOL (.val (.word (0 : BitVec 64)))).length +
         coeff.movedWords * (((entrySp.locals.lookup (ofString "cap")).map
