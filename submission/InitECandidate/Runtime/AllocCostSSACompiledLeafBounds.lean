@@ -1861,4 +1861,15 @@ theorem fakeMoves_allocOnly (prio : Option (Unit ⊕ Unit))
 
 #print axioms fakeMoves_allocOnly_aux
 #print axioms fakeMoves_allocOnly
+/-- The inconsistency-fixing suffix itself is allocator-only: `fixInconsistencies` returns
+`.seq (.move (priority prio true) lmov) lseq` (SSAFixInconsistencies.lean:71), whose second half is a
+`fakeMoves` program. -/
+theorem fixInconsistencies_allocOnly (prio : Option (Unit ⊕ Unit))
+    (ssaL ssaR : Spt Nat) (na : Nat) :
+    AllocOnly (Flapjack.Compiler.Backend.WordAlloc.fixInconsistencies (width := 64) prio ssaL ssaR na).1 := by
+  unfold Flapjack.Compiler.Backend.WordAlloc.fixInconsistencies
+  dsimp only [Prod.fst, Prod.snd]
+  exact AllocOnly.seq _ _ (AllocOnly.move _ _) (fakeMoves_allocOnly prio _ _ _ _)
+
+#print axioms fixInconsistencies_allocOnly
 end InitECandidate.Runtime.FineCost
