@@ -16,23 +16,7 @@ theorem simpCode_value {F : Type} (s : PanSemStateFiniteExact 64 F)
 
 theorem simpCode_events {F : Type} (s : PanSemStateFiniteExact 64 F)
     (c : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL)) (e : ExpHOL 64) :
-    expressionEvents { s with code := c } e = expressionEvents s e := by
-  refine expressionEvents.induct
-    (motive1 := fun e => expressionEvents { s with code := c } e = expressionEvents s e)
-    (motive2 := fun fs => expressionFieldEvents { s with code := c } fs = expressionFieldEvents s fs)
-    (motive3 := fun es => expressionListEvents { s with code := c } es = expressionListEvents s es)
-    ?_ ?_ ?_ ?_ ?_ e
-  · intro e ih
-    rw [expressionEvents.eq_def, expressionEvents.eq_def]
-    cases e <;> simp only at ih <;>
-      simp only [resultWords, expressionIsWord, simpCode_value, ih]
-    all_goals (first | rfl | congr)
-  · simp [expressionFieldEvents]
-  · intro name expression tail h1 h2
-    simp only [expressionFieldEvents, h1, h2]
-  · simp [expressionListEvents]
-  · intro head tail h1 h2
-    simp only [expressionListEvents, h1, h2]
+    expressionEvents { s with code := c } e = expressionEvents s e := rfl
 
 theorem simpCode_listEvents {F : Type} (s : PanSemStateFiniteExact 64 F)
     (c : HolFiniteMapExact MlS (List (MlS × ShapeHOL) × ProgHOL 64 × ShapeHOL)) :

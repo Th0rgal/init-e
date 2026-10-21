@@ -1,5 +1,4 @@
 import InitECandidate.Runtime.SourceCostSharpCrepLeaf
-import InitECandidate.Runtime.SourceCostCrepDec
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
 
@@ -16,7 +15,7 @@ theorem work_nestedDecs_eval_sharp {σ : Type} (expressions : List (CrepExpHOL 6
     (bodyRun : CrepWorkS { t with locals := t.locals.updateListEq (names.zip values) } body
       bodyWork) :
     CrepWorkS t (nestedDecsHOL names expressions body)
-      (names.length + sharpCrepList expressions + bodyWork) := by
+      (loopPriceList expressions + bodyWork) := by
   induction expressions generalizing names values t with
   | nil =>
     cases names with
@@ -25,7 +24,7 @@ theorem work_nestedDecs_eval_sharp {σ : Type} (expressions : List (CrepExpHOL 6
       cases values with
       | cons => simp at evaluated
       | nil =>
-        simp only [nestedDecsHOL, List.length_nil, sharpCrepList_nil, Nat.zero_add]
+        simp only [nestedDecsHOL, List.length_nil, loopPriceList, Nat.zero_add]
         have : ({ t with locals := t.locals.updateListEq ([] : List (Nat × HolWordLab 64)) } :
             CrepSemHOLState 64 σ) = t := by
           cases t; simp only [CrepSemHOLState.mk.injEq, and_true]
@@ -62,7 +61,7 @@ theorem work_nestedDecs_eval_sharp {σ : Type} (expressions : List (CrepExpHOL 6
           simp only [bound, List.zip_cons_cons, updateListEq_cons_eq]
         have rest := ih names values bound tailBound (by simpa using lengths) distinctTail
           (List.nodup_cons.mp nodup).2 (by rw [bodyState]; exact bodyRun)
-        simp only [nestedDecsHOL, List.length_cons, sharpCrepList_cons]
+        simp only [nestedDecsHOL, List.length_cons, loopPriceList]
         have := CrepWorkP.dec (name := name) (body := nestedDecsHOL names expressions body) head rest
         refine (congrArg (CrepWorkS t _) ?_).mp this
         omega
@@ -80,7 +79,7 @@ theorem dec_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F} {t : Cre
       SourceCrepRel bodyContext (setVarHOLFinite name value s) bodyState ∧
       ∀ bodyWork, CrepWorkS bodyState (compileProgExactHOLW bodyContext body) bodyWork →
         CrepWorkS t (compileProgExactHOLW context (.dec name shape initializer body))
-          ((flattenHOL value).length + sharpCrepList (compileExpExactHOLW context initializer).1 +
+          (loopPriceList (compileExpExactHOLW context initializer).1 +
             bodyWork) := by
   classical
   rcases hc : compileExpExactHOLW context initializer with ⟨es, cs⟩
@@ -125,9 +124,6 @@ theorem dec_transfer_sharp {F : Type} {s : PanSemStateFiniteExact 64 F} {t : Cre
   rw [hcomp]
   have work := work_nestedDecs_eval_sharp es (decCallSlots context (shapeOfHOLExact value))
     (flattenHOL value) _ t bodyWork hes hslen hdist hnodup bodyRun
-  have lengthEq : (decCallSlots context (shapeOfHOLExact value)).length =
-      (flattenHOL value).length := by rw [hslen, hlen, hflen]
-  rw [lengthEq] at work
   exact work
 
 #print axioms work_nestedDecs_eval_sharp

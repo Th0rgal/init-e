@@ -2,6 +2,7 @@ import InitECandidate.Runtime.SourceCostGlobalsRun
 import InitECandidate.Runtime.PanSharpCost
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
+variable {fn : Flapjack.Pancake.PanLang.MlS}
 
 /-! Functional cost transfer through the actual globals compiler. The source
 trace is the total canonical trace; no chosen cost witness is a premise. -/
@@ -13,10 +14,10 @@ theorem sourceExecutionEvents_globals_le {F : Type} (B : Nat)
     (rel : panGlobalsStateRelHOLExact true context s t)
     (ready : globalsReadyProg p = true) (code : GlobalsCodeReady s.code)
     (noTemp : s.locals.lookup globalsTemp = none) (covered : GlobalsCovered context s) :
-    sharpSourceScore B (sourceExecutionEvents t (compileProgExactHOL context p)) ≤
-      sharpSourceScore B (sourceExecutionEvents s p) := by
+    sharpSourceScore B (sourceExecutionEvents fn t (compileProgExactHOL context p)) ≤
+      sharpSourceScore B (sourceExecutionEvents fn s p) := by
   obtain ⟨post, events, run, _, price⟩ := globals_compile_run B
-    (sourceExecutionEvents_run s p) ok context t rel ready code noTemp covered
+    (sourceExecutionEvents_run fn s p) ok context t rel ready code noTemp covered
   rw [sourceExecutionEvents_eq_of_run run]
   exact price
 
@@ -30,8 +31,8 @@ theorem sourceSharpExecutionCost_globals_le {F : Type}
     (rel : panGlobalsStateRelHOLExact true context s t)
     (ready : globalsReadyProg p = true) (code : GlobalsCodeReady s.code)
     (noTemp : s.locals.lookup globalsTemp = none) (covered : GlobalsCovered context s) :
-    sourceSharpExecutionCost t (compileProgExactHOL context p) ≤
-      sourceSharpExecutionCost s p :=
+    sourceSharpExecutionCost fn t (compileProgExactHOL context p) ≤
+      sourceSharpExecutionCost fn s p :=
   sourceExecutionEvents_globals_le sharpReplayBound s t p context ok rel ready code noTemp covered
 
 #print axioms sourceExecutionEvents_globals_le

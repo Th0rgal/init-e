@@ -64,7 +64,7 @@ theorem LoopWork.call_comp {F : Type} {s : LoopSemStateFiniteExact 64 F}
         (if Compiler.Encoders.Asm.wordCmpHOL operator x y then
           (loopCallCompHOL labels yes).1 else (loopCallCompHOL labels no).1) output w' := by
       split <;> simpa only [*, Bool.false_eq_true, ↓reduceIte] using branch'
-    refine ⟨2 + w', ?_, by omega⟩
+    refine ⟨37 + w', ?_, by omega⟩
     simpa only [loopCallCompHOL] using LoopWork.iteBranch (live := live) lhs rhs branch''
   | iteInvalid invalid =>
     intro labels known nonerror
@@ -75,12 +75,12 @@ theorem LoopWork.call_comp {F : Type} {s : LoopSemStateFiniteExact 64 F}
     obtain ⟨wb', body', bodyBound⟩ := ihOne .ln (call_labels_empty entry) bodyOk
     obtain ⟨wr', rest', restBound⟩ := ihRest .ln (call_labels_empty middle) nonerror
     simp only [loopCallCompHOL] at rest'
-    refine ⟨3 + wb' + wr', ?_, by omega⟩
+    refine ⟨16 + wb' + wr', ?_, by omega⟩
     simpa only [loopCallCompHOL] using LoopWork.loopNext cut body' again rest'
   | @loopBreak s liveIn body liveOut entry middle wb cut one ih =>
     intro labels known nonerror
     obtain ⟨wb', body', bound⟩ := ih .ln (call_labels_empty entry) (by simp)
-    refine ⟨3 + wb', ?_, by omega⟩
+    refine ⟨16 + wb', ?_, by omega⟩
     simpa only [loopCallCompHOL] using LoopWork.loopBreak (liveOut := liveOut) cut body'
   | @loopExit s liveIn body liveOut entry result middle wb cut one stop ih =>
     intro labels known nonerror
@@ -88,11 +88,11 @@ theorem LoopWork.call_comp {F : Type} {s : LoopSemStateFiniteExact 64 F}
       rintro rfl
       exact nonerror rfl
     obtain ⟨wb', body', bound⟩ := ih .ln (call_labels_empty entry) bodyOk
-    refine ⟨3 + wb', ?_, by omega⟩
+    refine ⟨16 + wb', ?_, by omega⟩
     simpa only [loopCallCompHOL] using LoopWork.loopExit (liveOut := liveOut) cut body' stop
   | loopCut stopped =>
     intro labels known nonerror
-    exact ⟨3, by simpa only [loopCallCompHOL] using LoopWork.loopCut stopped, Nat.le_refl _⟩
+    exact ⟨16, by simpa only [loopCallCompHOL] using LoopWork.loopCut stopped, Nat.le_refl _⟩
   | callShort short run =>
     intro labels known nonerror
     exact loop_call_compiled_work (LoopWork.callShort short run) nonerror labels known

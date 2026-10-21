@@ -22,19 +22,19 @@ theorem guest_raw_entry_cost (input : Guest.InputBlob) (entry : BaselineRuntimeE
     ∃ extra final,
       StackSemEvaluate.evaluate (.call none (.inl start) none,
         {entryStackState entry.cfg entry.source with
-          code := sptFromAList (StackRawCall.compile Native.stack)
+          code := sptFromAList Raw.stack
           clock := fuel + extra}) = (result, final) ∧ final.ffi = post.ffi ∧
       stackExecutionCost (fun p _ => refinedRemovalLocalPrice 6 riscvConfig.addrOffset p)
         (.call none (.inl start) none)
         {entryStackState entry.cfg entry.source with
-          code := sptFromAList (StackRawCall.compile Native.stack)
+          code := sptFromAList Raw.stack
           clock := fuel + extra} ≤
       stackExecutionCost (fun p _ => refinedRemovalLocalPrice 6 riscvConfig.addrOffset p)
         (.call none (.inl start) none) {entryStackState entry.cfg entry.source with clock := fuel} := by
   have distinct : (Native.stack.map Prod.fst).Nodup := by
     obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, good, -, -, -, -, -, -, -, -, -⟩ := id entry.stackAssumptions
     exact good.1
-  exact entrySimulation_executed riscvConfig.addrOffset Native.stack
+  simpa only [Raw.compile_eq] using entrySimulation_executed riscvConfig.addrOffset Native.stack
     (entryStackState entry.cfg entry.source) start fuel result post distinct rfl
     guest_raw_call_frames (by intro index; rfl) run nonerror
 

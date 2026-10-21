@@ -27,7 +27,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
     (ctxt : CrepToLoopContextExact) (l : NumSet) (w : Nat)
     (ok : (evalCrepSemHOLProgExact v1 (.call caltyp fname argexps)).1 ≠ some .error)
     (rel : CrepLoopRel ctxt l v1 t)
-    (shortW : v1.clock = 0 → P.unit + P.unit + P.unit + P.priceList argexps ≤ w)
+    (shortW : v1.clock = 0 → P.call + P.priceList argexps ≤ w)
     (ihb : ∀ (args : List (HolWordLab 64)) (prog : CrepProgHOL 64)
         (newlocals : HolFiniteMapExact Nat (HolWordLab 64)),
       argexps.mapM (evalCrepSemHOLExp v1) = some args →
@@ -43,7 +43,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
         (∀ r post, evalCrepSemHOLProgExact { decClockCrepSemHOL v1 with locals := newlocals } prog =
             (r, post) →
           (∀ eid rts hp, r = some (.exception eid) → caltyp ≠ some (rts, some (eid, hp))) →
-          P.unit + P.unit + P.unit + P.priceList argexps + args.length + wb + crepCallPayloadWords r ≤ w) ∧
+          P.call + P.priceList argexps + args.length + wb + P.ret * crepCallPayloadWords r ≤ w) ∧
         (∀ (st : CrepSemHOLState 64 F) (eid : BitVec 64) (rts : List Nat) (hp : CrepProgHOL 64),
           evalCrepSemHOLProgExact { decClockCrepSemHOL v1 with locals := newlocals } prog =
             (some (.exception eid), st) →
@@ -53,7 +53,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
               (evalCrepSemHOLProgExact { st with locals := v1.locals } hp).1 ≠ some .error →
               CrepLoopRel ctxt l { st with locals := v1.locals } u' →
               LoopPaid ctxt l { st with locals := v1.locals } u' hp wh) ∧
-            P.unit + P.unit + P.unit + P.priceList argexps + args.length + wb + wh ≤ w)) :
+            P.call + P.priceList argexps + args.length + wb + P.ret + wh ≤ w)) :
     LoopPaid ctxt l v1 t (.call caltyp fname argexps) w := by
   classical
   rcases hEvalAll : evalCrepSemHOLProgExact v1 (.call caltyp fname argexps) with ⟨res, s1⟩
@@ -186,6 +186,8 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
       some (preCode + moveCost) := by
     rw [loopExpressionCodesWork_append, preSupported, moveSupported]; rfl
   have unitOk := P.unitOk
+  have callOk := P.callOk
+  have retOk := P.retOk
   have argLen : args.length = argexps.length := (opt_mmap_length_eq _ _ _ hargs).symm
   have tempsLen : temps.length = args.length := by rw [htlen, hlen]
   have finish : ∀ (k : Nat) (stmt : HolLoopProg 64)
@@ -286,7 +288,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
             crepToLoopGlobalsRelHOLExact st'.globals t1.globals ∧
             crepToLoopCodeRelExact ctxt st'.code t1.code ∧
             ∃ wc, LoopWork { sA with clock := sA.clock + ck' } (HolLoopProg.call none (some loc) temps none)
-              (resultToLoop (some r), t1) wc ∧ wc ≤ 1 + temps.length + wb := by
+              (resultToLoop (some r), t1) wc ∧ wc ≤ 189 + 39 * temps.length + wb := by
         intro r st' hb hre hrb hrc
         obtain ⟨ck', wbody, bodyWork, bodyWorkBound, bodyRel⟩ := ihBody T0 nctxt
           (listToNumSetHOLExact (List.range len)) (by rw [hb]; simpa using hre)
@@ -614,6 +616,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
             · have l2 : retvs.length = rn.length := by simpa using hlen2
               have l3 : rn.length = nrhss.length := by rw [hrn]
               simp only [crepCallPayloadWords] at crepBound
+              have payloadPrice := Nat.mul_le_mul_right retvs.length retOk
               omega
           · simp only [hlr, ne_eq, not_false_eq_true, if_true, Prod.mk.injEq] at he
             exact absurd he.1.symm hne
@@ -644,7 +647,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
                 LoopSemStateFiniteExact.setVar, sptLookup_sptInsert, if_true]
               rfl
             rw [← hrecK ck'] at optWork
-            have handleWork := LoopWork.atom (p := hbody) (cost := 1) rfl
+            have handleWork := LoopWork.atom (p := hbody) (cost := 63) rfl
               (s := LoopSemStateFiniteExact.setVar (ctxt.vmax + 1) (.word eid)
                 { t1 with locals := (sptInter sA.locals l) }) rfl
             have callWork := LoopWork.callHandle (s := { sA with clock := sA.clock + ck' })
@@ -683,7 +686,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
                   LoopWork { Z with clock := Z.clock + (J - 1) } (compileHOLExact ctxt l hp) o wc →
                   LoopWork (LoopSemStateFiniteExact.setVar (ctxt.vmax + 1) (.word eid)
                     { t1 with clock := t1.clock + J, locals := sptInter sA.locals l }) hbody
-                    (LoopSemStateFiniteExact.cutRes l o) (2 + (1 + wc)) := by
+                    (LoopSemStateFiniteExact.cutRes l o) (37 + (7 + wc)) := by
                 intro J o wc hJ hpWork
                 have tickRun : LoopSemStateFiniteExact.evaluate .tick
                     (LoopSemStateFiniteExact.setVar (ctxt.vmax + 1) (.word eid)
@@ -694,7 +697,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
                   simp only [LoopSemStateFiniteExact.decClock, Z, Prod.mk.injEq, true_and]
                   congr 1
                   omega
-                have tickWork := LoopWork.atom (cost := 1) rfl tickRun
+                have tickWork := LoopWork.atom (cost := 7) rfl tickRun
                 have seqWork := LoopWork.seqNext tickWork hpWork
                 have chosen : (if Compiler.Encoders.Asm.wordCmpHOL .notEqual eid eid then
                     (HolLoopProg.raise (ctxt.vmax + 1) : HolLoopProg 64)
@@ -871,7 +874,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
                   simpa [Compiler.Encoders.Asm.wordCmpHOL] using hee
                 rw [if_pos hcmp]
               have raiseWork := LoopWork.atom (p := (.raise (ctxt.vmax + 1) : HolLoopProg 64))
-                (cost := 1) rfl
+                (cost := 63) rfl
                 (s := LoopSemStateFiniteExact.setVar (ctxt.vmax + 1) (.word eid)
                   { t1 with locals := (sptInter sA.locals l) }) rfl
               have handleWork := LoopWork.iteBranch (live := l) (x := eid) (y := eid')
@@ -941,7 +944,7 @@ theorem call_loop_paid (P : LoopPricing) {F : Type} (opt : LoopOptimiseWork)
             intro e rts' hp' h
             exact (hx e h).elim)
           have payloadZero : crepCallPayloadWords (some r) = 0 := by
-            cases r <;> first | rfl | exact absurd rfl (hr _)
+            cases r <;> first | rfl | exact absurd rfl (hr _) | exact absurd rfl (hx _) | exact (hx _ rfl).elim | (exfalso; exact hx _ rfl)
           refine ⟨ck + ck', resultToLoop (some r), t1, hrunF, h2s, h2m, h2g, h2c, rfl, ?_,
             wl, wlWork, ?_⟩
           · cases r <;> first | exact True.intro | exact (hb _ rfl).elim | exact (hcn _ rfl).elim | exact (hre rfl).elim

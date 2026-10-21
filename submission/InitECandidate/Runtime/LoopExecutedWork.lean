@@ -158,7 +158,7 @@ theorem loop_nested_code_work (code : List (HolLoopProg 64)) :
   | cons head tail ih =>
     simp only [loopNestedSeqHOL, loopExpressionCodeWork, loopExpressionCodesWork, ih]
 
-/-- The coefficient-six expansion bound now bounds a real evaluator trace,
+/-- The native expansion bound now bounds a real evaluator trace,
 including the residual values still to be consumed by its surrounding statement. -/
 theorem compiled_pan_expression_trace {F : Type}
     (panContext : PanToCrepContextExact 64) (loopContext : CrepToLoopContextExact)
@@ -168,8 +168,8 @@ theorem compiled_pan_expression_trace {F : Type}
     let compiled := compileExpsHOLExact loopContext tmp live expressions
     ∃ cost, LoopWorkRun state (loopNestedSeqHOL compiled.1)
         (evaluate (loopNestedSeqHOL compiled.1) state) cost ∧
-      cost + loopValuesWork compiled.2.1 + compiled.2.1.length ≤
-        6 * panLoweringAllowance panContext expression := by
+      cost + loopNativeValues compiled.2.1 + 39 * compiled.2.1.length ≤
+        160 * panLoweringAllowance panContext expression := by
   obtain ⟨allowance, supported, bound⟩ :=
     pan_to_loop_expression_work panContext loopContext tmp live expression
   rw [← loop_nested_code_work] at supported

@@ -112,7 +112,7 @@ theorem ite_loop_paid (P : LoopPricing) {F : Type} {context : CrepToLoopContextE
         (loopNestedSeqHOL [.assign tmp le,
           .ite .notEqual tmp (.imm (0 : BitVec 64))
             (compileHOLExact context live yes) (compileHOLExact context live no) live])
-        (LoopSemStateFiniteExact.cutRes live output) w ∧ w ≤ 3 + loopValueWork le + wc := by
+        (LoopSemStateFiniteExact.cutRes live output) w ∧ w ≤ 37 + loopNativeValue le + wc := by
     intro k output wc child
     have hle : LoopSemStateFiniteExact.eval { st with clock := st.clock + k } le =
         some (.word word) := by
@@ -121,7 +121,7 @@ theorem ite_loop_paid (P : LoopPricing) {F : Type} {context : CrepToLoopContextE
         (none, LoopSemStateFiniteExact.setVar tmp (.word word)
           { st with clock := st.clock + k }) := by
       rw [evaluate, hle]
-    have assignWork := LoopWork.atom (cost := 1 + loopValueWork le) rfl assignRun
+    have assignWork := LoopWork.atom (cost := loopNativeValue le) rfl assignRun
     have iteWork := LoopWork.iteBranch (live := live)
       (s := LoopSemStateFiniteExact.setVar tmp (.word word) { st with clock := st.clock + k })
       (yes := compileHOLExact context live yes) (no := compileHOLExact context live no)
@@ -134,9 +134,9 @@ theorem ite_loop_paid (P : LoopPricing) {F : Type} {context : CrepToLoopContextE
     rcases r2 with _ | r2
     · have skipWork : LoopWork s2 (loopNestedSeqHOL ([] : List (HolLoopProg 64))) (none, s2) 0 :=
         LoopWork.atom (cost := 0) rfl (by rw [loopNestedSeqHOL, evaluate])
-      exact ⟨1 + loopValueWork le + ((2 + wc) + 0),
+      exact ⟨loopNativeValue le + ((37 + wc) + 0),
         LoopWork.seqNext assignWork (LoopWork.seqNext iteWork skipWork), by omega⟩
-    · exact ⟨1 + loopValueWork le + (2 + wc),
+    · exact ⟨loopNativeValue le + (37 + wc),
         LoopWork.seqNext assignWork (LoopWork.seqStop (second := .skip) iteWork), by omega⟩
   have h1k : ∀ k, evaluate (loopNestedSeqHOL np) { u with clock := u.clock + (ck + k) } =
       (none, { st with clock := st.clock + k }) := by

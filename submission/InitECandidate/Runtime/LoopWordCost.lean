@@ -69,34 +69,5 @@ theorem cutRes_error {F : Type} (live : NumSet)
   subst h
   rfl
 
-/-- Loop-to-Word executed cost: from any Word state related to the Loop state
-as in the pinned `compile_correct`, the compiled program's executed Word work
-under `loopWordPrice` is at most the `LoopWork` of the same non-error run. -/
-theorem loop_to_word_cost {C F : Type} {s : LoopSemStateFiniteExact 64 F} {p : HolLoopProg 64} {output w}
-    (work : LoopWork s p output w) : WordCostLe C s p output w := by
-  induction work with
-  | atom leaf run => exact wordCostLe_atom leaf
-  | mark inner ih => exact wordCostLe_mark ih
-  | seqNext one two ih1 ih2 => exact wordCostLe_seqNext one ih1 ih2
-  | seqStop one ih => exact wordCostLe_seqStop one ih
-  | iteBranch lhs rhs branch ih => exact wordCostLe_iteBranch lhs rhs ih (cutRes_error _ _)
-  | iteInvalid invalid => intro ok; exact absurd rfl ok
-  | loopNext cut one again rest ih1 ih2 => exact wordCostLe_loopNext cut one again ih1 ih2
-  | loopBreak cut one ih => exact wordCostLe_loopBreak cut one ih
-  | loopExit cut one stop ih => exact wordCostLe_loopExit cut one stop ih
-  | loopCut stopped => exact wordCostLe_loopCut stopped
-  | callShort short run => exact wordCostLe_callShort short run
-  | callTail args find noHandler clock body ih => exact wordCostLe_callTail args find noHandler clock ih
-  | @callRet s names live target arguments handler values env prog entry result post wb args find nodup cut
-      body plain ih =>
-    rcases handler with _ | ⟨n, p1, p2, liveOut⟩
-    · exact wordCostLe_callRet args find nodup cut body ih
-    · exact wordCostLe_callRetPlain args find nodup cut body plain ih
-  | callRetCont args find nodup cut body lengths cont ih1 ih2 =>
-    exact wordCostLe_callRetCont args find nodup cut body lengths ih1 ih2
-  | callHandle args find nodup cut body handle ih1 ih2 =>
-    exact wordCostLe_callHandle args find nodup cut body ih1 ih2
-
 #print axioms wordCostLe_callRetPlain
-#print axioms loop_to_word_cost
 end InitECandidate.Runtime.FineCost

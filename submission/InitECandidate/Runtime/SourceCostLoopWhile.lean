@@ -16,11 +16,11 @@ theorem loopWhile_body_work {F : Type} (np : List (HolLoopProg 64)) (le : HolLoo
     ∃ wB, LoopWork Y (loopNestedSeqHOL (np ++
         [.assign tmp le,
          .ite .notEqual tmp (.imm (0 : BitVec 64)) (.seq cC (.continue 0)) (.break 0) l]))
-      (some r, s') wB ∧ wB ≤ a + (1 + loopValueWork le) + (2 + wbr) := by
+      (some r, s') wB ∧ wB ≤ a + (loopNativeValue le) + (37 + wbr) := by
   have assignRun : evaluate (.assign tmp le) st =
       (none, LoopSemStateFiniteExact.setVar tmp (.word w) st) := by
     rw [evaluate, h1v]
-  have assignWork := LoopWork.atom (cost := 1 + loopValueWork le) rfl assignRun
+  have assignWork := LoopWork.atom (cost := loopNativeValue le) rfl assignRun
   have chosen : (if Compiler.Encoders.Asm.wordCmpHOL .notEqual w 0 then
       (HolLoopProg.seq cC (.continue 0)) else .break 0) =
       (if w = 0 then .break 0 else .seq cC (.continue 0)) := by
@@ -54,9 +54,9 @@ theorem loopWhile_seq_continue_work {F : Type} {cC : HolLoopProg 64}
     {S post : LoopSemStateFiniteExact 64 F} {r : Option (LoopResultExact 64)} {wc : Nat}
     (body : LoopWork S cC (r, post) wc) :
     ∃ w, LoopWork S (.seq cC (.continue 0))
-      (loopContinueResult r, post) w ∧ w ≤ wc + 1 := by
+      (loopContinueResult r, post) w ∧ w ≤ wc + 7 := by
   rcases r with _ | x
-  · exact ⟨_, LoopWork.seqNext body (LoopWork.atom (cost := 1) rfl
+  · exact ⟨_, LoopWork.seqNext body (LoopWork.atom (cost := 7) rfl
       (by rw [evaluate]; rfl)), by omega⟩
   · exact ⟨_, LoopWork.seqStop body, by omega⟩
 
@@ -116,10 +116,10 @@ theorem while_false_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCon
       { st with clock := st.clock + 1 })
       (if (0 : BitVec 64) = 0 then .break 0 else .seq (compileHOLExact ctxt l c) (.continue 0))
       (some (.break 0), LoopSemStateFiniteExact.setVar tmp (.word 0)
-        { st with clock := st.clock + 1 }) 1 := by
-    rw [if_pos rfl]; exact LoopWork.atom (cost := 1) rfl (by rw [evaluate])
+        { st with clock := st.clock + 1 }) 7 := by
+    rw [if_pos rfl]; exact LoopWork.atom (cost := 7) rfl (by rw [evaluate])
   obtain ⟨wB, workB, boundB⟩ := loopWhile_body_work np le tmp l (compileHOLExact ctxt l c) _ _ 0
-    codeCost _ _ 1 h1' h1v' codeSupported breakWork
+    codeCost _ _ 7 h1' h1v' codeSupported breakWork
   have loopWork := LoopWork.loopBreak (liveOut := l) hentry workB
   have hS : LoopSemStateFiniteExact.sptSubsetLive l
       (LoopSemStateFiniteExact.setVar tmp (.word 0) { st with clock := st.clock + 1 }).locals :=
@@ -133,7 +133,7 @@ theorem while_false_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCon
     simp [LoopSemStateFiniteExact.decClock, LoopSemStateFiniteExact.setVar]
   rw [hexit, ← hcomp] at loopWork
   have sound := LoopWork.sound loopWork
-  refine ⟨ck + 2, 3 + wB, ?_, by omega, ?_⟩
+  refine ⟨ck + 2, 16 + wB, ?_, by omega, ?_⟩
   · rw [sound]; exact loopWork
   · rw [sound, crepRun]
     refine ⟨h1s, h1m, h1g, h1c, rfl, ?_⟩
@@ -171,7 +171,7 @@ theorem while_timeout_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopC
          (.seq (compileHOLExact ctxt l c) (.continue 0)) (.break 0) l])) (liveOut := l) hcut
   rw [← hcomp] at loopWork
   have sound := LoopWork.sound loopWork
-  refine ⟨0, 3, ?_, by omega, ?_⟩
+  refine ⟨0, 16, ?_, by omega, ?_⟩
   · rw [sound]; exact loopWork
   · rw [sound, crepRun]
     exact ⟨hs, hm, hg, hc, rfl, trivial⟩
@@ -187,7 +187,7 @@ structure LoopWhileIter (P : LoopPricing) {F : Type} (ctxt : CrepToLoopContextEx
       [.assign tmp le,
        .ite .notEqual tmp (.imm (0 : BitVec 64))
          (.seq (compileHOLExact ctxt l c) (.continue 0)) (.break 0) l])) l ∧
-    loopExpressionCodesWork np = some a ∧ a + loopValueWork le + 1 ≤ P.price e ∧
+    loopExpressionCodesWork np = some a ∧ a + loopNativeValue le ≤ P.price e ∧
     (∀ k, LoopSemStateFiniteExact.cutRes l (none, { t with clock := t.clock + (ck + k) }) =
       (none, { t with locals := sptInter t.locals l, clock := t.clock - 1 + (ck + k) })) ∧
     (∀ k, evaluate (loopNestedSeqHOL np)
@@ -305,7 +305,7 @@ theorem while_loop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCont
   have loopWork := LoopWork.loopNext (hentryK (ck' + ck'')) workB (Or.inr rfl) workRest
   rw [← hcomp] at loopWork
   have sound := LoopWork.sound loopWork
-  refine ⟨ck + (ck' + ck''), 3 + wB + wr', ?_, by omega, ?_⟩
+  refine ⟨ck + (ck' + ck''), 16 + wB + wr', ?_, by omega, ?_⟩
   · rw [sound]; exact loopWork
   · rw [sound, crepRun]
     rw [hcomp]
@@ -385,7 +385,7 @@ theorem while_stop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCont
       simp [LoopSemStateFiniteExact.decClock]
     rw [hexit, ← hcomp] at loopWork
     have sound := LoopWork.sound loopWork
-    refine ⟨ck + (ck' + 1), 3 + wB, ?_, by omega, ?_⟩
+    refine ⟨ck + (ck' + 1), 16 + wB, ?_, by omega, ?_⟩
     · rw [sound]; exact loopWork
     · rw [sound, crepRun, if_pos rfl]
       exact ⟨h2s, h2m, h2g, h2c, rfl, loopWhile_locals_rel_inter ctxt l middle.locals t1.locals h2l'⟩
@@ -411,7 +411,7 @@ theorem while_stop_loop_paid (P : LoopPricing) {F : Type} {ctxt : CrepToLoopCont
       ⟨by simp, by simpa using hx0, by simpa using hx1⟩
     rw [← hcomp] at loopWork
     have sound := LoopWork.sound loopWork
-    refine ⟨ck + ck', 3 + wB, ?_, by omega, ?_⟩
+    refine ⟨ck + ck', 16 + wB, ?_, by omega, ?_⟩
     · simpa using (by rw [sound]; exact loopWork : _)
     · rw [sound, crepRun, if_neg hr1]
       refine ⟨h2s, h2m, h2g, h2c, ?_, loopWhile_localsResultRel_exitLoop ctxt l _ _ r h2l⟩

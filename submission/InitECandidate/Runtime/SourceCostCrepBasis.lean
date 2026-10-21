@@ -1,54 +1,9 @@
 import InitECandidate.Runtime.SourceCostCrepWork
-import InitECandidate.Runtime.GuestBulkLoadApplicability
+import InitECandidate.Runtime.PanReadPresence
 import InitECandidate.Runtime.PanCostTotal
 import Flapjack.Pancake.Proofs.PanToCrep.PcCompileCorrect.Assembly
 namespace InitECandidate.Runtime.FineCost
 open Flapjack Flapjack.Pancake.PanLang Flapjack.PanSemStateFiniteExact
-
-/-- Pan-to-Crep executed-work coefficients for source events. Expression and
-moved-word coefficients cover the compiler-aware lowering allowance (six times
-the four/one local vector); statement, memory and frame coefficients pay the
-Crep statements emitted per executed source statement and per moved word.
-These are Crep work units, not native instruction counts. -/
-def sourceCrepWeights : Work :=
-  { statements := 8, expressions := 24, movedWords := 8, memoryAccesses := 8, frameSlots := 8 }
-
-theorem score_statement_cons (coeff : Work) (rest : List WorkEvent) :
-    coeff.score (executionWork (.statement :: rest)) =
-      coeff.statements + coeff.score (executionWork rest) := by
-  rw [executionWork_score_cons]
-  simp [WorkEvent.units, Work.score]
-
-theorem score_append (coeff : Work) (left right : List WorkEvent) :
-    coeff.score (executionWork (left ++ right)) =
-      coeff.score (executionWork left) + coeff.score (executionWork right) :=
-  executionWork_score_append coeff left right
-
-theorem scalar_weights_le_crep (work : Work) :
-    6 * scalarLoweringWeights.score work ≤ sourceCrepWeights.score work := by
-  simp only [Work.score, scalarLoweringWeights, sourceCrepWeights]
-  omega
-
-/-- Compiled expression work is paid by the source expression's own events,
-for every successful expression of the checked guest load-site form. -/
-theorem compiled_expression_crep_work {F : Type} (s : PanSemStateFiniteExact 64 F)
-    (context : PanToCrepContextExact 64)
-    (targetLocals : HolFiniteMapExact Nat (HolWordLab 64))
-    (related : panToCrepLocalsRelFiniteExact context s.locals targetLocals)
-    (expression : ExpHOL 64) (value : ValueHOL 64)
-    (evaluated : expressionValue s expression = some value)
-    (checked : bulkLoadSitesExp expression = true) :
-    crepListWork (compileExpExactHOLW context expression).1 ≤
-      expressionCost sourceCrepWeights s expression := by
-  have present := expression_success_locals_present s expression value evaluated
-  have layout := scopedWidthsFit_of_related_present s context targetLocals related expression present
-  have supported := bulk_sites_imply_supported s expression checked
-  have sourceBound := bounded_bulk_lowering_cost_bound s context expression layout supported
-  have lowering := pan_lowering_work_bound context expression
-  have weights := scalar_weights_le_crep (executionWork (expressionEvents s expression))
-  unfold flattenedExpressionWork at lowering
-  unfold expressionCost at sourceBound ⊢
-  omega
 
 /-- The pinned Pan-to-Crep correctness theorem, specialized to an exact source
 evaluation. All original state, code, exception and locals premises remain. -/
@@ -130,8 +85,39 @@ theorem decClock_state_rel {F : Type} {s : PanSemStateFiniteExact 64 F}
   simpa [panToCrepStateRelFiniteExact, PanSemStateFiniteExact.decClockHOLFinite,
     decClockCrepSemHOL, hclk] using state
 
-#print axioms compiled_expression_crep_work
+/-- Premises of the pinned Pan-to-Crep simulation, unchanged. -/
+structure SourceCrepRel {F : Type} (context : PanToCrepContextExact 64)
+    (s : PanSemStateFiniteExact 64 F) (t : CrepSemHOLState 64 F) : Prop where
+  state : panToCrepStateRelFiniteExact s t
+  code : codeRelExactHOLW context s.code t.code
+  exceptions : panToCrepExcpRelFiniteExact context.eids s.eshapes
+  locals : panToCrepLocalsRelFiniteExact context s.locals t.locals
+
+theorem updateListEq_cons_eq {α β : Type} [DecidableEq α]
+    (m : HolFiniteMapExact α β) (e : α × β) (l : List (α × β)) :
+    m.updateListEq (e :: l) = (m.updateEq e).updateListEq l := by
+  apply HolFiniteMapExact.ext
+  funext k
+  rfl
+
+/-- A localised call has no global destination, so it emits no global event. -/
+theorem callGlobalEvents_localised {F : Type} {info : Option (Option (VarKind × MlStringHOL) ×
+      Option (MlStringHOL × MlStringHOL × ProgHOL 64))} {function : MlStringHOL}
+    {arguments : List (ExpHOL 64)} (localised : localisedProgHOL (.call info function arguments) = true)
+    (s : PanSemStateFiniteExact 64 F) : callGlobalEvents s info = [] := by
+  rcases info with _ | ⟨_ | ⟨kind, name⟩, handler⟩
+  · rfl
+  · rfl
+  · cases kind
+    · rfl
+    · rcases handler with _ | ⟨a, b, h⟩ <;>
+        first
+        | simp only [localisedProgHOL, Bool.and_false, Bool.false_eq_true] at localised
+        | simp_all [localisedProgHOL]
+        | (unfold localisedProgHOL at localised; simp at localised)
+
 #print axioms compiled_source_run
+#print axioms callGlobalEvents_localised
 #print axioms resultRel_some_ne_none
 #print axioms resultRel_not_continue
 #print axioms compiled_guard
