@@ -1,6 +1,8 @@
 # Op 5 — working report
 
-Status: IN PROGRESS. No end-to-end compiler-domain extension is claimed.
+Status: COMPLETE for Op5 compiler-domain extension. Final verification passed.
+The earlier checkpoint sections below are historical and superseded by the final
+integration section. This report does not claim completion of Challenge C.
 Branch: op5-flapjack-scratch; starting revision 4cb9619cd6.
 
 ## Authoritative layout discrepancy
@@ -347,3 +349,97 @@ AssemblyLabChain/AssemblyTop compiler theorem to invoke these new union-domain
 constructors and bridges. Full compiler integration is still unproved, so the
 goal remains active. Frozen InitE source semantics and pinned constants were
 not modified.
+
+
+## Final integration and completion audit
+
+The formerly remaining integration is now implemented in:
+
+- EncodingInitArena.lean and WordToStackInitArena.lean: the actual WordToStack
+  initStateOk contract, bitmap/code/GC facts, and Lab/Stack semantics link are
+  derived from successful arena-aware full initialization. No contiguous-domain
+  assumption is reintroduced.
+- MachineMemoryArena.lean and MachineAssumptionsArena.lean: derive the entire
+  Lab initializer assumption bundle from actual machine initialization memory,
+  configuration/header/bitmap guards, and separate scratch ownership.
+- MachineLabArena.lean: applies the actual LabToTarget.semanticsCompile theorem
+  to the enlarged physical ordinary domain.
+- LabChainArena.lean: composes actual Pancake/WordToWord/WordToStack/StackToLab
+  simulation and derives successful arena-aware full initialization.
+- ResourceArena.lean and LabResourceArena.lean: retain the original stack-depth
+  and readLimits resource flag, deriving its safe-for-space implication for the
+  enlarged initial state.
+- CompileSemanticsArena.lean: compileSemanticsWithArena proves the complete
+  compileProgMax-to-machine-semantics theorem. Its input interface is
+  compileSemanticsWithArenaStatement, the full pinned hypothesis list with
+  generalized installation and ordinary source domain. It concludes the same
+  extendWithResourceLimitPrimeHOL result using the original optionLt/readLimits
+  flag. It assumes no successful initializer run, intermediate compiler
+  relation, memory-preservation theorem, or desired observable semantics.
+- ArenaLayouts.lean: proves the pinned ordinaryDomain is its aligned persistent
+  byte interval; guestDomain is exactly ordinaryDomain union guestWordArena;
+  pinned scratch lies below sourceBase, satisfies the machine heap-separation
+  guard, and its byte arena is closed over all bytes of aligned words. The
+  requested numeric interval is proved already contained in ordinaryDomain at
+  this pinned revision.
+
+The byte/word distinction is explicit. byteArena is the full physical byte
+predicate passed to panInstalledWithArena/goodInitState. arena is the aligned
+word-cell predicate. The first new top-level guard is
+arena a iff byteArena a = true and holByteAligned a = true. The second excludes
+arena from the entire machine initialization interval [lenReg,len2Reg), which
+contains the persistent heap, globals, initializer store and physical stack.
+Bitmap exclusion is derived from the strengthened installation contract. This
+separation is proved for the pinned below-base guest scratch; it is not assumed
+silently by treating aligned word starts as a byte-complete physical domain.
+
+The generalized theorem applies to all supported targets (and therefore
+RISC-V) through the actual MachineConfig target semantics. FrameBridge.lean
+provides the explicit WordToStack domain transport, target code/buffer frame,
+and eight-byte cell preservation for stack-confined target writes. The pinned
+and requested concrete stack separation theorems remain in MemoryDomain.lean.
+
+Read-only advisor audit of the final interfaces found no material specification
+gap for Op5's compiler-domain extension. The audit expressly distinguishes
+this result from constructing a concrete executable guest installation or
+completing Challenge C. Frozen InitE source semantics, guest layout, compiler
+code generation, and the pinned Flapjack package sources are unchanged.
+
+Reproduction from this worktree (ELAN_HOME=/var/lib/sandboxed-node/.elan):
+
+    turbo-lean --json audit-spec submission/InitECandidate/Proofs/Op5/CompileSemanticsArena.lean
+    turbo-lean check submission/InitECandidate/Proofs/Op5/CompileSemanticsArena.lean
+    lake env lean submission/InitECandidate/Proofs/Op5/CompileSemanticsArena.lean
+
+Imports require their ordinary Lean oleans; this worktree contains the checked
+module artifacts. OP5_VERIFICATION.json records per-source SHA-256, complete
+specification-audit results, verifier exit codes and outputs for every Op5 Lean
+module. OP5_AXIOMS.txt records the final theorem and frame/layout axiom audit.
+These are verification records, not a Boss certification or governor receipt.
+No maxwell record or research-governor record command was run.
+
+
+### Verified acceptance evidence
+
+| Requirement | Current authoritative evidence |
+| --- | --- |
+| Locate contiguous restriction | Exact restriction locations above; frozen SourceSemantics/Installed/PanInstalled/CompileSemanticsStatement inspected at baseline 4cb9619cd6. |
+| Generalize installation/domain | installedWithArena, panInstalledWithArena, twoRegion, compileSemanticsWithArenaStatement and the proved compileSemanticsWithArena. |
+| Preserve the actual compiler chain | Checked initializer, Lab/Stack/Word/Pancake and resource-limit modules imported transitively by the final compiler theorem. |
+| Scratch/persistent/stack separation | regions_disjoint, guest_scratch_persistent_disjoint, guest_stack_disjoint, requested_stack_disjoint, guestArena_machine_separation. |
+| Word/Stack and target frame bridges | wordToStack_twoRegion, target_code_frame, target_stack_preserves_cell over actual MachineConfig target bytes. |
+| Concrete source and requested layouts | ordinaryDomain_interval, guestDomain_union, guestByteArena_word_closed, requested_union_ordinaryDomain. |
+| 0 sorryAx | OP5_AXIOMS.txt: final theorem dependency closure uses only propext, Classical.choice and Quot.sound; frame/layout closures use subsets of these. |
+| turbo-lean audit/check | OP5_VERIFICATION.json: all 30 current Op5 modules pass both commands; all 73 audited theorem specifications are tight, with zero warnings or vacuous/trivial specifications. Source SHA-256 values match current files. |
+| Branch, report and reviewable result | All implementation and records committed on op5-flapjack-scratch; no package or frozen challenge semantics edits. |
+| Boss-only commands | No maxwell record or research-governor record was invoked. |
+
+The compiler-domain extension itself is now fully integrated and proved.
+The theorem remains conditional on actual compiler configuration, successful
+compilation, generalized installation and the original source-program guards,
+as is the pinned compiler correctness theorem. This operation does not produce
+a concrete guest installation witness, prove guest program non-failure, or
+claim the full Challenge C submission. The operation brief's numeric layout
+mismatch remains explicit: its requested interval is already inside the old
+ordinaryDomain at this revision; the authoritative guest's actual below-base
+scratch is the nontrivial new region handled by the extension.

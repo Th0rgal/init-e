@@ -1,0 +1,17 @@
+Op5 transitive axiom audit
+Final theorem source SHA-256: 7a1ae2f9d6d4fe787dce7a07ca3a2f2ed4da87abb6e23f77c8f0e8490098288e
+
+Command: ELAN_HOME=/var/lib/sandboxed-node/.elan lake env lean /tmp/op5-final-axioms.lean
+The temporary audit module imports CompileSemanticsArena, FrameBridge and ArenaLayouts,
+then runs #print axioms for the declarations listed below. Exit status: 0.
+
+'InitE.Op5.compileSemanticsWithArena' depends on axioms: [propext, Classical.choice, Quot.sound]
+'InitE.Op5.wordToStack_twoRegion' depends on axioms: [propext, Classical.choice, Quot.sound]
+'InitE.Op5.target_code_frame' depends on axioms: [propext]
+'InitE.Op5.target_stack_preserves_cell' depends on axioms: [propext, Quot.sound]
+'InitE.Op5.guest_scratch_persistent_disjoint' depends on axioms: [propext, Quot.sound]
+'InitE.Op5.guest_stack_disjoint' depends on axioms: [propext, Quot.sound]
+'InitE.Op5.requested_stack_disjoint' depends on axioms: [propext, Quot.sound]
+'InitE.Op5.guestDomain_union' depends on axioms: [propext, Classical.choice, Quot.sound]
+'InitE.Op5.guestArena_machine_separation' depends on axioms: [propext, Classical.choice, Quot.sound]
+'InitE.Op5.requested_union_ordinaryDomain' depends on axioms: [propext, Classical.choice, Quot.sound]
