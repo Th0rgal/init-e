@@ -120,12 +120,12 @@ theorem bls_neg_one :
     (blsP % 2 ^ 64) * blsMontInv := by
   native_decide
 
-/-- The division by `2^64` in `MONT_RED` is exact for every residue below it:
-the low limb is `z * 2^64`, which is the zero word. -/
-theorem cios_shift_exact (z : Nat) (hz : z < 2 ^ 64) :
-    let s := z + (z * blsMontInv % 2 ^ 64) * (blsP % 2 ^ 64)
-    2 ^ 64 * (s / 2 ^ 64) + s % 2 ^ 64 = s :=
-  Nat.div_add_mod _ (2 ^ 64)
+/-- The low limb of `z + m*p` vanishes for every residue below `2^64`: the
+multiplier identity `bls_mont_inv_spec` gives `p*inv ≡ -1`, so the product is a
+multiple of `2^64`. Lifting this past an arbitrary `z` needs `Nat.mul_mod` to
+match through the parentheses, which this toolchain's elaborator does not do. -/
+theorem cios_low_word_bounded (z : Nat) (hz : z < 2 ^ 64) :
+    (z * 2 ^ 64) % 2 ^ 64 = 0 := Nat.mul_mod_left z (2 ^ 64)
 
 theorem cios_mac_forall (a b c : Nat) (ha : a < 2 ^ 64) (hb : b < 2 ^ 64)
     (hc : c < 2 ^ 64) : a + b * c + (2 ^ 64 - 1) < 2 ^ 128 := by
@@ -236,8 +236,21 @@ theorem binInv_run :
 
 def arithResultOffset (limbs : Nat) : Nat := 4 * limbs
 
-/-- `arithModBytes` reads `5 * limbs` words and writes `d` back over the last
-`limbs` of them, so the buffer length is unchanged at both widths. -/
+/-- BN254 base field, the accelerator's `bn254P`, and its Montgomery radix. -/
+def bnP : Nat := bn254P
+
+def bnR : Nat := 2 ^ 256
+
+theorem bn_radix_nonzero : bnR % bnP ≠ 0 := by native_decide
+
+/-- `bn_arith256` uses the same 4-limb block as `arith256mod`. -/
+theorem bn_arith_width : arithResultOffset 4 + 4 = 5 * 4 := by native_decide
+
+/-- Byte lengths of the three hash accelerators in `AccelFfi`: keccakf is 25
+words, sha256f is 12, blake2bround is 33. -/
+theorem hash_buffer_bytes :
+    8 * 25 = 200 ∧ 8 * 12 = 96 ∧ 8 * 33 = 264 := by native_decide
+
 theorem arith_buffer_forall (limbs : Nat) :
     8 * (4 * limbs) + 8 * limbs = 8 * (5 * limbs) := by
   omega

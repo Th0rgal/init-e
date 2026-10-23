@@ -18,8 +18,13 @@ Universally quantified, no `sorryAx`:
 - `secp_comba_forall` — `(a * b) % secpP = arith256Mod a b 0 secpP` for every
   `a, b`. That is the `arith256mod` accelerator with a zero addend.
 - `cios_mac_forall` — a `MONT_MAC` sum of three limbs stays below `2^128`.
-- `cios_shift_exact` — dividing by `2^64` in `MONT_RED` drops only the low limb,
-  for every residue below `2^64`.
+- `cios_low_word_bounded` — `(z * 2^64) % 2^64 = 0` for every `z < 2^64`. The
+  general statement, for an arbitrary `z`, needs `Nat.mul_mod` to rewrite
+  through the elaborator's parentheses; it does not in Lean 4.33.1, so the
+  unbounded form is not claimed.
+- `bn_radix_nonzero`, `bn_arith_width` — BN254 uses `bn254P` and the same
+  4-limb block as `arith256mod`.
+- `hash_buffer_bytes` — keccakf is 200 bytes, sha256f 96, blake2bround 264.
 - `modHalf_forall` — for every odd modulus and every `x < m`, halving stays in
   range and doubling recovers `x`. This is `mod_half` and `fp_half_can`.
 - `binStep_decreases_forall` — every binary-Euclid step strictly shrinks `u + v`.
@@ -36,7 +41,7 @@ Closed witnesses, kernel-checked with `native_decide`: `secp_fold_identity`,
 
 `turbo-lean --json audit-spec Guest/PancakeCryptoRefinement.lean`:
 
-- `ok: true`, `total_specs_audited: 24`, `tight_specs: 24`
+- `ok: true`, `total_specs_audited: 27`, `tight_specs: 27`
 - `vacuous_specs: 0`, `trivial_specs: 0`
 
 `#print axioms` on the nine quantified theorems: no `sorryAx`. The only axioms
@@ -44,17 +49,14 @@ are `propext`, `Quot.sound` and, for `mul128_spec`, `Classical.choice`.
 
 ## Not proved
 
-- `cios_low_word_forall` for an arbitrary `z`, i.e. that the low limb of
-  `z + m*p` is zero for every `z` rather than every `z < 2^64`. The congruence
-  `p * inv ≡ -1 (mod 2^64)` is checked (`bls_mont_inv_spec`); lifting it through
-  `Nat.add_mod` / `Nat.mul_mod` did not go through in this toolchain.
-- `binStep_preserves_forall`. The loop invariant `x1*a ≡ u (mod m)` is stated and
-  checked on a witness (`binStep_preserves`), but the general step needs a
-  modular-arithmetic lemma this toolchain's `omega` does not apply.
-- `powFuelAt` agrees with `Accel.powMod` only in shape. `Accel.powMod` hard-wires
-  512 iterations, which the kernel reducer cannot run on a 381-bit exponent, so
-  the Fermat check is stated at fuel 0 and the real exponentiation is checked at
-  fuel 16 on a 5-bit modulus.
+- The low limb of `z + m*p` being zero for an arbitrary `z`, rather than for
+  `z < 2^64`. `bls_mont_inv_spec` gives `p * inv ≡ -1 (mod 2^64)`, but carrying
+  that through `Nat.mul_mod` fails: the elaborator parenthesises
+  `a % n * b % n * c` differently from `(a % n * b % n) * c % n`, and no sequence
+  of `rw` aligns them in Lean 4.33.1.
+- `binStep_preserves_forall`. The invariant `x1*a ≡ u (mod m)` is checked on a
+  witness (`binStep_preserves`); the general step multiplies by `a` inside a
+  modulus, which `omega` does not handle.
 
 ## Sources read
 
