@@ -261,3 +261,38 @@ then derive the Word initializer union domain and apply PanToWord/assembly with
 that domain. The complete goal is still not achieved. This turn is progress:
 it adds a checked full initializer simulation theorem rather than restating
 an intended bridge.
+
+## Lab initialization semantics checkpoint
+
+Added InitPipelineArena.lean: propagateTheseWithArena retains the full pinned
+machine guard bundle and adds independently owned memoryHOL scratch alongside
+bitmap/data ownership. makeInitSemanticsWithArena derives actual optional
+initialization success and non-failing semantics from that bundle and the
+unchanged dischargeThese compiler bundle. No execution or postrelation is
+assumed.
+
+Added LabInitArena.lean: memoryAssumptionWithArena and labAssumptionsWithArena
+retain all Lab guards and replace only the ownership assertion with its
+arena-framed version. propagateThese_s2_withArena transports memory, domain,
+headers and renamed registers through the actual unchanged s2 constructor.
+dischargeThese_s2_withArena discharges the original compiler-side bundle.
+The label/code, call-argument, actual s3 state relation and Lab entry-location
+proofs were generalized to the new assumptions. stageLab_withArena composes
+actual StackNames and StackToLab simulation without requiring the old
+contiguous memory assertion. lab_init_semantics_withArena proves optional
+arena initialization succeeds and non-failing semantics of its result equal
+semantics of the unchanged compiled physical Lab entry.
+
+Verification: both new files pass whole-file Lean; LabInitArena also emits its
+olean. turbo-lean check verifies both files. JSON audit-spec reports ok=true,
+one tight specification for InitPipelineArena and ten for LabInitArena, zero
+vacuous specifications, and empty warnings, horizontal-packing and
+shadowed-constant lists. All five printed Lab theorem axiom sets and the
+pipeline theorem contain only propext, Classical.choice and Quot.sound;
+no sorryAx. No Boss-only record command was run.
+
+Remaining: complete the StackAlloc/rawcall portion and arena-aware total
+fullMakeInit constructor, then thread the resulting Word union domain into
+Pancake/assembly integration. The full compiler-domain goal remains active
+and is not claimed complete. This checkpoint closes the Lab-to-initialized
+StackRemove semantics portion under the new memory contract.
