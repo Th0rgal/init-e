@@ -107,3 +107,40 @@ Checks used `turbo-lean check submission/InitECandidate/Proofs/Op5/<module>.lean
 audits used `turbo-lean --json audit-spec` with the same paths. The whole-file
 checks used `lake env lean` under the v4.33.1 toolchain. The allowed axiom union
 is {propext, Classical.choice, Quot.sound}; it excludes sorryAx.
+
+## Second checkpoint: StackRemove ownership lift
+
+Added HeapExtension.lean and StackRemoveArena.lean. memory_frame_extend proves
+that an arbitrary compiler frame survives extension of both memory graphs by
+an arena outside the complete old target domain, with source/target value
+agreement on that arena. This is a full function-graph separation theorem,
+not just a domain subset or pointwise read property.
+
+stackRemove_stateRel_withArena applies it to the actual stateRelHOL. All
+26 outer clauses and the complete five-factor separated heap are retained.
+The proof reassociates the pinned separation assertions and extends the
+ordinary source and physical target domains together. It assumes neither a
+postrelation nor successful compiled execution. initReduceWithArena adds only
+the arena domain to the original reduction state; all original fields remain.
+
+Both new modules pass turbo-lean --json audit-spec (ok=true, one theorem each,
+no warnings or shadowed constants) and turbo-lean check. Whole-file checks
+reported allowed axioms only: memory_frame_extend uses propext and Quot.sound;
+stackRemove_stateRel_withArena additionally uses Classical.choice. No sorryAx.
+
+### Exact next integration boundary
+
+InitReduce.initReduce line 49 overwrites mdomain with contiguous heap words.
+InitProp.initProp ends in exact ownership of two wordListExists regions.
+InitCodePre.initCodePre similarly exactly owns bitmap/data plus heap/stack,
+so it rejects an input domain already containing an independent scratch arena.
+The next step is to generalize InitCodePre/InitProp with an arena frame and
+prove unchanged initCode execution preserves that frame. Merely invoking the
+old initCode theorem on an enlarged domain is invalid. The old
+InitCodeCorrect.initCodeThm already tracks a frame H in its internal proof;
+that frame must be reflected in the generalized input/output predicates.
+Then makeInitOpt/Any, fullMakeInit, and AssemblyInitMemory can carry the union
+into the already domain-generic panToTargetPanToWordStage.
+
+A read-only advisor confirmed this route; no implementation was delegated.
+The original full goal remains incomplete and active.
