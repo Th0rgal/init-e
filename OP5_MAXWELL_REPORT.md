@@ -144,3 +144,38 @@ into the already domain-generic panToTargetPanToWordStage.
 
 A read-only advisor confirmed this route; no implementation was delegated.
 The original full goal remains incomplete and active.
+
+## Third checkpoint: initialized-state predicate and actual initializer execution
+
+Added InitPropArena.lean: initPropWithArena retains every one of the pinned
+32 initialized-state clauses, with a separately owned scratch graph alongside
+the two heap regions. initProp_withArena constructs this predicate from the
+pinned predicate and a domain-disjoint arena via assertion_arena_extend.
+
+Added InitializerStores.lean: initializer_terminal_write proves the initializer's
+terminal stack-slot write preserves scratch heap ownership. The
+storeListCode_preserves_arena theorem derives a successful evaluation of the
+actual unchanged storeListCode and preservation of all arena values. Its input
+is separated heap ownership and the original register/domain guards, not a
+successful evaluation or a supplied poststate relation.
+
+Added InitializerExecution.lean: runInitCode_preserves_arena applies the actual
+unchanged full initCode execution theorem. It retains all original register
+outcomes, the complete output heap assertion and the poststate shape, and
+proves every arena value unchanged. Its input heap is stated after the terminal
+stack-slot write, matching the pinned execution theorem; the preceding
+initializer_terminal_write establishes that heap from separated initial
+ownership. This is not yet the full generalized initCodeCorrect.initCodeThm:
+the derivation of this execution input and the enlarged stateRelHOL/InitProp
+from the generalized installation/precondition still needs integration.
+
+All three new files pass whole-file Lean checks and turbo-lean check. Their
+specification audits report ok=true with no shadowed constants or warnings
+(after line wrapping the final InitializerExecution signature). They add six
+theorems in total. Printed theorem axiom unions remain confined to propext,
+Classical.choice and Quot.sound. No sorryAx is used.
+
+Next: derive the arena-framed initializer input heap from an arena extension
+of InitCodePre, then construct the generalized optional initializer and thread
+its simulation through fullMakeInit and the PanToWord assembly boundary.
+The end-to-end operation remains incomplete; no record command was run.
