@@ -296,3 +296,54 @@ fullMakeInit constructor, then thread the resulting Word union domain into
 Pancake/assembly integration. The full compiler-domain goal remains active
 and is not claimed complete. This checkpoint closes the Lab-to-initialized
 StackRemove semantics portion under the new memory contract.
+
+## Full initializer and Word/Pancake union-domain checkpoint
+
+FullInitArena.lean adds fullMakeInitWithArena, composing the unchanged actual
+Lab, StackNames and StackAlloc constructors with the arena-aware optional and
+total StackRemove constructors. fullMakeInitWithArena_semantics proves the
+optional result is present and the non-failing semantics of the complete
+initialized source equal physical compiled Lab entry semantics. The proof
+composes rawcall and StackAlloc simulation with the prior Lab/Names/Remove
+bridge. Successful optional initialization exposes the actual arena reduction
+and initPropWithArena; no fallback behavior or successful-run premise hides
+initialization failure.
+
+AssemblyInitArena.lean carries the full actual initializer theorem through the
+Lab s2 state, including original pointer/register bounds, the actual
+StackRemove relation, FFI, shared domain, and memory agreement over the entire
+arena-extended initialized domain. It also exposes the actual reducer returned
+by successful fullMakeInitWithArena.
+
+WordInitArena.lean proves the Word initializer domain is exactly the original
+heap addresses union arena, with the original scalar pointer/alignment bounds.
+It derives the CurrHeap and HeapLength store facts, FFI/endianness/shared domain,
+and memory agreement with the original Lab memory on every address of the
+union. It uses the actual unchanged WordToStack initializer; domain transfer
+is not a separate assumed relation.
+
+PanToWordArena.lean applies the existing general Pancake-to-Word simulation to
+that initialized Word state with Pancake memaddrs equal to persistent heap
+addresses union arena. The global reservation is split out of the persistent
+part while scratch remains ordinary source memory. The explicit arenaAligned
+premise is needed for the new domain's word values, in addition to the pinned
+persistent base alignment. panToWordStageLabWithArena derives the target-state
+memory/register facts from the actual LabToTarget.makeInit, mcConfOk and
+goodInitState contracts, retaining the original machine-side guards.
+
+Verification: all four new modules pass whole-file Lean and emit oleans.
+FullInitArena, AssemblyInitArena, WordInitArena and PanToWordArena pass
+turbo-lean check and JSON audit-spec with respectively 2, 2, 5 and 3 audited
+tight specifications; all ok=true with empty warnings, horizontal packing and
+shadowed-constant lists. Printed theorem axioms are only propext,
+Classical.choice and Quot.sound. No sorryAx or added axiom. One earlier
+PanToWord check ran against a pre-fix source with missing scoped Classical;
+it failed, was corrected, and the final source passed. No Boss-only record
+command was run.
+
+Remaining: generalize EncodingInitState/WordToStack initialization contracts,
+the machine installation-to-Lab assumption derivation, and the final
+AssemblyLabChain/AssemblyTop compiler theorem to invoke these new union-domain
+constructors and bridges. Full compiler integration is still unproved, so the
+goal remains active. Frozen InitE source semantics and pinned constants were
+not modified.
