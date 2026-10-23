@@ -216,3 +216,48 @@ and thread into the compiler assembly. The read-only advisor identified that
 all scalar lemmas of InitCodeCorrect can remain unchanged, while its memoryHOL
 identity must become H * scratch and its final ownership proof reassociated.
 No Boss-only record command was run; full goal remains active.
+
+## Fifth checkpoint: full initializer correctness and semantic simulation
+
+InitCorrectArena.lean now generalizes the complete pinned initCodeThm proof,
+not merely the successful-run projection. Under initCodePreWithArena and all
+original compiler guards, it derives normal execution, all original pointer
+register facts, the actual stateRelHOL from the arena-extended reduction to the
+physical poststate, FFI preservation, initPropWithArena at the computed limits,
+ordinary/shared domain preservation and initial/final memory agreement across
+the entire enlarged source domain.
+
+The proof keeps the old scalar reducer T0 for pointer/store/stack calculations.
+It proves the original heap assertion is H, identifies the scratch assertion
+from actual preserved reads, derives old-heap/scratch domain disjointness from
+separated ownership, and merges H * scratch into the enlarged memoryHOL.
+The relation proof retains bitmap/data, store and physical stack factors.
+There is no extra interval hypothesis, successful-run premise, postrelation
+premise or unproved simulation assumption.
+
+MakeInitArena.lean implements optional and total arena-aware constructors.
+makeInitOptWithArena_correct proves the optional constructor returns a state
+in the actual StackRemove relation and satisfies initPropWithArena, using the
+full new initializer theorem. The total fallback retains arena ownership and
+all original fallback fields; its behavior is not used to conceal a failed
+optional initialization in this theorem.
+
+InitSemanticsArena.lean proves entry-wrapper semantic equality via the pinned
+initializer clock-shift theorem, then composes the new successful initializer
+relation with the existing CompileSemantics.compileSemantics theorem.
+makeInitOptWithArena_semantics establishes that non-failing semantics of the
+arena-aware initialized Stack program equal semantics of unchanged compiled
+entry code. This closes the StackRemove initialization/simulation layer.
+
+Verification: all three files pass whole-file Lean and turbo-lean check. The
+four theorem specifications (one InitCorrectArena, one MakeInitArena, two
+InitSemanticsArena) all audit ok=true with empty warnings and shadowed-constant
+lists. Printed axioms are confined to propext, Classical.choice and Quot.sound
+(`choice` is pretty-printed unqualified inside MakeInitArena's open Classical).
+No sorryAx. No Boss-only record command was run.
+
+Remaining: adapt the fullMakeInit pipeline and its Lab-side machine assumptions,
+then derive the Word initializer union domain and apply PanToWord/assembly with
+that domain. The complete goal is still not achieved. This turn is progress:
+it adds a checked full initializer simulation theorem rather than restating
+an intended bridge.
