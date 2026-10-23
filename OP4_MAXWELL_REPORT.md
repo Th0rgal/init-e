@@ -1,67 +1,70 @@
-# Op 4 (Challenge B): Pancake crypto against the ZisK accelerator specs
+# Op 4 — Pancake crypto against the ZisK accelerator specs
 
-Module: `Guest/PancakeCryptoRefinement.lean`, in the `op3-init-e-finite-k`
-worktree (Lean 4.33.1, `RiscvZkvm.Rv64.ZiskAccel` already built). It refines the
-three software bottlenecks named in `Verified-zkEVM/evm-asm#13264` against the
-buffer conventions of `Guest/AccelFfi.lean`.
+Branch `op4-pancake-crypto`, worktree
+`/var/lib/sandboxed-node/campaigns/worktrees/op4-init-e-crypto`. Three modules,
+42 theorems, all tight, none vacuous, none trivial, no `sorryAx`.
 
-## What is proved, and for which inputs
+| Module | Specs | What it covers |
+| --- | ---: | --- |
+| `Guest/PancakeCryptoRefinement.lean` | 27 | secp256k1 Comba fold, `mul128`, Montgomery MAC bound, `modHalf`, buffer widths for BN254 and the hashes |
+| `Guest/PancakeSteps.lean` | 8 | `u256_add` carry chain, `u256_sub` complement, `modinv_bin` one-bit shift, limb byte offset |
+| `Guest/PancakeClose.lean` | 7 | CIOS low-word cancellation for every accumulator, and the three binary-Euclid steps |
 
-Universally quantified, no `sorryAx`:
+`turbo-lean --json audit-spec` on each module: `ok: true`, `vacuous_specs: 0`,
+`trivial_specs: 0`. `#print axioms` shows `propext`, `Quot.sound`, and
+`Classical.choice` for `mul128_spec` only.
 
-- `secp_fold_step` — for every `hi` and every `lo < 2^256`,
-  `(hi * 2^256 + lo) % secpP = (hi * secpFold + lo) % secpP`, from the
-  kernel-checked `secp_fold_identity : 2^256 = secpP + 0x1000003d1`. This is the
-  single fold the secp256k1 software multiplier applies to a 512-bit product.
-- `mul128_spec` — for every pair of 64-bit limbs, the two halves `mul64x64`
-  returns rebuild the full product.
-- `secp_comba_forall` — `(a * b) % secpP = arith256Mod a b 0 secpP` for every
-  `a, b`. That is the `arith256mod` accelerator with a zero addend.
-- `cios_mac_forall` — a `MONT_MAC` sum of three limbs stays below `2^128`.
-- `cios_low_word_bounded` — `(z * 2^64) % 2^64 = 0` for every `z < 2^64`. The
-  general statement, for an arbitrary `z`, needs `Nat.mul_mod` to rewrite
-  through the elaborator's parentheses; it does not in Lean 4.33.1, so the
-  unbounded form is not claimed.
-- `bn_radix_nonzero`, `bn_arith_width` — BN254 uses `bn254P` and the same
-  4-limb block as `arith256mod`.
-- `hash_buffer_bytes` — keccakf is 200 bytes, sha256f 96, blake2bround 264.
-- `modHalf_forall` — for every odd modulus and every `x < m`, halving stays in
-  range and doubling recovers `x`. This is `mod_half` and `fp_half_can`.
-- `binStep_decreases_forall` — every binary-Euclid step strictly shrinks `u + v`.
-- `arith_buffer_forall`, `residue_fits_forall` — the `a, b, c, m, d` block of
-  `AccelFfi.arithModBytes` is exactly `5 * limbs` words, and a residue below `p`
-  fits in the limbs `p` occupies.
+## The 18 accelerator entries
 
-Closed witnesses, kernel-checked with `native_decide`: `secp_fold_identity`,
-`bls_mont_inv_spec` (`-blsP^-1 mod 2^64 = 0x89f3fffcfffcfffd`), `bls_below_382`
-(`2p < 2^382`), `cios6_witness` (the six-round CIOS product of 3 and 5 matches
-`arith256Mod`), `binInv_run` (`5^(23-2) ≡ 14`, and `14 * 5 ≡ 1`).
+`Guest/AccelFfi.lean`, `acceleratorBytes`:
 
-## Audit
+| FFI | Limbs | Pancake source |
+| --- | ---: | --- |
+| `keccakf` | 25 words | `guest/src/lib/keccak.pnk` |
+| `sha256f` | 4 + 8 words | `guest/src/lib/sha256.pnk` |
+| `arith256mod` | 4 | `guest/src/lib/u256.pnk` (`u256_mul`, Comba, fold by `0x1000003d1`) |
+| `bn_arith256` | 4 | `guest/src/lib/bn254.pnk` (32-bit Montgomery) |
+| `bls_arith384` | 6 | `guest/src/lib/fp384.pnk` (64-bit CIOS, `MONT_MAC` / `MONT_RED`) |
+| `secpadd` | 4 | `guest/src/lib/secp256k1.pnk` |
+| `secpdbl` | 4 | `guest/src/lib/secp256k1.pnk` |
+| `bn_g1_add` | 4 | `guest/src/lib/bn254.pnk` |
+| `bn_g1_dbl` | 4 | `guest/src/lib/bn254.pnk` |
+| `bn_fp2_add` | 4 | `guest/src/lib/bn254.pnk` |
+| `bn_fp2_sub` | 4 | `guest/src/lib/bn254.pnk` |
+| `bn_fp2_mul` | 4 | `guest/src/lib/bn254.pnk` |
+| `bls_g1_add` | 6 | `guest/src/lib/bls12381.pnk` |
+| `bls_g1_dbl` | 6 | `guest/src/lib/bls12381.pnk` |
+| `bls_fp2_add` | 6 | `guest/src/lib/bls12381.pnk` |
+| `bls_fp2_sub` | 6 | `guest/src/lib/bls12381.pnk` |
+| `bls_fp2_mul` | 6 | `guest/src/lib/bls12381.pnk` |
+| `blake2bround` | 1 + 16 + 16 | `guest/src/lib/blake2.pnk` |
 
-`turbo-lean --json audit-spec Guest/PancakeCryptoRefinement.lean`:
+`bn_arith256` and `arith256mod` share `arithModBytes 4`. `bls_arith384` uses
+`arithModBytes 6`. The curve and `fp2` entries go through `curveAddBytes`,
+`curveDblBytes` and `complexBytes`.
 
-- `ok: true`, `total_specs_audited: 27`, `tight_specs: 27`
-- `vacuous_specs: 0`, `trivial_specs: 0`
+## What is proved
 
-`#print axioms` on the nine quantified theorems: no `sorryAx`. The only axioms
-are `propext`, `Quot.sound` and, for `mul128_spec`, `Classical.choice`.
+- Comba: `(hi * 2^256 + lo) % secpP = (hi * secpFold + lo) % secpP` for every
+  `lo < 2^256`, from `2^256 = secpP + secpFold`. `(a * b) % secpP` matches
+  `arith256Mod`.
+- CIOS: for every `A`, `A + (A * blsMontInv % 2^64) * blsP` is a multiple of
+  `2^64`. The proof uses `Nat.mod_mul_mod` on two factors at a time, then
+  `blsMontInv * blsP ≡ -1 (mod 2^64)`, then `Nat.mul_mod_left`.
+- Carry: a 64-bit limb addition produces a carry of 0 or 1, and the low pair
+  and the high pair each rebuild their 128-bit sum. `a + ~b + 1 = a - b + 2^64`
+  on one limb.
+- Binary Euclid: when `x` and `k` are even the witness halves; when `x + m` is
+  even, `2 * ((x+m)/2) * a = u + a*m + k*m`; subtraction preserves
+  `x1*a + v + k2*m = x2*a + u + k1*m`.
+- Buffers: keccakf is 200 bytes, sha256f 96, blake2bround 264. A limb `i` sits
+  at byte `8*i`.
 
-## Not proved
+## What is not proved
 
-- The low limb of `z + m*p` being zero for an arbitrary `z`, rather than for
-  `z < 2^64`. `bls_mont_inv_spec` gives `p * inv ≡ -1 (mod 2^64)`, but carrying
-  that through `Nat.mul_mod` fails: the elaborator parenthesises
-  `a % n * b % n * c` differently from `(a % n * b % n) * c % n`, and no sequence
-  of `rw` aligns them in Lean 4.33.1.
-- `binStep_preserves_forall`. The invariant `x1*a ≡ u (mod m)` is checked on a
-  witness (`binStep_preserves`); the general step multiplies by `a` inside a
-  modulus, which `omega` does not handle.
-
-## Sources read
-
-`guest/src/lib/u256.pnk` (`mul64x64`, `u256_mul`, `u256_mul_full`),
-`guest/src/lib/fp384.pnk` (`MONT_MAC`, `MONT_RED`, `MONT_ROUND`, `fp_inv_raw`),
-`guest/src/lib/secp256k1.pnk` (`modinv_bin`, `mod_half`), `Guest/AccelFfi.lean`
-(`arithModBytes`), and `RiscvZkvm/Rv64/ZiskAccel.lean` (`arith256Mod`, `secpP`,
-`bls12P`, `invMod`).
+- `Accel.powMod` at its hard-wired 512 iterations on a 381-bit exponent. The
+  kernel reducer does not finish it. The Fermat check is a closed witness at
+  fuel 16 on a 5-bit modulus (`binInv_run`).
+- The subtraction step of `modinv_bin` as a `Nat` subtraction `x1 - x2`. `omega`
+  rejects an unbounded `Nat.sub`, so the theorem is stated as the additive
+  equality above, which is what the loop invariant needs.
