@@ -179,3 +179,40 @@ Next: derive the arena-framed initializer input heap from an arena extension
 of InitCodePre, then construct the generalized optional initializer and thread
 its simulation through fullMakeInit and the PanToWord assembly boundary.
 The end-to-end operation remains incomplete; no record command was run.
+
+## Fourth checkpoint: derive initializer execution from full precondition
+
+InitPreArena.lean defines initCodePreWithArena with all pinned register,
+header, flag, alignment and capacity guards, and exact ownership of the
+bitmap/data region, contiguous initialization region and independent scratch
+heap. initCodePreWithArena_run derives successful evaluation of the actual
+unchanged initCode, its exact poststate shape, and preservation of every arena
+value directly from that precondition and the original maxHeap bound.
+
+The proof derives pointer layout, heap/stack splitting, the five header
+permissions and final stack-slot permission from the owned memory graph. It
+then derives the terminal write and store-list input heap, executes the
+pinned runInitCode, and reads scratch preservation from the retained frame.
+It does not assume successful execution or the lower-level execution heap
+used by the previous checkpoint.
+
+HeapExtension.lean also adds memory_domains_disjoint, deriving address-domain
+non-overlap from separated function graphs. This theorem uses no axioms.
+It will permit reconstructing the enlarged state relation without adding
+an unnecessary concrete interval-separation hypothesis.
+
+Verification: InitPreArena passes whole-file Lean checking and turbo-lean
+check; its one specification audits ok=true, no warnings or shadowed constants.
+HeapExtension passes both checks and its two-specification audit has the same
+clean result. initCodePreWithArena_run has only propext, Classical.choice and
+Quot.sound dependencies. No sorryAx. The prior turn constituted progress;
+this checkpoint adds new checked execution evidence and is also progress.
+
+Remaining integration is still substantive: construct full stateRelHOL and
+initPropWithArena for the actual post-initializer reduction from this framed
+precondition, rather than only prove execution/value preservation. Then adapt
+makeInitOpt/Any and fullMakeInit, derive the union Word initializer domain,
+and thread into the compiler assembly. The read-only advisor identified that
+all scalar lemmas of InitCodeCorrect can remain unchanged, while its memoryHOL
+identity must become H * scratch and its final ownership proof reassociated.
+No Boss-only record command was run; full goal remains active.
