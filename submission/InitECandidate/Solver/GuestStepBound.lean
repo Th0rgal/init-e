@@ -555,12 +555,12 @@ bound across all functions in `Guest.guestAst` is `348` words. -/
 theorem guestMaxFrameBound_eq : guestMaxFrameBound = 348 := by
   decide_cbv
 
-/-- Total number of declarations in `Guest.guestAst` is `928`. -/
-theorem guestAst_length_eq : Guest.guestAst.length = 928 := by
+/-- Total number of declarations in `Guest.guestAst` is `934`. -/
+theorem guestAst_length_eq : Guest.guestAst.length = 934 := by
   decide_cbv
 
-/-- Total number of function declarations in `Guest.guestAst` is `825`. -/
-theorem guestAst_functions_length_eq : (frameBounds Guest.guestAst).length = 825 := by
+/-- Total number of function declarations in `Guest.guestAst` is `830`. -/
+theorem guestAst_functions_length_eq : (frameBounds Guest.guestAst).length = 830 := by
   decide_cbv
 
 /-- Every function in `Guest.guestAst` has frame bound at most `348` words. -/
