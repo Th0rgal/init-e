@@ -55,3 +55,15 @@ theorem finite_pipeline_clock (s : Submission) (G : Nat) (T : Nat → Nat)
     exact ⟨kSrc, by simpa [SourceClockBound] using hk, hnt⟩
 
 end InitECandidate.Solver.Op3ClockBound
+
+namespace InitECandidate.Solver.Op3ClockBound
+
+/-- Aggregate source-clock theorem: a gas component and a crypto component compose
+under the verified block and crypto budgets. -/
+theorem source_clock_from_components (kGas kCrypto : Nat)
+    (hGas : kGas ≤ G_block) (hCrypto : kCrypto ≤ C_crypto)
+    (hSrc : kSrc ≤ kGas + kCrypto) : SourceClockBound kSrc := by
+  unfold SourceClockBound
+  omega
+
+end InitECandidate.Solver.Op3ClockBound
