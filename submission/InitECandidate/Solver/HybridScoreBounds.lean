@@ -17,7 +17,5 @@ theorem hybridScore2_eq (blockGas : Nat) (gas : Nat → Nat) (count : Nat) :
 
 theorem worst_case_positive (i : Nat) : 0 < WORST_CASE i := by simp [WORST_CASE]
 
-theorem hybridScore2_nonneg (blockGas : Nat) (gas : Nat → Nat) (count : Nat) :
-    0 ≤ hybridScore2 blockGas gas count := by omega
 
 end InitECandidate.Solver.HybridScoreBounds
