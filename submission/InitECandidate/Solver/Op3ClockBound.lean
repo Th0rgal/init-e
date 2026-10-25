@@ -1,5 +1,6 @@
 import InitECandidate.Solver.FiniteKBridge
 import InitECandidate.Solver.LoopFuel
+import InitECandidate.Solver.SourceTerminationBound
 
 namespace InitECandidate.Solver.Op3ClockBound
 open InitECandidate.Solver.FiniteKBridge
@@ -20,6 +21,14 @@ theorem sourceClockBound_of_gas (kSrc gas : Nat) (h : kSrc ≤ gas)
 theorem clock_components : G_block + C_crypto = 459564194 := by decide
 
 theorem census_count : softwareGuestLoopCount = 250 := rfl
+
+
+/-- The guest ranking proof used for the census byte-counter loops. -/
+theorem guest_counter_loop_link (counter step : Guest.Word) (bound : Nat)
+    (hlt : counter.toNat < bound) (hpos : 1 ≤ step.toNat)
+    (hno : counter.toNat + step.toNat < 2 ^ 64) :
+    bound - (counter + step).toNat < bound - counter.toNat :=
+  InitECandidate.Solver.counter_step_measure_decreases counter step bound hlt hpos hno
 
 theorem source_clock_bound (kSrc : Nat) (h : kSrc ≤ G_block + C_crypto) :
     SourceClockBound kSrc := h
