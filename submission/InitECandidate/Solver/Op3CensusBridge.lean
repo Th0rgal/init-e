@@ -1,5 +1,6 @@
 import Init
 import InitECandidate.Solver.Op3ClockBound
+import InitECandidate.Solver.HybridScoreBounds
 
 namespace InitECandidate.Solver.Op3CensusBridge
 open InitECandidate.Solver.Op3ClockBound
