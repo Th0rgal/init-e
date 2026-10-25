@@ -36,3 +36,27 @@ theorem hybridScoreNumerator_formula (blockGas : Nat) (gas : Nat → Nat) (count
         (List.range count).foldl (fun acc i => acc + gas i / WORST_CASE i) 0 := rfl
 
 end InitECandidate.Solver.Op3FiniteKBridge
+
+namespace InitECandidate.Solver.Op3FiniteKBridge
+
+/-- Specialization of the finite-K bridge at the verified aggregate source bound. -/
+theorem certificate_at_aggregate_bound (s : Submission)
+    (score : s.K = .finite (23077 + T 459564194)) (admitted : s.Admitted)
+    (correct : ∀ input outcome events,
+      sourceBehaviour input = .terminate outcome events →
+      ∀ behaviour, machineSemHOL s.machineConfig (sourceFfi input)
+        (s.initialState input) behaviour → behaviour = .terminate outcome events)
+    (transfer : ∀ input outcome events, InScope input outcome events →
+      ∃ kSrc, kSrc ≤ 459564194 ∧
+        (evaluateTargetHOL s.machineConfig (sourceFfi input) (23077 + T kSrc)
+          (s.initialState input)).1 ≠ .timeOut) :
+    Certificate s (.finite (23077 + T 459564194)) := by
+  apply certificate_finite_of_pipeline s 459564194 23077 T
+  · intro a b h
+    exact T_mono a b h
+  · exact score
+  · exact admitted
+  · exact correct
+  · exact transfer
+
+end InitECandidate.Solver.Op3FiniteKBridge
