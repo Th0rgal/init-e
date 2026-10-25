@@ -4,9 +4,15 @@ import InitECandidate.Solver.Op3CensusBridge
 import InitECandidate.Solver.Op3GuestBridge
 import InitECandidate.Solver.HybridScoreBounds
 
+set_option autoImplicit true
+set_option maxRecDepth 100000
+
 namespace InitECandidate.Solver.Op3FiniteKBridge
 open InitECandidate.Solver.FiniteKBridge
 open InitECandidate.Solver.Op3ClockBound
+open InitECandidate.Solver.HybridScoreBounds
+open InitE
+open Flapjack
 
 /-- Fixed bootstrap prefix supplied by the verified initialisation trace. -/
 def bootstrapSteps : Nat := 23077
@@ -38,6 +44,9 @@ theorem hybridScoreNumerator_formula (blockGas : Nat) (gas : Nat → Nat) (count
 end InitECandidate.Solver.Op3FiniteKBridge
 
 namespace InitECandidate.Solver.Op3FiniteKBridge
+open InitECandidate.Solver.FiniteKBridge
+open InitE
+open Flapjack
 
 /-- Specialization of the finite-K bridge at the verified aggregate source bound. -/
 theorem certificate_at_aggregate_bound (s : Submission)
@@ -51,7 +60,7 @@ theorem certificate_at_aggregate_bound (s : Submission)
         (evaluateTargetHOL s.machineConfig (sourceFfi input) (23077 + T kSrc)
           (s.initialState input)).1 ≠ .timeOut) :
     Certificate s (.finite (23077 + T 459564194)) := by
-  apply certificate_finite_of_pipeline s 459564194 23077 T
+  apply certificate_finite_of_pipeline s 23077 459564194 T
   · intro a b h
     exact T_mono a b h
   · exact score

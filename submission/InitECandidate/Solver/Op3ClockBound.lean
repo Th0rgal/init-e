@@ -4,6 +4,8 @@ import InitECandidate.Solver.SourceTerminationBound
 
 namespace InitECandidate.Solver.Op3ClockBound
 open InitECandidate.Solver.FiniteKBridge
+open InitE
+open Flapjack
 
 /-- Number of software-guest loops recorded by the Op 3 census. -/
 def softwareGuestLoopCount : Nat := 250
@@ -37,6 +39,7 @@ theorem source_clock_bound (kSrc : Nat) (h : kSrc ≤ G_block + C_crypto) :
 theorem finite_pipeline_clock (s : Submission) (G : Nat) (T : Nat → Nat)
     (Tmono : ∀ a b, a ≤ b → T a ≤ T b)
     (score : s.K = .finite (23077 + T G)) (admitted : s.Admitted)
+    (Gbound : G_block + C_crypto ≤ G)
     (correct : ∀ input outcome events,
       sourceBehaviour input = .terminate outcome events →
       ∀ behaviour, machineSemHOL s.machineConfig (sourceFfi input)
@@ -46,13 +49,13 @@ theorem finite_pipeline_clock (s : Submission) (G : Nat) (T : Nat → Nat)
         (evaluateTargetHOL s.machineConfig (sourceFfi input) (23077 + T kSrc)
           (s.initialState input)).1 ≠ .timeOut) :
     Certificate s (.finite (23077 + T G)) := by
-  apply certificate_finite_of_pipeline s G 23077 T Tmono
+  apply certificate_finite_of_pipeline s 23077 G T Tmono
   · simpa [Nat.add_comm] using score
   · exact admitted
   · exact correct
   · intro input outcome events hin
     obtain ⟨kSrc, hk, hnt⟩ := transfer input outcome events hin
-    exact ⟨kSrc, by simpa [SourceClockBound] using hk, hnt⟩
+    exact ⟨kSrc, le_trans hk Gbound, hnt⟩
 
 end InitECandidate.Solver.Op3ClockBound
 

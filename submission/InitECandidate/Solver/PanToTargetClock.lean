@@ -16,6 +16,6 @@ theorem sourceToTarget_mono : ∀ a b, a ≤ b → sourceToTarget a ≤ sourceTo
   exact linearTransfer_mono 1 0 1 0 1 a b h
 
 theorem pipeline_clock (kSrc : Nat) :
-    bootstrapSteps + sourceToTarget kSrc = 23077 + kSrc := by rfl
+    bootstrapSteps + sourceToTarget kSrc = 23077 + kSrc := by simp [bootstrapSteps, sourceToTarget, linearTransfer]
 
 end InitECandidate.Solver.PanToTargetClock
