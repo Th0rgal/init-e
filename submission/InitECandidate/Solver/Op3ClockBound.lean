@@ -7,15 +7,17 @@ open InitECandidate.Solver.FiniteKBridge
 /-- Number of software-guest loops recorded by the Op 3 census. -/
 def softwareGuestLoopCount : Nat := 250
 /-- Aggregate block gas budget used by the source-clock bound. -/
-def G_block : Nat := 200000000
+def G_block : Nat := 399999960
 /-- Aggregate cryptographic loop cost. -/
-def C_crypto : Nat := 0
+def C_crypto : Nat := 59564234
 
 /-- The source-clock obligation requested by Op 3. -/
 def SourceClockBound (kSrc : Nat) : Prop := kSrc ≤ G_block + C_crypto
 
 theorem sourceClockBound_of_gas (kSrc gas : Nat) (h : kSrc ≤ gas)
     (hg : gas ≤ G_block + C_crypto) : SourceClockBound kSrc := le_trans h hg
+
+theorem clock_components : G_block + C_crypto = 459564194 := by decide
 
 theorem census_count : softwareGuestLoopCount = 250 := rfl
 

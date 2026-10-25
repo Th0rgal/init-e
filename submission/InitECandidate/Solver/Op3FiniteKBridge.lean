@@ -12,13 +12,14 @@ open InitECandidate.Solver.Op3ClockBound
 def bootstrapSteps : Nat := 23077
 
 /-- The explicit monotone transfer used by the finite-K certificate. -/
-def T (kSrc : Nat) : Nat := linearTransfer 1 0 1 0 1 kSrc
+def T (kSrc : Nat) : Nat := 8 * (10 * (kSrc + 5000))
 
 theorem bootstrapSteps_exact : bootstrapSteps = 23077 := rfl
 
 theorem T_mono : ∀ a b, a ≤ b → T a ≤ T b := by
   intro a b h
-  exact linearTransfer_mono 1 0 1 0 1 a b h
+  unfold T
+  omega
 
 theorem finiteK_clock_shape (G kSrc : Nat) (h : kSrc ≤ G) :
     bootstrapSteps + T kSrc ≤ bootstrapSteps + T G := by
