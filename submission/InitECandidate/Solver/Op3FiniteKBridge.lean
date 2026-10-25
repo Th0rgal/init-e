@@ -5,7 +5,6 @@ import InitECandidate.Solver.Op3GuestBridge
 import InitECandidate.Solver.HybridScoreBounds
 
 set_option autoImplicit true
-set_option maxRecDepth 100000
 
 namespace InitECandidate.Solver.Op3FiniteKBridge
 open InitECandidate.Solver.FiniteKBridge
