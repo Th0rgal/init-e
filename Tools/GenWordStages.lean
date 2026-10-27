@@ -562,9 +562,7 @@ partial def deadCheckpoint (env : Environment) (state : IO.Ref DeadCheckpointSta
 unsafe def genWordStagesMain (args : List String) : IO Unit := do
   enableInitializersExecution
   initSearchPath (← findSysroot)
-  let setup ← ModuleSetup.load ".lake/build/ir/InitE/SourceDeclarations.setup.json"
-  let env ← importModules #[{ module := `InitE.SourceDeclarations }] {}
-    (loadExts := true) (arts := setup.importArts)
+  let env ← importModules #[{ module := `InitE.SourceDeclarations }] {} 0 (loadExts := true)
   if args.contains "--loop-word-checkpoints" then
     let index := (args[1]?.bind String.toNat?).getD 649
     let label := index + firstLoopName

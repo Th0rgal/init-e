@@ -141,7 +141,7 @@ unsafe def main (args : List String) : IO Unit := do
   -- Seed from the actual checked predecessor modules, whose local numbering
   -- may differ between legacy and fresh generators. This is proposal data;
   -- every generated equation still has to pass the kernel.
-  let nodePrefix := s!"InitECandidate.Proofs.WordStages.word{label}_"
+  let nodePrefix := s!"InitECandidate.Proofs.WordStages.word{label}_2_"
   let names := env.constants.fold (init := #[]) fun names name info =>
     if name.toString.startsWith nodePrefix && info.type == toTypeExpr Program then names.push name else names
   for (name,index) in names.zipIdx do
