@@ -155,11 +155,8 @@ Flapjack.WordLangProgHOL.move 0 [(92, 90)]
 def word646_1_45 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_43 word646_1_44
 
-def word646_1_46 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.arith (Flapjack.WordLangArith.longMul 60 60 28 92))
-
 def word646_1_47 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_45 word646_1_46
+.seq word646_1_45 word646_0_29
 
 def word646_1_48 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(98, 60)]
@@ -294,7 +291,7 @@ def word646_1_89 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_87 word646_1_88
 
 def word646_1_90 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_89 word646_1_46
+.seq word646_1_89 word646_0_29
 
 def word646_1_91 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_90 word646_1_48
@@ -414,7 +411,7 @@ def word646_1_128 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_126 word646_1_127
 
 def word646_1_129 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_128 word646_1_46
+.seq word646_1_128 word646_0_29
 
 def word646_1_130 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_129 word646_1_48
@@ -441,7 +438,7 @@ def word646_1_137 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_136 word646_1_88
 
 def word646_1_138 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_137 word646_1_46
+.seq word646_1_137 word646_0_29
 
 def word646_1_139 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_138 word646_1_48
@@ -542,7 +539,7 @@ def word646_1_170 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_168 word646_1_169
 
 def word646_1_171 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_170 word646_1_46
+.seq word646_1_170 word646_0_29
 
 def word646_1_172 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_171 word646_1_48
@@ -566,7 +563,7 @@ def word646_1_178 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_177 word646_1_127
 
 def word646_1_179 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_178 word646_1_46
+.seq word646_1_178 word646_0_29
 
 def word646_1_180 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_179 word646_1_48
@@ -660,7 +657,7 @@ def word646_1_208 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_206 word646_1_207
 
 def word646_1_209 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_208 word646_1_46
+.seq word646_1_208 word646_0_29
 
 def word646_1_210 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_209 word646_1_48
@@ -684,7 +681,7 @@ def word646_1_216 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_215 word646_1_169
 
 def word646_1_217 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_216 word646_1_46
+.seq word646_1_216 word646_0_29
 
 def word646_1_218 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_217 word646_1_48
@@ -711,7 +708,7 @@ def word646_1_225 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_224 word646_1_127
 
 def word646_1_226 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_225 word646_1_46
+.seq word646_1_225 word646_0_29
 
 def word646_1_227 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_226 word646_1_48
@@ -781,7 +778,7 @@ def word646_1_248 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_246 word646_1_247
 
 def word646_1_249 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_248 word646_1_46
+.seq word646_1_248 word646_0_29
 
 def word646_1_250 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_249 word646_1_48
@@ -805,7 +802,7 @@ def word646_1_256 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_255 word646_1_207
 
 def word646_1_257 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_256 word646_1_46
+.seq word646_1_256 word646_0_29
 
 def word646_1_258 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_257 word646_1_48
@@ -829,7 +826,7 @@ def word646_1_264 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_263 word646_1_169
 
 def word646_1_265 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_264 word646_1_46
+.seq word646_1_264 word646_0_29
 
 def word646_1_266 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_265 word646_1_48
@@ -899,7 +896,7 @@ def word646_1_287 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_285 word646_1_286
 
 def word646_1_288 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_287 word646_1_46
+.seq word646_1_287 word646_0_29
 
 def word646_1_289 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_288 word646_1_48
@@ -923,7 +920,7 @@ def word646_1_295 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_294 word646_1_247
 
 def word646_1_296 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_295 word646_1_46
+.seq word646_1_295 word646_0_29
 
 def word646_1_297 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_296 word646_1_48
@@ -947,7 +944,7 @@ def word646_1_303 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_302 word646_1_207
 
 def word646_1_304 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_303 word646_1_46
+.seq word646_1_303 word646_0_29
 
 def word646_1_305 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_304 word646_1_48
@@ -974,7 +971,7 @@ def word646_1_312 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_311 word646_1_169
 
 def word646_1_313 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_312 word646_1_46
+.seq word646_1_312 word646_0_29
 
 def word646_1_314 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_313 word646_1_48
@@ -1044,7 +1041,7 @@ def word646_1_335 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_333 word646_1_334
 
 def word646_1_336 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_335 word646_1_46
+.seq word646_1_335 word646_0_29
 
 def word646_1_337 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_336 word646_1_48
@@ -1068,7 +1065,7 @@ def word646_1_343 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_342 word646_1_286
 
 def word646_1_344 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_343 word646_1_46
+.seq word646_1_343 word646_0_29
 
 def word646_1_345 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_344 word646_1_48
@@ -1092,7 +1089,7 @@ def word646_1_351 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_350 word646_1_247
 
 def word646_1_352 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_351 word646_1_46
+.seq word646_1_351 word646_0_29
 
 def word646_1_353 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_352 word646_1_48
@@ -1116,7 +1113,7 @@ def word646_1_359 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_358 word646_1_207
 
 def word646_1_360 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_359 word646_1_46
+.seq word646_1_359 word646_0_29
 
 def word646_1_361 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_360 word646_1_48
@@ -1183,7 +1180,7 @@ def word646_1_381 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_380 word646_1_334
 
 def word646_1_382 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_381 word646_1_46
+.seq word646_1_381 word646_0_29
 
 def word646_1_383 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_382 word646_1_48
@@ -1207,7 +1204,7 @@ def word646_1_389 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_388 word646_1_286
 
 def word646_1_390 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_389 word646_1_46
+.seq word646_1_389 word646_0_29
 
 def word646_1_391 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_390 word646_1_48
@@ -1231,7 +1228,7 @@ def word646_1_397 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_396 word646_1_247
 
 def word646_1_398 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_397 word646_1_46
+.seq word646_1_397 word646_0_29
 
 def word646_1_399 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_398 word646_1_48
@@ -1258,7 +1255,7 @@ def word646_1_406 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_405 word646_1_207
 
 def word646_1_407 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_406 word646_1_46
+.seq word646_1_406 word646_0_29
 
 def word646_1_408 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_407 word646_1_48
@@ -1325,7 +1322,7 @@ def word646_1_428 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_427 word646_1_334
 
 def word646_1_429 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_428 word646_1_46
+.seq word646_1_428 word646_0_29
 
 def word646_1_430 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_429 word646_1_48
@@ -1349,7 +1346,7 @@ def word646_1_436 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_435 word646_1_286
 
 def word646_1_437 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_436 word646_1_46
+.seq word646_1_436 word646_0_29
 
 def word646_1_438 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_437 word646_1_48
@@ -1373,7 +1370,7 @@ def word646_1_444 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_443 word646_1_247
 
 def word646_1_445 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_444 word646_1_46
+.seq word646_1_444 word646_0_29
 
 def word646_1_446 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_445 word646_1_48
@@ -1440,7 +1437,7 @@ def word646_1_466 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_465 word646_1_334
 
 def word646_1_467 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_466 word646_1_46
+.seq word646_1_466 word646_0_29
 
 def word646_1_468 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_467 word646_1_48
@@ -1464,7 +1461,7 @@ def word646_1_474 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_473 word646_1_286
 
 def word646_1_475 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_474 word646_1_46
+.seq word646_1_474 word646_0_29
 
 def word646_1_476 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_475 word646_1_48
@@ -1491,7 +1488,7 @@ def word646_1_483 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_482 word646_1_247
 
 def word646_1_484 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_483 word646_1_46
+.seq word646_1_483 word646_0_29
 
 def word646_1_485 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_484 word646_1_48
@@ -1558,7 +1555,7 @@ def word646_1_505 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_504 word646_1_334
 
 def word646_1_506 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_505 word646_1_46
+.seq word646_1_505 word646_0_29
 
 def word646_1_507 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_506 word646_1_48
@@ -1582,7 +1579,7 @@ def word646_1_513 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_512 word646_1_286
 
 def word646_1_514 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_513 word646_1_46
+.seq word646_1_513 word646_0_29
 
 def word646_1_515 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_514 word646_1_48
@@ -1649,7 +1646,7 @@ def word646_1_535 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_534 word646_1_334
 
 def word646_1_536 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_535 word646_1_46
+.seq word646_1_535 word646_0_29
 
 def word646_1_537 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_536 word646_1_48
@@ -1676,7 +1673,7 @@ def word646_1_544 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_543 word646_1_286
 
 def word646_1_545 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_544 word646_1_46
+.seq word646_1_544 word646_0_29
 
 def word646_1_546 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_545 word646_1_48
@@ -1743,7 +1740,7 @@ def word646_1_566 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_565 word646_1_334
 
 def word646_1_567 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_566 word646_1_46
+.seq word646_1_566 word646_0_29
 
 def word646_1_568 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_567 word646_1_48
@@ -1813,7 +1810,7 @@ def word646_1_589 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_588 word646_1_334
 
 def word646_1_590 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_589 word646_1_46
+.seq word646_1_589 word646_0_29
 
 def word646_1_591 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_590 word646_1_48
@@ -2587,11 +2584,8 @@ def word646_1_838 : WordLangProgHOL (BitVec 64) :=
 def word646_1_839 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_832 word646_1_838
 
-def word646_1_840 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.tick
-
 def word646_1_841 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_839 word646_1_840
+.seq word646_1_839 word646_0_594
 
 def word646_1_842 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(88, 46)]
@@ -2606,7 +2600,7 @@ def word646_1_845 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 88 1#64)
 
 def word646_1_846 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_845 word646_1_840
+.seq word646_1_845 word646_0_594
 
 def word646_1_847 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 120 1#64)
@@ -2686,54 +2680,11 @@ def word646_1_871 : WordLangProgHOL (BitVec 64) :=
 def word646_1_872 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_871 word646_1_857
 
-def word646_1_873 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.skip
-
-def word646_1_874 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.raise 104
-
-def word646_1_875 : WordLangProgHOL (BitVec 64) :=
-.call (some (([24, 88, 56, 120, 40]), ((Flapjack.Spt.bs
-    (Flapjack.Spt.bs
-      (Flapjack.Spt.bs
-        (Flapjack.Spt.bs
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit)))
-          PUnit.unit
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit)))))
-        PUnit.unit
-        (Flapjack.Spt.bn
-          (Flapjack.Spt.bn (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            Flapjack.Spt.ln)
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit))))))
-      PUnit.unit
-      (Flapjack.Spt.bs
-        (Flapjack.Spt.bs
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit)))
-          PUnit.unit
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit)))))
-        PUnit.unit
-        (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit Flapjack.Spt.ln))))
-    PUnit.unit Flapjack.Spt.ln,
-  Flapjack.Spt.ln)), word646_1_873, 646, 2)) (some 115) ([104, 72, 136, 10, 74, 42, 106, 26]) (some (104, word646_1_874, 646, 3))
-
 def word646_1_876 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_872 word646_1_875
+.seq word646_1_872 word646_0_629
 
 def word646_1_877 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_876 word646_1_840
+.seq word646_1_876 word646_0_594
 
 def word646_1_878 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(32, 24)]
@@ -2784,17 +2735,14 @@ Flapjack.WordLangProgHOL.move 0 [(46, 104)]
 def word646_1_893 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_891 word646_1_892
 
-def word646_1_894 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.continue 0
-
 def word646_1_895 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_893 word646_1_894
+.seq word646_1_893 word646_0_644
 
 def word646_1_896 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 88 0#64)
 
 def word646_1_897 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_896 word646_1_840
+.seq word646_1_896 word646_0_594
 
 def word646_1_898 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 120 0#64)
@@ -2802,11 +2750,8 @@ Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 120 0#64)
 def word646_1_899 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_897 word646_1_898
 
-def word646_1_900 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.break 0
-
 def word646_1_901 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_899 word646_1_900
+.seq word646_1_899 word646_0_650
 
 def word646_1_902 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.less) 88 (Flapjack.WordRegImm.reg 56) word646_1_895 word646_1_901
@@ -2815,7 +2760,7 @@ def word646_1_903 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_844 word646_1_902
 
 def word646_1_904 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_903 word646_1_840
+.seq word646_1_903 word646_0_594
 
 def word646_1_905 : WordLangProgHOL (BitVec 64) :=
 .loop (Flapjack.Spt.bs
@@ -2894,10 +2839,10 @@ def word646_1_906 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_841 word646_1_905
 
 def word646_1_907 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_906 word646_1_840
+.seq word646_1_906 word646_0_594
 
 def word646_1_908 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_907 word646_1_840
+.seq word646_1_907 word646_0_594
 
 def word646_1_909 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(56, 46)]
@@ -2977,53 +2922,11 @@ def word646_1_933 : WordLangProgHOL (BitVec 64) :=
 def word646_1_934 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_933 word646_1_919
 
-def word646_1_935 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.raise 88
-
-def word646_1_936 : WordLangProgHOL (BitVec 64) :=
-.call (some (([24]), ((Flapjack.Spt.bs
-    (Flapjack.Spt.bs
-      (Flapjack.Spt.bs
-        (Flapjack.Spt.bs
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit)))
-          PUnit.unit
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit)))))
-        PUnit.unit
-        (Flapjack.Spt.bn
-          (Flapjack.Spt.bn (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            Flapjack.Spt.ln)
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit))))))
-      PUnit.unit
-      (Flapjack.Spt.bs
-        (Flapjack.Spt.bs
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit)))
-          PUnit.unit
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit)))))
-        PUnit.unit
-        (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit)))))))
-    PUnit.unit Flapjack.Spt.ln,
-  Flapjack.Spt.ln)), word646_1_873, 646, 4)) (some 106) ([88, 56, 120, 40, 104, 72, 136, 10]) (some (88, word646_1_935, 646, 5))
-
 def word646_1_937 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_934 word646_1_936
+.seq word646_1_934 word646_0_686
 
 def word646_1_938 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_937 word646_1_840
+.seq word646_1_937 word646_0_594
 
 def word646_1_939 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_938 word646_1_911
@@ -3073,48 +2976,11 @@ def word646_1_953 : WordLangProgHOL (BitVec 64) :=
 def word646_1_954 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_953 word646_1_919
 
-def word646_1_955 : WordLangProgHOL (BitVec 64) :=
-.call (some (([32, 96, 64, 128]), ((Flapjack.Spt.bs
-    (Flapjack.Spt.bs
-      (Flapjack.Spt.bs
-        (Flapjack.Spt.bs
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit)))
-          PUnit.unit
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit)))))
-        PUnit.unit
-        (Flapjack.Spt.bn
-          (Flapjack.Spt.bn (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            Flapjack.Spt.ln)
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit))))))
-      PUnit.unit
-      (Flapjack.Spt.bs
-        (Flapjack.Spt.bs
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit)))
-          PUnit.unit
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit
-            (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-              (Flapjack.Spt.bs Flapjack.Spt.ln PUnit.unit (Flapjack.Spt.ls PUnit.unit)))))
-        PUnit.unit
-        (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit
-          (Flapjack.Spt.bs (Flapjack.Spt.bs (Flapjack.Spt.ls PUnit.unit) PUnit.unit (Flapjack.Spt.ls PUnit.unit))
-            PUnit.unit Flapjack.Spt.ln))))
-    PUnit.unit Flapjack.Spt.ln,
-  Flapjack.Spt.ln)), word646_1_873, 646, 6)) (some 117) ([88, 56, 120, 40, 104, 72, 136, 10]) (some (88, word646_1_935, 646, 7))
-
 def word646_1_956 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_954 word646_1_955
+.seq word646_1_954 word646_0_705
 
 def word646_1_957 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_956 word646_1_840
+.seq word646_1_956 word646_0_594
 
 def word646_1_958 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(138, 24)]
@@ -3139,7 +3005,7 @@ def word646_1_964 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_962 word646_1_963
 
 def word646_1_965 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_964 word646_1_894
+.seq word646_1_964 word646_0_644
 
 def word646_1_966 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.less) 88 (Flapjack.WordRegImm.reg 56) word646_1_965 word646_1_901
@@ -3148,7 +3014,7 @@ def word646_1_967 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_910 word646_1_966
 
 def word646_1_968 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_967 word646_1_840
+.seq word646_1_967 word646_0_594
 
 def word646_1_969 : WordLangProgHOL (BitVec 64) :=
 .loop (Flapjack.Spt.bs
@@ -3199,7 +3065,7 @@ def word646_1_970 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_908 word646_1_969
 
 def word646_1_971 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_970 word646_1_840
+.seq word646_1_970 word646_0_594
 
 def word646_1_972 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(24, 32)]
@@ -3225,11 +3091,8 @@ Flapjack.WordLangProgHOL.move 0 [(120, 128)]
 def word646_1_979 : WordLangProgHOL (BitVec 64) :=
 .seq word646_1_977 word646_1_978
 
-def word646_1_980 : WordLangProgHOL (BitVec 64) :=
-.call (none) (some 644) ([0, 24, 88, 56, 120]) (none)
-
 def word646_1_981 : WordLangProgHOL (BitVec 64) :=
-.seq word646_1_979 word646_1_980
+.seq word646_1_979 word646_0_727
 
 def pass646_1 : WordLangProgHOL (BitVec 64) :=
 word646_1_981
