@@ -41,11 +41,8 @@ def word704_1_8 : WordLangProgHOL (BitVec 64) :=
 def word704_1_9 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 8 1#64)
 
-def word704_1_10 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.tick
-
 def word704_1_11 : WordLangProgHOL (BitVec 64) :=
-.seq word704_1_9 word704_1_10
+.seq word704_1_9 word704_0_4
 
 def word704_1_12 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 6 1#64)
@@ -59,23 +56,17 @@ Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4 0#64)
 def word704_1_15 : WordLangProgHOL (BitVec 64) :=
 .seq word704_1_13 word704_1_14
 
-def word704_1_16 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.return 0 [4]
-
 def word704_1_17 : WordLangProgHOL (BitVec 64) :=
-.seq word704_1_15 word704_1_16
-
-def word704_1_18 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.skip
+.seq word704_1_15 word704_0_10
 
 def word704_1_19 : WordLangProgHOL (BitVec 64) :=
-.ite (Flapjack.Cmp.notEqual) 8 (Flapjack.WordRegImm.reg 2) word704_1_17 word704_1_18
+.ite (Flapjack.Cmp.notEqual) 8 (Flapjack.WordRegImm.reg 2) word704_1_17 word704_0_12
 
 def word704_1_20 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 8 0#64)
 
 def word704_1_21 : WordLangProgHOL (BitVec 64) :=
-.seq word704_1_20 word704_1_10
+.seq word704_1_20 word704_0_4
 
 def word704_1_22 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 6 0#64)
@@ -90,7 +81,7 @@ def word704_1_25 : WordLangProgHOL (BitVec 64) :=
 .seq word704_1_8 word704_1_24
 
 def word704_1_26 : WordLangProgHOL (BitVec 64) :=
-.seq word704_1_25 word704_1_10
+.seq word704_1_25 word704_0_4
 
 def word704_1_27 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 8 7136#64)
@@ -98,20 +89,14 @@ Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 8 7136#64)
 def word704_1_28 : WordLangProgHOL (BitVec 64) :=
 .seq word704_1_26 word704_1_27
 
-def word704_1_29 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.raise 8
-
-def word704_1_30 : WordLangProgHOL (BitVec 64) :=
-.call (some (([4]), ((Flapjack.Spt.ls PUnit.unit, Flapjack.Spt.ln)), word704_1_18, 704, 2)) (some 68) ([8]) (some (8, word704_1_29, 704, 3))
-
 def word704_1_31 : WordLangProgHOL (BitVec 64) :=
-.seq word704_1_27 word704_1_30
+.seq word704_1_27 word704_0_24
 
 def word704_1_32 : WordLangProgHOL (BitVec 64) :=
 .seq word704_1_28 word704_1_31
 
 def word704_1_33 : WordLangProgHOL (BitVec 64) :=
-.seq word704_1_32 word704_1_10
+.seq word704_1_32 word704_0_4
 
 def word704_1_34 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst
@@ -22496,7 +22481,7 @@ def word704_1_7407 : WordLangProgHOL (BitVec 64) :=
 .seq word704_1_7406 word704_1_14
 
 def word704_1_7408 : WordLangProgHOL (BitVec 64) :=
-.seq word704_1_7407 word704_1_16
+.seq word704_1_7407 word704_0_10
 
 def pass704_1 : WordLangProgHOL (BitVec 64) :=
 word704_1_7408

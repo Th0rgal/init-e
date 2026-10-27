@@ -60,11 +60,8 @@ Flapjack.WordLangProgHOL.move 0 [(121, 99), (125, 103), (129, 107), (133, 111), 
 def word864_2_15 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(141, 2)]
 
-def word864_2_16 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.skip
-
 def word864_2_17 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_15 word864_2_16
+.seq word864_2_15 word864_0_6
 
 def word864_2_18 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_14 word864_2_17
@@ -76,7 +73,7 @@ def word864_2_20 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(149, 141)]
 
 def word864_2_21 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_20
+.seq word864_0_6 word864_2_20
 
 def word864_2_22 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 153 0#64)
@@ -112,7 +109,7 @@ def word864_2_32 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 149 0#64)
 
 def word864_2_33 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_32
+.seq word864_0_6 word864_2_32
 
 def word864_2_34 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(153, 145)]
@@ -148,11 +145,8 @@ def word864_2_40 : WordLangProgHOL (BitVec 64) :=
 def word864_2_41 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_11 word864_2_40
 
-def word864_2_42 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.tick
-
 def word864_2_43 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_41 word864_2_42
+.seq word864_2_41 word864_0_10
 
 def word864_2_44 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 157 Flapjack.WordStore.heapLength
@@ -257,7 +251,7 @@ def word864_2_75 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(253, 2)]
 
 def word864_2_76 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_75 word864_2_16
+.seq word864_2_75 word864_0_6
 
 def word864_2_77 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_74 word864_2_76
@@ -266,7 +260,7 @@ def word864_2_78 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(261, 253)]
 
 def word864_2_79 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_78
+.seq word864_0_6 word864_2_78
 
 def word864_2_80 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 265 0#64)
@@ -299,7 +293,7 @@ def word864_2_89 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 261 0#64)
 
 def word864_2_90 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_89
+.seq word864_0_6 word864_2_89
 
 def word864_2_91 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(265, 257)]
@@ -342,7 +336,7 @@ def word864_2_98 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_71 word864_2_97
 
 def word864_2_99 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_98 word864_2_42
+.seq word864_2_98 word864_0_10
 
 def word864_2_100 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(269, 241)]
@@ -378,7 +372,7 @@ def word864_2_109 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(325, 2)]
 
 def word864_2_110 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_109 word864_2_16
+.seq word864_2_109 word864_0_6
 
 def word864_2_111 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_108 word864_2_110
@@ -387,7 +381,7 @@ def word864_2_112 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(333, 325)]
 
 def word864_2_113 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_112
+.seq word864_0_6 word864_2_112
 
 def word864_2_114 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 337 0#64)
@@ -420,7 +414,7 @@ def word864_2_123 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 333 0#64)
 
 def word864_2_124 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_123
+.seq word864_0_6 word864_2_123
 
 def word864_2_125 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(337, 329)]
@@ -470,7 +464,7 @@ def word864_2_132 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_105 word864_2_131
 
 def word864_2_133 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_132 word864_2_42
+.seq word864_2_132 word864_0_10
 
 def word864_2_134 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 341 Flapjack.WordStore.heapLength
@@ -565,7 +559,7 @@ def word864_2_161 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(437, 2)]
 
 def word864_2_162 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_161 word864_2_16
+.seq word864_2_161 word864_0_6
 
 def word864_2_163 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_160 word864_2_162
@@ -574,7 +568,7 @@ def word864_2_164 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 445 0#64)
 
 def word864_2_165 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_164
+.seq word864_0_6 word864_2_164
 
 def word864_2_166 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(449, 437)]
@@ -607,7 +601,7 @@ def word864_2_175 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(445, 441)]
 
 def word864_2_176 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_175
+.seq word864_0_6 word864_2_175
 
 def word864_2_177 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 449 0#64)
@@ -656,7 +650,7 @@ def word864_2_184 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_157 word864_2_183
 
 def word864_2_185 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_184 word864_2_42
+.seq word864_2_184 word864_0_10
 
 def word864_2_186 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 453 Flapjack.WordStore.heapLength
@@ -754,7 +748,7 @@ def word864_2_215 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(561, 2)]
 
 def word864_2_216 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_215 word864_2_16
+.seq word864_2_215 word864_0_6
 
 def word864_2_217 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_214 word864_2_216
@@ -763,7 +757,7 @@ def word864_2_218 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(569, 561)]
 
 def word864_2_219 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_218
+.seq word864_0_6 word864_2_218
 
 def word864_2_220 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 573 0#64)
@@ -796,7 +790,7 @@ def word864_2_229 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 569 0#64)
 
 def word864_2_230 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_229
+.seq word864_0_6 word864_2_229
 
 def word864_2_231 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(573, 565)]
@@ -853,7 +847,7 @@ def word864_2_238 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_211 word864_2_237
 
 def word864_2_239 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_238 word864_2_42
+.seq word864_2_238 word864_0_10
 
 def word864_2_240 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 577 Flapjack.WordStore.heapLength
@@ -941,7 +935,7 @@ def word864_2_265 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(685, 2)]
 
 def word864_2_266 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_265 word864_2_16
+.seq word864_2_265 word864_0_6
 
 def word864_2_267 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_264 word864_2_266
@@ -950,7 +944,7 @@ def word864_2_268 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(693, 685)]
 
 def word864_2_269 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_268
+.seq word864_0_6 word864_2_268
 
 def word864_2_270 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 697 0#64)
@@ -983,7 +977,7 @@ def word864_2_279 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 693 0#64)
 
 def word864_2_280 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_279
+.seq word864_0_6 word864_2_279
 
 def word864_2_281 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(697, 689)]
@@ -1053,7 +1047,7 @@ def word864_2_288 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_261 word864_2_287
 
 def word864_2_289 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_288 word864_2_42
+.seq word864_2_288 word864_0_10
 
 def word864_2_290 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 701 Flapjack.WordStore.heapLength
@@ -1153,7 +1147,7 @@ def word864_2_319 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(825, 2)]
 
 def word864_2_320 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_319 word864_2_16
+.seq word864_2_319 word864_0_6
 
 def word864_2_321 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_318 word864_2_320
@@ -1162,7 +1156,7 @@ def word864_2_322 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 833 0#64)
 
 def word864_2_323 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_322
+.seq word864_0_6 word864_2_322
 
 def word864_2_324 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(837, 825)]
@@ -1195,7 +1189,7 @@ def word864_2_333 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(833, 829)]
 
 def word864_2_334 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_333
+.seq word864_0_6 word864_2_333
 
 def word864_2_335 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 837 0#64)
@@ -1264,7 +1258,7 @@ def word864_2_342 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_315 word864_2_341
 
 def word864_2_343 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_342 word864_2_42
+.seq word864_2_342 word864_0_10
 
 def word864_2_344 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 841 Flapjack.WordStore.heapLength
@@ -1398,7 +1392,7 @@ def word864_2_382 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(989, 2)]
 
 def word864_2_383 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_382 word864_2_16
+.seq word864_2_382 word864_0_6
 
 def word864_2_384 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_381 word864_2_383
@@ -1407,7 +1401,7 @@ def word864_2_385 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 997 0#64)
 
 def word864_2_386 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_385
+.seq word864_0_6 word864_2_385
 
 def word864_2_387 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1001, 989)]
@@ -1440,7 +1434,7 @@ def word864_2_396 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(997, 993)]
 
 def word864_2_397 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_396
+.seq word864_0_6 word864_2_396
 
 def word864_2_398 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1001 0#64)
@@ -1507,7 +1501,7 @@ def word864_2_405 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_379 word864_2_404
 
 def word864_2_406 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_405 word864_2_42
+.seq word864_2_405 word864_0_10
 
 def word864_2_407 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 1005 Flapjack.WordStore.heapLength
@@ -1578,7 +1572,7 @@ def word864_2_426 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1121, 2)]
 
 def word864_2_427 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_426 word864_2_16
+.seq word864_2_426 word864_0_6
 
 def word864_2_428 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_425 word864_2_427
@@ -1587,7 +1581,7 @@ def word864_2_429 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1129 0#64)
 
 def word864_2_430 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_429
+.seq word864_0_6 word864_2_429
 
 def word864_2_431 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1133, 1121)]
@@ -1620,7 +1614,7 @@ def word864_2_440 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1129, 1125)]
 
 def word864_2_441 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_440
+.seq word864_0_6 word864_2_440
 
 def word864_2_442 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1133 0#64)
@@ -1698,7 +1692,7 @@ def word864_2_449 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_422 word864_2_448
 
 def word864_2_450 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_449 word864_2_42
+.seq word864_2_449 word864_0_10
 
 def word864_2_451 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 1137 Flapjack.WordStore.heapLength
@@ -1764,7 +1758,7 @@ def word864_2_469 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1173 1#64)
 
 def word864_2_470 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_469 word864_2_42
+.seq word864_2_469 word864_0_10
 
 def word864_2_471 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1177 1#64)
@@ -1857,7 +1851,7 @@ def word864_2_496 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1249, 1217)]
 
 def word864_2_497 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_496
+.seq word864_0_6 word864_2_496
 
 def word864_2_498 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_495 word864_2_497
@@ -1869,7 +1863,7 @@ def word864_2_500 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1225 0#64)
 
 def word864_2_501 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_500 word864_2_42
+.seq word864_2_500 word864_0_10
 
 def word864_2_502 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1229 0#64)
@@ -1884,7 +1878,7 @@ def word864_2_505 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1249 0#64)
 
 def word864_2_506 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_505
+.seq word864_0_6 word864_2_505
 
 def word864_2_507 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_504 word864_2_506
@@ -1899,7 +1893,7 @@ def word864_2_510 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_468 word864_2_509
 
 def word864_2_511 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_510 word864_2_42
+.seq word864_2_510 word864_0_10
 
 def word864_2_512 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 1253 Flapjack.WordStore.heapLength
@@ -1963,7 +1957,7 @@ def word864_2_529 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1373, 2)]
 
 def word864_2_530 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_529 word864_2_16
+.seq word864_2_529 word864_0_6
 
 def word864_2_531 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_528 word864_2_530
@@ -1972,7 +1966,7 @@ def word864_2_532 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1381, 1373)]
 
 def word864_2_533 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_532
+.seq word864_0_6 word864_2_532
 
 def word864_2_534 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1385 0#64)
@@ -2005,7 +1999,7 @@ def word864_2_543 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1381 0#64)
 
 def word864_2_544 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_543
+.seq word864_0_6 word864_2_543
 
 def word864_2_545 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1385, 1377)]
@@ -2083,7 +2077,7 @@ def word864_2_552 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_525 word864_2_551
 
 def word864_2_553 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_552 word864_2_42
+.seq word864_2_552 word864_0_10
 
 def word864_2_554 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0
@@ -2099,7 +2093,7 @@ def word864_2_556 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1481, 2)]
 
 def word864_2_557 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_556 word864_2_16
+.seq word864_2_556 word864_0_6
 
 def word864_2_558 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_555 word864_2_557
@@ -2108,7 +2102,7 @@ def word864_2_559 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1489, 1481)]
 
 def word864_2_560 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_559
+.seq word864_0_6 word864_2_559
 
 def word864_2_561 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1493 0#64)
@@ -2141,7 +2135,7 @@ def word864_2_570 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1489 0#64)
 
 def word864_2_571 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_570
+.seq word864_0_6 word864_2_570
 
 def word864_2_572 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1493, 1485)]
@@ -2230,7 +2224,7 @@ def word864_2_579 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_553 word864_2_578
 
 def word864_2_580 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_579 word864_2_42
+.seq word864_2_579 word864_0_10
 
 def word864_2_581 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1497 1#64)
@@ -2261,7 +2255,7 @@ def word864_2_588 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1597, 2)]
 
 def word864_2_589 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_588 word864_2_16
+.seq word864_2_588 word864_0_6
 
 def word864_2_590 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_587 word864_2_589
@@ -2270,7 +2264,7 @@ def word864_2_591 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1605, 1597)]
 
 def word864_2_592 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_591
+.seq word864_0_6 word864_2_591
 
 def word864_2_593 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1609 0#64)
@@ -2303,7 +2297,7 @@ def word864_2_602 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1605 0#64)
 
 def word864_2_603 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_602
+.seq word864_0_6 word864_2_602
 
 def word864_2_604 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1609, 1601)]
@@ -2399,7 +2393,7 @@ def word864_2_611 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_584 word864_2_610
 
 def word864_2_612 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_611 word864_2_42
+.seq word864_2_611 word864_0_10
 
 def word864_2_613 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(1613, 1593)]
@@ -2421,7 +2415,7 @@ def word864_2_618 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_616 word864_2_617
 
 def word864_2_619 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_618 word864_2_42
+.seq word864_2_618 word864_0_10
 
 def word864_2_620 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0
@@ -2429,7 +2423,7 @@ Flapjack.WordLangProgHOL.move 0
     (1657, 1581), (1661, 1585), (1665, 1589), (1669, 1613), (1673, 1617)]
 
 def word864_2_621 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_620
+.seq word864_0_6 word864_2_620
 
 def word864_2_622 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(1677, 1633)]
@@ -2444,7 +2438,7 @@ def word864_2_625 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1685 1#64)
 
 def word864_2_626 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_625 word864_2_42
+.seq word864_2_625 word864_0_10
 
 def word864_2_627 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1689 1#64)
@@ -2539,7 +2533,7 @@ def word864_2_652 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1841, 2)]
 
 def word864_2_653 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_652 word864_2_16
+.seq word864_2_652 word864_0_6
 
 def word864_2_654 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_651 word864_2_653
@@ -2548,7 +2542,7 @@ def word864_2_655 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1849 0#64)
 
 def word864_2_656 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_655
+.seq word864_0_6 word864_2_655
 
 def word864_2_657 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1853, 1841)]
@@ -2581,7 +2575,7 @@ def word864_2_666 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1849, 1845)]
 
 def word864_2_667 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_666
+.seq word864_0_6 word864_2_666
 
 def word864_2_668 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1853 0#64)
@@ -2692,7 +2686,7 @@ def word864_2_675 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_648 word864_2_674
 
 def word864_2_676 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_675 word864_2_42
+.seq word864_2_675 word864_0_10
 
 def word864_2_677 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(1857, 1853)]
@@ -2723,7 +2717,7 @@ def word864_2_684 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1973, 2)]
 
 def word864_2_685 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_684 word864_2_16
+.seq word864_2_684 word864_0_6
 
 def word864_2_686 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_683 word864_2_685
@@ -2732,7 +2726,7 @@ def word864_2_687 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1981 0#64)
 
 def word864_2_688 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_687
+.seq word864_0_6 word864_2_687
 
 def word864_2_689 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1985, 1973)]
@@ -2765,7 +2759,7 @@ def word864_2_698 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1981, 1977)]
 
 def word864_2_699 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_698
+.seq word864_0_6 word864_2_698
 
 def word864_2_700 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 1985 0#64)
@@ -2864,7 +2858,7 @@ def word864_2_707 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_680 word864_2_706
 
 def word864_2_708 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_707 word864_2_42
+.seq word864_2_707 word864_0_10
 
 def word864_2_709 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(1989, 1929)]
@@ -2891,11 +2885,8 @@ Flapjack.WordLangProgHOL.move 1
   [(1625, 1921), (1629, 1925), (1633, 1997), (1637, 1933), (1641, 1937), (1645, 1941), (1649, 1945), (1653, 1949),
     (1657, 1953), (1661, 1957), (1665, 1961), (1669, 1965), (1673, 1969)]
 
-def word864_2_716 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.continue 0
-
 def word864_2_717 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_715 word864_2_716
+.seq word864_2_715 word864_0_190
 
 def word864_2_718 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_714 word864_2_717
@@ -2909,7 +2900,7 @@ def word864_2_720 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2069 0#64)
 
 def word864_2_721 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_720
+.seq word864_0_6 word864_2_720
 
 def word864_2_722 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2073, 1989)]
@@ -2927,7 +2918,7 @@ def word864_2_726 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2001 0#64)
 
 def word864_2_727 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_726 word864_2_42
+.seq word864_2_726 word864_0_10
 
 def word864_2_728 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2005 0#64)
@@ -2938,11 +2929,8 @@ def word864_2_729 : WordLangProgHOL (BitVec 64) :=
 def word864_2_730 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(1657, 1681)]
 
-def word864_2_731 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.break 0
-
 def word864_2_732 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_730 word864_2_731
+.seq word864_2_730 word864_0_195
 
 def word864_2_733 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_729 word864_2_732
@@ -2956,7 +2944,7 @@ def word864_2_735 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2069, 2005)]
 
 def word864_2_736 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_735
+.seq word864_0_6 word864_2_735
 
 def word864_2_737 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2073 0#64)
@@ -2977,7 +2965,7 @@ def word864_2_742 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_624 word864_2_741
 
 def word864_2_743 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_742 word864_2_42
+.seq word864_2_742 word864_0_10
 
 def word864_2_744 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1
@@ -3111,7 +3099,7 @@ def word864_2_748 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_619 word864_2_747
 
 def word864_2_749 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_748 word864_2_42
+.seq word864_2_748 word864_0_10
 
 def word864_2_750 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 2077 Flapjack.WordStore.heapLength
@@ -3193,7 +3181,7 @@ def word864_2_773 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2165, 2)]
 
 def word864_2_774 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_773 word864_2_16
+.seq word864_2_773 word864_0_6
 
 def word864_2_775 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_772 word864_2_774
@@ -3202,7 +3190,7 @@ def word864_2_776 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2173 0#64)
 
 def word864_2_777 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_776
+.seq word864_0_6 word864_2_776
 
 def word864_2_778 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2177, 2165)]
@@ -3235,7 +3223,7 @@ def word864_2_787 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2173, 2169)]
 
 def word864_2_788 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_787
+.seq word864_0_6 word864_2_787
 
 def word864_2_789 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2177 0#64)
@@ -3308,7 +3296,7 @@ def word864_2_796 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_769 word864_2_795
 
 def word864_2_797 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_796 word864_2_42
+.seq word864_2_796 word864_0_10
 
 def word864_2_798 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(2183, 2141), (2187, 2145), (2191, 2149), (2195, 2153), (2199, 2157), (2203, 2161)]
@@ -3320,7 +3308,7 @@ def word864_2_800 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2233, 2)]
 
 def word864_2_801 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_800 word864_2_16
+.seq word864_2_800 word864_0_6
 
 def word864_2_802 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_799 word864_2_801
@@ -3329,7 +3317,7 @@ def word864_2_803 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2241 0#64)
 
 def word864_2_804 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_803
+.seq word864_0_6 word864_2_803
 
 def word864_2_805 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2245, 2233)]
@@ -3362,7 +3350,7 @@ def word864_2_814 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2241, 2237)]
 
 def word864_2_815 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_814
+.seq word864_0_6 word864_2_814
 
 def word864_2_816 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2245 0#64)
@@ -3436,7 +3424,7 @@ def word864_2_823 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_797 word864_2_822
 
 def word864_2_824 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_823 word864_2_42
+.seq word864_2_823 word864_0_10
 
 def word864_2_825 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(2251, 2209), (2255, 2213), (2259, 2217), (2263, 2221), (2267, 2225), (2271, 2229)]
@@ -3448,7 +3436,7 @@ def word864_2_827 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2301, 2), (2305, 4)]
 
 def word864_2_828 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_827 word864_2_16
+.seq word864_2_827 word864_0_6
 
 def word864_2_829 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_826 word864_2_828
@@ -3457,7 +3445,7 @@ def word864_2_830 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2313 0#64)
 
 def word864_2_831 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_830
+.seq word864_0_6 word864_2_830
 
 def word864_2_832 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2317, 2305)]
@@ -3496,7 +3484,7 @@ def word864_2_843 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2313, 2309)]
 
 def word864_2_844 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_843
+.seq word864_0_6 word864_2_843
 
 def word864_2_845 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2317 0#64)
@@ -3583,7 +3571,7 @@ def word864_2_854 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_824 word864_2_853
 
 def word864_2_855 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_854 word864_2_42
+.seq word864_2_854 word864_0_10
 
 def word864_2_856 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 2325 Flapjack.WordStore.heapLength
@@ -3634,7 +3622,7 @@ def word864_2_869 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2413, 2)]
 
 def word864_2_870 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_869 word864_2_16
+.seq word864_2_869 word864_0_6
 
 def word864_2_871 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_868 word864_2_870
@@ -3643,7 +3631,7 @@ def word864_2_872 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2421, 2413)]
 
 def word864_2_873 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_872
+.seq word864_0_6 word864_2_872
 
 def word864_2_874 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2425 0#64)
@@ -3676,7 +3664,7 @@ def word864_2_883 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2421 0#64)
 
 def word864_2_884 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_883
+.seq word864_0_6 word864_2_883
 
 def word864_2_885 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2425, 2417)]
@@ -3768,7 +3756,7 @@ def word864_2_892 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_865 word864_2_891
 
 def word864_2_893 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_892 word864_2_42
+.seq word864_2_892 word864_0_10
 
 def word864_2_894 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2429 32#64)
@@ -3797,7 +3785,7 @@ def word864_2_901 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2505, 2)]
 
 def word864_2_902 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_901 word864_2_16
+.seq word864_2_901 word864_0_6
 
 def word864_2_903 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_900 word864_2_902
@@ -3806,7 +3794,7 @@ def word864_2_904 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2513, 2505)]
 
 def word864_2_905 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_904
+.seq word864_0_6 word864_2_904
 
 def word864_2_906 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2517 0#64)
@@ -3839,7 +3827,7 @@ def word864_2_915 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2513 0#64)
 
 def word864_2_916 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_915
+.seq word864_0_6 word864_2_915
 
 def word864_2_917 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2517, 2509)]
@@ -3933,7 +3921,7 @@ def word864_2_924 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_897 word864_2_923
 
 def word864_2_925 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_924 word864_2_42
+.seq word864_2_924 word864_0_10
 
 def word864_2_926 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(2521, 2513)]
@@ -3958,7 +3946,7 @@ def word864_2_931 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2601, 2)]
 
 def word864_2_932 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_931 word864_2_16
+.seq word864_2_931 word864_0_6
 
 def word864_2_933 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_930 word864_2_932
@@ -3967,7 +3955,7 @@ def word864_2_934 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2609 0#64)
 
 def word864_2_935 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_934
+.seq word864_0_6 word864_2_934
 
 def word864_2_936 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2613, 2601)]
@@ -4000,7 +3988,7 @@ def word864_2_945 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2609, 2605)]
 
 def word864_2_946 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_945
+.seq word864_0_6 word864_2_945
 
 def word864_2_947 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2613 0#64)
@@ -4112,7 +4100,7 @@ def word864_2_954 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_927 word864_2_953
 
 def word864_2_955 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_954 word864_2_42
+.seq word864_2_954 word864_0_10
 
 def word864_2_956 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2617 32#64)
@@ -4143,7 +4131,7 @@ def word864_2_963 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2701, 2)]
 
 def word864_2_964 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_963 word864_2_16
+.seq word864_2_963 word864_0_6
 
 def word864_2_965 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_962 word864_2_964
@@ -4152,7 +4140,7 @@ def word864_2_966 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2709 0#64)
 
 def word864_2_967 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_966
+.seq word864_0_6 word864_2_966
 
 def word864_2_968 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2713, 2701)]
@@ -4185,7 +4173,7 @@ def word864_2_977 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2709, 2705)]
 
 def word864_2_978 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_977
+.seq word864_0_6 word864_2_977
 
 def word864_2_979 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2713 0#64)
@@ -4275,7 +4263,7 @@ def word864_2_986 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_959 word864_2_985
 
 def word864_2_987 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_986 word864_2_42
+.seq word864_2_986 word864_0_10
 
 def word864_2_988 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(2717, 2681)]
@@ -4312,7 +4300,7 @@ def word864_2_997 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2805, 2)]
 
 def word864_2_998 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_997 word864_2_16
+.seq word864_2_997 word864_0_6
 
 def word864_2_999 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_996 word864_2_998
@@ -4321,7 +4309,7 @@ def word864_2_1000 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2813, 2805)]
 
 def word864_2_1001 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1000
+.seq word864_0_6 word864_2_1000
 
 def word864_2_1002 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2817 0#64)
@@ -4354,7 +4342,7 @@ def word864_2_1011 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2813 0#64)
 
 def word864_2_1012 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1011
+.seq word864_0_6 word864_2_1011
 
 def word864_2_1013 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2817, 2809)]
@@ -4451,7 +4439,7 @@ def word864_2_1020 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_993 word864_2_1019
 
 def word864_2_1021 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1020 word864_2_42
+.seq word864_2_1020 word864_0_10
 
 def word864_2_1022 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2821 32#64)
@@ -4482,7 +4470,7 @@ def word864_2_1029 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2905, 2)]
 
 def word864_2_1030 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1029 word864_2_16
+.seq word864_2_1029 word864_0_6
 
 def word864_2_1031 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1028 word864_2_1030
@@ -4491,7 +4479,7 @@ def word864_2_1032 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2913, 2905)]
 
 def word864_2_1033 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1032
+.seq word864_0_6 word864_2_1032
 
 def word864_2_1034 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2917 0#64)
@@ -4524,7 +4512,7 @@ def word864_2_1043 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2913 0#64)
 
 def word864_2_1044 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1043
+.seq word864_0_6 word864_2_1043
 
 def word864_2_1045 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(2917, 2909)]
@@ -4617,7 +4605,7 @@ def word864_2_1052 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1025 word864_2_1051
 
 def word864_2_1053 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1052 word864_2_42
+.seq word864_2_1052 word864_0_10
 
 def word864_2_1054 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(2921, 2877)]
@@ -4652,7 +4640,7 @@ def word864_2_1063 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3001, 2)]
 
 def word864_2_1064 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1063 word864_2_16
+.seq word864_2_1063 word864_0_6
 
 def word864_2_1065 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1062 word864_2_1064
@@ -4661,7 +4649,7 @@ def word864_2_1066 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3009, 3001)]
 
 def word864_2_1067 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1066
+.seq word864_0_6 word864_2_1066
 
 def word864_2_1068 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3013 0#64)
@@ -4694,7 +4682,7 @@ def word864_2_1077 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3009 0#64)
 
 def word864_2_1078 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1077
+.seq word864_0_6 word864_2_1077
 
 def word864_2_1079 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3013, 3005)]
@@ -4788,7 +4776,7 @@ def word864_2_1086 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1059 word864_2_1085
 
 def word864_2_1087 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1086 word864_2_42
+.seq word864_2_1086 word864_0_10
 
 def word864_2_1088 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3017 256#64)
@@ -4817,7 +4805,7 @@ def word864_2_1095 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3093, 2)]
 
 def word864_2_1096 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1095 word864_2_16
+.seq word864_2_1095 word864_0_6
 
 def word864_2_1097 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1094 word864_2_1096
@@ -4826,7 +4814,7 @@ def word864_2_1098 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3101, 3093)]
 
 def word864_2_1099 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1098
+.seq word864_0_6 word864_2_1098
 
 def word864_2_1100 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3105 0#64)
@@ -4859,7 +4847,7 @@ def word864_2_1109 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3101 0#64)
 
 def word864_2_1110 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1109
+.seq word864_0_6 word864_2_1109
 
 def word864_2_1111 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3105, 3097)]
@@ -4964,7 +4952,7 @@ def word864_2_1118 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1091 word864_2_1117
 
 def word864_2_1119 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1118 word864_2_42
+.seq word864_2_1118 word864_0_10
 
 def word864_2_1120 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 3109 Flapjack.WordStore.heapLength
@@ -5023,7 +5011,7 @@ def word864_2_1135 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3209, 2)]
 
 def word864_2_1136 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1135 word864_2_16
+.seq word864_2_1135 word864_0_6
 
 def word864_2_1137 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1134 word864_2_1136
@@ -5032,7 +5020,7 @@ def word864_2_1138 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3217 0#64)
 
 def word864_2_1139 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1138
+.seq word864_0_6 word864_2_1138
 
 def word864_2_1140 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3221, 3209)]
@@ -5065,7 +5053,7 @@ def word864_2_1149 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3217, 3213)]
 
 def word864_2_1150 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1149
+.seq word864_0_6 word864_2_1149
 
 def word864_2_1151 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3221 0#64)
@@ -5154,7 +5142,7 @@ def word864_2_1158 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1131 word864_2_1157
 
 def word864_2_1159 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1158 word864_2_42
+.seq word864_2_1158 word864_0_10
 
 def word864_2_1160 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3225 32#64)
@@ -5185,7 +5173,7 @@ def word864_2_1167 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3309, 2)]
 
 def word864_2_1168 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1167 word864_2_16
+.seq word864_2_1167 word864_0_6
 
 def word864_2_1169 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1166 word864_2_1168
@@ -5194,7 +5182,7 @@ def word864_2_1170 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3317 0#64)
 
 def word864_2_1171 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1170
+.seq word864_0_6 word864_2_1170
 
 def word864_2_1172 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3321, 3309)]
@@ -5227,7 +5215,7 @@ def word864_2_1181 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3317, 3313)]
 
 def word864_2_1182 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1181
+.seq word864_0_6 word864_2_1181
 
 def word864_2_1183 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3321 0#64)
@@ -5324,7 +5312,7 @@ def word864_2_1190 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1163 word864_2_1189
 
 def word864_2_1191 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1190 word864_2_42
+.seq word864_2_1190 word864_0_10
 
 def word864_2_1192 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 3325 Flapjack.WordStore.heapLength
@@ -5389,7 +5377,7 @@ def word864_2_1209 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3429, 2)]
 
 def word864_2_1210 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1209 word864_2_16
+.seq word864_2_1209 word864_0_6
 
 def word864_2_1211 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1208 word864_2_1210
@@ -5398,7 +5386,7 @@ def word864_2_1212 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3437, 3429)]
 
 def word864_2_1213 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1212
+.seq word864_0_6 word864_2_1212
 
 def word864_2_1214 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3441 0#64)
@@ -5431,7 +5419,7 @@ def word864_2_1223 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3437 0#64)
 
 def word864_2_1224 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1223
+.seq word864_0_6 word864_2_1223
 
 def word864_2_1225 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3441, 3433)]
@@ -5527,7 +5515,7 @@ def word864_2_1232 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1205 word864_2_1231
 
 def word864_2_1233 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1232 word864_2_42
+.seq word864_2_1232 word864_0_10
 
 def word864_2_1234 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3445 32#64)
@@ -5558,7 +5546,7 @@ def word864_2_1241 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3529, 2)]
 
 def word864_2_1242 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1241 word864_2_16
+.seq word864_2_1241 word864_0_6
 
 def word864_2_1243 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1240 word864_2_1242
@@ -5567,7 +5555,7 @@ def word864_2_1244 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3537, 3529)]
 
 def word864_2_1245 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1244
+.seq word864_0_6 word864_2_1244
 
 def word864_2_1246 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3541 0#64)
@@ -5600,7 +5588,7 @@ def word864_2_1255 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3537 0#64)
 
 def word864_2_1256 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1255
+.seq word864_0_6 word864_2_1255
 
 def word864_2_1257 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3541, 3533)]
@@ -5698,7 +5686,7 @@ def word864_2_1264 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1237 word864_2_1263
 
 def word864_2_1265 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1264 word864_2_42
+.seq word864_2_1264 word864_0_10
 
 def word864_2_1266 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 3545 Flapjack.WordStore.heapLength
@@ -5791,7 +5779,7 @@ def word864_2_1291 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3673, 2)]
 
 def word864_2_1292 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1291 word864_2_16
+.seq word864_2_1291 word864_0_6
 
 def word864_2_1293 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1290 word864_2_1292
@@ -5800,7 +5788,7 @@ def word864_2_1294 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3681, 3673)]
 
 def word864_2_1295 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1294
+.seq word864_0_6 word864_2_1294
 
 def word864_2_1296 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3685 0#64)
@@ -5833,7 +5821,7 @@ def word864_2_1305 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3681 0#64)
 
 def word864_2_1306 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1305
+.seq word864_0_6 word864_2_1305
 
 def word864_2_1307 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3685, 3677)]
@@ -5921,7 +5909,7 @@ def word864_2_1314 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1287 word864_2_1313
 
 def word864_2_1315 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1314 word864_2_42
+.seq word864_2_1314 word864_0_10
 
 def word864_2_1316 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3689 32#64)
@@ -5952,7 +5940,7 @@ def word864_2_1323 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3781, 2)]
 
 def word864_2_1324 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1323 word864_2_16
+.seq word864_2_1323 word864_0_6
 
 def word864_2_1325 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1322 word864_2_1324
@@ -5961,7 +5949,7 @@ def word864_2_1326 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3789, 3781)]
 
 def word864_2_1327 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1326
+.seq word864_0_6 word864_2_1326
 
 def word864_2_1328 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3793 0#64)
@@ -5994,7 +5982,7 @@ def word864_2_1337 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3789 0#64)
 
 def word864_2_1338 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1337
+.seq word864_0_6 word864_2_1337
 
 def word864_2_1339 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3793, 3785)]
@@ -6089,7 +6077,7 @@ def word864_2_1346 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1319 word864_2_1345
 
 def word864_2_1347 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1346 word864_2_42
+.seq word864_2_1346 word864_0_10
 
 def word864_2_1348 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(3797, 3745)]
@@ -6126,7 +6114,7 @@ def word864_2_1357 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3885, 2)]
 
 def word864_2_1358 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1357 word864_2_16
+.seq word864_2_1357 word864_0_6
 
 def word864_2_1359 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1356 word864_2_1358
@@ -6135,7 +6123,7 @@ def word864_2_1360 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3893, 3885)]
 
 def word864_2_1361 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1360
+.seq word864_0_6 word864_2_1360
 
 def word864_2_1362 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3897 0#64)
@@ -6168,7 +6156,7 @@ def word864_2_1371 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 3893 0#64)
 
 def word864_2_1372 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1371
+.seq word864_0_6 word864_2_1371
 
 def word864_2_1373 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(3897, 3889)]
@@ -6270,7 +6258,7 @@ def word864_2_1380 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1353 word864_2_1379
 
 def word864_2_1381 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1380 word864_2_42
+.seq word864_2_1380 word864_0_10
 
 def word864_2_1382 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 3901 Flapjack.WordStore.heapLength
@@ -6357,7 +6345,7 @@ def word864_2_1405 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4017, 2)]
 
 def word864_2_1406 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1405 word864_2_16
+.seq word864_2_1405 word864_0_6
 
 def word864_2_1407 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1404 word864_2_1406
@@ -6366,7 +6354,7 @@ def word864_2_1408 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4025, 4017)]
 
 def word864_2_1409 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1408
+.seq word864_0_6 word864_2_1408
 
 def word864_2_1410 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4029 0#64)
@@ -6399,7 +6387,7 @@ def word864_2_1419 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4025 0#64)
 
 def word864_2_1420 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1419
+.seq word864_0_6 word864_2_1419
 
 def word864_2_1421 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4029, 4021)]
@@ -6502,7 +6490,7 @@ def word864_2_1428 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1401 word864_2_1427
 
 def word864_2_1429 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1428 word864_2_42
+.seq word864_2_1428 word864_0_10
 
 def word864_2_1430 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4033, 4025)]
@@ -6527,7 +6515,7 @@ def word864_2_1436 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4045 1#64)
 
 def word864_2_1437 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1436 word864_2_42
+.seq word864_2_1436 word864_0_10
 
 def word864_2_1438 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4049 1#64)
@@ -6575,7 +6563,7 @@ def word864_2_1452 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4077, 4049)]
 
 def word864_2_1453 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1452
+.seq word864_0_6 word864_2_1452
 
 def word864_2_1454 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1451 word864_2_1453
@@ -6590,13 +6578,13 @@ def word864_2_1457 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4077 0#64)
 
 def word864_2_1458 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1457
+.seq word864_0_6 word864_2_1457
 
 def word864_2_1459 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1456 word864_2_1458
 
 def word864_2_1460 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1459
+.seq word864_0_6 word864_2_1459
 
 def word864_2_1461 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.notEqual) 4033 (Flapjack.WordRegImm.reg 4041) word864_2_1455 word864_2_1460
@@ -6605,7 +6593,7 @@ def word864_2_1462 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4081 0#64)
 
 def word864_2_1463 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1462 word864_2_42
+.seq word864_2_1462 word864_0_10
 
 def word864_2_1464 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4085 0#64)
@@ -6620,7 +6608,7 @@ def word864_2_1467 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1435 word864_2_1466
 
 def word864_2_1468 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1467 word864_2_42
+.seq word864_2_1467 word864_0_10
 
 def word864_2_1469 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4089, 3997)]
@@ -6668,7 +6656,7 @@ def word864_2_1482 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4177, 2)]
 
 def word864_2_1483 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1482 word864_2_16
+.seq word864_2_1482 word864_0_6
 
 def word864_2_1484 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1481 word864_2_1483
@@ -6677,7 +6665,7 @@ def word864_2_1485 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4185 0#64)
 
 def word864_2_1486 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1485
+.seq word864_0_6 word864_2_1485
 
 def word864_2_1487 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4189, 4177)]
@@ -6710,7 +6698,7 @@ def word864_2_1496 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4185, 4181)]
 
 def word864_2_1497 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1496
+.seq word864_0_6 word864_2_1496
 
 def word864_2_1498 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4189 0#64)
@@ -6806,7 +6794,7 @@ def word864_2_1505 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1478 word864_2_1504
 
 def word864_2_1506 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1505 word864_2_42
+.seq word864_2_1505 word864_0_10
 
 def word864_2_1507 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4193, 4189)]
@@ -6824,7 +6812,7 @@ def word864_2_1511 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4201 1#64)
 
 def word864_2_1512 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1511 word864_2_42
+.seq word864_2_1511 word864_0_10
 
 def word864_2_1513 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4205 1#64)
@@ -6872,7 +6860,7 @@ def word864_2_1527 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4229, 4205)]
 
 def word864_2_1528 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1527
+.seq word864_0_6 word864_2_1527
 
 def word864_2_1529 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4233, 4213)]
@@ -6893,7 +6881,7 @@ def word864_2_1534 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4229 0#64)
 
 def word864_2_1535 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1534
+.seq word864_0_6 word864_2_1534
 
 def word864_2_1536 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4233 0#64)
@@ -6905,7 +6893,7 @@ def word864_2_1538 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1533 word864_2_1537
 
 def word864_2_1539 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1538
+.seq word864_0_6 word864_2_1538
 
 def word864_2_1540 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.equal) 4193 (Flapjack.WordRegImm.reg 4197) word864_2_1532 word864_2_1539
@@ -6914,7 +6902,7 @@ def word864_2_1541 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4237 0#64)
 
 def word864_2_1542 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1541 word864_2_42
+.seq word864_2_1541 word864_0_10
 
 def word864_2_1543 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4241 0#64)
@@ -6929,7 +6917,7 @@ def word864_2_1546 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1510 word864_2_1545
 
 def word864_2_1547 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1546 word864_2_42
+.seq word864_2_1546 word864_0_10
 
 def word864_2_1548 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4245, 4165)]
@@ -6977,7 +6965,7 @@ def word864_2_1561 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4325, 2)]
 
 def word864_2_1562 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1561 word864_2_16
+.seq word864_2_1561 word864_0_6
 
 def word864_2_1563 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1560 word864_2_1562
@@ -6986,7 +6974,7 @@ def word864_2_1564 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4333 0#64)
 
 def word864_2_1565 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1564
+.seq word864_0_6 word864_2_1564
 
 def word864_2_1566 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4337, 4325)]
@@ -7019,7 +7007,7 @@ def word864_2_1575 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4333, 4329)]
 
 def word864_2_1576 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1575
+.seq word864_0_6 word864_2_1575
 
 def word864_2_1577 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4337 0#64)
@@ -7112,7 +7100,7 @@ def word864_2_1584 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1557 word864_2_1583
 
 def word864_2_1585 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1584 word864_2_42
+.seq word864_2_1584 word864_0_10
 
 def word864_2_1586 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4341, 4337)]
@@ -7130,7 +7118,7 @@ def word864_2_1590 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4349 1#64)
 
 def word864_2_1591 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1590 word864_2_42
+.seq word864_2_1590 word864_0_10
 
 def word864_2_1592 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4353 1#64)
@@ -7178,7 +7166,7 @@ def word864_2_1606 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4377, 4353)]
 
 def word864_2_1607 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1606
+.seq word864_0_6 word864_2_1606
 
 def word864_2_1608 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4381, 4361)]
@@ -7199,7 +7187,7 @@ def word864_2_1613 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4377 0#64)
 
 def word864_2_1614 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1613
+.seq word864_0_6 word864_2_1613
 
 def word864_2_1615 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4381 0#64)
@@ -7211,7 +7199,7 @@ def word864_2_1617 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1612 word864_2_1616
 
 def word864_2_1618 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1617
+.seq word864_0_6 word864_2_1617
 
 def word864_2_1619 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.equal) 4341 (Flapjack.WordRegImm.reg 4345) word864_2_1611 word864_2_1618
@@ -7220,7 +7208,7 @@ def word864_2_1620 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4385 0#64)
 
 def word864_2_1621 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1620 word864_2_42
+.seq word864_2_1620 word864_0_10
 
 def word864_2_1622 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4389 0#64)
@@ -7235,7 +7223,7 @@ def word864_2_1625 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1589 word864_2_1624
 
 def word864_2_1626 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1625 word864_2_42
+.seq word864_2_1625 word864_0_10
 
 def word864_2_1627 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4393, 4321)]
@@ -7281,7 +7269,7 @@ def word864_2_1640 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4465, 2)]
 
 def word864_2_1641 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1640 word864_2_16
+.seq word864_2_1640 word864_0_6
 
 def word864_2_1642 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1639 word864_2_1641
@@ -7290,7 +7278,7 @@ def word864_2_1643 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4473 0#64)
 
 def word864_2_1644 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1643
+.seq word864_0_6 word864_2_1643
 
 def word864_2_1645 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4477, 4465)]
@@ -7323,7 +7311,7 @@ def word864_2_1654 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4473, 4469)]
 
 def word864_2_1655 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1654
+.seq word864_0_6 word864_2_1654
 
 def word864_2_1656 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4477 0#64)
@@ -7407,7 +7395,7 @@ def word864_2_1663 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1636 word864_2_1662
 
 def word864_2_1664 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1663 word864_2_42
+.seq word864_2_1663 word864_0_10
 
 def word864_2_1665 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4481, 4477)]
@@ -7425,7 +7413,7 @@ def word864_2_1669 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4489 1#64)
 
 def word864_2_1670 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1669 word864_2_42
+.seq word864_2_1669 word864_0_10
 
 def word864_2_1671 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4493 1#64)
@@ -7473,7 +7461,7 @@ def word864_2_1685 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4517, 4493)]
 
 def word864_2_1686 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1685
+.seq word864_0_6 word864_2_1685
 
 def word864_2_1687 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4521, 4501)]
@@ -7494,7 +7482,7 @@ def word864_2_1692 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4517 0#64)
 
 def word864_2_1693 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1692
+.seq word864_0_6 word864_2_1692
 
 def word864_2_1694 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4521 0#64)
@@ -7506,7 +7494,7 @@ def word864_2_1696 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1691 word864_2_1695
 
 def word864_2_1697 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1696
+.seq word864_0_6 word864_2_1696
 
 def word864_2_1698 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.equal) 4481 (Flapjack.WordRegImm.reg 4485) word864_2_1690 word864_2_1697
@@ -7515,7 +7503,7 @@ def word864_2_1699 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4525 0#64)
 
 def word864_2_1700 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1699 word864_2_42
+.seq word864_2_1699 word864_0_10
 
 def word864_2_1701 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4529 0#64)
@@ -7530,7 +7518,7 @@ def word864_2_1704 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1668 word864_2_1703
 
 def word864_2_1705 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1704 word864_2_42
+.seq word864_2_1704 word864_0_10
 
 def word864_2_1706 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4533, 4453)]
@@ -7576,7 +7564,7 @@ def word864_2_1719 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4597, 2)]
 
 def word864_2_1720 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1719 word864_2_16
+.seq word864_2_1719 word864_0_6
 
 def word864_2_1721 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1718 word864_2_1720
@@ -7585,7 +7573,7 @@ def word864_2_1722 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4605 0#64)
 
 def word864_2_1723 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1722
+.seq word864_0_6 word864_2_1722
 
 def word864_2_1724 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4609, 4597)]
@@ -7618,7 +7606,7 @@ def word864_2_1733 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4605, 4601)]
 
 def word864_2_1734 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1733
+.seq word864_0_6 word864_2_1733
 
 def word864_2_1735 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4609 0#64)
@@ -7702,7 +7690,7 @@ def word864_2_1742 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1715 word864_2_1741
 
 def word864_2_1743 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1742 word864_2_42
+.seq word864_2_1742 word864_0_10
 
 def word864_2_1744 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4613, 4609)]
@@ -7720,7 +7708,7 @@ def word864_2_1748 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4621 1#64)
 
 def word864_2_1749 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1748 word864_2_42
+.seq word864_2_1748 word864_0_10
 
 def word864_2_1750 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4625 1#64)
@@ -7768,7 +7756,7 @@ def word864_2_1764 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4649, 4625)]
 
 def word864_2_1765 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1764
+.seq word864_0_6 word864_2_1764
 
 def word864_2_1766 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4653, 4633)]
@@ -7789,7 +7777,7 @@ def word864_2_1771 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4649 0#64)
 
 def word864_2_1772 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1771
+.seq word864_0_6 word864_2_1771
 
 def word864_2_1773 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4653 0#64)
@@ -7801,7 +7789,7 @@ def word864_2_1775 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1770 word864_2_1774
 
 def word864_2_1776 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1775
+.seq word864_0_6 word864_2_1775
 
 def word864_2_1777 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.equal) 4613 (Flapjack.WordRegImm.reg 4617) word864_2_1769 word864_2_1776
@@ -7810,7 +7798,7 @@ def word864_2_1778 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4657 0#64)
 
 def word864_2_1779 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1778 word864_2_42
+.seq word864_2_1778 word864_0_10
 
 def word864_2_1780 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4661 0#64)
@@ -7825,7 +7813,7 @@ def word864_2_1783 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1747 word864_2_1782
 
 def word864_2_1784 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1783 word864_2_42
+.seq word864_2_1783 word864_0_10
 
 def word864_2_1785 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4665, 4585)]
@@ -7871,7 +7859,7 @@ def word864_2_1798 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4721, 2)]
 
 def word864_2_1799 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1798 word864_2_16
+.seq word864_2_1798 word864_0_6
 
 def word864_2_1800 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1797 word864_2_1799
@@ -7880,7 +7868,7 @@ def word864_2_1801 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4729 0#64)
 
 def word864_2_1802 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1801
+.seq word864_0_6 word864_2_1801
 
 def word864_2_1803 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4733, 4721)]
@@ -7913,7 +7901,7 @@ def word864_2_1812 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4729, 4725)]
 
 def word864_2_1813 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1812
+.seq word864_0_6 word864_2_1812
 
 def word864_2_1814 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4733 0#64)
@@ -7985,7 +7973,7 @@ def word864_2_1821 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1794 word864_2_1820
 
 def word864_2_1822 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1821 word864_2_42
+.seq word864_2_1821 word864_0_10
 
 def word864_2_1823 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4737, 4733)]
@@ -8003,7 +7991,7 @@ def word864_2_1827 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4745 1#64)
 
 def word864_2_1828 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1827 word864_2_42
+.seq word864_2_1827 word864_0_10
 
 def word864_2_1829 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4749 1#64)
@@ -8051,7 +8039,7 @@ def word864_2_1843 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4773, 4749)]
 
 def word864_2_1844 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1843
+.seq word864_0_6 word864_2_1843
 
 def word864_2_1845 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4777, 4757)]
@@ -8072,7 +8060,7 @@ def word864_2_1850 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4773 0#64)
 
 def word864_2_1851 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1850
+.seq word864_0_6 word864_2_1850
 
 def word864_2_1852 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4777 0#64)
@@ -8084,7 +8072,7 @@ def word864_2_1854 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1849 word864_2_1853
 
 def word864_2_1855 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1854
+.seq word864_0_6 word864_2_1854
 
 def word864_2_1856 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.equal) 4737 (Flapjack.WordRegImm.reg 4741) word864_2_1848 word864_2_1855
@@ -8093,7 +8081,7 @@ def word864_2_1857 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4781 0#64)
 
 def word864_2_1858 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1857 word864_2_42
+.seq word864_2_1857 word864_0_10
 
 def word864_2_1859 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4785 0#64)
@@ -8108,7 +8096,7 @@ def word864_2_1862 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1826 word864_2_1861
 
 def word864_2_1863 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1862 word864_2_42
+.seq word864_2_1862 word864_0_10
 
 def word864_2_1864 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.get 4789 Flapjack.WordStore.heapLength
@@ -8161,7 +8149,7 @@ def word864_2_1878 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4817 1#64)
 
 def word864_2_1879 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1878 word864_2_42
+.seq word864_2_1878 word864_0_10
 
 def word864_2_1880 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4821 1#64)
@@ -8206,7 +8194,7 @@ def word864_2_1893 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4849, 4829), (4845, 4821), (4841, 4817), (4837, 4833)]
 
 def word864_2_1894 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1893 word864_2_16
+.seq word864_2_1893 word864_0_6
 
 def word864_2_1895 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1892 word864_2_1894
@@ -8215,10 +8203,10 @@ def word864_2_1896 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 2 [(4849, 4809), (4845, 4785), (4841, 4805), (4837, 4765)]
 
 def word864_2_1897 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1896 word864_2_16
+.seq word864_2_1896 word864_0_6
 
 def word864_2_1898 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1897
+.seq word864_0_6 word864_2_1897
 
 def word864_2_1899 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.notEqual) 4805 (Flapjack.WordRegImm.reg 4813) word864_2_1895 word864_2_1898
@@ -8227,7 +8215,7 @@ def word864_2_1900 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4853 0#64)
 
 def word864_2_1901 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1900 word864_2_42
+.seq word864_2_1900 word864_0_10
 
 def word864_2_1902 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4857 0#64)
@@ -8242,7 +8230,7 @@ def word864_2_1905 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1877 word864_2_1904
 
 def word864_2_1906 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1905 word864_2_42
+.seq word864_2_1905 word864_0_10
 
 def word864_2_1907 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4861, 4717)]
@@ -8288,7 +8276,7 @@ def word864_2_1920 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4909, 2)]
 
 def word864_2_1921 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1920 word864_2_16
+.seq word864_2_1920 word864_0_6
 
 def word864_2_1922 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1919 word864_2_1921
@@ -8297,7 +8285,7 @@ def word864_2_1923 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4917 0#64)
 
 def word864_2_1924 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1923
+.seq word864_0_6 word864_2_1923
 
 def word864_2_1925 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4921, 4909)]
@@ -8330,7 +8318,7 @@ def word864_2_1934 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4917, 4913)]
 
 def word864_2_1935 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1934
+.seq word864_0_6 word864_2_1934
 
 def word864_2_1936 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4921 0#64)
@@ -8393,7 +8381,7 @@ def word864_2_1943 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1916 word864_2_1942
 
 def word864_2_1944 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1943 word864_2_42
+.seq word864_2_1943 word864_0_10
 
 def word864_2_1945 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4925, 4921)]
@@ -8411,7 +8399,7 @@ def word864_2_1949 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4933 1#64)
 
 def word864_2_1950 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1949 word864_2_42
+.seq word864_2_1949 word864_0_10
 
 def word864_2_1951 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4937 1#64)
@@ -8459,7 +8447,7 @@ def word864_2_1965 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4961, 4937)]
 
 def word864_2_1966 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1965
+.seq word864_0_6 word864_2_1965
 
 def word864_2_1967 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4965, 4945)]
@@ -8480,7 +8468,7 @@ def word864_2_1972 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4961 0#64)
 
 def word864_2_1973 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1972
+.seq word864_0_6 word864_2_1972
 
 def word864_2_1974 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4965 0#64)
@@ -8492,7 +8480,7 @@ def word864_2_1976 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1971 word864_2_1975
 
 def word864_2_1977 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_1976
+.seq word864_0_6 word864_2_1976
 
 def word864_2_1978 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.equal) 4925 (Flapjack.WordRegImm.reg 4929) word864_2_1970 word864_2_1977
@@ -8501,7 +8489,7 @@ def word864_2_1979 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4969 0#64)
 
 def word864_2_1980 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1979 word864_2_42
+.seq word864_2_1979 word864_0_10
 
 def word864_2_1981 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 4973 0#64)
@@ -8516,7 +8504,7 @@ def word864_2_1984 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1948 word864_2_1983
 
 def word864_2_1985 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1984 word864_2_42
+.seq word864_2_1984 word864_0_10
 
 def word864_2_1986 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4977, 4905)]
@@ -8562,7 +8550,7 @@ def word864_2_1999 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(5009, 2)]
 
 def word864_2_2000 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_1999 word864_2_16
+.seq word864_2_1999 word864_0_6
 
 def word864_2_2001 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1998 word864_2_2000
@@ -8571,7 +8559,7 @@ def word864_2_2002 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 5017 0#64)
 
 def word864_2_2003 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_2002
+.seq word864_0_6 word864_2_2002
 
 def word864_2_2004 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(5021, 5009)]
@@ -8604,7 +8592,7 @@ def word864_2_2013 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(5017, 5013)]
 
 def word864_2_2014 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_2013
+.seq word864_0_6 word864_2_2013
 
 def word864_2_2015 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 5021 0#64)
@@ -8646,7 +8634,7 @@ def word864_2_2022 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_1995 word864_2_2021
 
 def word864_2_2023 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_2022 word864_2_42
+.seq word864_2_2022 word864_0_10
 
 def word864_2_2024 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(5025, 5021)]
@@ -8664,7 +8652,7 @@ def word864_2_2028 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 5033 1#64)
 
 def word864_2_2029 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_2028 word864_2_42
+.seq word864_2_2028 word864_0_10
 
 def word864_2_2030 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 5037 1#64)
@@ -8712,7 +8700,7 @@ def word864_2_2044 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(5061, 5037)]
 
 def word864_2_2045 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_2044
+.seq word864_0_6 word864_2_2044
 
 def word864_2_2046 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(5065, 5045)]
@@ -8733,7 +8721,7 @@ def word864_2_2051 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 5061 0#64)
 
 def word864_2_2052 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_2051
+.seq word864_0_6 word864_2_2051
 
 def word864_2_2053 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 5065 0#64)
@@ -8745,7 +8733,7 @@ def word864_2_2055 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_2050 word864_2_2054
 
 def word864_2_2056 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_16 word864_2_2055
+.seq word864_0_6 word864_2_2055
 
 def word864_2_2057 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.equal) 5025 (Flapjack.WordRegImm.reg 5029) word864_2_2049 word864_2_2056
@@ -8754,7 +8742,7 @@ def word864_2_2058 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 5069 0#64)
 
 def word864_2_2059 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_2058 word864_2_42
+.seq word864_2_2058 word864_0_10
 
 def word864_2_2060 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 5073 0#64)
@@ -8769,7 +8757,7 @@ def word864_2_2063 : WordLangProgHOL (BitVec 64) :=
 .seq word864_2_2027 word864_2_2062
 
 def word864_2_2064 : WordLangProgHOL (BitVec 64) :=
-.seq word864_2_2063 word864_2_42
+.seq word864_2_2063 word864_0_10
 
 def word864_2_2065 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 5077 0#64)
