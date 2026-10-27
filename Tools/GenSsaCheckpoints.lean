@@ -144,7 +144,7 @@ unsafe def main (args : List String) : IO Unit := do
   let moveName ← wordProgData env programs move
   let mapName ← sparse env st "Spt Nat" map
   let s ← st.get
-  let dir := s!"submission/InitECandidate/Proofs/SsaCheckpoints{label}"
+  let dir := s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/SsaCheckpoints{label}"
   IO.FS.createDirAll dir
   let header := "set_option Elab.async false\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\nopen Flapjack Flapjack.Compiler.Backend\nopen InitECandidate.Proofs.SmallSsaKernelComputation\n" ++ s!"namespace {ns}\n"
   let imports := s!"import {ns}.Program\nimport InitECandidate.Proofs.SmallSsaKernelComputation\n"

@@ -155,7 +155,7 @@ unsafe def main (args : List String) : IO Unit := do
   let outputName ← wordProgData env programs output
   let emptyName ← knowledge env state WordCse.emptyData
   let st ← state.get
-  let dir := s!"submission/InitECandidate/Proofs/CseCheckpoints{label}"
+  let dir := s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/CseCheckpoints{label}"
   IO.FS.createDirAll dir
   let ns := s!"InitECandidate.Proofs.CseCheckpoints{label}"
   let header := "set_option Elab.async false\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\nopen Flapjack Flapjack.Compiler.Backend\n" ++ s!"namespace {ns}\n"
