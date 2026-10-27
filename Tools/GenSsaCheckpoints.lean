@@ -175,7 +175,7 @@ unsafe def main (args : List String) : IO Unit := do
     s!"theorem limit_eq : WordAlloc.limitVar {pName} = {limit} := by kernel_rfl\n" ++
     s!"theorem setup_eq : WordAlloc.setupSSA (outputWidth := 64) {argc} {limit} {pName} = ({moveName},{mapName},{next}) := by kernel_rfl\n" ++
     s!"theorem checked : WordAlloc.fullSsaCcTrans {argc} {pName} = InitECandidate.Proofs.WordStages.pass{label}_2 := by\n" ++
-    s!"  rw [fullSsaStructural_eq]\n  unfold fullSsaStructural\n  rw [limit_eq, setup_eq, node{root}_eq]\n  kernel_rfl\n#print axioms checked\nend {ns}\n")
+    s!"  rw [fullSsaStructural_eq]\n  unfold fullSsaStructural\n  rw [limit_eq]\n  dsimp only\n  rw [setup_eq]\n  dsimp only\n  have root_eq := node{root}_eq\n  change ssaStructural {pName} {mapName} {next} [] = _ at root_eq\n  rw [root_eq]\n  kernel_rfl\n#print axioms checked\nend {ns}\n")
   IO.println s!"SSA {label}: {s.next} transitions, {s.literals.size} shared state literals"
 
 end SsaCheckpoints
