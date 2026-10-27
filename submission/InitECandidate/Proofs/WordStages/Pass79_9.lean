@@ -285,9 +285,6 @@ some
 def word79_9_0 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(0, 0), (2, 2), (4, 4), (6, 6)]
 
-def word79_9_1 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 12 0#64)
-
 def word79_9_2 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(10, 2), (4, 4)]
 
@@ -301,9 +298,6 @@ Flapjack.WordLangProgHOL.inst
 
 def word79_9_5 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 24 0#64)
-
-def word79_9_6 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.tick
 
 def word79_9_7 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(6, 6)]
@@ -339,13 +333,10 @@ def word79_9_17 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_13 word79_9_16
 
 def word79_9_18 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_17
-
-def word79_9_19 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.skip
+.seq word79_0_6 word79_9_17
 
 def word79_9_20 : WordLangProgHOL (BitVec 64) :=
-.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 24) word79_9_18 word79_9_19
+.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 24) word79_9_18 word79_0_22
 
 def word79_9_21 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.mem Flapjack.WordMemOp.load 2 (Flapjack.WordLangAddr.addr 10 8#64))
@@ -402,7 +393,7 @@ def word79_9_35 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(4, 4), (2, 2)]
 
 def word79_9_36 : WordLangProgHOL (BitVec 64) :=
-.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 4) word79_9_18 word79_9_19
+.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 4) word79_9_18 word79_0_22
 
 def word79_9_37 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.const 2 1#64)
@@ -411,10 +402,10 @@ def word79_9_38 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_37 word79_9_16
 
 def word79_9_39 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_38
+.seq word79_0_6 word79_9_38
 
 def word79_9_40 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_39
+.seq word79_0_6 word79_9_39
 
 def word79_9_41 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_40
@@ -441,10 +432,10 @@ def word79_9_48 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_9 word79_9_47
 
 def word79_9_49 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_48
+.seq word79_0_6 word79_9_48
 
 def word79_9_50 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_49
+.seq word79_0_6 word79_9_49
 
 def word79_9_51 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_20 word79_9_50
@@ -471,10 +462,10 @@ def word79_9_58 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_9 word79_9_57
 
 def word79_9_59 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_58
+.seq word79_0_6 word79_9_58
 
 def word79_9_60 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_59
+.seq word79_0_6 word79_9_59
 
 def word79_9_61 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_20 word79_9_60
@@ -501,10 +492,10 @@ def word79_9_68 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_9 word79_9_67
 
 def word79_9_69 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_68
+.seq word79_0_6 word79_9_68
 
 def word79_9_70 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_69
+.seq word79_0_6 word79_9_69
 
 def word79_9_71 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_20 word79_9_70
@@ -531,10 +522,10 @@ def word79_9_78 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_9 word79_9_77
 
 def word79_9_79 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_78
+.seq word79_0_6 word79_9_78
 
 def word79_9_80 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_79
+.seq word79_0_6 word79_9_79
 
 def word79_9_81 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_20 word79_9_80
@@ -552,10 +543,10 @@ def word79_9_85 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_9 word79_9_84
 
 def word79_9_86 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_85
+.seq word79_0_6 word79_9_85
 
 def word79_9_87 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_86
+.seq word79_0_6 word79_9_86
 
 def word79_9_88 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_20 word79_9_87
@@ -573,7 +564,7 @@ def word79_9_92 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_9 word79_9_91
 
 def word79_9_93 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_92
+.seq word79_0_6 word79_9_92
 
 def word79_9_94 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 2 [(16, 4), (18, 10)]
@@ -631,10 +622,10 @@ def word79_9_110 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_97 word79_9_109
 
 def word79_9_111 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_110
+.seq word79_0_6 word79_9_110
 
 def word79_9_112 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_111
+.seq word79_0_6 word79_9_111
 
 def word79_9_113 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_112
@@ -652,10 +643,10 @@ def word79_9_117 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_97 word79_9_116
 
 def word79_9_118 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_117
+.seq word79_0_6 word79_9_117
 
 def word79_9_119 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_118
+.seq word79_0_6 word79_9_118
 
 def word79_9_120 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_119
@@ -673,10 +664,10 @@ def word79_9_124 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_97 word79_9_123
 
 def word79_9_125 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_124
+.seq word79_0_6 word79_9_124
 
 def word79_9_126 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_125
+.seq word79_0_6 word79_9_125
 
 def word79_9_127 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_126
@@ -694,7 +685,7 @@ def word79_9_131 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_97 word79_9_130
 
 def word79_9_132 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_131
+.seq word79_0_6 word79_9_131
 
 def word79_9_133 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 2 [(8, 16), (14, 18)]
@@ -799,10 +790,10 @@ def word79_9_162 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_161
 
 def word79_9_163 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_162
+.seq word79_0_6 word79_9_162
 
 def word79_9_164 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_163
+.seq word79_0_6 word79_9_163
 
 def word79_9_165 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_164
@@ -829,10 +820,10 @@ def word79_9_172 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_171
 
 def word79_9_173 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_172
+.seq word79_0_6 word79_9_172
 
 def word79_9_174 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_173
+.seq word79_0_6 word79_9_173
 
 def word79_9_175 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_174
@@ -859,10 +850,10 @@ def word79_9_182 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_181
 
 def word79_9_183 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_182
+.seq word79_0_6 word79_9_182
 
 def word79_9_184 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_183
+.seq word79_0_6 word79_9_183
 
 def word79_9_185 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_184
@@ -889,10 +880,10 @@ def word79_9_192 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_191
 
 def word79_9_193 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_192
+.seq word79_0_6 word79_9_192
 
 def word79_9_194 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_193
+.seq word79_0_6 word79_9_193
 
 def word79_9_195 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_194
@@ -910,10 +901,10 @@ def word79_9_199 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_198
 
 def word79_9_200 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_199
+.seq word79_0_6 word79_9_199
 
 def word79_9_201 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_200
+.seq word79_0_6 word79_9_200
 
 def word79_9_202 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_201
@@ -931,10 +922,10 @@ def word79_9_206 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_205
 
 def word79_9_207 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_206
+.seq word79_0_6 word79_9_206
 
 def word79_9_208 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_207
+.seq word79_0_6 word79_9_207
 
 def word79_9_209 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_208
@@ -952,10 +943,10 @@ def word79_9_213 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_212
 
 def word79_9_214 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_213
+.seq word79_0_6 word79_9_213
 
 def word79_9_215 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_214
+.seq word79_0_6 word79_9_214
 
 def word79_9_216 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_215
@@ -973,10 +964,10 @@ def word79_9_220 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_219
 
 def word79_9_221 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_220
+.seq word79_0_6 word79_9_220
 
 def word79_9_222 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_221
+.seq word79_0_6 word79_9_221
 
 def word79_9_223 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_222
@@ -994,10 +985,10 @@ def word79_9_227 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_226
 
 def word79_9_228 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_227
+.seq word79_0_6 word79_9_227
 
 def word79_9_229 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_228
+.seq word79_0_6 word79_9_228
 
 def word79_9_230 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_36 word79_9_229
@@ -1015,7 +1006,7 @@ def word79_9_234 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_136 word79_9_233
 
 def word79_9_235 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_234
+.seq word79_0_6 word79_9_234
 
 def word79_9_236 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 2 [(20, 8), (22, 14)]
@@ -1051,7 +1042,7 @@ def word79_9_245 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.mem Flapjack.WordMemOp.load 12 (Flapjack.WordLangAddr.addr 8 0#64))
 
 def word79_9_246 : WordLangProgHOL (BitVec 64) :=
-.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 12) word79_9_18 word79_9_19
+.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 12) word79_9_18 word79_0_22
 
 def word79_9_247 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(14, 14), (10, 10)]
@@ -1070,22 +1061,19 @@ def word79_9_251 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.inst (Flapjack.WordLangInst.mem Flapjack.WordMemOp.load 8 (Flapjack.WordLangAddr.addr 8 24#64))
 
 def word79_9_252 : WordLangProgHOL (BitVec 64) :=
-.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 8) word79_9_18 word79_9_19
+.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 8) word79_9_18 word79_0_22
 
 def word79_9_253 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4, 4), (10, 10), (12, 16), (6, 6)]
 
-def word79_9_254 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.continue 0
-
 def word79_9_255 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_253 word79_9_254
+.seq word79_9_253 word79_0_211
 
 def word79_9_256 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_255
+.seq word79_0_6 word79_9_255
 
 def word79_9_257 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_256
+.seq word79_0_6 word79_9_256
 
 def word79_9_258 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_252 word79_9_257
@@ -1103,10 +1091,10 @@ def word79_9_262 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_247 word79_9_261
 
 def word79_9_263 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_262
+.seq word79_0_6 word79_9_262
 
 def word79_9_264 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_263
+.seq word79_0_6 word79_9_263
 
 def word79_9_265 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_246 word79_9_264
@@ -1124,10 +1112,10 @@ def word79_9_269 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_247 word79_9_268
 
 def word79_9_270 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_269
+.seq word79_0_6 word79_9_269
 
 def word79_9_271 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_270
+.seq word79_0_6 word79_9_270
 
 def word79_9_272 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_246 word79_9_271
@@ -1145,10 +1133,10 @@ def word79_9_276 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_247 word79_9_275
 
 def word79_9_277 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_276
+.seq word79_0_6 word79_9_276
 
 def word79_9_278 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_277
+.seq word79_0_6 word79_9_277
 
 def word79_9_279 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_246 word79_9_278
@@ -1172,19 +1160,16 @@ def word79_9_285 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_241 word79_9_284
 
 def word79_9_286 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_285
+.seq word79_0_6 word79_9_285
 
 def word79_9_287 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(12, 12), (6, 6)]
 
-def word79_9_288 : WordLangProgHOL (BitVec 64) :=
-Flapjack.WordLangProgHOL.break 0
-
 def word79_9_289 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_287 word79_9_288
+.seq word79_9_287 word79_0_213
 
 def word79_9_290 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_289
+.seq word79_0_6 word79_9_289
 
 def word79_9_291 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.notLower) 6 (Flapjack.WordRegImm.reg 16) word79_9_286 word79_9_290
@@ -1193,7 +1178,7 @@ def word79_9_292 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4, 4), (10, 10), (12, 12), (6, 6)]
 
 def word79_9_293 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_292
+.seq word79_0_6 word79_9_292
 
 def word79_9_294 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_291 word79_9_293
@@ -1239,13 +1224,13 @@ def word79_9_304 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4, 4), (10, 10), (12, 8), (6, 6)]
 
 def word79_9_305 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_304 word79_9_254
+.seq word79_9_304 word79_0_211
 
 def word79_9_306 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_305
+.seq word79_0_6 word79_9_305
 
 def word79_9_307 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_306
+.seq word79_0_6 word79_9_306
 
 def word79_9_308 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_246 word79_9_307
@@ -1269,7 +1254,7 @@ def word79_9_314 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_241 word79_9_313
 
 def word79_9_315 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_314
+.seq word79_0_6 word79_9_314
 
 def word79_9_316 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.notLower) 6 (Flapjack.WordRegImm.reg 8) word79_9_315 word79_9_290
@@ -1296,7 +1281,7 @@ def word79_9_321 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(0, 0), (4, 4), (10, 10), (12, 12), (6, 6)]
 
 def word79_9_322 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_321
+.seq word79_0_6 word79_9_321
 
 def word79_9_323 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_320 word79_9_322
@@ -1305,10 +1290,10 @@ def word79_9_324 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_298 word79_9_323
 
 def word79_9_325 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_324
+.seq word79_0_6 word79_9_324
 
 def word79_9_326 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_325
+.seq word79_0_6 word79_9_325
 
 def word79_9_327 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_297 word79_9_326
@@ -1317,13 +1302,13 @@ def word79_9_328 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_238 word79_9_327
 
 def word79_9_329 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_328
+.seq word79_0_6 word79_9_328
 
 def word79_9_330 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_329
+.seq word79_0_6 word79_9_329
 
 def word79_9_331 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_330
+.seq word79_0_6 word79_9_330
 
 def word79_9_332 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_237 word79_9_331
@@ -1335,10 +1320,10 @@ def word79_9_334 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_7 word79_9_333
 
 def word79_9_335 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_334
+.seq word79_0_6 word79_9_334
 
 def word79_9_336 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_335
+.seq word79_0_6 word79_9_335
 
 def word79_9_337 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_134 word79_9_336
@@ -1350,10 +1335,10 @@ def word79_9_339 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_7 word79_9_338
 
 def word79_9_340 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_339
+.seq word79_0_6 word79_9_339
 
 def word79_9_341 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_340
+.seq word79_0_6 word79_9_340
 
 def word79_9_342 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_95 word79_9_341
@@ -1365,7 +1350,7 @@ def word79_9_344 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_7 word79_9_343
 
 def word79_9_345 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_344
+.seq word79_0_6 word79_9_344
 
 def word79_9_346 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.equal) 2 (Flapjack.WordRegImm.reg 24) word79_9_345 word79_9_322
@@ -1389,7 +1374,7 @@ def word79_9_351 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(16, 16), (2, 2)]
 
 def word79_9_352 : WordLangProgHOL (BitVec 64) :=
-.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 16) word79_9_18 word79_9_19
+.ite (Flapjack.Cmp.notEqual) 2 (Flapjack.WordRegImm.reg 16) word79_9_18 word79_0_22
 
 def word79_9_353 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 0 [(8, 8), (10, 10)]
@@ -1467,13 +1452,13 @@ def word79_9_372 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(4, 4), (10, 10), (12, 14), (6, 6)]
 
 def word79_9_373 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_372 word79_9_254
+.seq word79_9_372 word79_0_211
 
 def word79_9_374 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_373
+.seq word79_0_6 word79_9_373
 
 def word79_9_375 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_374
+.seq word79_0_6 word79_9_374
 
 def word79_9_376 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_252 word79_9_375
@@ -1500,10 +1485,10 @@ def word79_9_383 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_353 word79_9_382
 
 def word79_9_384 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_383
+.seq word79_0_6 word79_9_383
 
 def word79_9_385 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_384
+.seq word79_0_6 word79_9_384
 
 def word79_9_386 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_352 word79_9_385
@@ -1530,10 +1515,10 @@ def word79_9_393 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_353 word79_9_392
 
 def word79_9_394 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_393
+.seq word79_0_6 word79_9_393
 
 def word79_9_395 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_394
+.seq word79_0_6 word79_9_394
 
 def word79_9_396 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_352 word79_9_395
@@ -1560,10 +1545,10 @@ def word79_9_403 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_353 word79_9_402
 
 def word79_9_404 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_403
+.seq word79_0_6 word79_9_403
 
 def word79_9_405 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_404
+.seq word79_0_6 word79_9_404
 
 def word79_9_406 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_352 word79_9_405
@@ -1590,10 +1575,10 @@ def word79_9_413 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_353 word79_9_412
 
 def word79_9_414 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_413
+.seq word79_0_6 word79_9_413
 
 def word79_9_415 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_414
+.seq word79_0_6 word79_9_414
 
 def word79_9_416 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_352 word79_9_415
@@ -1620,10 +1605,10 @@ def word79_9_423 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_353 word79_9_422
 
 def word79_9_424 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_423
+.seq word79_0_6 word79_9_423
 
 def word79_9_425 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_424
+.seq word79_0_6 word79_9_424
 
 def word79_9_426 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_352 word79_9_425
@@ -1650,10 +1635,10 @@ def word79_9_433 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_353 word79_9_432
 
 def word79_9_434 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_433
+.seq word79_0_6 word79_9_433
 
 def word79_9_435 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_434
+.seq word79_0_6 word79_9_434
 
 def word79_9_436 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_352 word79_9_435
@@ -1680,10 +1665,10 @@ def word79_9_443 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_353 word79_9_442
 
 def word79_9_444 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_443
+.seq word79_0_6 word79_9_443
 
 def word79_9_445 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_444
+.seq word79_0_6 word79_9_444
 
 def word79_9_446 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_352 word79_9_445
@@ -1710,7 +1695,7 @@ def word79_9_453 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_241 word79_9_452
 
 def word79_9_454 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_453
+.seq word79_0_6 word79_9_453
 
 def word79_9_455 : WordLangProgHOL (BitVec 64) :=
 .ite (Flapjack.Cmp.notLower) 6 (Flapjack.WordRegImm.reg 14) word79_9_454 word79_9_290
@@ -1744,7 +1729,7 @@ Flapjack.WordLangProgHOL.inst
   (Flapjack.WordLangInst.arith (Flapjack.WordLangArith.binop Flapjack.BinOp.add 12 12 (Flapjack.WordRegImm.imm 1#64)))
 
 def word79_9_463 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_292 word79_9_254
+.seq word79_9_292 word79_0_211
 
 def word79_9_464 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_462 word79_9_463
@@ -1753,10 +1738,10 @@ def word79_9_465 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_461 word79_9_464
 
 def word79_9_466 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_465
+.seq word79_0_6 word79_9_465
 
 def word79_9_467 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_466
+.seq word79_0_6 word79_9_466
 
 def word79_9_468 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_252 word79_9_467
@@ -1783,13 +1768,10 @@ def word79_9_475 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_241 word79_9_474
 
 def word79_9_476 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_475
-
-def word79_9_477 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_288
+.seq word79_0_6 word79_9_475
 
 def word79_9_478 : WordLangProgHOL (BitVec 64) :=
-.ite (Flapjack.Cmp.lower) 12 (Flapjack.WordRegImm.reg 6) word79_9_476 word79_9_477
+.ite (Flapjack.Cmp.lower) 12 (Flapjack.WordRegImm.reg 6) word79_9_476 word79_3_1006
 
 def word79_9_479 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_478 word79_9_293
@@ -1810,10 +1792,10 @@ def word79_9_483 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_298 word79_9_482
 
 def word79_9_484 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_483
+.seq word79_0_6 word79_9_483
 
 def word79_9_485 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_484
+.seq word79_0_6 word79_9_484
 
 def word79_9_486 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_459 word79_9_485
@@ -1822,10 +1804,10 @@ def word79_9_487 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_298 word79_9_486
 
 def word79_9_488 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_487
+.seq word79_0_6 word79_9_487
 
 def word79_9_489 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_6 word79_9_488
+.seq word79_0_6 word79_9_488
 
 def word79_9_490 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_346 word79_9_489
@@ -1843,7 +1825,7 @@ def word79_9_494 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_2 word79_9_493
 
 def word79_9_495 : WordLangProgHOL (BitVec 64) :=
-.seq word79_9_1 word79_9_494
+.seq word79_1_69 word79_9_494
 
 def word79_9_496 : WordLangProgHOL (BitVec 64) :=
 .seq word79_9_0 word79_9_495

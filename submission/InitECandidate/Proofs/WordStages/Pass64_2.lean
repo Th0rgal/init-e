@@ -3528,11 +3528,8 @@ def word64_2_1071 : WordLangProgHOL (BitVec 64) :=
 def word64_2_1072 : WordLangProgHOL (BitVec 64) :=
 Flapjack.WordLangProgHOL.move 1 [(0, 9)]
 
-def word64_2_1073 : WordLangProgHOL (BitVec 64) :=
-.call (none) (some 65) ([0]) (none)
-
 def word64_2_1074 : WordLangProgHOL (BitVec 64) :=
-.seq word64_2_1072 word64_2_1073
+.seq word64_2_1072 word64_0_337
 
 def word64_2_1075 : WordLangProgHOL (BitVec 64) :=
 .seq word64_2_1071 word64_2_1074

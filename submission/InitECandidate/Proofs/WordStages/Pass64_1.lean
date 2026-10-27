@@ -1377,11 +1377,8 @@ def word64_1_409 : WordLangProgHOL (BitVec 64) :=
 def word64_1_410 : WordLangProgHOL (BitVec 64) :=
 .seq word64_1_409 word64_1_13
 
-def word64_1_411 : WordLangProgHOL (BitVec 64) :=
-.call (none) (some 65) ([0]) (none)
-
 def word64_1_412 : WordLangProgHOL (BitVec 64) :=
-.seq word64_1_410 word64_1_411
+.seq word64_1_410 word64_0_337
 
 def pass64_1 : WordLangProgHOL (BitVec 64) :=
 word64_1_412
