@@ -132,10 +132,7 @@ unsafe def main (args : List String) : IO Unit := do
   let names := env.constants.fold (init := #[]) fun names name info =>
     if name.toString.startsWith nodePrefix && info.type == toTypeExpr Program then names.push name else names
   for (name,index) in names.zipIdx do
-    let .ok value := env.evalConst Program {} name
-      | throw (IO.userError s!"cannot evaluate literal {name}")
-    let expr ← shareWordStageExpr programs (toExpr value)
-    programs.modify fun s => {s with values := s.values.insert expr name.toString}
+    let _ ← seedWordProgConst env programs name
     if index % 1024 == 0 then IO.println s!"SSA {label}: seeded {index+1}/{names.size} literals"
   let st ← IO.mkRef ({} : State)
   let limit := limitVar p
