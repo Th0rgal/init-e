@@ -1,4 +1,5 @@
 import Tools.CompactCertificates
+import Tools.WordStageData
 import Lean
 import InitE.SourceDeclarations
 import InitECandidate.Proofs.DeadComputation
@@ -12,20 +13,6 @@ set_option maxRecDepth 1000000
 set_option maxHeartbeats 0
 
 set_option Elab.async false
-deriving instance ToExpr for Flapjack.BinOp
-deriving instance ToExpr for Flapjack.Shift
-deriving instance ToExpr for Flapjack.Cmp
-deriving instance ToExpr for Flapjack.WordMemOp
-deriving instance ToExpr for Flapjack.WordStore
-deriving instance ToExpr for Flapjack.WordRegImm
-deriving instance ToExpr for Flapjack.Spt
-deriving instance ToExpr for Flapjack.RegAlloc.ClashTree
-deriving instance ToExpr for Flapjack.Basis.Pure.MlString.MlString
-deriving instance ToExpr for Flapjack.WordLangArith
-deriving instance ToExpr for Flapjack.WordLangAddr
-deriving instance ToExpr for Flapjack.WordLangInst
-deriving instance ToExpr for Flapjack.WordLangExpHOL
-deriving instance ToExpr for Flapjack.WordLangProgHOL
 
 deriving instance ToExpr for Flapjack.PanOp
 deriving instance ToExpr for Flapjack.VarKind
@@ -117,19 +104,6 @@ instance : ToExpr (HolLoopProg 64) where
   toTypeExpr := loopLiteralType ``HolLoopProg
   toExpr := loopProgExpr
 
-def renderWordStage (env : Environment) (e : Expr) : IO String := do
-  let options := ({} : Options).set `pp.maxDepth (1000000 : Nat)
-    |>.set `pp.width (120 : Nat) |>.set `pp.universes false
-    |>.set `pp.maxSteps (1000000000 : Nat) |>.set `pp.deepTerms true
-    |>.set `pp.fieldNotation false
-    |>.set `maxRecDepth (1000000 : Nat) |>.set `maxHeartbeats (0 : Nat)
-  let (fmt, _, _) ← Meta.MetaM.toIO (Meta.ppExpr e)
-    { fileName := "<word-stage>", fileMap := default, options := options }
-    { env := env }
-  let rendered := fmt.pretty
-  if rendered.startsWith "failed to pretty print" || rendered.contains '⋯' then
-    throw (IO.userError "incomplete pretty-printer output")
-  pure rendered
 
 partial def frontendWeight : Prog (BitVec 64) → Nat
   | .seq a b => 1 + frontendWeight a + frontendWeight b
@@ -158,10 +132,6 @@ def declarationWeight (d : Pancake.PanLang.DeclHOL 64) : Nat :=
   | .function fn => frontendWeight fn.body
   | _ => 1
 
-structure PancakeDataState where
-  tag : String := "body"
-  values : Std.HashMap Expr String := {}
-  lines : Array String := #[]
 
 partial def pancakeProgData (env : Environment) (state : IO.Ref PancakeDataState)
     (program : Prog (BitVec 64)) : IO String := do
@@ -282,53 +252,6 @@ partial def crepProgData (env : Environment) (state : IO.Ref PancakeDataState)
   state.modify fun st => { st with values := st.values.insert expr name, lines := st.lines.push s!"def {name} : CrepProg (BitVec 64) :=\n{text}\n" }
   return name
 
-partial def wordProgData (env : Environment) (state : IO.Ref PancakeDataState)
-    (program : WordLangProgHOL (BitVec 64)) : IO String := do
-  let expr := toExpr program
-  let st ← state.get
-  if let some name := st.values[expr]? then return name
-  let text ← match program with
-    | .seq a b => do
-      let a ← wordProgData env state a
-      let b ← wordProgData env state b
-      pure s!".seq {a} {b}"
-    | .mustTerminate body => do
-      let body ← wordProgData env state body
-      pure s!".mustTerminate {body}"
-    | .ite op lhs rhs a b => do
-      let op ← renderWordStage env (toExpr op)
-      let rhs ← renderWordStage env (toExpr rhs)
-      let a ← wordProgData env state a
-      let b ← wordProgData env state b
-      pure s!".ite ({op}) {lhs} ({rhs}) {a} {b}"
-    | .loop before body after => do
-      let before ← renderWordStage env (toExpr before)
-      let after ← renderWordStage env (toExpr after)
-      let body ← wordProgData env state body
-      pure s!".loop ({before}) {body} ({after})"
-    | .call ret target args handler => do
-      let ret ← match ret with
-        | none => pure "none"
-        | some (names, cutsets, body, first, second) => do
-          let names ← renderWordStage env (toExpr names)
-          let cutsets ← renderWordStage env (toExpr cutsets)
-          let body ← wordProgData env state body
-          pure s!"some (({names}), ({cutsets}), {body}, {first}, {second})"
-      let handler ← match handler with
-        | none => pure "none"
-        | some (name, body, first, second) => do
-          let body ← wordProgData env state body
-          pure s!"some ({name}, {body}, {first}, {second})"
-      let target ← renderWordStage env (toExpr target)
-      let args ← renderWordStage env (toExpr args)
-      pure s!".call ({ret}) ({target}) ({args}) ({handler})"
-    | _ => renderWordStage env expr
-  let st ← state.get
-  let name := s!"{st.tag}{st.values.size}"
-  state.modify fun st => {st with
-    values := st.values.insert expr name
-    lines := st.lines.push s!"def {name} : WordLangProgHOL (BitVec 64) :=\n{text}\n"}
-  return name
 
 structure LoopWordCheckpoint where
   input : String
@@ -1244,6 +1167,10 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
         "set_option Elab.async false\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\nset_option cbv.maxSteps 1000000000\nset_option cbv.warning false\n" ++
         "open scoped InitECandidate.Proofs.CompilerComputation InitECandidate.Proofs.ClashComputation\nopen Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Encoders.RiscV.Target\nopen InitECandidate.Proofs.WordStages\n" ++
         s!"namespace InitECandidate.Proofs.WordStages.Fused{label}\n"
+      -- Every pass imports its predecessor (or shares the fused namespace).
+      -- Retain structural keys across passes, but emit each declaration once.
+      -- This cache is rebuilt from the current guest on every generator run.
+      let dataState ← IO.mkRef ({} : PancakeDataState)
       for (program, index) in programs.zipIdx do
         let prev := if index == 0 then s!"source{label}.2.2" else s!"pass{label}_{index-1}"
         let imports := if index == 0 then s!"import InitECandidate.Proofs.WordStages.Source{label}\n"
@@ -1275,7 +1202,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
              s!"  simp only [WordInst.threeToTwoRegProg, riscvConfig, Bool.false_eq_true, if_false, pass{label}_6]\n" ++
              s!"#print axioms pass{label}_6_eq\nend InitECandidate.Proofs.WordStages\n")
           continue
-        let dataState ← IO.mkRef ({tag := s!"word{label}_{index}_"} : PancakeDataState)
+        dataState.modify fun st => { st with tag := s!"word{label}_{index}_", lines := #[] }
         let text ← if args.contains "--word-data-dag" then wordProgData env dataState program
           else renderWordStage env (toExpr program)
         let dataDefs := String.intercalate "\n" (← dataState.get).lines.toList
