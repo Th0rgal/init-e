@@ -18,7 +18,8 @@ base.mkdir(exist_ok=True)
 ns = f"InitECandidate.Proofs.WordStages.{tag}{a.label}"
 for n in range(11):
     source = (root / f"submission/InitECandidate/Proofs/WordStages/Pass{a.label}_{n}.lean").read_text()
-    boundary = source.index("private theorem checkpoint_input_eq") if n == 3 else source.index(f"theorem pass{a.label}_{n}_eq")
+    checkpointed = n == 3 and "private theorem checkpoint_input_eq" in source
+    boundary = source.index("private theorem checkpoint_input_eq") if checkpointed else source.index(f"theorem pass{a.label}_{n}_eq")
     prefix, proof = source[:boundary], source[boundary:]
     namespace = "namespace InitECandidate.Proofs.WordStages\n"
     options = prefix[:prefix.index(namespace)]
@@ -28,6 +29,15 @@ for n in range(11):
         lambda m: ("import InitE.SourceDeclarations" if a.independent_data and n != 6 else
                    f"import InitECandidate.Proofs.WordStages.{tag}{a.label}.Data{m.group(1)}"), data)
     data = data.replace(f"import InitECandidate.Proofs.DeadStages{a.label}\n", "")
+    if a.independent_data:
+        # Cross-pass CSE can reference any earlier data module. Keep proof
+        # checks independent while making those data dependencies explicit.
+        earlier = sorted({int(i) for i in re.findall(rf"\bword{a.label}_(\d+)_\d+\b", data)
+                          if int(i) < n})
+        for i in earlier:
+            imp = f"import InitECandidate.Proofs.WordStages.{tag}{a.label}.Data{i}\n"
+            if imp not in data:
+                data = imp + data
     (base / f"Data{n}.lean").write_text(data + f"end {ns}\n")
     proof = proof.replace("end InitECandidate.Proofs.WordStages", f"end {ns}")
     imports = f"import InitECandidate.Proofs.WordStages.{tag}{a.label}.Data{n}\n"
@@ -36,7 +46,7 @@ for n in range(11):
             imports += f"import InitECandidate.Proofs.WordStages.Source{a.label}\n"
         else:
             imports += f"import InitECandidate.Proofs.WordStages.{tag}{a.label}.Data{n-1}\n"
-    if n == 3:
+    if checkpointed:
         imports += f"import InitECandidate.Proofs.DeadStages{a.label}\n"
     (base / f"Proof{n}.lean").write_text(imports + options + f"namespace {ns}\n" + proof)
 print(f"Separated eleven independent pass proofs for function {a.label}")
