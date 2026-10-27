@@ -43,10 +43,26 @@ structure PancakeDataState where
   tag : String := "body"
   values : Std.HashMap Expr String := {}
   lines : Array String := #[]
+  expressions : Std.HashMap Expr Expr := {}
+
+/-- Hash-cons quoted constructor expressions too: retaining one whole fresh
+quotation per DAG node otherwise consumes quadratic space on long sequences. -/
+partial def shareWordStageExpr (state : IO.Ref PancakeDataState) (expr : Expr) : IO Expr := do
+  if let some shared := (← state.get).expressions[expr]? then return shared
+  let shared ← match expr with
+    | .app f a => return mkApp (← shareWordStageExpr state f) (← shareWordStageExpr state a)
+    | .lam n t b i => return .lam n (← shareWordStageExpr state t) (← shareWordStageExpr state b) i
+    | .forallE n t b i => return .forallE n (← shareWordStageExpr state t) (← shareWordStageExpr state b) i
+    | .letE n t v b d => return .letE n (← shareWordStageExpr state t) (← shareWordStageExpr state v) (← shareWordStageExpr state b) d
+    | .mdata d b => return .mdata d (← shareWordStageExpr state b)
+    | .proj n i b => return .proj n i (← shareWordStageExpr state b)
+    | _ => pure expr
+  state.modify fun st => {st with expressions := st.expressions.insert shared shared}
+  return shared
 
 partial def wordProgData (env : Environment) (state : IO.Ref PancakeDataState)
     (program : WordLangProgHOL (BitVec 64)) : IO String := do
-  let expr := toExpr program
+  let expr ← shareWordStageExpr state (toExpr program)
   let st ← state.get
   if let some name := st.values[expr]? then return name
   let text ← match program with
