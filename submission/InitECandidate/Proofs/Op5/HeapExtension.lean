@@ -57,5 +57,27 @@ theorem memory_frame_extend {A V : Type} (m target : A → V)
     · exact part.2 (a,v) ⟨(SetSep.fun2SetThm _ _ a v).mpr ⟨hv,hd⟩,hright⟩
     · exact disjoint a ⟨ha,rightDomain a v hright⟩
 
+/-- A separated scratch frame derives domain non-overlap. Both graphs use
+one memory function, so shared address membership would duplicate a heap pair. -/
+theorem memory_domains_disjoint {A V : Type} (m : A → V) (d e : A → Prop)
+    (frame : ((A × V) → Prop) → Prop) (target : (A × V) → Prop)
+    (heap : SetSep.star (memoryHOL m d) (SetSep.star (memoryHOL m e) frame) target) :
+    ∀ a, ¬ (d a ∧ e a) := by
+  obtain ⟨left,right,parts,hl,inside,rest,inner,he,_⟩ := heap
+  change left = SetSep.fun2Set (m,d) at hl
+  change inside = SetSep.fun2Set (m,e) at he
+  intro a both
+  have hd : left (a,m a) := by
+    rw [hl]
+    exact (SetSep.fun2SetThm m d a (m a)).mpr ⟨rfl,both.1⟩
+  have ha : inside (a,m a) := by
+    rw [he]
+    exact (SetSep.fun2SetThm m e a (m a)).mpr ⟨rfl,both.2⟩
+  have hr : right (a,m a) := by
+    rw [← inner.1]
+    exact Or.inl ha
+  exact parts.2 (a,m a) ⟨hd,hr⟩
+
+#print axioms memory_domains_disjoint
 #print axioms memory_frame_extend
 end InitE.Op5
