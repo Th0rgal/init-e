@@ -44,21 +44,47 @@ structure PancakeDataState where
   values : Std.HashMap Expr String := {}
   lines : Array String := #[]
   expressions : Std.HashMap Expr Expr := {}
+  ptrExprs : Std.HashMap USize Expr := {}
+  constExprs : Std.HashMap Name Expr := {}
 
 /-- Hash-cons quoted constructor expressions too: retaining one whole fresh
 quotation per DAG node otherwise consumes quadratic space on long sequences. -/
 partial def shareWordStageExpr (state : IO.Ref PancakeDataState) (expr : Expr) : IO Expr := do
   if let some shared := (← state.get).expressions[expr]? then return shared
   let shared ← match expr with
-    | .app f a => return mkApp (← shareWordStageExpr state f) (← shareWordStageExpr state a)
-    | .lam n t b i => return .lam n (← shareWordStageExpr state t) (← shareWordStageExpr state b) i
-    | .forallE n t b i => return .forallE n (← shareWordStageExpr state t) (← shareWordStageExpr state b) i
-    | .letE n t v b d => return .letE n (← shareWordStageExpr state t) (← shareWordStageExpr state v) (← shareWordStageExpr state b) d
-    | .mdata d b => return .mdata d (← shareWordStageExpr state b)
-    | .proj n i b => return .proj n i (← shareWordStageExpr state b)
+    | .app f a => pure (mkApp (← shareWordStageExpr state f) (← shareWordStageExpr state a))
+    | .lam n t b i => pure (.lam n (← shareWordStageExpr state t) (← shareWordStageExpr state b) i)
+    | .forallE n t b i => pure (.forallE n (← shareWordStageExpr state t) (← shareWordStageExpr state b) i)
+    | .letE n t v b d => pure (.letE n (← shareWordStageExpr state t) (← shareWordStageExpr state v) (← shareWordStageExpr state b) d)
+    | .mdata d b => pure (.mdata d (← shareWordStageExpr state b))
+    | .proj n i b => pure (.proj n i (← shareWordStageExpr state b))
     | _ => pure expr
   state.modify fun st => {st with expressions := st.expressions.insert shared shared}
   return shared
+
+private def skipProg : WordLangProgHOL (BitVec 64) := .skip
+private def seqHeadExpr : Expr :=
+  (toExpr (WordLangProgHOL.seq skipProg skipProg)).appFn!.appFn!
+
+unsafe def seedWordProgConst (env : Environment) (state : IO.Ref PancakeDataState)
+    (name : Name) : IO Expr := do
+  if let some e := (← state.get).constExprs[name]? then return e
+  let e ← match env.find? name with
+    | some (.defnInfo d) =>
+      let v := d.value
+      if v.getAppFn.isConstOf ``Flapjack.WordLangProgHOL.seq && v.getAppNumArgs >= 2 && v.appFn!.appArg!.isConst && v.appArg!.isConst then
+        let a ← seedWordProgConst env state v.appFn!.appArg!.constName!
+        let b ← seedWordProgConst env state v.appArg!.constName!
+        shareWordStageExpr state (mkApp (mkApp seqHeadExpr a) b)
+      else if v.isConst then seedWordProgConst env state v.constName!
+      else
+        let .ok p := env.evalConst (WordLangProgHOL (BitVec 64)) {} name | throw (IO.userError "cannot evaluate literal")
+        shareWordStageExpr state (toExpr p)
+    | _ =>
+      let .ok p := env.evalConst (WordLangProgHOL (BitVec 64)) {} name | throw (IO.userError "cannot evaluate literal")
+      shareWordStageExpr state (toExpr p)
+  state.modify fun s => {s with constExprs := s.constExprs.insert name e, values := s.values.insert e name.toString}
+  return e
 
 partial def wordProgData (env : Environment) (state : IO.Ref PancakeDataState)
     (program : WordLangProgHOL (BitVec 64)) : IO String := do
