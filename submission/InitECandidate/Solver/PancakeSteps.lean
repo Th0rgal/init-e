@@ -1,4 +1,4 @@
-import Guest.PancakeCryptoRefinement
+import InitECandidate.Solver.PancakeCryptoRefinement
 
 /-!
 # Concrete Pancake steps
