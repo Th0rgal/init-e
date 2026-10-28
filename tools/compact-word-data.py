@@ -17,12 +17,9 @@ source=root/f"submission/InitECandidate/Proofs/WordStages/Parallel{a.label}"
 output=root/f"submission/InitECandidate/Proofs/WordStages/Sparse{a.label}"
 output.mkdir(exist_ok=True)
 token=re.compile(rf"\bword{a.label}_\d+_\d+\b")
-# Later passes can reference earlier nodes after cross-pass CSE.
-all_data = [(source/f"Data{n}.lean").read_text() for n in range(11)]
-counts = Counter(token.findall("\n".join(all_data)))
 for n in range(11):
-    data=all_data[n]
-    external = set(token.findall("\n".join(all_data[:n] + all_data[n+1:])))
+    data=(source/f"Data{n}.lean").read_text()
+    counts=Counter(token.findall(data))
     pattern=re.compile(rf"^def (word{a.label}_\d+_\d+) : WordLangProgHOL \(BitVec 64\) :=\n(.*?)(?=^def |^end )", re.M|re.S)
     inline={}
     depths={}
@@ -33,7 +30,7 @@ for n in range(11):
         children=token.findall(body)
         depth=1+max((depths.get(c,0) for c in children),default=0)
         body=token.sub(lambda t:inline.get(t.group(),t.group()),body)
-        if name not in external and counts[name]==2 and len(body.encode())<=a.bytes and depth<=32:
+        if counts[name]==2 and len(body.encode())<=a.bytes and depth<=32:
             inline[name]="("+body+")"
             depths[name]=depth
             return ""

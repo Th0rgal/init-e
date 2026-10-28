@@ -1,7 +1,7 @@
 import Init
 import InitECandidate.Solver.Op3ClockBound
 import InitECandidate.Solver.LoopFuel
-import Guest.PancakeCryptoRefinement
+import InitECandidate.Solver.PancakeCryptoRefinement
 
 namespace InitECandidate.Solver.Op3GuestBridge
 open InitECandidate.Solver.LoopFuel

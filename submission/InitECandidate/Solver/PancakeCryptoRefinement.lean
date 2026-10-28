@@ -16,7 +16,7 @@ Functional refinement of the three software bottlenecks named in
 
 `bn_arith256` is the same Montgomery recurrence at 32-bit width.
 
-Concrete identities are kernel-checked with `native_decide`. The quantified
+Concrete identities are kernel-checked with `decide`. The quantified
 statements are proved from those identities by `omega` and ring reasoning, never
 by case-splitting on a 256-bit domain.
 -/
@@ -40,7 +40,7 @@ theorem mul128_max :
     (mul128 (0xFFFFFFFFFFFFFFFF : Limb) (0xFFFFFFFFFFFFFFFF : Limb)).2.toNat *
       2 ^ 64 =
     (0xFFFFFFFFFFFFFFFF : Limb).toNat * (0xFFFFFFFFFFFFFFFF : Limb).toNat := by
-  native_decide
+  decide
 
 /-- Little-endian limb value, in the column order of the Pancake loops. -/
 def limbsVal : List Limb → Nat
@@ -50,16 +50,16 @@ def limbsVal : List Limb → Nat
 theorem limbsVal_agrees_on_widths :
     limbsVal [1, 2, 3, 4] = leLimbsToNat [1, 2, 3, 4] ∧
     limbsVal [1, 2, 3, 4, 5, 6] = leLimbsToNat [1, 2, 3, 4, 5, 6] := by
-  native_decide
+  decide
 
 /-! ## `arith256mod`: the `0x1000003d1` fold (`u256.pnk`) -/
 
 def secpFold : Nat := 0x1000003d1
 
-theorem secp_fold_identity : 2 ^ 256 = secpP + secpFold := by native_decide
+theorem secp_fold_identity : 2 ^ 256 = secpP + secpFold := by decide
 
 /-- `2^256 ≡ secpFold (mod secpP)`, so folding a high half is exact. -/
-theorem secp_fold_mod : 2 ^ 256 % secpP = secpFold := by native_decide
+theorem secp_fold_mod : 2 ^ 256 % secpP = secpFold := by decide
 
 /-- One fold, for every high half and every low half below `2^256`. -/
 theorem secp_fold_step (hi lo : Nat) (_hlo : lo < 2 ^ 256) :
@@ -88,12 +88,12 @@ theorem secp_comba_forall (a b : Nat) :
 theorem comba_column_aligned :
     (100 * 2 ^ 224) % 2 ^ 256 = 100 * 2 ^ 224 ∧
     (100 * 2 ^ 160) % 2 ^ 192 = (100 % 2 ^ 32) * 2 ^ 160 := by
-  native_decide
+  decide
 
 theorem comba_columns_checked :
     (7 * 2 ^ 224) % 2 ^ 256 = 7 * 2 ^ 224 ∧
     (9 * 2 ^ 160) % 2 ^ 192 = 9 * 2 ^ 160 := by
-  native_decide
+  decide
 
 /-! ## `bls_arith384`: CIOS Montgomery (`fp384.pnk`) -/
 
@@ -103,9 +103,9 @@ def blsP : Nat := bls12P
 def blsMontInv : Nat := 0x89f3fffcfffcfffd
 
 theorem bls_mont_inv_spec :
-    (blsP % 2 ^ 64) * blsMontInv % 2 ^ 64 = 2 ^ 64 - 1 := by native_decide
+    (blsP % 2 ^ 64) * blsMontInv % 2 ^ 64 = 2 ^ 64 - 1 := by decide
 
-theorem bls_below_382 : 2 * blsP < 2 ^ 382 := by native_decide
+theorem bls_below_382 : 2 * blsP < 2 ^ 382 := by decide
 
 /-- One CIOS round: `MONT_ROUND(bi)`. -/
 def ciosRound (a bi t : Nat) : Nat :=
@@ -118,7 +118,7 @@ theorem bls_neg_one :
     (blsP % 2 ^ 64) * blsMontInv / 2 ^ 64 * 2 ^ 64 +
       (blsP % 2 ^ 64) * blsMontInv % 2 ^ 64 =
     (blsP % 2 ^ 64) * blsMontInv := by
-  native_decide
+  decide
 
 /-- The low limb of `z + m*p` vanishes for every residue below `2^64`: the
 multiplier identity `bls_mont_inv_spec` gives `p*inv ≡ -1`, so the product is a
@@ -150,7 +150,7 @@ def blsR : Nat := 2 ^ 384
 Checked on the real modulus rather than assumed. -/
 def blsRInv : Nat := 0x40
 
-theorem bls_R_nonzero : blsR % blsP ≠ 0 := by native_decide
+theorem bls_R_nonzero : blsR % blsP ≠ 0 := by decide
 
 /-- The conditional subtraction is the canonical residue, and it matches
 `arith256Mod` once the Montgomery factor is removed. Witness: `3 * 5`. -/
@@ -158,7 +158,7 @@ theorem cios6_witness :
     let t := cios6 3 5
     let d := if t < blsP then t else t - blsP
     t < 2 * blsP ∧ (d * blsR) % blsP = arith256Mod 3 5 0 blsP := by
-  native_decide
+  decide
 
 /-! ## Binary modular inversion (`modinv_bin`, `fp_inv_raw`) -/
 
@@ -203,12 +203,12 @@ theorem binStep_decreases_forall (u v x1 x2 m : Nat) (hu : 0 < u) (hv : 0 < v) :
 theorem binStep_preserves :
     binStep 5 23 1 0 23 = (5, 18, 1, 22) ∧
     (1 * 5) % 23 = 5 % 23 ∧ (22 * 5) % 23 = 18 % 23 := by
-  native_decide
+  decide
 
 theorem binStep_decreases :
     (binStep 15 6 1 0 23).1 + (binStep 15 6 1 0 23).2.1 < 15 + 6 ∧
     (binStep 4 11 1 0 23).1 + (binStep 4 11 1 0 23).2.1 < 4 + 11 := by
-  native_decide
+  decide
 
 /-- `powFuelAt` is the Fermat recurrence with the modulus as a parameter, so the
 fuel can match the exponent. `Accel.powMod` hard-wires 512. -/
@@ -230,7 +230,7 @@ inverse, and it matches `invMod`. -/
 theorem binInv_run :
     powFuelAt 23 16 (5 % 23) (23 - 2) = 14 ∧
     powFuelAt 23 16 (5 % 23) (23 - 2) * 5 % 23 = 1 := by
-  native_decide
+  decide
 
 /-! ## Buffer convention of `AccelFfi.arithModBytes` -/
 
@@ -241,15 +241,15 @@ def bnP : Nat := bn254P
 
 def bnR : Nat := 2 ^ 256
 
-theorem bn_radix_nonzero : bnR % bnP ≠ 0 := by native_decide
+theorem bn_radix_nonzero : bnR % bnP ≠ 0 := by decide
 
 /-- `bn_arith256` uses the same 4-limb block as `arith256mod`. -/
-theorem bn_arith_width : arithResultOffset 4 + 4 = 5 * 4 := by native_decide
+theorem bn_arith_width : arithResultOffset 4 + 4 = 5 * 4 := by decide
 
 /-- Byte lengths of the three hash accelerators in `AccelFfi`: keccakf is 25
 words, sha256f is 12, blake2bround is 33. -/
 theorem hash_buffer_bytes :
-    8 * 25 = 200 ∧ 8 * 12 = 96 ∧ 8 * 33 = 264 := by native_decide
+    8 * 25 = 200 ∧ 8 * 12 = 96 ∧ 8 * 33 = 264 := by decide
 
 theorem arith_buffer_forall (limbs : Nat) :
     8 * (4 * limbs) + 8 * limbs = 8 * (5 * limbs) := by

@@ -1,5 +1,4 @@
 import Tools.CompactCertificates
-import Tools.WordStageData
 import Lean
 import InitE.SourceDeclarations
 import InitECandidate.Proofs.DeadComputation
@@ -13,6 +12,20 @@ set_option maxRecDepth 1000000
 set_option maxHeartbeats 0
 
 set_option Elab.async false
+deriving instance ToExpr for Flapjack.BinOp
+deriving instance ToExpr for Flapjack.Shift
+deriving instance ToExpr for Flapjack.Cmp
+deriving instance ToExpr for Flapjack.WordMemOp
+deriving instance ToExpr for Flapjack.WordStore
+deriving instance ToExpr for Flapjack.WordRegImm
+deriving instance ToExpr for Flapjack.Spt
+deriving instance ToExpr for Flapjack.RegAlloc.ClashTree
+deriving instance ToExpr for Flapjack.Basis.Pure.MlString.MlString
+deriving instance ToExpr for Flapjack.WordLangArith
+deriving instance ToExpr for Flapjack.WordLangAddr
+deriving instance ToExpr for Flapjack.WordLangInst
+deriving instance ToExpr for Flapjack.WordLangExpHOL
+deriving instance ToExpr for Flapjack.WordLangProgHOL
 
 deriving instance ToExpr for Flapjack.PanOp
 deriving instance ToExpr for Flapjack.VarKind
@@ -104,6 +117,19 @@ instance : ToExpr (HolLoopProg 64) where
   toTypeExpr := loopLiteralType ``HolLoopProg
   toExpr := loopProgExpr
 
+def renderWordStage (env : Environment) (e : Expr) : IO String := do
+  let options := ({} : Options).set `pp.maxDepth (1000000 : Nat)
+    |>.set `pp.width (120 : Nat) |>.set `pp.universes false
+    |>.set `pp.maxSteps (1000000000 : Nat) |>.set `pp.deepTerms true
+    |>.set `pp.fieldNotation false
+    |>.set `maxRecDepth (1000000 : Nat) |>.set `maxHeartbeats (0 : Nat)
+  let (fmt, _, _) ← Meta.MetaM.toIO (Meta.ppExpr e)
+    { fileName := "<word-stage>", fileMap := default, options := options }
+    { env := env }
+  let rendered := fmt.pretty
+  if rendered.startsWith "failed to pretty print" || rendered.contains '⋯' then
+    throw (IO.userError "incomplete pretty-printer output")
+  pure rendered
 
 partial def frontendWeight : Prog (BitVec 64) → Nat
   | .seq a b => 1 + frontendWeight a + frontendWeight b
@@ -132,6 +158,10 @@ def declarationWeight (d : Pancake.PanLang.DeclHOL 64) : Nat :=
   | .function fn => frontendWeight fn.body
   | _ => 1
 
+structure PancakeDataState where
+  tag : String := "body"
+  values : Std.HashMap Expr String := {}
+  lines : Array String := #[]
 
 partial def pancakeProgData (env : Environment) (state : IO.Ref PancakeDataState)
     (program : Prog (BitVec 64)) : IO String := do
@@ -252,6 +282,53 @@ partial def crepProgData (env : Environment) (state : IO.Ref PancakeDataState)
   state.modify fun st => { st with values := st.values.insert expr name, lines := st.lines.push s!"def {name} : CrepProg (BitVec 64) :=\n{text}\n" }
   return name
 
+partial def wordProgData (env : Environment) (state : IO.Ref PancakeDataState)
+    (program : WordLangProgHOL (BitVec 64)) : IO String := do
+  let expr := toExpr program
+  let st ← state.get
+  if let some name := st.values[expr]? then return name
+  let text ← match program with
+    | .seq a b => do
+      let a ← wordProgData env state a
+      let b ← wordProgData env state b
+      pure s!".seq {a} {b}"
+    | .mustTerminate body => do
+      let body ← wordProgData env state body
+      pure s!".mustTerminate {body}"
+    | .ite op lhs rhs a b => do
+      let op ← renderWordStage env (toExpr op)
+      let rhs ← renderWordStage env (toExpr rhs)
+      let a ← wordProgData env state a
+      let b ← wordProgData env state b
+      pure s!".ite ({op}) {lhs} ({rhs}) {a} {b}"
+    | .loop before body after => do
+      let before ← renderWordStage env (toExpr before)
+      let after ← renderWordStage env (toExpr after)
+      let body ← wordProgData env state body
+      pure s!".loop ({before}) {body} ({after})"
+    | .call ret target args handler => do
+      let ret ← match ret with
+        | none => pure "none"
+        | some (names, cutsets, body, first, second) => do
+          let names ← renderWordStage env (toExpr names)
+          let cutsets ← renderWordStage env (toExpr cutsets)
+          let body ← wordProgData env state body
+          pure s!"some (({names}), ({cutsets}), {body}, {first}, {second})"
+      let handler ← match handler with
+        | none => pure "none"
+        | some (name, body, first, second) => do
+          let body ← wordProgData env state body
+          pure s!"some ({name}, {body}, {first}, {second})"
+      let target ← renderWordStage env (toExpr target)
+      let args ← renderWordStage env (toExpr args)
+      pure s!".call ({ret}) ({target}) ({args}) ({handler})"
+    | _ => renderWordStage env expr
+  let st ← state.get
+  let name := s!"{st.tag}{st.values.size}"
+  state.modify fun st => {st with
+    values := st.values.insert expr name
+    lines := st.lines.push s!"def {name} : WordLangProgHOL (BitVec 64) :=\n{text}\n"}
+  return name
 
 structure LoopWordCheckpoint where
   input : String
@@ -562,7 +639,9 @@ partial def deadCheckpoint (env : Environment) (state : IO.Ref DeadCheckpointSta
 unsafe def genWordStagesMain (args : List String) : IO Unit := do
   enableInitializersExecution
   initSearchPath (← findSysroot)
-  let env ← importModules #[{ module := `InitE.SourceDeclarations }] {} 0 (loadExts := true)
+  let setup ← ModuleSetup.load ".lake/build/ir/InitE/SourceDeclarations.setup.json"
+  let env ← importModules #[{ module := `InitE.SourceDeclarations }] {}
+    (loadExts := true) (arts := setup.importArts)
   if args.contains "--loop-word-checkpoints" then
     let index := (args[1]?.bind String.toNat?).getD 649
     let label := index + firstLoopName
@@ -582,7 +661,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
     let wordRoot ← wordProgData env wordState word
     if args.contains "--write-word-source" then
       let defs := String.intercalate "\n" (← wordState.get).lines.toList
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages/Source{label}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/WordStages/Source{label}.lean"
         ("import Flapjack.Pancake.WordLang\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\n" ++
          "open Flapjack\nnamespace InitECandidate.Proofs.WordStages\n" ++ defs ++ "\n" ++
          s!"def source{label} : Nat × Nat × WordLangProgHOL (BitVec 64) :=\n" ++
@@ -592,7 +671,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       context state entry.2.2 (label,2)
     let nodes := (← state.get).nodes
     let proofNamespace := s!"InitECandidate.Proofs.FrontendStages.Word.Checkpoints{index}"
-    let directory := s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Word/Checkpoints{index}"
+    let directory := s!"submission/InitECandidate/Proofs/FrontendStages/Word/Checkpoints{index}"
     for folder in ["Data", "Conditional", "Compose", "Agreement"] do
       IO.FS.createDirAll s!"{directory}/{folder}"
     let header := "set_option autoImplicit false\nset_option Elab.async false\n" ++
@@ -668,7 +747,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
     IO.println s!"Loop-to-Word checkpoints {index}: {nodes.size} nodes, {groups} chunks, root {root}"
     return
   if args.contains "--frontend-word-context" then
-    IO.FS.createDirAll "/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Word"
+    IO.FS.createDirAll "submission/InitECandidate/Proofs/FrontendStages/Word"
     let p0 := panSimpDeclsHOL InitE.sourceDeclarations
     let p1 := Pancake.PanStructs.CompileShapeExact.compileTopExact p0
     let p2 := compileTopExactHOL p1 (Basis.Pure.MlString.ofString "main")
@@ -686,7 +765,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       "set_option maxRecDepth 1000000\nset_option maxHeartbeats 0\n" ++
       "set_option cbv.maxSteps 1000000000\nset_option cbv.warning false\n" ++
       "open Flapjack\nnamespace InitECandidate.Proofs.FrontendStages.Word\n"
-    writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Word/Variables{index}.lean"
+    writeCompactCertificate s!"submission/InitECandidate/Proofs/FrontendStages/Word/Variables{index}.lean"
       (s!"import InitECandidate.Proofs.FrontendStages.Loop.Data{index}\n" ++
        "import InitECandidate.Proofs.WordFrontendComputation\n" ++ header ++
        s!"def assigned{index} : NumSet := {assignedText}\n" ++
@@ -705,7 +784,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
        "end InitECandidate.Proofs.FrontendStages.Word\n")
     return
   if args.contains "--frontend-loop" then
-    IO.FS.createDirAll "/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Loop"
+    IO.FS.createDirAll "submission/InitECandidate/Proofs/FrontendStages/Loop"
     let p0 := panSimpDeclsHOL InitE.sourceDeclarations
     let p1 := Pancake.PanStructs.CompileShapeExact.compileTopExact p0
     let p2 := compileTopExactHOL p1 (Basis.Pure.MlString.ofString "main")
@@ -717,7 +796,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       "set_option maxRecDepth 1000000\nset_option maxHeartbeats 0\n" ++
       "set_option cbv.maxSteps 1000000000\nset_option cbv.warning false\n" ++
       "open Flapjack\nnamespace InitECandidate.Proofs.FrontendStages.Loop\n"
-    writeCompactCertificate "/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Loop/Context.lean"
+    writeCompactCertificate "submission/InitECandidate/Proofs/FrontendStages/Loop/Context.lean"
       ("import Flapjack.Pancake.CrepToLoop.ContextExact\nimport Lean\n" ++ header ++
        "def signatures : List (Flapjack.Basis.Pure.MlString.MlString × List Nat × Unit) :=\n" ++ text ++
        "\ndef functionMap := crepToLoopMakeFuncsExactExecutable signatures\n" ++
@@ -731,12 +810,12 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       let text ← loopProgData env state body
       let defs := String.intercalate "\n" (← state.get).lines.toList
       let params ← renderWordStage env (toExpr (List.range entry.2.1.length))
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Loop/Data{index}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/FrontendStages/Loop/Data{index}.lean"
         ("import InitECandidate.Proofs.FrontendStages.Loop.Context\n" ++ header ++ defs ++
          s!"\ndef output{index} : Nat × List Nat × HolLoopProg 64 :=\n" ++
          s!"  ({index + firstLoopName}, {params}, {text})\n" ++
          "end InitECandidate.Proofs.FrontendStages.Loop\n")
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Loop/Translate{index}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/FrontendStages/Loop/Translate{index}.lean"
         ("import InitECandidate.Proofs.LoopKernelComputation\n" ++ s!"import InitECandidate.Proofs.FrontendStages.Crep.Data{index}\n" ++
          s!"import InitECandidate.Proofs.FrontendStages.Loop.Data{index}\n" ++
          "import Flapjack.Compiler.Encoders.RiscV.Target.Configuration\n" ++ header ++
@@ -749,7 +828,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       IO.println s!"Loop translation {index}: {defs.utf8ByteSize + text.utf8ByteSize} bytes"
     return
   if args.contains "--frontend-crep" then
-    IO.FS.createDirAll "/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Crep"
+    IO.FS.createDirAll "submission/InitECandidate/Proofs/FrontendStages/Crep"
     let ds := panSimpDeclsHOL InitE.sourceDeclarations
     let structs := Pancake.PanStructs.CompileShapeExact.compileTopExact ds
     let p2 := compileTopExactHOL structs (Basis.Pure.MlString.ofString "main")
@@ -768,7 +847,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       "set_option cbv.maxSteps 1000000000\nset_option cbv.warning false\n" ++
       "open Flapjack Flapjack.Pancake.PanLang\n" ++
       "namespace InitECandidate.Proofs.FrontendStages.Crep\n"
-    writeCompactCertificate "/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Crep/Context.lean"
+    writeCompactCertificate "submission/InitECandidate/Proofs/FrontendStages/Crep/Context.lean"
       ("import InitECandidate.Proofs.CrepComputation\n" ++ header ++
        "def signatureData : List (MlS × List (MlS × Shape) × Shape) :=\n" ++ signaturesText ++
        "\ndef exceptionData : List (MlS × Shape) :=\n" ++ exceptionsText ++
@@ -790,7 +869,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       let params ← renderWordStage env (toExpr (crepVarsHOL f.2.1))
       let sourceRef := if index == 0 then "InitECandidate.Proofs.FrontendStages.generatedMain"
         else s!"InitECandidate.Proofs.FrontendStages.Declarations.globalOutput{indices[index-1]!}"
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Crep/Data{index}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/FrontendStages/Crep/Data{index}.lean"
         ("import InitECandidate.Proofs.FrontendStages.Crep.Context\n" ++ header ++ defs ++
          s!"\ndef data{index} : CrepProg (BitVec 64) := {text}\n" ++
          s!"def output{index} : MlS × List Nat × CrepProgHOL 64 :=\n" ++
@@ -798,7 +877,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
          "end InitECandidate.Proofs.FrontendStages.Crep\n")
       let sourceImport := if index == 0 then "import InitECandidate.Proofs.FrontendStages.MainData\n"
         else s!"import InitECandidate.Proofs.FrontendStages.Globals.Output{indices[index-1]!}\n"
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Crep/Translate{index}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/FrontendStages/Crep/Translate{index}.lean"
         ("import InitECandidate.Proofs.CrepKernelComputation\nimport InitECandidate.Proofs.FrontendCodecComputation\n" ++
          (if index == 0 then "import InitECandidate.Proofs.FrontendStages.Globals.KernelContext\n" else "") ++
          sourceImport ++ s!"import InitECandidate.Proofs.FrontendStages.Crep.Data{index}\n" ++ header ++
@@ -820,7 +899,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       IO.println s!"Crep translation {index}: {defs.utf8ByteSize + text.utf8ByteSize} bytes"
     return
   if args.contains "--frontend-globals" then
-    IO.FS.createDirAll "/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Globals"
+    IO.FS.createDirAll "submission/InitECandidate/Proofs/FrontendStages/Globals"
     let ds := panSimpDeclsHOL InitE.sourceDeclarations
     let globals := ds.zipIdx.filter (fun p => Pancake.PanLang.isDeclHOL p.1)
     let maxSize := (decShapesHOL ds).map Pancake.PanLang.sizeOfShapeHOL |>.sum
@@ -834,7 +913,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
     let imports := String.join (globals.map fun p =>
       s!"import InitECandidate.Proofs.FrontendStages.Declarations.Data{p.2}\n")
     let refs := String.intercalate ", " (globals.map fun p => s!"simplified{p.2}")
-    writeCompactCertificate "/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Globals/Context.lean"
+    writeCompactCertificate "submission/InitECandidate/Proofs/FrontendStages/Globals/Context.lean"
       (imports ++ "import InitECandidate.Proofs.GlobalsComputation\n" ++
        "set_option maxRecDepth 1000000\nset_option maxHeartbeats 0\n" ++
        "namespace InitECandidate.Proofs.FrontendStages.Declarations\nopen Flapjack\n" ++
@@ -865,7 +944,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
         let previousImport := match previous with
           | none => ""
           | some j => s!"import InitECandidate.Proofs.FrontendStages.Globals.Translate{j}\n"
-        writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Globals/Translate{i}.lean"
+        writeCompactCertificate s!"submission/InitECandidate/Proofs/FrontendStages/Globals/Translate{i}.lean"
           (s!"import InitECandidate.Proofs.FrontendStages.Declarations.Data{i}\n" ++
            "import InitECandidate.Proofs.FrontendStages.Globals.KernelContext\n" ++ previousImport ++
            "set_option autoImplicit false\nset_option Elab.async false\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\n" ++
@@ -892,7 +971,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       | _ => pure ()
     return
   if args.contains "--frontend-declarations" then
-    IO.FS.createDirAll "/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Declarations"
+    IO.FS.createDirAll "submission/InitECandidate/Proofs/FrontendStages/Declarations"
     let count := (args.head?.bind String.toNat?).getD 8
     let offset := (args[1]?.bind String.toNat?).getD 0
     let declarations := if args.contains "--largest" then
@@ -915,7 +994,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
         "set_option cbv.maxSteps 1000000000\nset_option cbv.warning false\n" ++
         "open scoped InitECandidate.Proofs.FrontendComputation\n" ++
         "open Flapjack\nnamespace InitECandidate.Proofs.FrontendStages.Declarations\n"
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Declarations/Data{index}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/FrontendStages/Declarations/Data{index}.lean"
         ("import InitECandidate.Proofs.FrontendComputation\n" ++
          (if index < 16 then "" else s!"import InitECandidate.Proofs.FrontendStages.Declarations.Simplify{index - 16}\n") ++
          header ++ bodyDefs ++ "\n" ++
@@ -924,7 +1003,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
          s!"\ndef original{index} := Pancake.PanLang.declToHOL originalData{index}\n" ++
          s!"def simplified{index} := Pancake.PanLang.declToHOL simplifiedData{index}\n" ++
          "end InitECandidate.Proofs.FrontendStages.Declarations\n")
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/FrontendStages/Declarations/Simplify{index}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/FrontendStages/Declarations/Simplify{index}.lean"
         ("import InitECandidate.Proofs.FrontendCodecComputation\n" ++
          s!"import InitECandidate.Proofs.FrontendStages.Declarations.Data{index}\n" ++ header ++
          s!"theorem simplify{index}_eq : InitECandidate.Proofs.FrontendComputation.simplifyDeclaration original{index} = simplified{index} := by\n" ++
@@ -978,7 +1057,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
   let regs := riscvConfig.regCount - (5 + riscvConfig.avoidRegs.length)
   let oracles := (WordToWord.nextNOracle source.length config.colOracle).1
   IO.FS.createDirAll "work/lean-perf/word-stages"
-  if certifiedStages || passes then IO.FS.createDirAll "/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages"
+  if certifiedStages || passes then IO.FS.createDirAll "submission/InitECandidate/Proofs/WordStages"
   for (entry, oracle) in (source.zip oracles).drop offset |>.take limit do
     if args.contains "--skip-large" && wordStageWeight entry.2.2 >= 1000 then
       continue
@@ -987,7 +1066,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       let sourceState ← IO.mkRef ({tag := s!"sourceBody{label}_"} : PancakeDataState)
       let sourceBody ← wordProgData env sourceState entry.2.2
       let sourceDefs := String.intercalate "\n" (← sourceState.get).lines.toList
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages/Source{label}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/WordStages/Source{label}.lean"
         ("import Flapjack.Pancake.WordLang\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\n" ++
          "open Flapjack\nnamespace InitECandidate.Proofs.WordStages\n" ++ sourceDefs ++ "\n" ++
          s!"def source{label} : Nat × Nat × Flapjack.WordLangProgHOL (BitVec 64) :=\n" ++
@@ -1024,7 +1103,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       let state ← IO.mkRef ({} : ClashCheckpointState)
       let root ← clashCheckpoint env state colour tree .ln .ln
       let st ← state.get
-      let dir := s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/ClashStages{label}"
+      let dir := s!"submission/InitECandidate/Proofs/ClashStages{label}"
       IO.FS.createDirAll dir
       let colourText ← renderWordStage env (toExpr colour)
       let header := "set_option Elab.async false\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\nset_option cbv.maxSteps 1000000000\nset_option cbv.warning false\n" ++
@@ -1054,7 +1133,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       continue
     if args.contains "--compose-proofs" then
       let label := entry.1
-      let file := s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages/Optimize{label}.lean"
+      let file := s!"submission/InitECandidate/Proofs/WordStages/Optimize{label}.lean"
       let original ← IO.FS.readFile file
       let preamble := (original.splitOn s!"theorem optimize{label}_eq").head!
       let preamble := preamble.replace s!"import InitECandidate.Proofs.WordStages.Source{label}\n"
@@ -1082,7 +1161,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       let root ← deadCheckpoint env state p2 .ln [] []
       let st ← state.get
       let label := entry.1
-      let directory := s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/DeadStages{label}"
+      let directory := s!"submission/InitECandidate/Proofs/DeadStages{label}"
       IO.FS.createDirAll directory
       let header := "import InitECandidate.Proofs.ComputationCache\nimport InitECandidate.Proofs.DeadBranchComputation\nset_option Elab.async false\nset_option maxRecDepth 1000000\n" ++
         "set_option maxHeartbeats 0\nset_option cbv.maxSteps 1000000000\n" ++
@@ -1118,14 +1197,14 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       else
         chunk := chunk - 1
       let suffix := String.ofList (List.replicate (3 - (toString chunk).length) '0') ++ toString chunk
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/DeadStages{label}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/DeadStages{label}.lean"
         (s!"import InitECandidate.Proofs.DeadStages{label}.Chunk{suffix}\n\n#print axioms InitECandidate.Proofs.DeadStages{label}.node{root}_eq\n")
       let inputEquations := String.intercalate ", " ((List.range st.next).map fun i => s!"InitECandidate.Proofs.DeadStages{label}.input{i}_def")
       let outputEquations := String.intercalate ", " ((List.range st.next).map fun i => s!"InitECandidate.Proofs.DeadStages{label}.output{i}_def")
       let emptyLive := st.values[toExpr (Spt.ln : NumSet)]!
       let emptyStores := st.values[toExpr ([] : List WordStoreHOL)]!
       let emptyLoops := st.values[toExpr ([] : List (NumSet × NumSet))]!
-      let bridgePath := s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages/Pass{label}_3.lean"
+      let bridgePath := s!"submission/InitECandidate/Proofs/WordStages/Pass{label}_3.lean"
       if ← System.FilePath.pathExists bridgePath then
         let original ← IO.FS.readFile bridgePath
         let bridgeText := ((original.splitOn "private theorem checkpoint_input_eq").head!).splitOn
@@ -1165,10 +1244,6 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
         "set_option Elab.async false\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\nset_option cbv.maxSteps 1000000000\nset_option cbv.warning false\n" ++
         "open scoped InitECandidate.Proofs.CompilerComputation InitECandidate.Proofs.ClashComputation\nopen Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Encoders.RiscV.Target\nopen InitECandidate.Proofs.WordStages\n" ++
         s!"namespace InitECandidate.Proofs.WordStages.Fused{label}\n"
-      -- Every pass imports its predecessor (or shares the fused namespace).
-      -- Retain structural keys across passes, but emit each declaration once.
-      -- This cache is rebuilt from the current guest on every generator run.
-      let dataState ← IO.mkRef ({} : PancakeDataState)
       for (program, index) in programs.zipIdx do
         let prev := if index == 0 then s!"source{label}.2.2" else s!"pass{label}_{index-1}"
         let imports := if index == 0 then s!"import InitECandidate.Proofs.WordStages.Source{label}\n"
@@ -1190,7 +1265,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
         -- RISC-V has `twoRegArith = false`, so pass 6 is exactly its input.
         -- Reusing pass 5 avoids emitting and kernel-checking another full AST.
         if index == 6 && !fused then
-          writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages/Pass{label}_6.lean"
+          writeCompactCertificate s!"submission/InitECandidate/Proofs/WordStages/Pass{label}_6.lean"
             (imports ++ "import InitECandidate.Proofs.CompilerComputation\n" ++
              "open scoped InitECandidate.Proofs.CompilerComputation\n" ++
              "open Flapjack Flapjack.Compiler.Backend Flapjack.Compiler.Encoders.RiscV.Target\n" ++
@@ -1200,7 +1275,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
              s!"  simp only [WordInst.threeToTwoRegProg, riscvConfig, Bool.false_eq_true, if_false, pass{label}_6]\n" ++
              s!"#print axioms pass{label}_6_eq\nend InitECandidate.Proofs.WordStages\n")
           continue
-        dataState.modify fun st => { st with tag := s!"word{label}_{index}_", lines := #[] }
+        let dataState ← IO.mkRef ({tag := s!"word{label}_{index}_"} : PancakeDataState)
         let text ← if args.contains "--word-data-dag" then wordProgData env dataState program
           else renderWordStage env (toExpr program)
         let dataDefs := String.intercalate "\n" (← dataState.get).lines.toList
@@ -1213,7 +1288,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
             (if index == 2 then "  rw [InitECandidate.Proofs.SmallSsaKernelComputation.fullSsaStructural_eq]\n" else "") ++
             "  kernel_rfl\n" ++ s!"#print axioms pass{label}_{index}_eq\n"
           continue
-        writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages/Pass{label}_{index}.lean"
+        writeCompactCertificate s!"submission/InitECandidate/Proofs/WordStages/Pass{label}_{index}.lean"
           (imports ++ "import InitECandidate.Proofs.CompilerComputation\n" ++
            "set_option Elab.async false\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\n" ++
            "set_option cbv.maxSteps 1000000000\nset_option cbv.warning false\n" ++
@@ -1232,7 +1307,7 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
           s!"theorem compiled_eq : WordToWord.fullCompileSingleWith RegAlloc.regAllocExecutable riscvConfig.twoRegArith (riscvConfig.regCount - (5 + riscvConfig.avoidRegs.length)) RiscVConfig.pancakeRiscVBackendConfig.wordToWordConf.regAlg riscvConfig (source{label}, proposed{label}) = ({label}, {entry.2.1}, pass{label}_10) := by\n" ++
           "  rw [InitECandidate.Proofs.CompilerStages.fullCompile_expanded]\n  dsimp only\n" ++
           s!"  have name_eq : source{label}.1 = {label} := by rfl\n  have argc_eq : source{label}.2.1 = {entry.2.1} := by rfl\n  rw [name_eq, argc_eq, {equations}]\n  try rfl\n#print axioms compiled_eq\nend InitECandidate.Proofs.WordStages.Fused{label}\n"
-        writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages/Fused{label}.lean" fusedText
+        writeCompactCertificate s!"submission/InitECandidate/Proofs/WordStages/Fused{label}.lean" fusedText
         IO.println s!"Fused opaque optimizer proposal {label}: {fusedText.utf8ByteSize} bytes"
       continue
     if certifiedStages then
@@ -1251,12 +1326,12 @@ unsafe def genWordStagesMain (args : List String) : IO Unit := do
       let optimizedDefs := String.intercalate "\n" (← optimizedState.get).lines.toList
       let oracleText ← renderWordStage env (toExpr proposal)
       unless args.contains "--optimized-only" do
-        writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages/Source{label}.lean"
+        writeCompactCertificate s!"submission/InitECandidate/Proofs/WordStages/Source{label}.lean"
           ("import Flapjack.Pancake.WordLang\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\n" ++
            "open Flapjack\nnamespace InitECandidate.Proofs.WordStages\n" ++ sourceDefs ++ "\n" ++
            s!"def source{label} : Nat × Nat × Flapjack.WordLangProgHOL (BitVec 64) :=\n" ++ text ++
            "\nend InitECandidate.Proofs.WordStages\n")
-      writeCompactCertificate s!"/tmp/init-e-phase3b/submission/InitECandidate/Proofs/WordStages/Optimize{label}.lean"
+      writeCompactCertificate s!"submission/InitECandidate/Proofs/WordStages/Optimize{label}.lean"
         (s!"import InitECandidate.Proofs.WordStages.Source{label}\n" ++
          "import InitECandidate.Proofs.CompilerComputation\n" ++
          "set_option Elab.async false\nset_option maxRecDepth 1000000\nset_option maxHeartbeats 0\n" ++
