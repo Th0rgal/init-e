@@ -1,6 +1,13 @@
 import InitE
 import InitECandidate.Solver.YukonSelfContainedCert
 import InitECandidate.Solver.PanToTargetLinearClockAndGasMaster
+import InitECandidate.Solver.PancakeClose
+import InitECandidate.Solver.PancakeSteps
+import InitECandidate.Solver.PancakeCryptoRefinement
+import InitECandidate.Solver.Op3FiniteKBridge
+import InitECandidate.Proofs.Op5.ScratchArenaInstallation
+import InitECandidate.Proofs.Op5.CompilerScratchFrame
+import InitECandidate.Proofs.Op5.StackRemoveScratchBridge
 
 namespace InitE.Challenge
 open Flapjack
@@ -58,6 +65,24 @@ theorem finiteK_certificate_of_not_timeOut
   InitECandidate.Solver.SelfContainedSixPassMaster.reduced_finite_certificate
     oracles c depth hlab compiled depthBound not_timeOut
 
+/-- Specialization of the Op3 finite-`K` bridge at the verified aggregate source bound. -/
+theorem certificate_at_aggregate_bound (s : InitE.Submission)
+    (score : s.K = .finite (23077 + InitECandidate.Solver.Op3FiniteKBridge.T 459564194))
+    (admitted : s.Admitted)
+    (correct : ∀ input outcome events,
+      sourceBehaviour input = .terminate outcome events →
+      ∀ behaviour, machineSemHOL s.machineConfig (sourceFfi input)
+        (s.initialState input) behaviour → behaviour = .terminate outcome events)
+    (transfer : ∀ input outcome events,
+      InitECandidate.Solver.FiniteKBridge.InScope input outcome events →
+      ∃ kSrc, kSrc ≤ 459564194 ∧
+        (evaluateTargetHOL s.machineConfig (sourceFfi input)
+          (23077 + InitECandidate.Solver.Op3FiniteKBridge.T kSrc)
+          (s.initialState input)).1 ≠ .timeOut) :
+    InitE.Certificate s (.finite (23077 + InitECandidate.Solver.Op3FiniteKBridge.T 459564194)) :=
+  InitECandidate.Solver.Op3FiniteKBridge.certificate_at_aggregate_bound
+    s score admitted correct transfer
+
 /-- Self-contained baseline `.infinity` certificate bridge via `YukonSelfContainedCert`. -/
 theorem certificate
     (oracles : List (Option (Spt Nat))) (c : Backend.Config) (depth : Nat)
@@ -73,4 +98,5 @@ end InitE.Challenge
 
 #print axioms InitE.Challenge.certificate
 #print axioms InitE.Challenge.finiteK_certificate_of_not_timeOut
+#print axioms InitE.Challenge.certificate_at_aggregate_bound
 #print axioms InitE.Challenge.machine_termination_iff_infinity
